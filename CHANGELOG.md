@@ -615,7 +615,8 @@ found and its fixer fixed, with its id, its severity as reported and the fixer a
 ### Known gaps
 
 - **The screen-share step of the WebKit calls test runs only on macOS.** On the Linux CI runner, Playwright's headless WebKit refuses
-  `getDisplayMedia` even from a trusted click, so that test checks the whole call there and skips the share (`test/unit/calls-browser.test.mjs`).
+  `getDisplayMedia` even from a trusted click, so that test checks the whole call there and skips the share (`test/unit/calls-browser.test.mjs`). The same runner's WebKit asks for a video
+  without a Range header first and seeks with Range after; the two media checks of the example tests accept that pattern on Linux only.
 - **Not run:** every real-device row, 0.2.1 and v0.3 (iOS Safari and Home Screen apps, Android Chrome, passkey PRF across
   synced devices, media playback on an iPhone, the device link by camera, the comprehension test G-ID-9); Firefox, Safari
   and Edge outside the automated harness; any public network. Only the desktop parts of G11, G12, G13, G14, G19 and G-CH-8
