@@ -1,0 +1,63 @@
+# .github/workflows/pointer.yml  (reusable; the ONLY place that can sign and the ONLY place that can write DNS)
+name: pointer
+on:
+  workflow_call:
+    inputs:
+      channel:         { type: string, required: true }
+      host:            { type: string, required: true }
+      rel:             { type: string, required: true }
+permissions: {}
+env: { CDN: 'https://seed.example.com', ZONE_ID: Z0123456789ABC, TTL: '300' }
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.channel == 'prod' && 'production-sign' || 'beta' }}   # prod: second approval, separate from the seed job
+    permissions: { id-token: write, contents: read }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: release, path: out }
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with: { role-to-assume: 'arn:aws:iam::111122223333:role/mw-signer', aws-region: us-east-1, role-duration-seconds: 900 }   # kms:Sign on ONE key + read-only Route 53
+      - env: { HOST: "${{ inputs.host }}", REL: "${{ inputs.rel }}" }
+        run: |
+          set -euo pipefail
+          # seq = (currently published seq) + 1, read from the authoritative servers; exp = now + 90 d; scope = the hostname being published
+          node tools/mw.mjs pointer build out/release.json --scope "$HOST" --ws "$CDN/r/$REL/" --xs "$CDN/r/$REL/site.torrent" \
+               --tr wss://tracker.example.com --exp 90d --seq-from dns --zone "$ZONE_ID" --out ptr
+          aws kms sign --key-id alias/mw-owner --message fileb://ptr/signing-input.txt --message-type RAW \
+               --signing-algorithm ECDSA_SHA_256 --query Signature --output text | base64 -d > ptr/sig.der
+          node tools/mw.mjs pointer finish ptr --der ptr/sig.der   # DER -> raw r||s, append sig=, then run the browser's verifyPointer()
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: pointer, path: ptr, if-no-files-found: error, retention-days: 90 }
+
+  dns:
+    needs: sign
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.channel == 'prod' && 'production-dns' || 'beta' }}
+    permissions: { id-token: write, contents: read }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: pointer, path: ptr }
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with: { role-to-assume: 'arn:aws:iam::111122223333:role/mw-dns-writer', aws-region: us-east-1, role-duration-seconds: 900 }   # ChangeResourceRecordSets limited by name/type/action condition keys
+      - env: { HOST: "${{ inputs.host }}" }
+        run: |
+          set -euo pipefail
+          node tools/mw.mjs dns publish route53 --zone "$ZONE_ID" --name "_magnet.$HOST" --value-file ptr/pointer.txt --ttl "$TTL" --cas   # DELETE(old exact value)+CREATE(new) in one batch, then wait INSYNC
+          node tools/mw.mjs dns check "_magnet.$HOST" --expect ptr/pointer.txt --authoritative --doh cloudflare,google --wait 15m          # authoritative first: never prime negative caches
+
+  smoke:
+    needs: dns
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: npm ci --ignore-scripts && npx playwright install --with-deps chromium
+      - env: { HOST: "${{ inputs.host }}", REL: "${{ inputs.rel }}" }
+        run: node tools/mw.mjs smoke "https://${HOST}/" --expect-rel "$REL" --timeout 10m   # real browser: resolves the pointer, downloads, renders, reports source=peers|webseed

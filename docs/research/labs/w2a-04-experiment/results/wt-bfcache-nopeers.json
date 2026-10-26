@@ -1,0 +1,17 @@
+{
+ "browser": "chromium 156.0.8078.4",
+ "cases": [
+  {
+   "mode": "alone",
+   "p2pDownloadCompleted": false,
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "mode": "alone-destroy-on-pagehide",
+   "p2pDownloadCompleted": false,
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  }
+ ]
+}

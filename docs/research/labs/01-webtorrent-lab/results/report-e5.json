@@ -1,0 +1,33 @@
+{
+  "runs": {
+    "unlimited": {
+      "done": true,
+      "ms": 294,
+      "aUploaded": 262941
+    },
+    "uploadLimit_32KiBps_at_construct": {
+      "done": true,
+      "ms": 8094,
+      "aUploaded": 262941
+    },
+    "throttleUpload_64KiBps_runtime": {
+      "done": true,
+      "ms": 4045
+    }
+  },
+  "errors": [],
+  "defaults": {
+    "maxConns": 55,
+    "_uploadLimit": -1,
+    "_downloadLimit": -1,
+    "secure": 1,
+    "seedOutgoingConnections": true,
+    "enableWebSeeds": true,
+    "lsd": false,
+    "utPex": false,
+    "hasDHT": false,
+    "userAgent": "WebTorrent/3.0.21 (https://webtorrent.io)",
+    "peerIdPrefix": "-WW0300-",
+    "defaultTrackerOpts": "false"
+  }
+}

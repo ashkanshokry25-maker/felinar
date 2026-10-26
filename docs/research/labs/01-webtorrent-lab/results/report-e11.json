@@ -1,0 +1,23 @@
+{
+  "errors": [],
+  "rechokeNumSlots": 0,
+  "bDoneWithin8s": true,
+  "bProgress": 1,
+  "bDownloaded": 131072,
+  "bMetadata": true,
+  "bWires": [
+    {
+      "peerChoking": true,
+      "hasFast": true,
+      "allowedFastFromPeer": 0
+    }
+  ],
+  "aWires": [
+    {
+      "amChoking": true,
+      "peerInterested": false,
+      "allowedFastSent": 0
+    }
+  ],
+  "extMessagesReceivedByB": 5
+}

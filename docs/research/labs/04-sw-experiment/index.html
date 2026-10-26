@@ -1,0 +1,80 @@
+<!doctype html><meta charset=utf-8><title>harness</title>
+<body><pre id=log></pre>
+<script>
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const post = (name, data) => fetch('/report', { method: 'POST', body: JSON.stringify({ name, data }) });
+const t0 = Date.now();
+const log = (...a) => { document.getElementById('log').textContent += a.join(' ') + '\n'; };
+const uptime = async () => (await fetch('/__uptime', { cache: 'no-store' })).json();
+
+navigator.serviceWorker.addEventListener('message', (ev) => {
+  if (ev.data && ev.data.type === 'stream-open') {
+    const port = ev.ports[0];
+    port.postMessage({ ready: true });
+    let i = 0;
+    port.onmessage = async ({ data }) => {
+      if (data === 'pull') {
+        if (i < 3) { await sleep(40000); port.postMessage(new Uint8Array(1024).fill(++i)); }
+        else port.postMessage(null);
+      }
+    };
+  }
+});
+
+(async () => {
+  try {
+    await post('env', { ua: navigator.userAgent, secure: isSecureContext });
+    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await navigator.serviceWorker.ready;
+    for (let i = 0; i < 50 && !navigator.serviceWorker.controller; i++) await sleep(100);
+    await post('A0-controlled', { controller: !!navigator.serviceWorker.controller });
+
+    if (location.search.includes('fast')) { location.href = '/app/page1?x=1'; return; }
+    // ---- Test A: iframes (normal / sandbox allow-scripts / sandbox allow-scripts allow-same-origin)
+    const frames = {
+      normal: '',
+      'sandbox-scripts': 'allow-scripts',
+      'sandbox-scripts-same-origin': 'allow-scripts allow-same-origin'
+    };
+    const got = {};
+    const waiters = {};
+    addEventListener('message', (ev) => { if (ev.data && ev.data.type === 'frame-report' && ev.data.path.startsWith('/site/')) { got[ev.data.path] = ev.data; } });
+    for (const [name, sb] of Object.entries(frames)) {
+      const f = document.createElement('iframe');
+      if (sb) f.setAttribute('sandbox', sb);
+      f.src = '/site/' + name;
+      document.body.appendChild(f);
+    }
+    for (let i = 0; i < 100 && Object.keys(got).length < 3; i++) await sleep(100);
+    const up = await uptime();
+    await post('A-iframes', { got, swSeen: up.seen.filter((s) => s.p.startsWith('/site/') || s.p === '/__who') });
+
+    // ---- Test B: idle termination (no events)
+    const b0 = (await uptime()).boot;
+    await sleep(20000);
+    const b1 = (await uptime()).boot;
+    await sleep(65000);
+    const b2 = (await uptime()).boot;
+    await post('B-idle', { boot0: b0, boot_after_20s_same: b1 === b0, boot_after_20s_plus_65s_same: b2 === b0, bootDelta2: b2 - b0 });
+
+    // ---- Test C: page-driven stream, 40s gaps between chunks (SW has no other events)
+    const c0 = (await uptime()).boot;
+    const started = Date.now();
+    let res, total = 0, err = null, bootHeader = null;
+    try {
+      res = await fetch('/__pagestream', { cache: 'no-store' });
+      bootHeader = res.headers.get('x-boot');
+      const reader = res.body.getReader();
+      for (;;) { const { value, done } = await reader.read(); if (done) break; total += value.length; }
+    } catch (e) { err = String(e); }
+    const c1 = (await uptime()).boot;
+    await post('C-stream', { bootBefore: c0, bootHeader: Number(bootHeader), bootAfter: c1, sameBoot: String(c1) === String(bootHeader), totalBytes: total, expectedBytes: 3072, err, elapsedMs: Date.now() - started });
+
+    // ---- Test D: top-level navigation to /app/... -> SW serves shell for document, site for iframe
+    location.href = '/app/page1?x=1';
+  } catch (e) {
+    await post('harness-error', { err: String(e), stack: e && e.stack });
+    await post('done', {});
+  }
+})();
+</script>

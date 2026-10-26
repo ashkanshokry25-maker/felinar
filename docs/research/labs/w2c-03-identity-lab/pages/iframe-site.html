@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>hostile site</title>
+<script type="module">
+// Simulates untrusted site code running in the loader's origin (same-origin iframe).
+const out = { origin: location.origin };
+try {
+  const db = await new Promise((res, rej) => { const r = indexedDB.open('mw-lab', 1); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onupgradeneeded = () => r.result.createObjectStore('identity'); });
+  const rec = await new Promise((res, rej) => { const r = db.transaction('identity').objectStore('identity').get('me'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  out.foundKey = !!(rec && rec.privateKey);
+  out.keyExtractable = rec?.privateKey?.extractable;
+  const forged = new TextEncoder().encode('FORGED BLOCK HASH signed by hostile site code');
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, rec.privateKey, forged);
+  out.signedAsVisitor = true; out.sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  try { await crypto.subtle.exportKey('jwk', rec.privateKey); out.exported = true; } catch (e) { out.exported = false; out.exportErr = e.name; }
+} catch (e) { out.error = e.name + ': ' + e.message; }
+parent.postMessage({ lab: 'iframe-result', out }, '*');
+</script>

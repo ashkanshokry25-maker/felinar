@@ -1,0 +1,30 @@
+{
+ "chromium 156.0.8078.4": [
+  {
+   "case": "no header; JS inserts meta connect-src none",
+   "before": "allowed",
+   "afterMetaInserted": "BLOCKED",
+   "done": true
+  },
+  {
+   "case": "header connect-src 'none'; JS inserts meta connect-src *",
+   "before": "BLOCKED",
+   "afterMetaInserted": "BLOCKED",
+   "done": true
+  }
+ ],
+ "webkit 27.2": [
+  {
+   "case": "no header; JS inserts meta connect-src none",
+   "before": "allowed",
+   "afterMetaInserted": "BLOCKED",
+   "done": true
+  },
+  {
+   "case": "header connect-src 'none'; JS inserts meta connect-src *",
+   "before": "BLOCKED",
+   "afterMetaInserted": "BLOCKED",
+   "done": true
+  }
+ ]
+}

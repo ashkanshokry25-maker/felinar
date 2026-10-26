@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>reconnect</title>
+<script type="module">
+const q = new URLSearchParams(location.search); const TR = q.get('tr'); const I = +q.get('i');
+const out = { errors: [] };
+try {
+  const { default: WebTorrent } = await import('/webtorrent.min.js');
+  const c = new WebTorrent({ dht: false, lsd: false, webSeeds: false, tracker: { rtcConfig: { iceServers: [] } } });
+  c.on('error', e => out.errors.push('client: ' + (e && e.message || e)));
+  const bytes = new Uint8Array(100000); for (let k = 0; k < bytes.length; k++) bytes[k] = (k * 13 + I * 101 + (k >> 7)) & 255;
+  const t = await new Promise((res, rej) => { const tt = c.seed(new File([bytes], 'p' + I + '.bin'), { name: 'p' + I + '.bin', announce: [TR] }, res); tt.on('error', rej); });
+  out.infoHash = t.infoHash;
+} catch (e) { out.thrown = String(e && e.stack || e).slice(0, 300); }
+window.__result = out;
+</script>

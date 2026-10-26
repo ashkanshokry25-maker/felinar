@@ -1,0 +1,19 @@
+# nostrprobe.py run 2026-10-17T21:12:34Z (ephemeral kind 2xxxx event round trip, as Trystero does)
+{"relay": "nos.lol", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 538, "event_ok": {"accepted": true, "msg": "", "ms": 119}, "echo_to_subscriber": {"ms": 210}}
+{"relay": "relay.damus.io", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 209, "event_ok": {"accepted": true, "msg": "", "ms": 62}, "echo_to_subscriber": {"ms": 88}}
+{"relay": "relay.primal.net", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 488, "event_ok": {"accepted": true, "msg": "", "ms": 120}, "echo_to_subscriber": {"ms": 206}}
+{"relay": "relay.nostrmap.net", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 537, "event_ok": {"accepted": true, "msg": "", "ms": 115}, "echo_to_subscriber": {"ms": 211}}
+{"relay": "0x-nostr-relay.fly.dev", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 229, "event_ok": {"accepted": true, "msg": "", "ms": 95}, "echo_to_subscriber": {"ms": 95}}
+{"relay": "relay.bullishbounty.com", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 573, "event_ok": {"accepted": true, "msg": "", "ms": 145}, "echo_to_subscriber": {"ms": 146}}
+{"relay": "relay.piazza.today", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 536, "event_ok": {"accepted": true, "msg": "", "ms": 104}, "echo_to_subscriber": {"ms": 104}}
+{"relay": "relay.nostr.dev.br", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 502, "event_ok": {"accepted": true, "msg": "", "ms": 98}, "echo_to_subscriber": {"ms": 98}}
+{"relay": "offchain.pub", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 267, "event_ok": {"accepted": true, "msg": "", "ms": 54}, "echo_to_subscriber": {"ms": 152}}
+{"relay": "nostr.mom", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 528, "event_ok": {"accepted": true, "msg": "", "ms": 108}, "echo_to_subscriber": {"ms": 204}}
+{"relay": "purplepag.es", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 539, "recv_exc": "timeout('The read operation timed out')", "event_ok": {"accepted": false, "msg": "blocked: kind 27929 is not allowed", "ms": 108}, "echo_to_subscriber": null}
+{"relay": "relay.snort.social", "upgrade": "HTTP/1.1 101 Switching Protocols", "connect_ms": 494, "event_ok": {"accepted": true, "msg": "ephemeral: will not be stored", "ms": 97}, "echo_to_subscriber": {"ms": 97}}
+
+# mqttprobe.py run 2026-10-17T21:13:04Z
+{"broker": "broker.emqx.io:8084/mqtt", "error": "OSError: [Errno 49] Can't assign requested address"}
+{"broker": "broker.hivemq.com:8884/mqtt", "error": "ConnectionRefusedError: [Errno 61] Connection refused"}
+{"broker": "test.mosquitto.org:8081", "upgrade": "HTTP/1.1 101 Switching Protocols", "subprotocol": "mqtt", "connect_ms": 647, "connack_rc": 0, "suback": [[0, 1, 0]], "echo_ms": 86}
+{"broker": "public.cloud.shiftr.io (public:public)", "error": "OSError: [Errno 49] Can't assign requested address"}

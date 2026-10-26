@@ -1,0 +1,12 @@
+chromium 156.0.8078.4
+  raw        : magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My Site "q" `b` café 😀&tr=wss%3A%2F%2Ftracker.example%3A443%2Fannounce%3Fkey%3Da%26b%3Dc&x=a+b
+  a.href     : magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My%20Site%20%22q%22%20`b`%20caf%C3%A9%20%F0%9F%98%80&tr=wss%3A%2F%2Ftracker.example%3A443%2Fannounce%3Fkey%3Da%26b%3Dc&x=a+b
+  same as new URL(): true
+  expected fragment after template "/#%s" = encodeURIComponent(a.href):
+    #magnet%3A%3Fxt%3Durn%3Abtih%3A0123456789abcdef0123456789abcdef01234567%26dn%3DMy%2520Site%2520%2522q%2522%2520%60b%60%2520caf%25C3%25A9%2520%25F0%259F%2598%2580%26tr%3Dwss%253A%252F%252Ftracker.example%253A443%252Fannounce%253Fkey%253Da%2526b%253Dc%26x%3Da%2Bb
+webkit 27.2
+  raw        : magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My Site "q" `b` café 😀&tr=wss%3A%2F%2Ftracker.example%3A443%2Fannounce%3Fkey%3Da%26b%3Dc&x=a+b
+  a.href     : magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My%20Site%20%22q%22%20`b`%20caf%C3%A9%20%F0%9F%98%80&tr=wss%3A%2F%2Ftracker.example%3A443%2Fannounce%3Fkey%3Da%26b%3Dc&x=a+b
+  same as new URL(): true
+  expected fragment after template "/#%s" = encodeURIComponent(a.href):
+    #magnet%3A%3Fxt%3Durn%3Abtih%3A0123456789abcdef0123456789abcdef01234567%26dn%3DMy%2520Site%2520%2522q%2522%2520%60b%60%2520caf%25C3%25A9%2520%25F0%259F%2598%2580%26tr%3Dwss%253A%252F%252Ftracker.example%253A443%252Fannounce%253Fkey%253Da%2526b%253Dc%26x%3Da%2Bb

@@ -1,0 +1,83 @@
+# S4 doors lab results. Run 2026-10-20 12:11 ET on Darwin 27.0.0 arm64; node v24.22.0; Playwright 1.64.1
+# All URLs are 127.0.0.1, file: or data:. No browser contacted a non-local address.
+
+################ lna-check.mjs
+default local-only args     {"fetch":"ERR Failed to fetch","ws":"error"}
+LNA/PNA features disabled    {"fetch":"ok","ws":"open"}
+server saw ws origins: ["null"]
+
+################ link-sizes.mjs
+{
+ "privateKeyUnused": true,
+ "rows": [
+  {
+   "label": "hub record, no doors",
+   "bytes": 457
+  },
+  {
+   "label": "+ org= 2 owner doors",
+   "bytes": 525
+  },
+  {
+   "label": "+ org= 4 owner doors (the ORG_MAX cap)",
+   "bytes": 586
+  },
+  {
+   "label": "+ dr= 4 guest doors (comma list, one key)",
+   "bytes": 538
+  },
+  {
+   "label": "+ dr= 8 guest doors",
+   "bytes": 601
+  },
+  {
+   "label": "org= 4 + dr= 8",
+   "bytes": 730
+  }
+ ],
+ "urlPrefixBytes": 30
+}
+QR version for URL (door prefix + fragment) at L / M / Q:
+  487 bytes v15 (77x77) v17 (85x85) v21 (101x101) | hub record, no doors
+  555 bytes v16 (81x81) v18 (89x89) v22 (105x105) | + org= 2 owner doors
+  616 bytes v17 (85x85) v19 (93x93) v24 (113x113) | + org= 4 owner doors (the ORG_MAX cap)
+  568 bytes v16 (81x81) v19 (93x93) v23 (109x109) | + dr= 4 guest doors (comma list, one key)
+  631 bytes v17 (85x85) v20 (97x97) v24 (113x113) | + dr= 8 guest doors
+  760 bytes v19 (93x93) v22 (105x105) >v25 | org= 4 + dr= 8
+
+################ dr-roundtrip.mjs
+v=mw1; btih=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; dn=x; chain=c; owner=p256:...; seq=1792512670; exp=1795104670; dr=a.example.org,b.example.net; sig=...
+parsed ok true extra.dr = a.example.org,b.example.net
+verify with the same scope: {"ok":true,"reason":null}
+verify under a hostname scope (a different door): {"ok":false,"reason":"bad-sig"}
+verify after a door was removed from the text: {"ok":false,"reason":"bad-sig"}
+
+################ installable.mjs
+chromium 156.0.8078.4
+installabilityErrors: []
+manifest errors: []
+manifest url: http://127.0.0.1:58075/_mw/manifest.webmanifest
+
+################ kit-size-repro.mjs (working tree, 2026-10-20 12:15 ET)
+{"version":"0.3.0","buildId":"d480b799d310","files":18,"raw":2194331,"rawMiB":2.09,"gzip9":720514,"brotli11":606477,"twoBuildsIdentical":true}
+    2988 404.html
+   14423 _mw/boot.js
+   82039 _mw/chat-panel.js
+     363 _mw/icons/icon.svg
+  830478 _mw/loader.js
+     440 _mw/manifest.webmanifest
+  739451 _mw/mw.js
+   20217 _mw/pow-worker.js
+    2031 _mw/sdk-static.js
+   19051 _mw/sdk.js
+   70630 _mw/signin.js
+   85661 _mw/sw-core.js
+    8749 _mw/ui.css
+  222343 _mw/webtorrent.min.js
+    4758 build.json
+    2988 index.html
+     630 mw-sw-kill.js
+   87091 mw-sw.js
+
+################ committed dist/ (the 0.2.1 build of 2026-10-20 00:31), measured the same way
+{"files":16,"raw":1106440,"gzip9":362188,"brotli11":312091}

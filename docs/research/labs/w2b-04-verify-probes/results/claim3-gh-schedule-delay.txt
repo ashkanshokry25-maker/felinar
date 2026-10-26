@@ -1,0 +1,13 @@
+fetched 2026-10-17T22:12:18Z
+home-assistant/core lock.yml cron "0 * * * *" n=150 2026-10-11 17:03Z..2026-10-17 22:03Z
+    delay after nominal slot, minutes: min=3.1 median=5.2 mean=7.5 p90=14.9 max=35.3
+    distinct hourly slots with a run: 150 of 150 slots between the first and last run (missing 0)
+home-assistant/core stale.yml cron "0 * * * *" n=150 2026-10-11 17:11Z..2026-10-17 22:11Z
+    delay after nominal slot, minutes: min=9.3 median=15.1 mean=18.1 p90=32.2 max=48.9
+    distinct hourly slots with a run: 150 of 150 slots between the first and last run (missing 0)
+microsoft/vscode css-order-scan.yml cron "17 5 * * *" n=75 2026-08-04 06:10Z..2026-10-17 05:24Z
+    delay after nominal slot, minutes: min=6.2 median=9.7 mean=19.0 p90=31.6 max=159.3
+    days with a run: 75 of 75 expected days (missing [])
+github/docs index-general-search.yml cron "20 16 * * 1-5" n=75 2026-07-06 17:18Z..2026-10-16 16:31Z
+    delay after nominal slot, minutes: min=8.7 median=15.8 mean=26.3 p90=41.7 max=237.8
+    days with a run: 75 of 75 expected weekdays (missing [])

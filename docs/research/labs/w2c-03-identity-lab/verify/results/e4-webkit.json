@@ -1,0 +1,28 @@
+{
+ "engine": "webkit",
+ "version": "27.2",
+ "victimOrigin": "http://localhost:61606",
+ "attackerOrigin": "http://127.0.0.1:61613",
+ "setup": {
+  "privExtractable": false,
+  "pubJwk": {
+   "x": "IHQjNDvg",
+   "y": "N7BwjNYT"
+  }
+ },
+ "hostile": {
+  "foundKey": true,
+  "posted": true,
+  "attacker": {
+   "origin": "http://127.0.0.1:61613",
+   "from": "http://localhost:61606",
+   "gotType": "private",
+   "extractable": false,
+   "storedInAttackerIDB": true,
+   "signedLen": 64
+  }
+ },
+ "later": {
+  "err": "NotFoundError: Failed to execute 'transaction' on 'IDBDatabase': One of the specified object stores was not found."
+ }
+}

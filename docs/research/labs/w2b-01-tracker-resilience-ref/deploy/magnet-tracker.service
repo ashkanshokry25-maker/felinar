@@ -1,0 +1,59 @@
+# /etc/systemd/system/magnet-tracker.service
+# Hardened systemd unit for tracker.mjs (Node >= 22). Verify on the target host with:  systemd-analyze verify magnet-tracker.service
+# and review the sandbox score with:  systemd-analyze security magnet-tracker.service
+[Unit]
+Description=magnet-web WebSocket tracker (bittorrent-tracker 11.2.3, hardened wrapper)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=20
+
+[Service]
+Type=simple
+User=mwtracker
+Group=mwtracker
+WorkingDirectory=/opt/magnet-tracker
+EnvironmentFile=/etc/magnet-tracker/env
+ExecStart=/usr/bin/node --max-old-space-size=1024 /opt/magnet-tracker/tracker.mjs
+# SIGHUP reloads ALLOW_FILE (the process never needs a restart for allow-list changes).
+ExecReload=/bin/kill -HUP $MAINPID
+# Restart on any exit, including the deliberate exit(1) after an uncaught exception: the tracker is a stateless
+# rendezvous and clients reconnect on their own. 2 s spacing keeps a crash loop from burning CPU.
+Restart=always
+RestartSec=2
+# SIGTERM makes tracker.mjs spread WebSocket close(1001) frames over SHUTDOWN_SPREAD_MS (default 5 s) and exit 0.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+LimitNOFILE=1048576
+MemoryHigh=1200M
+MemoryMax=1600M
+TasksMax=128
+OOMPolicy=stop
+
+# Sandbox (everything here is compatible with Node/V8; note MemoryDenyWriteExecute must stay OFF because V8's JIT needs it)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+ReadOnlyPaths=/etc/magnet-tracker /opt/magnet-tracker
+
+[Install]
+WantedBy=multi-user.target

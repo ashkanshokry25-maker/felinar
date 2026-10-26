@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E7 prototype: magnet -> WebRTC download -> Cache Storage -> custom SW -> iframe</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { events: [], errors: [], iframe: {} }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const t00 = performance.now(); const ev = s => R.events.push(Math.round(performance.now() - t00) + 'ms ' + s)
+const report = async () => { try { await fetch('/report/e7', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = new Map(); this.length = opts.length }
+  put (i, buf, cb = () => {}) { this.chunks.set(i, new Uint8Array(buf)); queueMicrotask(() => cb(null)) }
+  get (i, o, cb) { if (typeof o === 'function') { cb = o; o = {} } const c = this.chunks.get(i); if (!c) { const e = new Error('Chunk not found'); e.notFound = true; return queueMicrotask(() => cb(e)) } const off = (o && o.offset) || 0; const len = (o && o.length) || (c.length - off); queueMicrotask(() => cb(null, c.slice(off, off + len))) }
+  close (cb = () => {}) { queueMicrotask(() => cb(null)) }
+  destroy (cb = () => {}) { this.chunks.clear(); queueMicrotask(() => cb(null)) }
+}
+try {
+  await navigator.serviceWorker.register('./sw-site.js', { scope: '/' }); await navigator.serviceWorker.ready
+  // wait until this page is controlled
+  for (let i = 0; i < 50 && !navigator.serviceWorker.controller; i++) await sleep(100)
+  R.controlled = !!navigator.serviceWorker.controller
+  const mk = (path, text, type) => { const f = new File([text], path.split('/').pop(), { type }); Object.defineProperty(f, 'fullPath', { value: path }); return f }
+  const probe = `window.addEventListener("load",function(){var i=document.getElementById("img");document.title="js-ran:"+getComputedStyle(document.body).backgroundColor+":"+(i?i.naturalWidth:-1)})`
+  const files = [
+    mk('mysite/index.html', '<!doctype html><meta charset=utf-8><title>site</title><link rel=stylesheet href="css/style.css"><h1 id=x>hello</h1><img id=img src="img/logo.svg"><script src="app.js"><\/script>', 'text/html'),
+    mk('mysite/css/style.css', 'body{background:rgb(1,2,3)}', 'text/css'),
+    mk('mysite/app.js', probe, 'text/javascript'),
+    mk('mysite/img/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>', 'image/svg+xml')
+  ]
+  const mkc = () => new WebTorrent({ dht: false, lsd: false, utPex: false, tracker: { rtcConfig: { iceServers: [] } } })
+  const A = mkc(); const B = mkc()
+  const TR = 'ws://127.0.0.1:18082'
+  const tA = A.seed(files, { announce: [TR], name: 'mysite', pieceLength: 16384, store: MemStore })
+  await new Promise(r => tA.once('ready', r))
+  R.infoHash = tA.infoHash; R.magnet = tA.magnetURI
+  ev('seeded; magnet=' + tA.magnetURI)
+  const tB = B.add(tA.magnetURI, { store: MemStore })
+  tB.on('metadata', () => ev('B metadata')); tB.on('done', () => ev('B done'))
+  for (let i = 0; i < 200 && !tB.done; i++) await sleep(50)
+  R.bDone = tB.done
+  // persist to Cache Storage under /site/<hash>/<path-without-root>
+  const cache = await caches.open('site-' + tB.infoHash)
+  const root = tB.name + '/'
+  for (const f of tB.files) {
+    const rel = f.path.startsWith(root) ? f.path.slice(root.length) : f.path
+    await cache.put('/site/' + tB.infoHash + '/' + rel, new Response(await f.blob(), { headers: { 'content-type': f.type } }))
+  }
+  R.cachedKeys = (await cache.keys()).map(r => new URL(r.url).pathname.replace(tB.infoHash, '<hash>'))
+  ev('cached ' + R.cachedKeys.length + ' files')
+  await new Promise(r => B.destroy(r)); await new Promise(r => A.destroy(r))   // no WebTorrent client alive any more
+
+  const base = '/site/' + tA.infoHash + '/'
+  const frameTest = async (label, sandbox) => {
+    const v = {}; const iframe = document.createElement('iframe'); iframe.style.cssText = 'width:300px;height:150px'
+    if (sandbox !== null) iframe.setAttribute('sandbox', sandbox)
+    let loaded = false; iframe.addEventListener('load', () => { loaded = true })
+    iframe.src = base + 'index.html'; document.body.appendChild(iframe)
+    for (let i = 0; i < 60 && !loaded; i++) await sleep(100)
+    await sleep(1000)
+    try { const d = iframe.contentDocument; v.title = d && d.title; v.h1 = d && d.getElementById('x') && d.getElementById('x').textContent } catch (e) { v.accessError = String(e).slice(0, 100) }
+    R.iframe[label] = v; iframe.remove()
+  }
+  await frameTest('plain', null)
+  await frameTest('sandbox_allow_scripts', 'allow-scripts')
+  await frameTest('sandbox_allow_scripts_same_origin', 'allow-scripts allow-same-origin')
+  // second tab present: does it break serving? (it must not)
+  R.popup = !!window.open('/e7b.html')
+  for (let i = 0; i < 100; i++) { const r = await fetch('/kv/e7b-ready'); if (r.status === 200) break; await sleep(100) }
+  const st = {}; for (let i = 0; i < 100; i++) { const r = await fetch(base + (i % 2 ? 'index.html' : 'css/style.css'), { cache: 'no-store' }); st[r.status] = (st[r.status] || 0) + 1; await r.arrayBuffer() }
+  R.withSecondTab = st
+  const r404 = await fetch(base + 'nope.txt'); R.missing = r404.status
+  const rr = await fetch(base + 'index.html', { headers: { Range: 'bytes=0-9' } }); R.rangeStatusFromCacheSW = rr.status
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

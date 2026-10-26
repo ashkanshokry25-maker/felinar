@@ -1,0 +1,10 @@
+site_name: mk
+site_url: https://example.org/
+theme:
+  name: material
+  font: false
+  features:
+    - navigation.instant
+nav:
+  - Home: index.md
+  - About: about.md

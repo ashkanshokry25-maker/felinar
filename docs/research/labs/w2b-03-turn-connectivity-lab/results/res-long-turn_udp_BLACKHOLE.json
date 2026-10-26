@@ -1,0 +1,77 @@
+{
+ "chromium": {
+  "version": "156.0.8078.4",
+  "ice": [
+   {
+    "label": "turn udp BLACKHOLE",
+    "cands": [
+     {
+      "t": 3,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 50361,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [
+     {
+      "t": 39896,
+      "code": 701,
+      "text": "STUN binding request timed out.",
+      "url": "stun:127.0.0.1:34791",
+      "addr": "0.0.0.x",
+      "port": 50361
+     },
+     {
+      "t": 39957,
+      "code": 701,
+      "text": "TURN allocate request timed out.",
+      "url": "turn:127.0.0.1:34791?transport=udp",
+      "addr": "0.0.0.x",
+      "port": 50361
+     }
+    ],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      39958,
+      "complete"
+     ]
+    ],
+    "tNull": 39958,
+    "gatherState": "complete",
+    "tComplete": 39958,
+    "sdpBytes": 566,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   }
+  ]
+ }
+}

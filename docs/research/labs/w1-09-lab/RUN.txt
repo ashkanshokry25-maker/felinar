@@ -1,0 +1,27 @@
+w1-09 lab: experiments behind docs/research/w1-09-protocol-handler-magnet.md  (run date 2026-10-17)
+
+What is here (all of it is test code written for this research, NOT production code):
+  exp_rph.mjs               EXP-1 + EXP-2. Runtime semantics of navigator.registerProtocolHandler in Chromium, Firefox and WebKit
+                            (Playwright builds), sandboxed-iframe behaviour, and Chromium manifest "protocol_handlers" verdicts via
+                            CDP Page.getAppManifest. Usage: node exp_rph.mjs <out.json>
+  exp_brave.mjs             EXP-4. Same API checks in the locally installed Brave using a THROWAWAY profile dir passed as argv[2]
+                            (delete it afterwards). Headless, no clicks, 127.0.0.1 only.
+  exp_ff.mjs                Firefox-only retry with an explicit profile dir. FAILED here: Playwright Firefox build 1555 exits with
+                            "Could not find profile folder" for every profile location tried (kept so the failure is reproducible).
+  fragment_decode_test.mjs  EXP-3. Runs the project's REAL src/loader/render.js detectMode() and src/common/magnet.js parseMagnet() on
+                            handler-built and hand-built fragments. Shows the over-decoding bug for literal magnet links.
+  encode_set_check.mjs      EXP-5a. Rebuilds the URL Standard "component percent-encode set" and compares it with encodeURIComponent
+                            for U+0000..U+007F (no differences).
+  qr_sizes.mjs              EXP-5b. QR version needed per payload using Thonky byte-mode capacities (v1-25). Optional argv[2] = JSON of
+                            capacities for versions 13+; see results file for the exact invocation.
+  results-2026-10-17.txt    Captured console output of the scripts above.
+  results-exp_rph-2026-10-17.json   Full machine output of exp_rph.mjs.
+
+Environment: macOS arm64 (Darwin 27.0.0), Node v24.22.0 (~/.local/share/node/current/bin/node), Playwright 1.64.1
+(Chromium 156.0.8078.4 headless shell = build 1248; WebKit build 2370 reports Version/27.2; Firefox build 1555), Brave Browser 155.1.97.59.
+
+Paths: the scripts import Playwright and the loader modules by ABSOLUTE path under $HOME/Documents/Projects/magnet-web;
+edit the imports if the project moves. Browsers: `./node_modules/.bin/playwright install webkit firefox` (Chromium was already cached).
+
+Limits: headless runs cannot show or accept the consent UI, so these prove validation and parsing only. Nothing here ran on iOS,
+Android, Safari.app, Edge, or an installed PWA.

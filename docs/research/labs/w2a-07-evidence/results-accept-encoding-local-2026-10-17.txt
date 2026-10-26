@@ -1,0 +1,7 @@
+chromium 156.0.8078.4 | no Range                                   | fetch -> 206 | server saw: Range=- Accept-Encoding=gzip, deflate, br, zstd
+chromium 156.0.8078.4 | Range bytes=0-3                            | fetch -> 206 | server saw: Range=bytes=0-3 Accept-Encoding=identity
+chromium 156.0.8078.4 | WebTorrent stock (cache no-store + Range)  | fetch -> 206 | server saw: Range=bytes=0-3 Accept-Encoding=identity
+webkit 27.2 | no Range                                   | fetch -> 206 | server saw: Range=- Accept-Encoding=gzip, deflate
+webkit 27.2 | Range bytes=0-3                            | fetch -> 206 | server saw: Range=bytes=0-3 Accept-Encoding=identity
+webkit 27.2 | WebTorrent stock (cache no-store + Range)  | fetch -> 206 | server saw: Range=bytes=0-3 Accept-Encoding=identity
+firefox: launch failed: Error: browserType.launch: Failed to launch the browser process.

@@ -1,0 +1,44 @@
+{
+  "name": "e8 getAnnounceOpts override",
+  "chromium": "156.0.8078.4",
+  "connected": [
+    {
+      "ok": true,
+      "ms": 151
+    },
+    {
+      "ok": true,
+      "ms": 150
+    }
+  ],
+  "announcesA": [
+    {
+      "event": "started",
+      "left": 1,
+      "numwant": 2,
+      "nOffers": 2,
+      "hasAnswer": false
+    },
+    {
+      "left": "<absent>",
+      "nOffers": 0,
+      "hasAnswer": true
+    }
+  ],
+  "trackerSide": {
+    "start left=1": 1,
+    "start left=0": 1,
+    "update left=null": 1
+  },
+  "announcesAfterNumwant0": [
+    {
+      "left": "<absent>",
+      "nOffers": 0
+    },
+    {
+      "left": 1,
+      "numwant": 0,
+      "nOffers": 0
+    }
+  ]
+}

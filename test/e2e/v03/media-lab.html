@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>media lab (e2e)</title>
+</head>
+<body>
+<h1>media lab</h1>
+<p>The engine-page stand-in of the private media scenarios: the product worker serves /_mw/media/&lt;sid&gt;.</p>
+<script type="module">
+// Register the product worker (scope /) and make sure this page is controlled before the lab loads.
+const params = new URLSearchParams(location.search);
+window.mwLabState = { worker: 'none' };
+if (params.get('worker') !== 'off' && 'serviceWorker' in navigator) {
+  try {
+    await navigator.serviceWorker.register('/mw-sw.js', { scope: '/', updateViaCache: 'none' });
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise((resolve) => {
+        const t = setTimeout(resolve, 3000);
+        navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(t); resolve(); }, { once: true });
+      });
+    }
+    window.mwLabState.worker = navigator.serviceWorker.controller ? 'controlled' : 'registered';
+  } catch (err) {
+    window.mwLabState.worker = 'error ' + (err && err.message);
+  }
+}
+await import('./media-lab.js');
+</script>
+</body>
+</html>

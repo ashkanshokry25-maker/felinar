@@ -1,0 +1,81 @@
+{
+ "date": "2026-10-17T22:14:36.972Z",
+ "engines": {
+  "chromium 156.0.8078.4": {
+   "no ICE servers": {
+    "offerCompleteMs": 117,
+    "firstCandMs": 1,
+    "srflxMs": null,
+    "answerCompleteMs": 7
+   },
+   "no ICE servers, pool=2": {
+    "offerCompleteMs": 117,
+    "firstCandMs": 0,
+    "srflxMs": null,
+    "answerCompleteMs": 7
+   },
+   "STUN cloudflare": {
+    "offerCompleteMs": 121,
+    "firstCandMs": 1,
+    "srflxMs": 5,
+    "answerCompleteMs": 11
+   },
+   "STUN cloudflare + twilio (project default list)": {
+    "offerCompleteMs": 126,
+    "firstCandMs": 1,
+    "srflxMs": 6,
+    "answerCompleteMs": 10
+   },
+   "STUN google (simple-peer default 1st)": {
+    "offerCompleteMs": 116,
+    "firstCandMs": 1,
+    "srflxMs": 5,
+    "answerCompleteMs": 8
+   },
+   "STUN cloudflare, pool=2": {
+    "offerCompleteMs": 117,
+    "firstCandMs": 0,
+    "srflxMs": 4,
+    "answerCompleteMs": 7
+   }
+  },
+  "webkit 27.2": {
+   "no ICE servers": {
+    "offerCompleteMs": 1003,
+    "firstCandMs": 1003,
+    "srflxMs": null,
+    "answerCompleteMs": 108
+   },
+   "no ICE servers, pool=2": {
+    "offerCompleteMs": 1001,
+    "firstCandMs": 1001,
+    "srflxMs": null,
+    "answerCompleteMs": 108
+   },
+   "STUN cloudflare": {
+    "offerCompleteMs": 1004,
+    "firstCandMs": 1003,
+    "srflxMs": null,
+    "answerCompleteMs": 111
+   },
+   "STUN cloudflare + twilio (project default list)": {
+    "offerCompleteMs": 1003,
+    "firstCandMs": 1003,
+    "srflxMs": null,
+    "answerCompleteMs": 111
+   },
+   "STUN google (simple-peer default 1st)": {
+    "offerCompleteMs": 1003,
+    "firstCandMs": 1003,
+    "srflxMs": null,
+    "answerCompleteMs": 112
+   },
+   "STUN cloudflare, pool=2": {
+    "offerCompleteMs": 1002,
+    "firstCandMs": 1002,
+    "srflxMs": null,
+    "answerCompleteMs": 105
+   }
+  }
+ }
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E9 idb-chunk-store@1.0.1 (mechanically ESM-ified) with webtorrent 3.0.21: without and with a Buffer shim</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+import IdbChunkStore from './idb-chunk-store-1.0.1.esm.js'
+const R = { errors: [], cases: {}, bufferGlobalAtStart: typeof Buffer }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e9', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+const bytes = new Uint8Array(100000); let x = 777
+for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; bytes[i] = x & 255 }
+async function attempt (label, tag) {
+  const rec = { errors: [], warnings: [] }
+  window.addEventListener('unhandledrejection', ev => rec.errors.push('unhandledrejection: ' + (ev.reason && ev.reason.message || ev.reason)), { once: false })
+  const c = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  c.on('error', e => rec.errors.push('client: ' + e.message))
+  try {
+    const t = c.seed(new File([bytes], tag + '.bin'), { announce: [], name: tag + '.bin', pieceLength: 16384, store: IdbChunkStore })
+    t.on('error', e => rec.errors.push('torrent: ' + e.message)); t.on('warning', e => rec.warnings.push(String(e.message || e)))
+    let seeded = false; t.once('seed', () => { seeded = true })
+    for (let i = 0; i < 40 && !seeded && !t.destroyed; i++) await sleep(50)
+    rec.seeded = seeded
+    if (seeded) {
+      const rd = (async () => { try { const ab = new Uint8Array(await t.files[0].arrayBuffer()); return ab.length === bytes.length && ab.every((v, i) => v === bytes[i]) ? 'OK' : 'MISMATCH' } catch (e) { return 'ERROR: ' + String(e && e.message || e) } })()
+      rec.readBack = await Promise.race([rd, sleep(3000).then(() => 'TIMEOUT (callback never invoked)')])
+    }
+  } catch (e) { rec.thrown = String(e) }
+  const dp = new Promise(r => { try { c.destroy(r) } catch (e) { r() } })
+  rec.destroyCallbackWithin3s = await Promise.race([dp.then(() => true), sleep(3000).then(() => false)])
+  R.cases[label] = rec
+  await report()
+}
+try {
+  await attempt('without_Buffer_global', 'nobuf')
+  globalThis.Buffer = { from: (ab, off, len) => new Uint8Array(ab, off, len) }   // minimal shim: only what idb-chunk-store.get() needs
+  await attempt('with_minimal_Buffer_shim', 'withbuf')
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Existing Site with its own Service Worker</title>
+<link rel="stylesheet" href="/css/app.3f2a1b.css">
+<script type="module" src="/_mw/mw.js" async></script>
+</head>
+<body data-page="own-sw">
+<header class="site"><strong>Existing Site</strong></header>
+<main>
+<h1>A site with its own Service Worker</h1>
+<p id="lead">This page registers /sw.js, a hand-written worker with a cache-first route for /css/*. Drop-in must not register /mw-sw.js over it.</p>
+<p>Pathname: <code id="path">JavaScript is off</code></p>
+<p id="data">data.json has not been fetched</p>
+<p id="own-sw">The site worker has not answered yet.</p>
+</main>
+<script src="/js/app.9c0d2e.js"></script>
+<script src="/js/register-sw.js"></script>
+</body>
+</html>

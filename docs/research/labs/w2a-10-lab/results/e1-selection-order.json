@@ -1,0 +1,662 @@
+{
+ "node": "v24.22.0",
+ "pieceLength": 16384,
+ "numPieces": 71,
+ "fileInfo": [
+  {
+   "name": "big0.bin",
+   "offset": 0,
+   "length": 300000,
+   "firstPiece": 0,
+   "lastPiece": 18
+  },
+  {
+   "name": "big1.bin",
+   "offset": 300000,
+   "length": 300000,
+   "firstPiece": 18,
+   "lastPiece": 36
+  },
+  {
+   "name": "mid.js",
+   "offset": 600000,
+   "length": 40000,
+   "firstPiece": 36,
+   "lastPiece": 39
+  },
+  {
+   "name": "big2.bin",
+   "offset": 640000,
+   "length": 300000,
+   "firstPiece": 39,
+   "lastPiece": 57
+  },
+  {
+   "name": "hot.css",
+   "offset": 940000,
+   "length": 20000,
+   "firstPiece": 57,
+   "lastPiece": 58
+  },
+  {
+   "name": "big3.bin",
+   "offset": 960000,
+   "length": 200000,
+   "firstPiece": 58,
+   "lastPiece": 70
+  }
+ ],
+ "results": [
+  {
+   "label": "S0 default (sequential, whole torrent selected at priority 0)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 261,
+    "big1.bin": 440,
+    "mid.js": 471,
+    "big2.bin": 657,
+    "hot.css": 668,
+    "big3.bin": 782
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S0b default, maxWebConns 4 (library default)",
+   "maxWebConns": 4,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-2 4 3 5-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    4,
+    3,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 5,
+   "fileDoneMs": {
+    "big0.bin": 83,
+    "big1.bin": 130,
+    "mid.js": 141,
+    "big2.bin": 189,
+    "hot.css": 199,
+    "big3.bin": 223
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S1 default + hot.css.select(10) (last-but-one file)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 206,
+    "big1.bin": 406,
+    "mid.js": 444,
+    "big2.bin": 648,
+    "hot.css": 660,
+    "big3.bin": 772
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S1b default + torrent.select(hot.css pieces, priority 10)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 205,
+    "big1.bin": 407,
+    "mid.js": 438,
+    "big2.bin": 626,
+    "hot.css": 636,
+    "big3.bin": 748
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S2 deselect:true, then hot.css.select(5) then torrent.select(0,N-1,0)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 203,
+    "big1.bin": 391,
+    "mid.js": 421,
+    "big2.bin": 608,
+    "hot.css": 620,
+    "big3.bin": 740
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S3 deselect:true, non-adjacent: hot.css p3, mid.js p2, big0 p1",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": false,
+   "progress": 0.3531,
+   "order": "18 57 0 58 1 36 2 37 3 38 4 39 5-17",
+   "firstPieces": [
+    18,
+    18,
+    57,
+    57,
+    0,
+    58,
+    58,
+    1,
+    36,
+    36
+   ],
+   "requests": 30,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "hot.css": 44,
+    "mid.js": 125,
+    "big0.bin": 258
+   },
+   "filesDone": [
+    "big0.bin",
+    "mid.js",
+    "hot.css"
+   ],
+   "filesNotDone": [
+    "big1.bin",
+    "big2.bin",
+    "big3.bin"
+   ],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S3b deselect:true, hot.css p3 + mid.js p2 + (rest p0 last)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 213,
+    "big1.bin": 396,
+    "mid.js": 428,
+    "big2.bin": 609,
+    "hot.css": 623,
+    "big3.bin": 736
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S3c deselect:true, rest p0 FIRST then hot.css p3 + mid.js p2",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 221,
+    "big1.bin": 418,
+    "mid.js": 447,
+    "big2.bin": 659,
+    "hot.css": 670,
+    "big3.bin": 784
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S4 default + stream selection: hot.css.createReadStream() (not consumed)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 57-58 0-56 59-69",
+   "firstPieces": [
+    70,
+    57,
+    57,
+    58,
+    58,
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "hot.css": 39,
+    "big0.bin": 235,
+    "big1.bin": 415,
+    "mid.js": 443,
+    "big2.bin": 608,
+    "big3.bin": 710
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S4b default + stream selection: hot.css + mid.js createReadStream()",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 57 36 58 37-39 0-35 40-56 59-69",
+   "firstPieces": [
+    70,
+    57,
+    57,
+    36,
+    36,
+    58,
+    58,
+    37,
+    38,
+    39
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "hot.css": 42,
+    "mid.js": 74,
+    "big0.bin": 252,
+    "big1.bin": 412,
+    "big2.bin": 580,
+    "big3.bin": 692
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S5 default + torrent.critical(hot.css pieces)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 192,
+    "big1.bin": 361,
+    "mid.js": 388,
+    "big2.bin": 556,
+    "hot.css": 566,
+    "big3.bin": 676
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": "57,58"
+  },
+  {
+   "label": "S6 strategy:'rarest' (single web seed)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "67 52 58 65 19 26 29 39 27 68 66 40 69 64 12 3 28 60 14 46 31 59 51 7 55 54 0 2 5 22 13 34 38 56 4 1 48 10 6 45 32 70 15 35 30 23 61 47 33 18 43 11 16 41 50 63 21 37 42 44 9 57 62 36 49 24 53 20 17 25 8",
+   "firstPieces": [
+    67,
+    52,
+    58,
+    58,
+    65,
+    19,
+    26,
+    29,
+    39,
+    39
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "hot.css": 581,
+    "big3.bin": 590,
+    "mid.js": 599,
+    "big2.bin": 629,
+    "big1.bin": 655,
+    "big0.bin": 665
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S7 default + hot.css.select(10) AFTER first pieces arrive (t+60ms)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 199,
+    "big1.bin": 367,
+    "mid.js": 393,
+    "big2.bin": 566,
+    "hot.css": 576,
+    "big3.bin": 674
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S8 deselect mid.js (middle file) after ready",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": false,
+   "progress": 0.9435,
+   "order": "70 0-35 40-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 70,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 197,
+    "hot.css": 537,
+    "big3.bin": 641
+   },
+   "filesDone": [
+    "big0.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [
+    "big1.bin",
+    "mid.js",
+    "big2.bin"
+   ],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  },
+  {
+   "label": "S9 so=magnet: select only file 2 (mid.js) and 4 (hot.css)",
+   "maxWebConns": 1,
+   "numPieces": 71,
+   "torrentDone": true,
+   "progress": 1,
+   "order": "70 0-69",
+   "firstPieces": [
+    70,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "requests": 76,
+   "maxInflight": 2,
+   "fileDoneMs": {
+    "big0.bin": 205,
+    "big1.bin": 375,
+    "mid.js": 403,
+    "big2.bin": 570,
+    "hot.css": 580,
+    "big3.bin": 682
+   },
+   "filesDone": [
+    "big0.bin",
+    "big1.bin",
+    "mid.js",
+    "big2.bin",
+    "hot.css",
+    "big3.bin"
+   ],
+   "filesNotDone": [],
+   "selectionsLeft": [],
+   "criticalFlags": null
+  }
+ ]
+}

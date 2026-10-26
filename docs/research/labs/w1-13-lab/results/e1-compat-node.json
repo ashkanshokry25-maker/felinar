@@ -1,0 +1,20 @@
+{
+ "runtime": "Node v24.22.0",
+ "createTorrent": {
+  "infoHash": "d886fd36b25d254299bcc75a17132c526f1ab720",
+  "torrentBytes": 348
+ },
+ "trackerWs": {
+  "interval": 120,
+  "incomplete": 1
+ },
+ "webtorrentSeed": {
+  "infoHash": "d886fd36b25d254299bcc75a17132c526f1ab720",
+  "sameAsCreateTorrent": true,
+  "files": 3
+ },
+ "nodeDatachannel": {
+  "echoed": "echo:ping",
+  "ms": 1108
+ }
+}

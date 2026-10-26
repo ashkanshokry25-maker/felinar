@@ -1,0 +1,282 @@
+[
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "GitHub Pages png",
+  "url": "https://pages.github.com/images/slideshow/bootstrap.png",
+  "ref": "156915 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "GitHub Pages css",
+  "url": "https://pages.github.com/css/pages.css",
+  "ref": "12226 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Netlify woff2",
+  "url": "https://vuejs.org/assets/inter-roman-latin.Cy4MYw_J.woff2",
+  "ref": "71624 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Netlify js",
+  "url": "https://vuejs.org/assets/app.B91ytTIH.js",
+  "ref": "7959 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Vercel woff2",
+  "url": "https://react.dev/fonts/Source-Code-Pro-Regular.woff2",
+  "ref": "76348 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Cloudflare docs png",
+  "url": "https://developers.cloudflare.com/favicon.png",
+  "ref": "1900 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "WRONG BYTES (200, got 1900 B, wanted 900 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Cloudflare docs svg",
+  "url": "https://developers.cloudflare.com/_astro/logo.te5VL_aD.svg",
+  "ref": "1892 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "WRONG BYTES (200, got 1892 B, wanted 892 B)",
+  "protocol": "h3"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Bunny jpg",
+  "url": "https://bunny.net/images/bunnynet-the-best-content-delivery-network-cdn.jpg",
+  "ref": "258788 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Bunny svg",
+  "url": "https://bunny.net/images/bunny-cdn-icon-modern.svg",
+  "ref": "8985 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "B2 f001 js",
+  "url": "https://f001.backblazeb2.com/file/backblaze-com-assets/codeSamples.js",
+  "ref": "277989 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "http/1.1"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "DO Spaces CDN svg",
+  "url": "https://product-docs.nyc3.cdn.digitaloceanspaces.com/ai-agent-icon.svg",
+  "ref": "3151 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 2151 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Storj linkshare png",
+  "url": "https://link.us1.storjshare.io/raw/jua7rls6hkx5556qfcmhrqed2tfa/docs/images/6lBTvetkB98edSAjvyB_q_root.png",
+  "ref": "37827 B identity",
+  "stock": "OK exact slice (206, 4000 B)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "S3 default (noaa-goes16)",
+  "url": "https://noaa-goes16.s3.amazonaws.com/index.html",
+  "ref": "32357 B identity",
+  "stock": "OK exact slice (206, 4000 B)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "http/1.1"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Blossom primal",
+  "url": "https://blossom.primal.net/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "ref": "184292 B identity",
+  "stock": "WRONG BYTES (200, got 184292 B, wanted 4000 B)",
+  "range-only": "WRONG BYTES (200, got 184292 B, wanted 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Blossom satellite",
+  "url": "https://cdn.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "ref": "184292 B identity",
+  "stock": "OK exact slice (206, 4000 B)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "http/1.1"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Blossom nostr.download",
+  "url": "https://nostr.download/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "ref": "184292 B identity",
+  "stock": "OK exact slice (206, 4000 B)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "Blossom hzrd149",
+  "url": "https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "ref": "184292 B identity",
+  "stock": "OK exact slice (206, 4000 B)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2/h3"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "IPFS ipfs.io",
+  "url": "https://ipfs.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "ref": "ref HTTP 429",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "IPFS dweb.link",
+  "url": "https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "ref": "ref HTTP 429",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "IPFS storacha.link",
+  "url": "https://storacha.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "ref": "ref HTTP 429",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "?"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "IPFS pinata gw",
+  "url": "https://gateway.pinata.cloud/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "ref": "184292 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "IPFS filebase",
+  "url": "https://ipfs.filebase.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "ref": "184292 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "IPFS trustless-gateway.link",
+  "url": "https://trustless-gateway.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "ref": "ref HTTP 522",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "IPFS 4everland",
+  "url": "https://4everland.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "ref": "184292 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "?"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "jsDelivr npm",
+  "url": "https://cdn.jsdelivr.net/npm/webtorrent@3.0.21/dist/webtorrent.min.js",
+  "ref": "222929 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "WRONG BYTES (206, got 4000 B, wanted 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "unpkg npm",
+  "url": "https://unpkg.com/webtorrent@3.0.21/dist/webtorrent.min.js",
+  "ref": "222929 B identity",
+  "stock": "OK exact slice (206, 4000 B)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2/h3"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "GitHub raw",
+  "url": "https://raw.githubusercontent.com/hzrd149/blossom/master/buds/01.md",
+  "ref": "8613 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "OK exact slice (206, 4000 B)",
+  "protocol": "h2"
+ },
+ {
+  "engine": "chromium",
+  "browser": "156.0.8078.4",
+  "label": "CloudFront aws.amazon.com static",
+  "url": "https://a0.awsstatic.com/libra-css/images/logos/aws_smile-header-desktop-en-white_59x35.png",
+  "ref": "2278 B identity",
+  "stock": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "range-only": "BLOCKED/FAILED (TypeError: Failed to fetch)",
+  "protocol": "h2"
+ }
+]

@@ -1,0 +1,14 @@
+# Production: wildcard certificate by ACME DNS-01 (needs a Caddy build that includes your DNS provider module,
+# e.g. xcaddy build --with github.com/caddy-dns/cloudflare, or the route53 module). Not validated here: see Caddyfile.test.
+{
+	email abuse@hub.example
+}
+
+import hub-sites.caddy
+
+*.hub-sites.example, hub-sites.example {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	import hub_sites_body
+}

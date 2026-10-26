@@ -1,0 +1,21 @@
+w2b-05 probes (research aid for docs/research/w2b-05-security-hardening-prod.md). All scripts are throw-away test code.
+Environment used: macOS (Apple Silicon), Node v24.22.0 (export PATH=$HOME/.local/share/node/current/bin:$PATH),
+Playwright 1.64.1 with Chromium 156.0.8078.4 headless shell, bittorrent-protocol 5.0.9, OpenSSH_10.6p1.
+Dates: all runs 2026-10-17. Only Chromium was exercised; Firefox/WebKit behaviour is UNVERIFIED.
+
+  wire-length-poc.mjs        node wire-length-poc.mjs <path to bittorrent-protocol/index.js> <prefixHex> <chunkBytes> <totalMiB> <patched 0|1> [capBytes]
+                             e.g. node wire-length-poc.mjs ../../../../node_modules/bittorrent-protocol/index.js 7fffffff 16384 32 0
+  wire-length-regress.mjs    node wire-length-regress.mjs <path to a (patched) bittorrent-protocol index.js>  (legit messages still accepted?)
+  bittorrent-protocol-5.0.9-maxMessageLength.patch   proposed upstream patch (apply to a COPY; do not edit node_modules)
+  sw-recovery-probe-0.mjs    first harness: Clear-Site-Data variants on sw.js, navigation relay, sw.js redirect and wrong MIME, tombstone SW (note: its page re-registers the SW, so
+                             'regs' after a navigation-level Clear-Site-Data is 1; probe-1 switches that off)
+  sw-recovery-probe-1.mjs    Clear-Site-Data on sw.js / navigation responses with re-registration off, install failure, syntax error, handler rejection
+  sw-recovery-probe-2-heal.mjs   does a fixed sw.js heal a SW whose navigation handler rejects (rapid vs spaced navigations)
+  sw-timing-probe.mjs        6 runs: delay until Chromium re-fetches sw.js after a navigation; tombstone-SW recovery time
+  cloak-and-frame-probe.mjs  Sec-Fetch-* / Service-Worker request fingerprints; frame-ancestors injected by a SW
+  webauthn-sign-probe.mjs    CDP virtual authenticator: WebAuthn assertion verified with plain WebCrypto; PRF determinism
+  sshsig/verify-sshsig.mjs   WebCrypto-only verifier for ssh-keygen -Y sign output. Fixture: in an empty dir run
+                               ssh-keygen -q -t ecdsa -b 256 -N '' -f k && printf 'mw-pointer-v1\n...' > input.txt &&
+                               ssh-keygen -Y sign -f k -n magnet-web-pointer-v1 input.txt && node verify-sshsig.mjs
+                             (no private key material is stored in this directory)
+  results/                   raw outputs of the runs quoted in the research note

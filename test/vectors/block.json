@@ -1,0 +1,1003 @@
+{
+  "format": "MW-LOG/1 block v1 (salted value hash), v0.2.1",
+  "about": "Golden vectors for ledger blocks and the salted value hash (docs/INTERFACES.md \"src/chain/block.js\"). APPEND ONLY: see LOCK.json.",
+  "keys": {
+    "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+    "visitor": "p256:BBVYP_ipthS9dPb9ZSaSPuUIdyTAUD31B-xgHwcUGhBw2-2ewNJU0yUoIBfwd-jKBds8wkZm5f1M2jaEqYY6WkI"
+  },
+  "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+  "vectors": [
+    {
+      "id": "vh-001-short-string",
+      "kind": "value-hash",
+      "value": "yes",
+      "z": "CzBVep_E6Q4zWH2ix-wRNg",
+      "input": "mw-vh-v1\nCzBVep_E6Q4zWH2ix-wRNg\n\"yes\"",
+      "vh": "cbeeacae40c8f09d3d81e2308cc387eeab561df8045c2d748bb1d5ebe574c0b8"
+    },
+    {
+      "id": "vh-002-object-key-order",
+      "kind": "value-hash",
+      "value": {
+        "b": 1,
+        "a": "x"
+      },
+      "z": "CzBVep_E6Q4zWH2ix-wRNg",
+      "input": "mw-vh-v1\nCzBVep_E6Q4zWH2ix-wRNg\n{\"a\":\"x\",\"b\":1}",
+      "vh": "d74ed164edbb1531d8b2e84a285de36fd4963cf32b525b6aec4c44a3808f6dca"
+    },
+    {
+      "id": "vh-003-null",
+      "kind": "value-hash",
+      "value": null,
+      "z": "AAAAAAAAAAAAAAAAAAAAAA",
+      "input": "mw-vh-v1\nAAAAAAAAAAAAAAAAAAAAAA\nnull",
+      "vh": "39c3a79c5e6e8aab80251a8f4e8038f61ca5ad09a5874fad52e838fb56055e84"
+    },
+    {
+      "id": "vh-004-unicode",
+      "kind": "value-hash",
+      "value": "café 😀",
+      "z": "CzBVep_E6Q4zWH2ix-wRNg",
+      "input": "mw-vh-v1\nCzBVep_E6Q4zWH2ix-wRNg\n\"café 😀\"",
+      "vh": "dd6ed4e08730e6320c00d71a203163ae6ea0cc97f58dc69e8ae0f7ab08e7933d"
+    },
+    {
+      "id": "blk-001-genesis-policy",
+      "kind": "block",
+      "description": "The owner root: a policy block with prev [] and bits 0.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+          "seq": 0,
+          "prev": [],
+          "ts": 1792411200000,
+          "bits": 0,
+          "op": {
+            "allow": [],
+            "bits": 8,
+            "maxChainBytes": 8388608,
+            "maxValueBytes": 2048,
+            "moderators": [],
+            "t": "policy",
+            "writers": "open"
+          },
+          "nonce": ""
+        },
+        "h": "188f2fd57de3a16872c282d2e1a63e2bfc9ca2610a9659f29f1f4b97885e8c49",
+        "s": "yboLEBX_acrg5Nqe7ImPvgxFA5OYSoNpBi18XPQBltm9n6M845boI_qK1G54u7ZzmU5f5aBeIUju1pI7C51s0A"
+      },
+      "options": {
+        "genesisOwner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+        "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 327
+      }
+    },
+    {
+      "id": "blk-002-append-salted",
+      "kind": "block",
+      "description": "A payload block with v and its salt z (vh is salted), mined to 8 bits.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "p256:BBVYP_ipthS9dPb9ZSaSPuUIdyTAUD31B-xgHwcUGhBw2-2ewNJU0yUoIBfwd-jKBds8wkZm5f1M2jaEqYY6WkI",
+          "seq": 1,
+          "prev": [
+            "188f2fd57de3a16872c282d2e1a63e2bfc9ca2610a9659f29f1f4b97885e8c49"
+          ],
+          "ts": 1792411200000,
+          "bits": 8,
+          "op": {
+            "t": "append",
+            "l": "guestbook",
+            "vh": "d02b6cfd281c62cf3eb26420e768839c06144b5e23d0e4c9a82b223f76521c58"
+          },
+          "nonce": "00000000002a"
+        },
+        "h": "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8",
+        "s": "usHbPy23ro9bsercIM_F9ABeswvXxZIsTm7J2bQNYmUCmod2uYBdb0UoOtb7y0t8DZYZ9JPdrI7I40HQOzFqeg",
+        "v": {
+          "text": "hello"
+        },
+        "z": "CzBVep_E6Q4zWH2ix-wRNg"
+      },
+      "options": {
+        "minBits": 8,
+        "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 433
+      }
+    },
+    {
+      "id": "blk-003-stub",
+      "kind": "block",
+      "description": "The same block after a tombstone: { e, h, s } only, still valid, reveals nothing guessable.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "p256:BBVYP_ipthS9dPb9ZSaSPuUIdyTAUD31B-xgHwcUGhBw2-2ewNJU0yUoIBfwd-jKBds8wkZm5f1M2jaEqYY6WkI",
+          "seq": 1,
+          "prev": [
+            "188f2fd57de3a16872c282d2e1a63e2bfc9ca2610a9659f29f1f4b97885e8c49"
+          ],
+          "ts": 1792411200000,
+          "bits": 8,
+          "op": {
+            "t": "append",
+            "l": "guestbook",
+            "vh": "d02b6cfd281c62cf3eb26420e768839c06144b5e23d0e4c9a82b223f76521c58"
+          },
+          "nonce": "00000000002a"
+        },
+        "h": "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8",
+        "s": "usHbPy23ro9bsercIM_F9ABeswvXxZIsTm7J2bQNYmUCmod2uYBdb0UoOtb7y0t8DZYZ9JPdrI7I40HQOzFqeg"
+      },
+      "options": {},
+      "expect": {
+        "valid": true,
+        "bytes": 395
+      }
+    },
+    {
+      "id": "blk-004-tombstone",
+      "kind": "block",
+      "description": "A tombstone by the owner.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+          "seq": 3,
+          "prev": [
+            "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8"
+          ],
+          "ts": 1792411200000,
+          "bits": 0,
+          "op": {
+            "h": "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8",
+            "t": "tombstone"
+          },
+          "nonce": ""
+        },
+        "h": "9567ff2e7fb1f368b2648f5ed52ad59b5d44d423c4e3293dec8ecde31cb4ddab",
+        "s": "eWDS-ow8_IkMCHNhMWEh1XwXn2S25oEq5d_MYis_DklR1LTwnZwq5rsrvDeNGfmqDA1gw-GS3BG0ORg7YSDXOg"
+      },
+      "options": {},
+      "expect": {
+        "valid": true,
+        "bytes": 369
+      }
+    },
+    {
+      "id": "blk-005-wrong-salt",
+      "kind": "block",
+      "description": "Another salt with the same value: value-hash.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "p256:BBVYP_ipthS9dPb9ZSaSPuUIdyTAUD31B-xgHwcUGhBw2-2ewNJU0yUoIBfwd-jKBds8wkZm5f1M2jaEqYY6WkI",
+          "seq": 1,
+          "prev": [
+            "188f2fd57de3a16872c282d2e1a63e2bfc9ca2610a9659f29f1f4b97885e8c49"
+          ],
+          "ts": 1792411200000,
+          "bits": 8,
+          "op": {
+            "t": "append",
+            "l": "guestbook",
+            "vh": "d02b6cfd281c62cf3eb26420e768839c06144b5e23d0e4c9a82b223f76521c58"
+          },
+          "nonce": "00000000002a"
+        },
+        "h": "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8",
+        "s": "usHbPy23ro9bsercIM_F9ABeswvXxZIsTm7J2bQNYmUCmod2uYBdb0UoOtb7y0t8DZYZ9JPdrI7I40HQOzFqeg",
+        "v": {
+          "text": "hello"
+        },
+        "z": "AAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "options": {},
+      "expect": {
+        "valid": false,
+        "reason": "value-hash"
+      }
+    },
+    {
+      "id": "blk-006-value-without-salt",
+      "kind": "block",
+      "description": "v without z: shape.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "p256:BBVYP_ipthS9dPb9ZSaSPuUIdyTAUD31B-xgHwcUGhBw2-2ewNJU0yUoIBfwd-jKBds8wkZm5f1M2jaEqYY6WkI",
+          "seq": 1,
+          "prev": [
+            "188f2fd57de3a16872c282d2e1a63e2bfc9ca2610a9659f29f1f4b97885e8c49"
+          ],
+          "ts": 1792411200000,
+          "bits": 8,
+          "op": {
+            "t": "append",
+            "l": "guestbook",
+            "vh": "d02b6cfd281c62cf3eb26420e768839c06144b5e23d0e4c9a82b223f76521c58"
+          },
+          "nonce": "00000000002a"
+        },
+        "h": "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8",
+        "s": "usHbPy23ro9bsercIM_F9ABeswvXxZIsTm7J2bQNYmUCmod2uYBdb0UoOtb7y0t8DZYZ9JPdrI7I40HQOzFqeg",
+        "v": {
+          "text": "hello"
+        }
+      },
+      "options": {},
+      "expect": {
+        "valid": false,
+        "reason": "shape"
+      }
+    },
+    {
+      "id": "blk-007-unknown-op",
+      "kind": "block",
+      "description": "A correctly hashed and signed block with the reserved op checkpoint: unknown-op.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+          "seq": 2,
+          "prev": [
+            "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8"
+          ],
+          "ts": 1792411200000,
+          "bits": 0,
+          "op": {
+            "t": "checkpoint",
+            "n": 2,
+            "root": "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8"
+          },
+          "nonce": ""
+        },
+        "h": "a76d3cea3e14e9ede7489ea1b3b13707dd6662a426b80f84ca5393e901ee8408",
+        "s": "MtK8If-GdnI4iDHI6KZWfJV2O9HB47lUaoY61bWf06oU2VF-vvdVI3_mC-J7q1elgVSqKhqDMiORS7SHso56CA"
+      },
+      "options": {},
+      "expect": {
+        "valid": false,
+        "reason": "unknown-op"
+      }
+    },
+    {
+      "id": "blk-008-untagged-author",
+      "kind": "block",
+      "description": "A v0.2 block whose author key has no algorithm tag: shape.",
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+          "author": "BBVYP_ipthS9dPb9ZSaSPuUIdyTAUD31B-xgHwcUGhBw2-2ewNJU0yUoIBfwd-jKBds8wkZm5f1M2jaEqYY6WkI",
+          "seq": 1,
+          "prev": [
+            "188f2fd57de3a16872c282d2e1a63e2bfc9ca2610a9659f29f1f4b97885e8c49"
+          ],
+          "ts": 1792411200000,
+          "bits": 8,
+          "op": {
+            "t": "append",
+            "l": "guestbook",
+            "vh": "d02b6cfd281c62cf3eb26420e768839c06144b5e23d0e4c9a82b223f76521c58"
+          },
+          "nonce": "00000000002a"
+        },
+        "h": "4f8e4c35ca8295feff2007d56b07efbce210670278ce4189827fe94464dd8407",
+        "s": "T8hyxGKiOksderlgd16OM84D8HJlJnCiitotWuDlG12m3zsqExGIJIdmA66Rev2iY-3It1_JdhiSVaMLeAuFzQ",
+        "v": {
+          "text": "hello"
+        },
+        "z": "CzBVep_E6Q4zWH2ix-wRNg"
+      },
+      "options": {},
+      "expect": {
+        "valid": false,
+        "reason": "shape"
+      }
+    },
+    {
+      "id": "blk-009-unban",
+      "kind": "block",
+      "description": "v0.3 freeze group: { t: unban, author }.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BH7vHypVskFmxfklbCol9-4AnlQkvtRicj61Bw1OAtP6K-EQspPZOACJ5P9NsDlLGsl2vdF_gVZ-w2Ka9FbAn5M",
+          "seq": 69,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "author": "p256:BBRidckmrS5q2Ho-TmGf1I0FKl24CLVkbW-CHwhWBpxQuR7JT66nV9YFB0ttLD-Fvy2un0oJeR9JinYUZLC09dM",
+            "t": "unban"
+          },
+          "nonce": ""
+        },
+        "h": "289e1a356a51ae9dafe873caf692a1792f831df3c153d12bffd8a60a5e446000",
+        "s": "R29Z8yyBGFABREvEEQeq_bd0DdDXRfL2TKn-93nfFnqZwtpRPnKuQmpblY0gtd0GU31YH8v61dJgTO1kRpT0MA"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 397
+      }
+    },
+    {
+      "id": "blk-010-ban-until",
+      "kind": "block",
+      "description": "v0.3 freeze group: a ban with until (unix ms).",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BH7vHypVskFmxfklbCol9-4AnlQkvtRicj61Bw1OAtP6K-EQspPZOACJ5P9NsDlLGsl2vdF_gVZ-w2Ka9FbAn5M",
+          "seq": 70,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "author": "p256:BBRidckmrS5q2Ho-TmGf1I0FKl24CLVkbW-CHwhWBpxQuR7JT66nV9YFB0ttLD-Fvy2un0oJeR9JinYUZLC09dM",
+            "t": "ban",
+            "until": 1792584000000
+          },
+          "nonce": ""
+        },
+        "h": "9fe22ecb3a16ebc416d5879c3f932b967decaaf8e8c44c8ecd709faf4399047d",
+        "s": "QIXA648gvF35CPNs3C3rjg001VffuzumiHR-ncJxm_5cC42cORXkjkY_xB-ayWRm08-QwWQQ0COlyxeY7ZXdqQ"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 417
+      }
+    },
+    {
+      "id": "blk-011-keyinfo",
+      "kind": "block",
+      "description": "v0.3 freeze group: keyinfo, rc = b64url(sha256(utf8(recover pub))).",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno",
+          "seq": 71,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "rc": "nDXU-mnibYvaIYE-V9k03qtgO_v_80qA0Y5nfh0-gWY",
+            "t": "keyinfo"
+          },
+          "nonce": ""
+        },
+        "h": "32b46a4b2ee38eed77becaa17c8428d0a9c73e831f2356bc52a992f4f2ba89cc",
+        "s": "JSEncbiduWwkX0Z9MAvNLsVn9msyBBZdLn0T3sTNzPtGLkiflrrKA_OlxQ0DgReRSyNHSJ8jrOfYndU6XzLpaQ"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 346
+      }
+    },
+    {
+      "id": "blk-012-rotate-self",
+      "kind": "block",
+      "description": "v0.3 freeze group: a self rotation, signed by from.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno",
+          "seq": 72,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "by": "self",
+            "from": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno",
+            "next": "p256:BFjVi-eI9yXJ7fkT0fSrdI7WNiYZJambJFETBFx5VPZ9qtoj25-Rc9sJLttajooUn_WiVBOPJF9-Ek-cwPFx6kc",
+            "t": "rotate"
+          },
+          "nonce": ""
+        },
+        "h": "d6751b2f6e3d8cb84adf5db67859bc96ed67a9d5ca9ba7aca0aea51c5dce0521",
+        "s": "ET8Ek9sYW1XlTEDcCFv80ZDvKdkSGsMeclMBOKoDGhvbbNCZ7kL5FE05hLf56s_uHtpgbwan9IXK6u5HsMwMHg"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 510
+      }
+    },
+    {
+      "id": "blk-013-rotate-recover",
+      "kind": "block",
+      "description": "v0.3 freeze group: a recover rotation signed by next; rsig = ECDSA P-256 by rp over \"mw-rotate-v1\\n\" + site + \"\\n\" + from + \"\\n\" + next.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BFjVi-eI9yXJ7fkT0fSrdI7WNiYZJambJFETBFx5VPZ9qtoj25-Rc9sJLttajooUn_WiVBOPJF9-Ek-cwPFx6kc",
+          "seq": 73,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "by": "recover",
+            "from": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno",
+            "next": "p256:BFjVi-eI9yXJ7fkT0fSrdI7WNiYZJambJFETBFx5VPZ9qtoj25-Rc9sJLttajooUn_WiVBOPJF9-Ek-cwPFx6kc",
+            "rp": "p256:BLL238aUv6kg-ext-BuEWNIHw40cZW857zCIyWMnDslLp13Omln-7qx8kGJ9MNZkwMMA8LWJrMcwm2iwHuYehgY",
+            "rsig": "NkzomrDAAiAPEboW9jc35ZQ0ptDNWmoKPwsO38bWpKKe5WJZlFhKQAhOumf1t1lYm-2_-E1-H1kXb-I0b6Ut-g",
+            "t": "rotate"
+          },
+          "nonce": ""
+        },
+        "h": "de739c1cdde7a9246af4c22f8480f060310d7975188561f2abc5f7dfcbe8f6f6",
+        "s": "SvAGE_PfRSdjR1oD2E6DQPMvY1PaxG6q_Vru7aV5MBXLwi6Zy5HJVZQ1pKDDEaWxC-YAx9Nu5jcTYXeB2_efYg"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 709
+      }
+    },
+    {
+      "id": "blk-014-rotate-recover-wrong-rsig",
+      "kind": "block",
+      "description": "A recover rotation whose rsig signs another next: sig.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BFjVi-eI9yXJ7fkT0fSrdI7WNiYZJambJFETBFx5VPZ9qtoj25-Rc9sJLttajooUn_WiVBOPJF9-Ek-cwPFx6kc",
+          "seq": 74,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "by": "recover",
+            "from": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno",
+            "next": "p256:BFjVi-eI9yXJ7fkT0fSrdI7WNiYZJambJFETBFx5VPZ9qtoj25-Rc9sJLttajooUn_WiVBOPJF9-Ek-cwPFx6kc",
+            "rp": "p256:BLL238aUv6kg-ext-BuEWNIHw40cZW857zCIyWMnDslLp13Omln-7qx8kGJ9MNZkwMMA8LWJrMcwm2iwHuYehgY",
+            "rsig": "6lHm4r29Bqrk0EPgj5P_4LZ_AfNawsoNYatRuw1xl3gsue1fVbAvLRVEHNkOgD686FGGGeYRndZzugHjDNW_gw",
+            "t": "rotate"
+          },
+          "nonce": ""
+        },
+        "h": "fb7d69b8b8b910372d134f36c5978cff55327ca0e95d8a0243eff72cda20bc6c",
+        "s": "TXei4zbSyV0gus2omZW8U623YjPaRtfIff0SbpafPQt8O4PdvMNV75Fv3E2fTkPV-qbntibbyUawSM1KrGp8kg"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "sig"
+      }
+    },
+    {
+      "id": "blk-015-checkpoint",
+      "kind": "block",
+      "description": "v0.3 freeze group: the defined checkpoint { heads, snap, n, bytes } (validity checks the shape only).",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BJk7q8qygfy6jf4QQU6QADkZJ6pBnNCNDH3zHfMSSuP7mQI4jdl_4vm-cq4eHKCeUdXL_I0HhwJUhcNAiF1JbZU",
+          "seq": 75,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "bytes": 100,
+            "heads": [
+              "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+            ],
+            "n": 1,
+            "snap": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "t": "checkpoint"
+          },
+          "nonce": ""
+        },
+        "h": "d6c509cb051baf2a3d12cce723370f9381b74073275419be1c7f2c857b03e231",
+        "s": "cfQF5es6bZpxiwBUhjeAH0ZwCh7k2kO8bjwPUgtIK1k1nMp4-s82-fImrjD8-RtQa4WleLJQJViwXmfr8ki-2g"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 467
+      }
+    },
+    {
+      "id": "blk-016-checkpoint-33-heads",
+      "kind": "block",
+      "description": "A checkpoint with 33 heads (at most 32): limit.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BJk7q8qygfy6jf4QQU6QADkZJ6pBnNCNDH3zHfMSSuP7mQI4jdl_4vm-cq4eHKCeUdXL_I0HhwJUhcNAiF1JbZU",
+          "seq": 99,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "t": "checkpoint",
+            "heads": [
+              "01d2d4e923e59366f8b1c3238c26217d99f654ae278c27d697461c1f8afe875c",
+              "0ecba2063af505c3ab35316fb9bab2db228c2718fd07cc8f20ac6b4f5c62e4b0",
+              "187c474c4a4f0a0e21e97b3ae34d4b3c2da60f8decb3bf162bda25f3c3c07be1",
+              "1ebc42c417b687894313a5c0b6106900d42ca3c243da015a546b3abb0e5fc68b",
+              "2637286c6e865fe53515ced12713dcaebc4decc493e2324211cdb1a77903456c",
+              "2cc6ff29c15caade0344ffbc9f55d2f5420250ac85105e3764e147e70294a68b",
+              "373a35784bc1f4e00d67aad46268d016c7f7586a7551994b4f7794e568665256",
+              "395f4ffa4c9453613bfaf054f9b8e478521b76c669b28dbb32b6fc49090e7ec8",
+              "3b9aa905cdb6165394fc5aa169221e46c9af6c5fba5af71d0a53abc8042bec3d",
+              "3e89f938d6de9fecd5c160eaaecfedb27b1dd3e01f7602a6768655beedc17460",
+              "3fe8e4f45f6fbb3ea228776622a32995b478e0d71cb5bfcddaafd2cd58741254",
+              "42c9a26d3e069228013f8bad22ccc2773e459f4b3c4df88f52b98d21c8e50f6f",
+              "43ec0671edd361b87958fb4a6e70c1d1baf87774940c04daf55f4ce781e5f3d0",
+              "44a54b71b803620f9fff0e879589b04179e3a77ba953a9f9732d126f437e82a0",
+              "59f571c47f40e3d99505fe8476016c6b389ac3c7e3cb1695dbe40f36ff698b54",
+              "6290c15e0b9010f635b2adb3a5e6d99c8b1a97847ffe22b3947f8297466fa514",
+              "66aaec6a5e83f9247340dca698f14a27f694ff9047d908422d99a057d050d989",
+              "7aa3c256ddc74d5d728fb84719080c043291adae605f8908711ce603c5205a57",
+              "7ae0a311623fda1dbe7a1e47dfcab3823e59a000e821d66a453ba3553b7e2e75",
+              "7cd28d8562742e5fa2f4af46d5750a352524cb3b950e707ad8355fddeeed13fb",
+              "82f841f4530173195d505da7135eac06bc61dedf965c6b323ae66cedaf248bb1",
+              "833878e8e17427baf5b53498ecd2c626e6491a602d9dbbcf83057ff939d0ab94",
+              "979cff0fb9e186be345fa2a27f93cbc44c7fe49388481fa197b883a84326857c",
+              "984d4ff867ceb60312a66b51570a0a69506e649ec395c0a9b71b7641723068ac",
+              "b03c35a6b21014d3577e2a458f37576199771d97c48e6059d9861a5b3c1c9f58",
+              "b138b1e9543e8fbbe1431ca7264607cf9d2ed0d7b82026ace7327e4979add388",
+              "bf923bc309c95a5f876a2d159756c7298c6b5d72fa2a8f0857107d1ef5b3a33f",
+              "cad76230ef17ccd12cfbb5fc4405d74c74004b7209d093b9f34c967a44a94b9b",
+              "d50eaed47b7531a2d09551977c7f848aaa009838c82cf0bc101133836db9f17b",
+              "d771bf34dc8c38d60b4860e930e822186ab9c1923bd3a3b3efa55586ef89ce6b",
+              "dc8c0b54b20752ebd0583872926ba955ede8fcee9c8b88c4a88ff00e82746ced",
+              "f2eab9f35b02712686b38e32dd170a7f56dd8aba415e709b5935e8c47ac24019",
+              "fd562c443203a71333ba86fca2efe129f100578d44d991412ac994d75fc0c2ac"
+            ],
+            "snap": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "n": 33,
+            "bytes": 100
+          },
+          "nonce": ""
+        },
+        "h": "be9cb47de8ea0b9c6a25c331a04ae45be91c60aada1e26a00528ca7b0762454e",
+        "s": "I33S_SI2p1_Zu3dTxfELb0C4EFUhmGh7LR0qbj89TM4VCVOI47a3zaR8BY__ZAbEhUXoLBw9BUjdhfiVlgrCRw"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "limit"
+      }
+    },
+    {
+      "id": "blk-017-bulk-tombstone",
+      "kind": "block",
+      "description": "v0.3 freeze group: the bulk tombstone { authors, before }.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BH7vHypVskFmxfklbCol9-4AnlQkvtRicj61Bw1OAtP6K-EQspPZOACJ5P9NsDlLGsl2vdF_gVZ-w2Ka9FbAn5M",
+          "seq": 76,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "authors": [
+              "p256:BBRidckmrS5q2Ho-TmGf1I0FKl24CLVkbW-CHwhWBpxQuR7JT66nV9YFB0ttLD-Fvy2un0oJeR9JinYUZLC09dM",
+              "p256:BL73SKfoviMfcSTzzYxdpt7zbXud3o1981rIjwyINNchb9FjhCQATnDPIxUzGtVVyBBhWO6hxAs-4gmOabJqkYY"
+            ],
+            "before": "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893",
+            "t": "tombstone"
+          },
+          "nonce": ""
+        },
+        "h": "40f25d6bdf113ba07c8f00f82f51749d23c376be52bb2eb75dcccdec2f4ade01",
+        "s": "4kq9PcZP_SxTeN3-bGeiQuFbuqFSWASkJ1K4fScXAd3v8E28caUyltlgSaZby-JEq8uw0ThCmyJL17jZqrFciw"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 575
+      }
+    },
+    {
+      "id": "blk-018-bulk-tombstone-65-authors",
+      "kind": "block",
+      "description": "A bulk tombstone with 65 authors (at most 64): limit.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BH7vHypVskFmxfklbCol9-4AnlQkvtRicj61Bw1OAtP6K-EQspPZOACJ5P9NsDlLGsl2vdF_gVZ-w2Ka9FbAn5M",
+          "seq": 98,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "t": "tombstone",
+            "authors": [
+              "p256:BA8GZA5dDH4IDMhtebNSazqZGnqQqFiV6ndTORTxrzBuXN2-aTNi5l-NOnxTtPCH1lxl2ENIY5WscRGw5fCH1h0",
+              "p256:BACLoem8BWFAvLIgZ-kfINgwwA1NTqyjA1C0EvaQA6KNcfJlkkhEizCR2duGrvRXAqOm9WhrKIyrHQiEoZlRAbI",
+              "p256:BALBghh_EOWxjM6GymJbfi7wkuEZEcpQJRI4Cu1Qley3Yp7BgZ3o3EnNa5fxj9uY6th3PIUbnTspHisqrKl4Cfc",
+              "p256:BAVigAgD-l_47V_Yjrb_69PFYdyPdFif5Cm6I7AXKumoMTNvIhch49i4jHs5rXciL5l23citW7q5NdFgfHvP29s",
+              "p256:BAbx9CYbr_WaJlvgwRDzFTft2USlQVsdu7xihDtb2gCCEsG7K59bLScEGrRgC-13sXTy0qdoKXDubZAPaCIQNGE",
+              "p256:BAfNz8Njl5mQRm9RDADRUKFcseC8QxGh4bqyMcD7HrEng75kX0Zjkw4FxWRRd8i3gF-PVEkHM4DZrFRs8ignBUk",
+              "p256:BBBk6_0diqWwpwe980gg_HekdYrQ92n9gEB9DHP29AVFLjBdk2pK0tVyLtwoQU0vQxD3r6r1eOgm8HrWeahrfFI",
+              "p256:BBKxpmPQ4Au67e1NykfOR4MQe_wibVYmPA2fT7aHog3jmWWDHoTdMlxagTZjXSa04kIp3q5cQBlmi-DwNtuBLTo",
+              "p256:BBOz7BiWwlGeBGxqakTL7eI7ujF9oVGQh-JfAy5_OH9i4pm20kFWPLyG6wdgxragSSuWalIBzh194M6L_YaDOZo",
+              "p256:BBWK2bSPGg8DqPm8gAXjhjaw1BQhrLDYJF4lSFrpIQgCfTIwDpAPOEP-tZrQ84TqgUEGOAj5XyQCYmHkq6DzH5o",
+              "p256:BBkUy51HWru4du4F1UxYDxxb7Ynpjng-O2KlVePMy6ytA2md8nUVDqND_NhNY_TB2lc6tEfxw7aldMalFUEamoo",
+              "p256:BBm-d2pxhSM5P0GixLcxtdjXDF0vjI8DlaUiB90QAfsm8qp33jUxUzOk01ipAhOK5WBG8v05p1Ean7-nHyv9fC4",
+              "p256:BBwmGTAnDadzYFPAQEHsXOTSmN801w1HxZdgIqjP6wTmp0T__eoQNjWX-WbIVEEHghM6vrh8L4fITdkbzzfhHW8",
+              "p256:BC8wceFVGvmezZXhERzIQYcZDW8YUa9oza4uFEZD9qcQTN0B47QblcEbm43_vM2FLYE0_O9hM-NaYyrw1Mzu_aE",
+              "p256:BDXs5Qgk33-pJKUx1TNnxhABhIq1PeBYFvlyKPEow6xxi8lC7jFlpY7HFYX-60x1-7qq_Tsdtg7xnASxtydu3i4",
+              "p256:BDiLH0UJaH_xG0W-bIeaSEA4R8kcaalnKDKUzINOAPy-_IkyxZnqFe-7dJ2ZONN7KAv6OFu6f1Je6sEMkzTK7gs",
+              "p256:BECrYvmRj-l1rsVl2FrceDxFWvBRlqhSuBUcPclP1Kgsrebt0NkzkEH71MWdUpypNQqRmCQ4l6lK4trTaTtzWT4",
+              "p256:BEEaPpNcxAby10l1ekjSkUKO2it1AtIfoJF3SN-5uCaJKf0Zk2sFsc4EzvEE2TehOhTGgA3lS4uKWkuC01_UFNA",
+              "p256:BElcw9q8p6vIpcF5uDlti94PYuvQFxAoTTuT7QoaUD8H86XoBmYUFalNPDliZbvVo6HijZQTYxS_BaybWidqJaI",
+              "p256:BEqO90-IgK2mTzb43rhXxKq_gbAkTSH0xNrXsrVeMAkvDVF3UqTehvC9CBBp4liBQLzZDd-BfQEikmRmYIX47Ds",
+              "p256:BFNde8NcKABgCHVLT4j5C6b__ouQMXq6uNJdTDK3AwB3CH0df11XrrLEzPUr9TG7wNmmqqvQfDLyzNQ-t4F2fSw",
+              "p256:BFz1uomS6ak-jRmnK-Y2wF0dmcPg2A8megvyV0ftucP_Y1w46dn16KaKbsE6H8WsfrQlCG97ddz3M3GduDKT0Rs",
+              "p256:BGDlpkLWsLzj0PJD-d3e93T73nBRgd-k-K5B3HGqhvNcdjEOzdecl_ktrSxpLHx7XkwFkYO0LWc2U6hgqdz-yPY",
+              "p256:BGPxPBNUcVXQKeoTaoSs6SRzpAjQVD81IdswC0XWMCEdRcAPIb9vHBtQ2yhB4T9M5VxajK88XrmFIYHAUmd-vy0",
+              "p256:BGS3JkWbGrwrB8HnmSaH8dTIiFGxiqTeYRwrnzxZhFW8C1MiEcPM5sal99rbeaVzTtteEHipty6_0ed7Se2cmcg",
+              "p256:BGfiVSLm3nb67C3w2muaEfOrUJa5mUuc8bJpQBfgytIoD8TH_sqdy4jbpoBUe2BuJLOfVCS-mEmgJMDNsTLoOEQ",
+              "p256:BGjuMovnVqoAUugh6vONjutK12s1OEiWgMPfUTDg3M0MBNc7XpRZT15Ai9SUUW0tchjytaEboLwLYBU0F6-vGu4",
+              "p256:BHCjaARuAWHf2CvAHQzY6ij7JmEkvkwn88FU-KXbJQfWdQfm2gYP52aRAjw38EB7FR3uXbgRVaY8x3ctJAK2hPE",
+              "p256:BHJ8m56MfcNSKR-w-olx0eBuheL66v6idLFDSUgRCrE6rHLYFnRKE3TGmRhCwA98QRadXpoSr_9cpP-EwjzRBZk",
+              "p256:BHSiVLSCrFWCjC8AMYemcDDhRm4hcO4F4mOwpVMubjtYb446wH45hP17-5Jq06WENFKZJ45budHKKy1R8gpAD0o",
+              "p256:BHjg9ti7lbusKYoMzAzZfjXBVEIxJEIZlaohWV8PUj36ewvLCfbhq3Fns-0BH7GWcIzFNSavQDAWlHpid81G5Kk",
+              "p256:BHowoEEed-Dlsuj6bUcMTSZC7wjSM-qK2GDxJ6M1NfX5TCKzy_NUk8SgwmPCVeKlxwbIs-k1nWc_q9g_qDnSySU",
+              "p256:BI33CXxPhQde0F5Tr_0Ph-np5KcXLnD7IUgFPJjHFZ1TiVrT2vTBVXDzlIoiuLC3mnOSixa0EcqTSYONVOv0mD4",
+              "p256:BIXdqOPifNDZNgi7MkjOUzEr3ouYvVKiUooTY0-VtQWGfXsUT51tcifvlbWFc93x5QLvgE04rm15xROwONBTwqo",
+              "p256:BIebdsJLru9NlBVANbjERmIoVUinA70FnevEFu35pd2PPypZqqIY1jGCBGwP989SKE0iyWz62jqomR7brn0Czjg",
+              "p256:BJA4IU83P2yaI-S6dftk6KlOJ3TpK2DiXBy3DcuyZ3wfWz5JY4fdboNsBvyWgYawgAP3D4pHCiyah6jAy8uMYg4",
+              "p256:BJdHaYVZcY_1JHZ0XmDa6fIshvlIjRpgJWdJVPq14-ywvVveVqkgkUTsf1J5Wr1mU4_NPvtFKWR4zXkwQojUnBQ",
+              "p256:BK2OOJyvPco52mZN6fJaOhy2ZR-M6mNSciON3XFi5Z5QQ3XWsaI4NJ5T_Zl4SXGleLivCrGrXqoYjK4nbcbUM-w",
+              "p256:BK6VwFCWrLEKzIhL2iuzlCQUZL0J6i-96Dg_y7wqeB9Kxf24XYzBijShVmmbVYKdISuSPgJx0AaRveQatA31dmk",
+              "p256:BKQfpO60hPE_v81XKNSO5v0cyfMqLcdbMSw1tvO3ObMXcmhWKygD48I0ep7mQsVc--5CyEi8arccqGNPgfWtHRc",
+              "p256:BKRVQhWQX_JZ_GZXY3M2xxdGP5rS_ZJSx_jNC_w6YVz4RSDgPSCvtxiaIJr8KiqSeqS4cOK-G-bc060VU52zTJA",
+              "p256:BK_aN6OdFeJuXw654wJIBgBdec_KXLoFloEwzbLgoXGRKofUS2ovapO2ZWMg7cOblSn0R6TpEySNPM2vm6YQnoE",
+              "p256:BKnLipuUaX-5FDJbJ1aHnsww2QDEQov4dpyvxn-Q_x8_8iaNPmWUceM8y8zlVdM8ORa3cLqPkI2q72HzlNzkdWo",
+              "p256:BKpgHl3IDlU8V1vDVbghB6IFpTirP4R_fAWPBoYest5jkLmqPWPj10RKjlNeSaJ_2Vdm2qI9GwNJFaGXUeNQ6So",
+              "p256:BL8_9plLZr4BIjhiov-xuPvdxDC06n42HAFnpc6Lf1QzI2WDuOe0LDkWivs30jRjPwk5Uw0jpODosdz2lEWLxGU",
+              "p256:BLKK64IHIHD3WS4suehbfbd1MQiq7VJBFquSY8Z0wmQLfmpcDQIqfO5B6P0PQeGngZicSmODmuGobT7-mpf-E70",
+              "p256:BLKbOCrgm7rsCn1grNVcVVioPlVta6O9KTmVnXjO9J0pfnLJZk9R-fEzMbs-aUc6aOUjyY-7XC4dWHmCgaNgTdU",
+              "p256:BLRnCK4cyfbUw2TMMPFQlM-yX85Cu_48C-lM3QnkudyufAjfWqa5IjYxKnAC_C2-YXCNkutcIAmaep0sS0gHwcI",
+              "p256:BLTlMozNWLaB-e4CZXzPYadMg6E3swbeMUydEa_vla4_WFhooXRSYKQzCah7sIaD91hjmfTdvnvnxcflGL0oTKY",
+              "p256:BLa33qFTz6GiF8re_HnSP1OdTJPgTN3Dnp8_wBfT5Ozrw3TRtMd23ZRCAzeRwdr-1b8xJe-dRPS_eSP8QV8xGtU",
+              "p256:BLavzfftVjbvtlx-i8wtYtYDjwnYytK_MJOYZJeZavoluXmFu79XMNU2KYVnQrLw9N224dgJm3OnWvysHPSgrEY",
+              "p256:BM9R0YqqIQQ7t_oHts27TfCxbYMh8vgNR4q2B-1G0MziY8RSMWvSnMfCLGV4nqgvMsksWIEpiaW90nfH2Dfkc_0",
+              "p256:BMm5ELaLWkg7-wmgSA4hDopBRBOV3yLwjp8R7z9G5Ny5ddOUkQfUs2ZhL8DU_IW7yojJ5HG5M7v3ShPvl1fhe4Q",
+              "p256:BNQXEenOAIX1IR13Q7Po1ItTNE5_zbw8ATTAoZAGSnmmEwfcn6jBpuFsI38BOXXMidc9C6JTgjF6yseYn-9l2YQ",
+              "p256:BNRarsVDGDiSFhkpuu3MAUYeCEhk8aUhZYuf7ToXRn5E4kwaR7phMwM0qcGg52VTvQNYOt1jOwyX4I9uyfpId1w",
+              "p256:BNmMXw7TUbYhA-2FqxnhwRWWSz6ZkMGF1RaTnpNsxnN74wplTgdKkFIELTjMaZqS6rhIdVznY5LnUwMKwQdGY4M",
+              "p256:BNnOVVRk8HmtQKuz1Ai-CQs-tMwOq5LcGgLwzR-x-lyCgMjruuAxz1v5RwXKqaEKpTBAzU-kYDm2CoDjzwoG63w",
+              "p256:BO0ytQh5b4N12-GqHPRWB4-1vfkGlPxQzebdha_jmx5Q2U0hmvbjTHhY2exKdexhwfj3ZtrcyXRCU7BpACPqv-g",
+              "p256:BOWErOJdeL3efnY7ZAS0TE1pwFhPd3McQau-8byHaZ-NfSL-3m_yFkTHtbAku0O-CAkaRhSRYnlVNEJLLJL68sk",
+              "p256:BOfF_FW-balWBaXk38tbStzIeE8aFGpGiO7zwqCdKHIMlLKvnO8dYdHy6bsHUaEah_QayVNQ2ZLHSPKnR9Ftyz8",
+              "p256:BOh667APK2p7bNgxBY_dUhkcTxHq3aV4BNjIWkMGerlD6Npna0g4ejxEJHOMFrSyCholKBdLTCrSWJ1g67c30Y4",
+              "p256:BOmZvxrSVUDv3IVuI7q_lszq8iMI0iPfVVGdE-9Ij5Hat90_IitGt71LnLD0IMB6dqgESD-QZlrnzllLRb8ioVw",
+              "p256:BP3K20ngo7FwfQtBYag6W1JZaJXOBLdEL8C-cnfCCZDs2iDBBPpeqTOw2i3e4Od6ESSTXJagHxXf4WoZZ6cX_to",
+              "p256:BPWvbc_J5IKzqG-qf56GaR5pArn_m1iNIKITQrlzUXvjepA-lKWYrtsdtyX5wNRHTCUU7LNnLFYAeV30mTJgRHM",
+              "p256:BPj1SC2YsVlk7JGv6B-l2V5KXhJoMc5D67SS7YCigmiOig_CK_9riUJMks7n9N96e4hFce01YzgeJLF3m7S7yvw"
+            ],
+            "before": "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          },
+          "nonce": ""
+        },
+        "h": "c9d89cf40651e96b889c5463989054115afd493d207bac86ce49a3f8e6bc3d89",
+        "s": "ESx5nUpCXlw8FOTVEU22utW7fqE9gfvRCWaqScsL-CtmAcwUK0QvPblLPIgkp69kLy1Siyxfss_iP_PLFFewww"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "limit"
+      }
+    },
+    {
+      "id": "blk-019-policy-freeze-fields",
+      "kind": "block",
+      "description": "v0.3 freeze group: policy fields modAllowPerDay, modActionsPerHour, reservedPool, voided.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BJk7q8qygfy6jf4QQU6QADkZJ6pBnNCNDH3zHfMSSuP7mQI4jdl_4vm-cq4eHKCeUdXL_I0HhwJUhcNAiF1JbZU",
+          "seq": 77,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "modActionsPerHour": 30,
+            "modAllowPerDay": 5,
+            "reservedPool": 10,
+            "t": "policy",
+            "voided": [
+              {
+                "after": "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893",
+                "author": "p256:BH7vHypVskFmxfklbCol9-4AnlQkvtRicj61Bw1OAtP6K-EQspPZOACJ5P9NsDlLGsl2vdF_gVZ-w2Ka9FbAn5M"
+              }
+            ]
+          },
+          "nonce": ""
+        },
+        "h": "1ce1482ce3dc714f4b5bc06d504db866443df5d5fc4e2d938e40a4dd81835116",
+        "s": "rf9o4BqvsNBurIWnxsHbcQ_lZga8FP3EZnGBmXDeoiT_gnhZMbsLAQ_qVKaqej4FsvutuqGqO4HBjKacUIIF3A"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 546
+      }
+    },
+    {
+      "id": "blk-020-vanish",
+      "kind": "block",
+      "description": "The reserved op vanish stays undefined: unknown-op.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BJk7q8qygfy6jf4QQU6QADkZJ6pBnNCNDH3zHfMSSuP7mQI4jdl_4vm-cq4eHKCeUdXL_I0HhwJUhcNAiF1JbZU",
+          "seq": 97,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "t": "vanish",
+            "author": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno"
+          },
+          "nonce": ""
+        },
+        "h": "760900defccdba954900d18683b1a89ed0938a9f355c32735d167857d7db48cf",
+        "s": "z1y80fRNcz8uUDGRuVbmoG7vAMR8-mbeH6mVKW3Lw0mNmN3b99xqbcLoXgHg7dXuXHIwvHtMICzXtZhNu4VzSg"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "unknown-op"
+      }
+    },
+    {
+      "id": "blk-021-grp",
+      "kind": "block",
+      "description": "The reserved op grp stays undefined: unknown-op.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BJk7q8qygfy6jf4QQU6QADkZJ6pBnNCNDH3zHfMSSuP7mQI4jdl_4vm-cq4eHKCeUdXL_I0HhwJUhcNAiF1JbZU",
+          "seq": 97,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "t": "grp",
+            "author": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno"
+          },
+          "nonce": ""
+        },
+        "h": "937db87cbe54f4b5a27de9ebf079c82d4f68aafced3dabf66bc33162fe4f1ed0",
+        "s": "-v2G8_kZS2W5_D5VeMP1kRqACc8wAkNyGjZSMw8Fd3n5JtU6iLheNAsd9jcQxfG1Kck657dFCFKZgEiV3z1Caw"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "unknown-op"
+      }
+    },
+    {
+      "id": "blk-022-rotate-self-wrong-author",
+      "kind": "block",
+      "description": "A self rotation not signed by from: op.",
+      "options": {
+        "site": "mw1:freezeVectorSite000000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:freezeVectorSite000000000",
+          "author": "p256:BCW9xMC30RDxRGYMYV3ruznlW0du__LGAwpckeT9a5Fs631I4P-3JZnNHfS_jEU2whGjnP5uWNtSIinygBPgxMY",
+          "seq": 96,
+          "prev": [
+            "33dfd0255e055ceb85988b78604bf281585b79ee01514722e2acca6ce75a8893"
+          ],
+          "ts": 1792497600000,
+          "bits": 0,
+          "op": {
+            "t": "rotate",
+            "from": "p256:BEzK8cc472pT37eHSNQYeMmzwdCkZwOiU9nupLC4qY0CkAn6GgXqzRdYzmW1rGLsTJ5XeRBOJct8-6udy_5Znno",
+            "next": "p256:BFjVi-eI9yXJ7fkT0fSrdI7WNiYZJambJFETBFx5VPZ9qtoj25-Rc9sJLttajooUn_WiVBOPJF9-Ek-cwPFx6kc",
+            "by": "self"
+          },
+          "nonce": ""
+        },
+        "h": "4964a2723c8ddc0cee5a9c2088c4260b8d18c3db8eb1c76a6741fac72034985f",
+        "s": "9eKJqVRZPpGdFRrBEL70OFK61tN4j_IdlNMtsekpiZCjoupVvPtOTMrGI5pNCbhk0k7uKX83nDfMSuhNu39CEA"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "op"
+      }
+    },
+    {
+      "id": "blk-023-rotate-self-nsig",
+      "kind": "block",
+      "description": "Review round (HUB-1): a self rotation with nsig, ECDSA P-256 by next over \"mw-rotate-self-v1\\n\" + site + \"\\n\" + from + \"\\n\" + next; next agreed, so the keys are joined.",
+      "options": {
+        "site": "mw1:chainRoundVectorSite000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:chainRoundVectorSite000000",
+          "author": "p256:BB3fiMbvAdTNY0YDw41UCLl9-4BkFu1udLdhhdkWvdt7OFrzEp1mOHkESCauSY8csJwgMNAk4x3wQQ2yU25cqlo",
+          "seq": 501,
+          "prev": [
+            "0568dca9fbae52bcdb373a9aeadad6cedac0eb5b37483197ad992880293fecee"
+          ],
+          "ts": 1792584000000,
+          "bits": 0,
+          "op": {
+            "by": "self",
+            "from": "p256:BB3fiMbvAdTNY0YDw41UCLl9-4BkFu1udLdhhdkWvdt7OFrzEp1mOHkESCauSY8csJwgMNAk4x3wQQ2yU25cqlo",
+            "next": "p256:BA9LqBZ2hDfLAz4Daovq7RQ_xAobaaOB7o1MT5miLr4QStSAeHJ-0jbbqYopQnyKYAX-YP8nhPaTnBYk-dQcPHs",
+            "nsig": "MS8PAyEAU3KQfXLE665PBBPi6H6GJs_H-olWlW-tNTBIuFsMoR-2JcYDptOix-7vDtnUUsGsgt1r_gIuSij32A",
+            "t": "rotate"
+          },
+          "nonce": ""
+        },
+        "h": "95fbaa39f31474f83362b3669d08cb4a5c056d6b373b286a13d5a97dd7d2b0ca",
+        "s": "rLcvJI03TtHAtL4gO4hMcY4d-9rMtDOUz-PLhG3bIIhzrz2lpwh5AOm3elCbU39nPCUbcHTdMF8EkdhUzBSmxQ"
+      },
+      "expect": {
+        "valid": true,
+        "bytes": 608
+      }
+    },
+    {
+      "id": "blk-024-rotate-self-nsig-wrong-key",
+      "kind": "block",
+      "description": "A self rotation whose nsig is not by next: sig.",
+      "options": {
+        "site": "mw1:chainRoundVectorSite000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:chainRoundVectorSite000000",
+          "author": "p256:BB3fiMbvAdTNY0YDw41UCLl9-4BkFu1udLdhhdkWvdt7OFrzEp1mOHkESCauSY8csJwgMNAk4x3wQQ2yU25cqlo",
+          "seq": 502,
+          "prev": [
+            "0568dca9fbae52bcdb373a9aeadad6cedac0eb5b37483197ad992880293fecee"
+          ],
+          "ts": 1792584000000,
+          "bits": 0,
+          "op": {
+            "by": "self",
+            "from": "p256:BB3fiMbvAdTNY0YDw41UCLl9-4BkFu1udLdhhdkWvdt7OFrzEp1mOHkESCauSY8csJwgMNAk4x3wQQ2yU25cqlo",
+            "next": "p256:BA9LqBZ2hDfLAz4Daovq7RQ_xAobaaOB7o1MT5miLr4QStSAeHJ-0jbbqYopQnyKYAX-YP8nhPaTnBYk-dQcPHs",
+            "nsig": "93mT7IU0keZooxO8MZaSZG0Wwhb3bsCn1h9FrWkdYZ2VV7Ws9RcWmaDZLBiX1LjZjS-fAZC9NjHQVDrjty9ZJw",
+            "t": "rotate"
+          },
+          "nonce": ""
+        },
+        "h": "5af5bc3ae6862502e2487dbd0255d24328527f97f6fb31396bff23c0c5f6acda",
+        "s": "fmiU9EM0dv6dG63NPk64Q5dLIiIzqdIJPEWfWes9VjwFFR6BLLsbJzNpiyhSlkGDrCbpxeBAHQwB-op6CLyVow"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "sig"
+      }
+    },
+    {
+      "id": "blk-025-rotate-self-nsig-malformed",
+      "kind": "block",
+      "description": "A self rotation whose nsig is not 64 bytes of base64url: op.",
+      "options": {
+        "site": "mw1:chainRoundVectorSite000000"
+      },
+      "block": {
+        "e": {
+          "v": 1,
+          "site": "mw1:chainRoundVectorSite000000",
+          "author": "p256:BB3fiMbvAdTNY0YDw41UCLl9-4BkFu1udLdhhdkWvdt7OFrzEp1mOHkESCauSY8csJwgMNAk4x3wQQ2yU25cqlo",
+          "seq": 501,
+          "prev": [
+            "0568dca9fbae52bcdb373a9aeadad6cedac0eb5b37483197ad992880293fecee"
+          ],
+          "ts": 1792584000000,
+          "bits": 0,
+          "op": {
+            "by": "self",
+            "from": "p256:BB3fiMbvAdTNY0YDw41UCLl9-4BkFu1udLdhhdkWvdt7OFrzEp1mOHkESCauSY8csJwgMNAk4x3wQQ2yU25cqlo",
+            "next": "p256:BA9LqBZ2hDfLAz4Daovq7RQ_xAobaaOB7o1MT5miLr4QStSAeHJ-0jbbqYopQnyKYAX-YP8nhPaTnBYk-dQcPHs",
+            "nsig": "short",
+            "t": "rotate"
+          },
+          "nonce": ""
+        },
+        "h": "7d9d6a68cf71d7323beddb890c049e0a0f96897d381e010ad6d49af77d1fb062",
+        "s": "WpoOFKbmX_W5RmqclaUCzCjlUSbj4rL3RVFvy9YWg4N4fET0emWLjWYrfQaAdQ-iBtIko284Ww0m4NwwfL2VZw"
+      },
+      "expect": {
+        "valid": false,
+        "reason": "op"
+      }
+    }
+  ]
+}

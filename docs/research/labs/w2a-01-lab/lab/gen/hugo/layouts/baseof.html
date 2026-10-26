@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>{{ .Title }}</title>
+<link rel="canonical" href="{{ .Permalink }}">
+{{ $css := resources.Get "css/style.css" | resources.Fingerprint }}
+<link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
+<link rel="icon" href="{{ "favicon.png" | relURL }}"></head>
+<body><nav><a href="{{ "" | relURL }}">home</a> <a id="to-about" href="{{ "about/" | relURL }}">about</a></nav>
+{{ block "main" . }}{{ end }}
+<img src="/bg.png" alt="" width="1" height="1">
+<script>fetch('/data.json').then(function(r){return r.json()}).then(function(j){window.__data=j})</script>
+</body></html>

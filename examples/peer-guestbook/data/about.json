@@ -1,0 +1,21 @@
+{
+  "name": "Peer Guestbook",
+  "version": "3.0.0",
+  "description": "A static website loaded by magnet link over WebTorrent, peer-to-peer, with a guestbook kept in a site ledger instead of a server database.",
+  "built": "2026-10-20",
+  "pages": ["/", "/members.html", "/profile.html", "/about.html", "/404.html"],
+  "stack": {
+    "delivery": "WebTorrent over WebRTC between visitors, plus an HTTP web seed on the static host for when nobody else is online",
+    "rendering": "The loader's Service Worker serves the downloaded files at the site's own URLs inside a same-URL frame, so root-relative links, fetch() and deep links work",
+    "data": "A site ledger: a signed, hash-linked log that every visitor copies and verifies. No mining, no consensus, no finality.",
+    "sdk": "/_mw/sdk.js, connected to the loader page over a MessageChannel",
+    "identity": "Sign in opens the felinar identity page in its own window; this site gets a key that works only here"
+  },
+  "facts": [
+    "Every file of this site was checked against the torrent's infohash before it was shown to you.",
+    "This list was fetched at runtime with fetch('/data/about.json'), which works through the loader exactly as on a normal host.",
+    "Guestbook entries are signed with the key this site gets when you sign in, so nobody else can post as you.",
+    "Each post carries a small proof-of-work fee. It is a spam fee, not security.",
+    "While this page is open your browser can pass the site's files and posts on to the next visitor. The static host keeps the site loading when nobody else is online."
+  ]
+}

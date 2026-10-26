@@ -1,0 +1,58 @@
+{
+ "engine": "chromium",
+ "version": "156.0.8078.4",
+ "res": {
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safar",
+  "jwkImportNonExtractable": {
+   "extractable": false,
+   "verifies": true
+  },
+  "pkcs8NoPublicKeyImport": {
+   "ok": true,
+   "xyMatch": true
+  },
+  "idb_ecdsa_p256_nonextractable": {
+   "asValue": {
+    "restored": true,
+    "privExtractable": false,
+    "signs": 64,
+    "verifies": true
+   },
+   "asIndexedProperty": {
+    "found": true,
+    "keyType": "private"
+   }
+  },
+  "idb_ed25519_nonextractable": {
+   "asValue": {
+    "restored": true,
+    "privExtractable": false,
+    "signs": 64,
+    "verifies": true
+   },
+   "asIndexedProperty": {
+    "found": true,
+    "keyType": "private"
+   }
+  },
+  "clientCapabilities": {
+   "prf": true,
+   "relatedOrigins": true,
+   "hybridTransport": true,
+   "conditionalCreate": true,
+   "passkeyPlatformAuthenticator": true,
+   "keys": 24
+  },
+  "storage": {
+   "persistApi": "function",
+   "persisted": false,
+   "persistGranted": false
+  },
+  "argon2idWasm_64MiB_t3": {
+   "ms": 119
+  },
+  "argon2idWasm_256MiB_t1": {
+   "ms": 172
+  }
+ }
+}

@@ -1,0 +1,4 @@
+# Placed in the assets directory. Applies to static asset responses served WITHOUT invoking the Worker (loader assets under /_mw/).
+/_mw/*
+  Cache-Control: public, max-age=300
+  X-Content-Type-Options: nosniff

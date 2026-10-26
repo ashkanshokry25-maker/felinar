@@ -1,0 +1,27 @@
+{
+  "name": "@felinar/verify",
+  "version": "0.3.0",
+  "description": "Verifies mw-signin-v1 sign-in proofs from a felinar identity origin. One file, zero dependencies, WebCrypto (Node 22 and browsers).",
+  "type": "module",
+  "main": "./verify.js",
+  "exports": {
+    ".": "./verify.js"
+  },
+  "files": [
+    "verify.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "felinar",
+    "sign-in",
+    "mw-signin-v1",
+    "webcrypto",
+    "ecdsa",
+    "rfc8785"
+  ],
+  "license": "MIT",
+  "sideEffects": false
+}

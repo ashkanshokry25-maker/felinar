@@ -1,0 +1,88 @@
+# deploy/one-box/Caddyfile: one rented server, one site, no domain (docs/research/v03/S2-zero-setup-hosting.md, rung 2a;
+# docs/research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md 3.2). Caddy gets and renews the certificate itself (ACME) for the site name in LW_SITE, for
+# example 203-0-113-7.nip.io: HTTP-01 on port 80 or TLS-ALPN-01 on port 443, so no DNS credentials are involved and ports 80 and 443 of this machine
+# must be reachable from the internet. LW_ACME_CA picks the certificate authority's directory: Let's Encrypt staging first, production after a
+# staging certificate worked (docs/DEPLOY.md, "Zero-setup: a server without a domain"). Keep the caddy_data volume: a lost certificate is a new
+# request, and Let's Encrypt allows 5 certificates for the same names a week.
+#
+# This is the file that Caddy 2.11.7 validated and served on loopback in the research (S2 F17, checked with tools/check-webseed.mjs and
+# tools/check-site.mjs). The certificate request was not part of that run. CI checks it again with `caddy validate`.
+{
+	acme_ca {$LW_ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
+	grace_period 30s
+	servers {
+		timeouts {
+			read_header 10s
+			idle 5m
+		}
+	}
+}
+(lw_headers) {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	# Shell and loader files are always revalidated (DEPLOY.md).
+	@loader path / /index.html /404.html /mw-sw.js /_mw/*
+	header @loader Cache-Control "no-cache"
+	# Only a response header can say frame-ancestors.
+	@shell path / /index.html /404.html
+	header @shell {
+		Content-Security-Policy "frame-ancestors 'none'"
+		X-Frame-Options DENY
+	}
+	# The web seed answers Range with 206 and identity bytes: revalidate it, never compress it.
+	header /ws/* Cache-Control "no-cache"
+	@compress not path /ws/*
+	encode @compress zstd gzip
+}
+
+{$LW_SITE} {
+	root * {$LW_ROOT:/srv/site}
+
+	# Add the log block of deploy/tracker/Caddyfile here (client addresses masked to /24 and /48).
+	# 1. The tracker: only WebSocket upgrades on /tracker reach it.
+	@tracker {
+		path /tracker
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle @tracker {
+		reverse_proxy {$LW_TRACKER:tracker:8000} {
+			stream_close_delay 30s
+			stream_timeout 24h
+		}
+	}
+
+	# 2. Everything else is static files. Dot paths are never served, except .mw (inside the torrent)
+	# and .well-known.
+	handle {
+		@hidden {
+			path_regexp dot /\.[^/]
+			not path_regexp ok /\.(mw|well-known)(/|$)
+		}
+		respond @hidden "Not found" 404
+		import lw_headers
+		file_server
+	}
+
+	# 3. Unknown paths get the shell with status 404 (the loader renders it). A missing loader file or seed
+	# file is a plain 404, never the shell as 200 text/html.
+	handle_errors {
+		import lw_headers
+		@reserved path /mw-sw.js /_mw/* /ws/* /.mw/*
+		handle @reserved {
+			respond "Not found" {err.status_code}
+		}
+		handle {
+			rewrite * /404.html
+			# No matcher here: header runs before rewrite, so a path matcher would see the old path.
+			header Cache-Control "no-cache"
+			header Content-Security-Policy "frame-ancestors 'none'"
+			header X-Frame-Options DENY
+			file_server
+		}
+	}
+}

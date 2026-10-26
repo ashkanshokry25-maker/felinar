@@ -1,0 +1,5 @@
+# mqtt_doh.py run 2026-10-17T21:26:43Z
+{"broker": "broker.emqx.io:8084/mqtt", "upgrade": "HTTP/1.1 101 Switching Protocols", "subprotocol": "mqtt", "connect_ms": 84, "connack_rc": 0, "suback": [[0, 1, 0]], "echo_ms": 17, "resolved_via_doh": "35.172.255.228"}
+{"broker": "broker.hivemq.com:8884/mqtt", "upgrade": "HTTP/1.1 101 Switching Protocols", "subprotocol": "mqtt", "connect_ms": 419, "connack_rc": 0, "suback": [[0, 1, 0]], "echo_ms": 93, "resolved_via_doh": "18.197.214.240"}
+{"broker": "test.mosquitto.org:8081", "upgrade": "HTTP/1.1 101 Switching Protocols", "subprotocol": "mqtt", "connect_ms": 351, "connack_rc": 0, "suback": [[0, 1, 0]], "echo_ms": 86, "resolved_via_doh": "54.36.178.49"}
+{"broker": "public.cloud.shiftr.io (public:public)", "upgrade": "HTTP/1.1 101 Switching Protocols", "subprotocol": "mqtt", "connect_ms": 419, "connack_rc": 0, "suback": [[0, 1, 0]], "echo_ms": 106, "resolved_via_doh": "34.77.13.55"}

@@ -1,0 +1,70 @@
+# Reference Caddyfile: TLS termination + WebSocket reverse proxy in front of tracker.mjs (127.0.0.1:8000).
+# Replace rtc.example.com with a neutral hostname (avoid the words "tracker", "torrent", "peer" - see the filter-list findings).
+# Caddy 2.11.x. Validate with:  caddy validate --config Caddyfile --adapter caddyfile
+{
+	email ops@example.com
+	# Keep long-lived connections for up to 30 s after a config reload / stop instead of cutting them at once.
+	grace_period 30s
+	servers {
+		timeouts {
+			read_header 10s
+			idle 5m
+		}
+	}
+	# Exposes caddy_http_* metrics at the admin endpoint (default localhost:2019/metrics).
+	# (The nested `servers { metrics }` form is deprecated in Caddy 2.11.x and warns on startup.)
+	metrics
+}
+
+rtc.example.com {
+	# Only upgrade requests reach the tracker. Everything else is a static answer.
+	@ws {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle @ws {
+		reverse_proxy 127.0.0.1:8000 {
+			# Without this, `caddy reload` force-closes every WebSocket immediately (docs: reverse_proxy, stream_close_delay).
+			stream_close_delay 30s
+			# Caddy appends the client IP to X-Forwarded-For and ignores client-supplied values unless trusted_proxies is set;
+			# tracker.mjs reads the LAST entry and only trusts it when the TCP peer is loopback.
+			health_uri /healthz
+			health_interval 15s
+			health_timeout 3s
+		}
+	}
+	handle /healthz {
+		reverse_proxy 127.0.0.1:8000
+	}
+	handle {
+		respond "WebRTC signalling endpoint (WebSocket only)." 200
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+
+	# Privacy by default: mask client IPs in the access log (IPv4 /24, IPv6 /48) and keep 7 days.
+	log {
+		output file {$MW_LOG_DIR:/var/log/caddy}/rtc.access.log {
+			roll_size 50MiB
+			roll_keep 7
+			roll_keep_for 168h
+		}
+		format filter {
+			request>remote_ip ip_mask {
+				ipv4 24
+				ipv6 48
+			}
+			request>client_ip ip_mask {
+				ipv4 24
+				ipv6 48
+			}
+			request>headers>X-Forwarded-For delete
+			request>headers>Cookie delete
+			wrap json
+		}
+	}
+}

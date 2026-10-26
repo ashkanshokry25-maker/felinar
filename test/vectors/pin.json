@@ -1,0 +1,293 @@
+{
+  "format": "mw_pin1 frames (chal, hello, rcpt) and the signed pin heartbeat mw-pin-status, v0.3 C2 (SEEDING-AND-ZERO-SETUP-DESIGN 3.1.6)",
+  "about": "Golden vectors for src/pin/frames.js and src/pin/heartbeat.js (docs/deviations/pin-node.md); checked by test/unit/pin-frames.test.mjs and pin-heartbeat.test.mjs. The keys are throwaway P-256 JWKs made for these vectors. ECDSA signatures are randomized: an implementation must verify these, not reproduce their bytes. Times are milliseconds since the epoch. APPEND ONLY once locked: never edit or remove a vector; add new ones with new ids and append their hashes to LOCK.json.",
+  "vectors": [
+    {
+      "id": "pin-key-001",
+      "description": "The throwaway pin key of these vectors (a P-256 JWK as tools/keygen.mjs writes it) and its public key, the value of _mw.cfg.pin.",
+      "input": {
+        "jwk": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "HTZa6233o00nKiKW0NYbloP9XXRT46Kx_w1AGklIoPw",
+          "y": "tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU",
+          "d": "q7RmANITwJFh6cVbhmiyM2QedqnFI78MAj__RSY7Y7o"
+        }
+      },
+      "expect": {
+        "pub": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU"
+      }
+    },
+    {
+      "id": "pin-key-002-other",
+      "description": "A second throwaway key: a pin key the site did not name.",
+      "input": {
+        "jwk": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "bguimRZf_9hPUVburKDGZ60ohJozqPtSkc3-haqlfHg",
+          "y": "36Vk3h8q0Up32HNPR6Rr4lWcz5kLfWET4F6hviWgl_4",
+          "d": "vFi1tLDehvBqb0y6xFZS_27caDWVxA0cbVl_yW_N3LU"
+        }
+      },
+      "expect": {
+        "pub": "p256:BG4LopkWX__YT1FW7qygxmetKISaM6j7UpHN_oWqpXx436Vk3h8q0Up32HNPR6Rr4lWcz5kLfWET4F6hviWgl_4"
+      }
+    },
+    {
+      "id": "pin-chal-001",
+      "description": "A challenge with the 16 bytes 0x00 to 0x0f; n is their base64url. The browser sends one per wire.",
+      "input": {
+        "nonceHex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "expect": {
+        "frame": "{\"t\":\"chal\",\"n\":\"AAECAwQFBgcICQoLDA0ODw\"}"
+      }
+    },
+    {
+      "id": "pin-hello-001",
+      "description": "The pin answers the challenge on a wire of the site torrent: sig over \"mw-pin1-hello\\n\" + ih + \"\\n\" + n + \"\\n\" + at. Verified 60 s later with expectKey = pin-key-001.",
+      "input": {
+        "ih": "0123456789abcdef0123456789abcdef01234567",
+        "n": "AAECAwQFBgcICQoLDA0ODw",
+        "at": 1792512000000,
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU"
+      },
+      "expect": {
+        "signingInput": "mw-pin1-hello\n0123456789abcdef0123456789abcdef01234567\nAAECAwQFBgcICQoLDA0ODw\n1792512000000",
+        "frame": "{\"t\":\"hello\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"ih\":\"0123456789abcdef0123456789abcdef01234567\",\"n\":\"AAECAwQFBgcICQoLDA0ODw\",\"at\":1792512000000,\"sig\":\"lgZYBcVF3j0UPIrMNVddBEmA3gCUqP0WsAdchNbloq7e1v_hDmc14swwKpOqXDmjAYUmblQzPrusDFDYqBiSPw\"}",
+        "verify": {
+          "ok": true,
+          "reason": null
+        },
+        "signable": true
+      }
+    },
+    {
+      "id": "pin-rcpt-001",
+      "description": "A receipt for a 5 MiB file the pin holds whole: sig over \"mw-pin1-receipt\\n\" + ih + \"\\n\" + total + \"\\n\" + at; total is the torrent length in bytes.",
+      "input": {
+        "ih": "fedcba9876543210fedcba9876543210fedcba98",
+        "total": 5242880,
+        "at": 1792512000000,
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU"
+      },
+      "expect": {
+        "signingInput": "mw-pin1-receipt\nfedcba9876543210fedcba9876543210fedcba98\n5242880\n1792512000000",
+        "frame": "{\"t\":\"rcpt\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"ih\":\"fedcba9876543210fedcba9876543210fedcba98\",\"total\":5242880,\"at\":1792512000000,\"sig\":\"W86-BhAVYwEcqNEeCt2O4eOa5hqYyQcaAZQft2Bs9qLOExLkd-_gAgG7BBRQjCCnYnlQIaPgYZkjZ8LBL1zRsQ\"}",
+        "verify": {
+          "ok": true,
+          "reason": null
+        },
+        "signable": true
+      }
+    },
+    {
+      "id": "pin-status-001",
+      "description": "A heartbeat listing the site torrent and one pinned file (hashed: base64url of the first 16 bytes of SHA-256(\"mw-pin-status-v1|\" + ih), sorted), 1 GiB used of a 500 GiB month cap. sig over \"mw-pin-status-v1\\n\" + JCS(status without sig). Verified 60 s later for site and expectKey.",
+      "input": {
+        "site": "mw1:vectorLedgerAbcdefghijklmnop",
+        "at": 1792512000000,
+        "ihs": [
+          "0123456789abcdef0123456789abcdef01234567",
+          "fedcba9876543210fedcba9876543210fedcba98"
+        ],
+        "monthBytes": 1073741824,
+        "monthCap": 536870912000,
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU"
+      },
+      "expect": {
+        "items": [
+          "DJkHN5CJDhmDHAN-kMLRcQ",
+          "UP0HrAO_UOY5ZO7NbR3e0Q"
+        ],
+        "itemIds": {
+          "0123456789abcdef0123456789abcdef01234567": "DJkHN5CJDhmDHAN-kMLRcQ",
+          "fedcba9876543210fedcba9876543210fedcba98": "UP0HrAO_UOY5ZO7NbR3e0Q"
+        },
+        "signingInput": "mw-pin-status-v1\n{\"at\":1792512000000,\"items\":[\"DJkHN5CJDhmDHAN-kMLRcQ\",\"UP0HrAO_UOY5ZO7NbR3e0Q\"],\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"monthBytes\":1073741824,\"monthCap\":536870912000,\"site\":\"mw1:vectorLedgerAbcdefghijklmnop\",\"t\":\"mw-pin-status\",\"v\":1}",
+        "file": "{\"v\":1,\"t\":\"mw-pin-status\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"site\":\"mw1:vectorLedgerAbcdefghijklmnop\",\"at\":1792512000000,\"items\":[\"DJkHN5CJDhmDHAN-kMLRcQ\",\"UP0HrAO_UOY5ZO7NbR3e0Q\"],\"monthBytes\":1073741824,\"monthCap\":536870912000,\"sig\":\"nCcTG9BLxHvDzpcj308J9daIyYCOrZ1nQpaynBQpFe37m0_429TDoWAzB-Xa8O1kj-wMFfPbZY8TrUKGJLiDww\"}\n",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "age": 60000,
+          "count": 2
+        },
+        "has": {
+          "0123456789abcdef0123456789abcdef01234567": true,
+          "fedcba9876543210fedcba9876543210fedcba98": true,
+          "1111111111111111111111111111111111111111": false
+        }
+      }
+    },
+    {
+      "id": "pin-neg-001-wrong-prefix",
+      "description": "A hello whose signature is over another prefix (\"mw-pin2-hello\\n\"): the signature does not verify, and the Node signer refuses to sign such bytes at all.",
+      "input": {
+        "frame": "{\"t\":\"hello\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"ih\":\"0123456789abcdef0123456789abcdef01234567\",\"n\":\"AAECAwQFBgcICQoLDA0ODw\",\"at\":1792512000000,\"sig\":\"k82CoHAiGijtqsgU7wK31QkDM5o4cE2aZWkRlxkr8zEQr0WOaRKfIFC9_hozZDcCrpxuZeBvgggmEMLpxCXBjQ\"}",
+        "ih": "0123456789abcdef0123456789abcdef01234567",
+        "n": "AAECAwQFBgcICQoLDA0ODw",
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU",
+        "signedBytes": "mw-pin2-hello\n0123456789abcdef0123456789abcdef01234567\nAAECAwQFBgcICQoLDA0ODw\n1792512000000"
+      },
+      "expect": {
+        "verify": {
+          "ok": false,
+          "reason": "signature"
+        },
+        "signable": false
+      }
+    },
+    {
+      "id": "pin-neg-002-skew",
+      "description": "A hello signed 300,001 ms before now (one millisecond past the 5-minute window).",
+      "input": {
+        "frame": "{\"t\":\"hello\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"ih\":\"0123456789abcdef0123456789abcdef01234567\",\"n\":\"AAECAwQFBgcICQoLDA0ODw\",\"at\":1792511699999,\"sig\":\"xCMDokA1hoI3ERNwIh8UGpNU4hVxFtdZEDBOngHJyCKJyW1AxfWjpaZm4uqYV3z6wfq8Ysi0Ljlwm9fs4dTMcQ\"}",
+        "ih": "0123456789abcdef0123456789abcdef01234567",
+        "n": "AAECAwQFBgcICQoLDA0ODw",
+        "now": 1792512000000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU"
+      },
+      "expect": {
+        "verify": {
+          "ok": false,
+          "reason": "skew"
+        }
+      }
+    },
+    {
+      "id": "pin-neg-003-other-key",
+      "description": "A valid hello by a key the site did not name (pin-key-002-other) checked against _mw.cfg.pin = pin-key-001.",
+      "input": {
+        "frame": "{\"t\":\"hello\",\"key\":\"p256:BG4LopkWX__YT1FW7qygxmetKISaM6j7UpHN_oWqpXx436Vk3h8q0Up32HNPR6Rr4lWcz5kLfWET4F6hviWgl_4\",\"ih\":\"0123456789abcdef0123456789abcdef01234567\",\"n\":\"AAECAwQFBgcICQoLDA0ODw\",\"at\":1792512000000,\"sig\":\"QfnYSg1GOp17itTNrnWdqOBXmWC42aCU33QOAjw12AiByOJxJXk-p8l52KEkvGiRG4jds7xFB8Ze7BpQZW5eug\"}",
+        "ih": "0123456789abcdef0123456789abcdef01234567",
+        "n": "AAECAwQFBgcICQoLDA0ODw",
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU"
+      },
+      "expect": {
+        "verify": {
+          "ok": false,
+          "reason": "other-key"
+        }
+      }
+    },
+    {
+      "id": "pin-neg-004-forged-receipt",
+      "description": "A receipt that names pin-key-001 but was signed by pin-key-002-other.",
+      "input": {
+        "frame": "{\"t\":\"rcpt\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"ih\":\"fedcba9876543210fedcba9876543210fedcba98\",\"total\":5242880,\"at\":1792512000000,\"sig\":\"7iJknf7dkYIv2vlTh2EQ3WyYfPFDBvnYvNhlAh3OHZNnzqECCGwOQm5VtbGTZqo8LElfYC1RrNJ8EcFaghDrxw\"}",
+        "ih": "fedcba9876543210fedcba9876543210fedcba98",
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU"
+      },
+      "expect": {
+        "verify": {
+          "ok": false,
+          "reason": "signature"
+        }
+      }
+    },
+    {
+      "id": "pin-neg-005-oversize-frame",
+      "description": "A frame of more than 1,024 bytes is refused before it is parsed.",
+      "input": {
+        "frame": "{\"t\":\"hello\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"ih\":\"0123456789abcdef0123456789abcdef01234567\",\"n\":\"AAECAwQFBgcICQoLDA0ODw\",\"at\":1792512000000,\"sig\":\"lgZYBcVF3j0UPIrMNVddBEmA3gCUqP0WsAdchNbloq7e1v_hDmc14swwKpOqXDmjAYUmblQzPrusDFDYqBiSPw\",\"pad\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}"
+      },
+      "expect": {
+        "decode": {
+          "ok": false,
+          "reason": "too-large"
+        }
+      }
+    },
+    {
+      "id": "pin-neg-006-cleartext-infohash",
+      "description": "A heartbeat that lists an infohash in the clear, correctly signed: refused (items are hashed ids only, so private swarms stay private).",
+      "input": {
+        "file": "{\"v\":1,\"t\":\"mw-pin-status\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"site\":\"mw1:vectorLedgerAbcdefghijklmnop\",\"at\":1792512000000,\"items\":[\"0123456789abcdef0123456789abcdef01234567\"],\"monthBytes\":1073741824,\"monthCap\":536870912000,\"sig\":\"Vxe7THj3KtGhqTwDwFJGJOirM7BKHXJZw31uiy3YgacSd5rRB-_03ZQ7W1FV_KbQ7MgQYs-_XTcw9Y0KrP5tqQ\"}\n",
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU",
+        "site": "mw1:vectorLedgerAbcdefghijklmnop"
+      },
+      "expect": {
+        "verify": {
+          "ok": false,
+          "reason": "cleartext-infohash"
+        }
+      }
+    },
+    {
+      "id": "pin-neg-007-stale-status",
+      "description": "pin-status-001 checked 900,001 ms after it was written (one millisecond past 15 minutes).",
+      "input": {
+        "file": "{\"v\":1,\"t\":\"mw-pin-status\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"site\":\"mw1:vectorLedgerAbcdefghijklmnop\",\"at\":1792512000000,\"items\":[\"DJkHN5CJDhmDHAN-kMLRcQ\",\"UP0HrAO_UOY5ZO7NbR3e0Q\"],\"monthBytes\":1073741824,\"monthCap\":536870912000,\"sig\":\"nCcTG9BLxHvDzpcj308J9daIyYCOrZ1nQpaynBQpFe37m0_429TDoWAzB-Xa8O1kj-wMFfPbZY8TrUKGJLiDww\"}\n",
+        "now": 1792512900001,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU",
+        "site": "mw1:vectorLedgerAbcdefghijklmnop"
+      },
+      "expect": {
+        "verify": {
+          "ok": false,
+          "reason": "stale"
+        }
+      }
+    },
+    {
+      "id": "pin-neg-008-other-site",
+      "description": "pin-status-001 checked by another site (a hub pin's heartbeat for one site counts for no other).",
+      "input": {
+        "file": "{\"v\":1,\"t\":\"mw-pin-status\",\"key\":\"p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU\",\"site\":\"mw1:vectorLedgerAbcdefghijklmnop\",\"at\":1792512000000,\"items\":[\"DJkHN5CJDhmDHAN-kMLRcQ\",\"UP0HrAO_UOY5ZO7NbR3e0Q\"],\"monthBytes\":1073741824,\"monthCap\":536870912000,\"sig\":\"nCcTG9BLxHvDzpcj308J9daIyYCOrZ1nQpaynBQpFe37m0_429TDoWAzB-Xa8O1kj-wMFfPbZY8TrUKGJLiDww\"}\n",
+        "now": 1792512060000,
+        "expectKey": "p256:BB02Wutt96NNJyoiltDWG5aD_V10U-Oisf8NQBpJSKD8tsojE4SXahhDsICf2Dqju1Vc_xylUgei9soPRUkO6UU",
+        "site": "mw1:anotherLedgerAbcdefghijklm"
+      },
+      "expect": {
+        "verify": {
+          "ok": false,
+          "reason": "other-site"
+        }
+      }
+    },
+    {
+      "id": "pin-neg-009-unsignable",
+      "description": "Byte strings (UTF-8 of these texts) the Node signer refuses: other prefixes (a block, a pointer, the heartbeat), an uppercase infohash, a leading zero, a trailing newline, a longer nonce, a plus sign, a zero total, trailing text, an exponent, a leading space.",
+      "input": {
+        "texts": [
+          "mw-block-v1\n0123456789abcdef0123456789abcdef01234567",
+          "mw-pointer-v1\nv=mw1; btih=0123456789abcdef0123456789abcdef01234567",
+          "mw-pin-status-v1\n{}",
+          "mw-pin1-hello\n0123456789ABCDEF0123456789ABCDEF01234567\nAAECAwQFBgcICQoLDA0ODw\n1792512000000",
+          "mw-pin1-hello\n0123456789abcdef0123456789abcdef01234567\nAAECAwQFBgcICQoLDA0ODw\n01792512000000",
+          "mw-pin1-hello\n0123456789abcdef0123456789abcdef01234567\nAAECAwQFBgcICQoLDA0ODw\n1792512000000\n",
+          "mw-pin1-hello\n0123456789abcdef0123456789abcdef01234567\nAAECAwQFBgcICQoLDA0ODwA\n1792512000000",
+          "mw-pin1-hello\n0123456789abcdef0123456789abcdef01234567\nAAECAwQFBgcICQoLDA0ODw\n+1792512000000",
+          "mw-pin1-receipt\nfedcba9876543210fedcba9876543210fedcba98\n0\n1792512000000",
+          "mw-pin1-receipt\nfedcba9876543210fedcba9876543210fedcba98\n5242880\n1792512000000\nextra",
+          "mw-pin1-receipt\nfedcba9876543210fedcba9876543210fedcba98\n1e6\n1792512000000",
+          " mw-pin1-hello\n0123456789abcdef0123456789abcdef01234567\nAAECAwQFBgcICQoLDA0ODw\n1792512000000"
+        ]
+      },
+      "expect": {
+        "signable": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,716 @@
+{
+ "at": "2026-10-17T22:14:01.872Z",
+ "out": [
+  {
+   "variant": "late206",
+   "file": "clip-faststart.mp4",
+   "tag": "video",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safar",
+   "metadata": true,
+   "duration": 20,
+   "playing": true,
+   "advanced": 1.46,
+   "seek0.6": {
+    "seeked": true,
+    "resumedAdvance": 1.16,
+    "rs": 4
+   },
+   "seek0.2": {
+    "seeked": true,
+    "resumedAdvance": 1.16,
+    "rs": 4
+   },
+   "error": null,
+   "readyState": 4,
+   "networkState": 1,
+   "width": 480,
+   "events": [
+    {
+     "t": 12,
+     "type": "loadstart",
+     "ct": 0,
+     "rs": 0,
+     "ns": 2
+    },
+    {
+     "t": 3027,
+     "type": "loadedmetadata",
+     "ct": 0,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 3027,
+     "type": "waiting",
+     "ct": 0,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 3132,
+     "type": "loadeddata",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 3132,
+     "type": "canplay",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 3132,
+     "type": "playing",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 3132,
+     "type": "canplaythrough",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 4634,
+     "type": "seeking",
+     "ct": 12,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 4634,
+     "type": "waiting",
+     "ct": 12,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 4635,
+     "type": "seeked",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 4635,
+     "type": "canplay",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 4635,
+     "type": "playing",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 4635,
+     "type": "canplaythrough",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 5835,
+     "type": "seeking",
+     "ct": 4,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 5835,
+     "type": "waiting",
+     "ct": 4,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 5836,
+     "type": "seeked",
+     "ct": 4,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 5836,
+     "type": "canplay",
+     "ct": 4,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 5836,
+     "type": "playing",
+     "ct": 4,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 5836,
+     "type": "canplaythrough",
+     "ct": 4,
+     "rs": 4,
+     "ns": 1
+    }
+   ],
+   "swlog": [
+    {
+     "variant": "late206",
+     "file": "clip-faststart.mp4",
+     "range": "bytes=0-",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "0-2430952",
+     "status": 206
+    }
+   ],
+   "engine": "chromium",
+   "engineVersion": "156.0.8078.4",
+   "tMeta": 3027,
+   "tPlaying": 3132,
+   "seekMs": [
+    1,
+    1
+   ]
+  },
+  {
+   "variant": "late206",
+   "file": "big-faststart.mp4",
+   "tag": "video",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safar",
+   "metadata": true,
+   "duration": 60,
+   "playing": true,
+   "advanced": 1.46,
+   "seek0.6": {
+    "seeked": true,
+    "resumedAdvance": 1.16,
+    "rs": 4
+   },
+   "seek0.2": {
+    "seeked": true,
+    "resumedAdvance": 1.16,
+    "rs": 4
+   },
+   "error": null,
+   "readyState": 4,
+   "networkState": 1,
+   "width": 1280,
+   "events": [
+    {
+     "t": 16,
+     "type": "loadstart",
+     "ct": 0,
+     "rs": 0,
+     "ns": 2
+    },
+    {
+     "t": 3251,
+     "type": "stalled",
+     "ct": 0,
+     "rs": 0,
+     "ns": 2
+    },
+    {
+     "t": 3343,
+     "type": "loadedmetadata",
+     "ct": 0,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 3343,
+     "type": "waiting",
+     "ct": 0,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 3357,
+     "type": "loadeddata",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 3357,
+     "type": "canplay",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 3357,
+     "type": "playing",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 3357,
+     "type": "canplaythrough",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 4858,
+     "type": "seeking",
+     "ct": 36,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 4858,
+     "type": "waiting",
+     "ct": 36,
+     "rs": 1,
+     "ns": 1
+    },
+    {
+     "t": 7913,
+     "type": "seeked",
+     "ct": 36,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 7913,
+     "type": "canplay",
+     "ct": 36,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 7913,
+     "type": "playing",
+     "ct": 36,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 7913,
+     "type": "canplaythrough",
+     "ct": 36,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 9115,
+     "type": "seeking",
+     "ct": 12,
+     "rs": 1,
+     "ns": 2
+    },
+    {
+     "t": 9115,
+     "type": "waiting",
+     "ct": 12,
+     "rs": 1,
+     "ns": 2
+    },
+    {
+     "t": 12163,
+     "type": "seeked",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 12163,
+     "type": "canplay",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 12163,
+     "type": "playing",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 12163,
+     "type": "canplaythrough",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    }
+   ],
+   "swlog": [
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=0-",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "0-91942530",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=55574528-",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "55574528-91942530",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=6881280-",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "6881280-91942530",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=19333120-",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "19333120-91942530",
+     "status": 206
+    }
+   ],
+   "engine": "chromium",
+   "engineVersion": "156.0.8078.4",
+   "tMeta": 3343,
+   "tPlaying": 3357,
+   "seekMs": [
+    3055,
+    3048
+   ]
+  },
+  {
+   "variant": "late206",
+   "file": "clip-faststart.mp4",
+   "tag": "video",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+   "metadata": true,
+   "duration": 20,
+   "playing": true,
+   "advanced": 1.49,
+   "seek0.6": {
+    "seeked": true,
+    "resumedAdvance": 1.2,
+    "rs": 4
+   },
+   "seek0.2": {
+    "seeked": true,
+    "resumedAdvance": 1.2,
+    "rs": 4
+   },
+   "error": null,
+   "readyState": 4,
+   "networkState": 1,
+   "width": 480,
+   "events": [
+    {
+     "t": 61,
+     "type": "loadstart",
+     "ct": 0,
+     "rs": 0,
+     "ns": 2
+    },
+    {
+     "t": 3209,
+     "type": "stalled",
+     "ct": 0,
+     "rs": 0,
+     "ns": 2
+    },
+    {
+     "t": 6101,
+     "type": "loadedmetadata",
+     "ct": 0,
+     "rs": 1,
+     "ns": 2
+    },
+    {
+     "t": 6102,
+     "type": "waiting",
+     "ct": 0,
+     "rs": 1,
+     "ns": 2
+    },
+    {
+     "t": 6182,
+     "type": "loadeddata",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 6182,
+     "type": "canplay",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 6182,
+     "type": "playing",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 6182,
+     "type": "canplaythrough",
+     "ct": 0,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 7684,
+     "type": "seeking",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 7699,
+     "type": "seeked",
+     "ct": 12,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 8899,
+     "type": "seeking",
+     "ct": 4,
+     "rs": 4,
+     "ns": 1
+    },
+    {
+     "t": 8904,
+     "type": "seeked",
+     "ct": 4,
+     "rs": 4,
+     "ns": 1
+    }
+   ],
+   "swlog": [
+    {
+     "variant": "late206",
+     "file": "clip-faststart.mp4",
+     "range": "bytes=0-1",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "0-1",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "clip-faststart.mp4",
+     "range": "bytes=0-2430952",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "0-2430952",
+     "status": 206
+    }
+   ],
+   "engine": "webkit",
+   "engineVersion": "27.2",
+   "tMeta": 6101,
+   "tPlaying": 6182,
+   "seekMs": [
+    15,
+    5
+   ]
+  },
+  {
+   "variant": "late206",
+   "file": "big-faststart.mp4",
+   "tag": "video",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+   "metadata": true,
+   "duration": 60,
+   "playing": true,
+   "advanced": 1.49,
+   "seek0.6": {
+    "seeked": true,
+    "resumedAdvance": 1.2,
+    "rs": 4
+   },
+   "seek0.2": {
+    "seeked": true,
+    "resumedAdvance": 1.2,
+    "rs": 4
+   },
+   "error": null,
+   "readyState": 4,
+   "networkState": 2,
+   "width": 1280,
+   "events": [
+    {
+     "t": 30,
+     "type": "loadstart",
+     "ct": 0,
+     "rs": 0,
+     "ns": 2
+    },
+    {
+     "t": 3177,
+     "type": "stalled",
+     "ct": 0,
+     "rs": 0,
+     "ns": 2
+    },
+    {
+     "t": 6240,
+     "type": "loadedmetadata",
+     "ct": 0,
+     "rs": 1,
+     "ns": 2
+    },
+    {
+     "t": 6240,
+     "type": "waiting",
+     "ct": 0,
+     "rs": 1,
+     "ns": 2
+    },
+    {
+     "t": 6254,
+     "type": "loadeddata",
+     "ct": 0,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 6254,
+     "type": "canplay",
+     "ct": 0,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 6254,
+     "type": "playing",
+     "ct": 0,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 6254,
+     "type": "canplaythrough",
+     "ct": 0,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 7756,
+     "type": "seeking",
+     "ct": 36,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 10799,
+     "type": "seeked",
+     "ct": 36,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 12000,
+     "type": "seeking",
+     "ct": 12,
+     "rs": 4,
+     "ns": 2
+    },
+    {
+     "t": 15042,
+     "type": "seeked",
+     "ct": 12,
+     "rs": 4,
+     "ns": 2
+    }
+   ],
+   "swlog": [
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=0-1",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "0-1",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=0-91942530",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "0-91942530",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=32440320-90898431",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "32440320-90898431",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=32112640-90898431",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "32112640-90898431",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=55574528-91942530",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "55574528-91942530",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=87621632-90636287",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "87621632-90636287",
+     "status": 206
+    },
+    {
+     "variant": "late206",
+     "file": "big-faststart.mp4",
+     "range": "bytes=19267584-55574527",
+     "dest": "video",
+     "mode": "no-cors",
+     "served": "19267584-55574527",
+     "status": 206
+    }
+   ],
+   "engine": "webkit",
+   "engineVersion": "27.2",
+   "tMeta": 6240,
+   "tPlaying": 6254,
+   "seekMs": [
+    3043,
+    3042
+   ]
+  }
+ ]
+}

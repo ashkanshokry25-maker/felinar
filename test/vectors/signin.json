@@ -1,0 +1,1062 @@
+{
+  "format": "mw-signin-v1, v0.3 (R 2.3.2)",
+  "about": "Golden vectors for mw-signin-v1 (docs/specs/mw-signin-v1.md): every positive and negative case of R 2.3.2. APPEND ONLY: never edit or remove a vector; add new ones with new ids and append their hashes to LOCK.json. proof is the request body text; verifier holds createVerifier options plus the verifier clock `now`; nonce is the state of proof.c.nonce in the store before verify (issued, used, unknown); issued is the statement and resources stored with the issued nonce.",
+  "vectors": [
+    {
+      "id": "si-001-pairwise",
+      "description": "valid server proof, origin label",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"rucSUQvlQuRzTwUc0JITF-QLM9UdwQwKxI5Q8kfDT5k\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"8pY1vdoSX_fDQ9nDSAUtcBfIs5owP_CvA1m4797B6Ti-HFD8iwJp-AA8wWC5bkxqvaORg9RDDqXB4pH1qGJPrA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "signingInput": "mw-signin-v1\n{\"build\":\"0.3.0-vectors\",\"domain\":\"forum.example\",\"exp\":1792512300000,\"iat\":1792512000000,\"idp\":\"https://id.example\",\"keyMode\":\"pairwise\",\"ledger\":null,\"nbf\":1792512000000,\"nonce\":\"rucSUQvlQuRzTwUc0JITF-QLM9UdwQwKxI5Q8kfDT5k\",\"origin\":\"https://forum.example\",\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"resources\":[],\"statement\":\"Sign in to Example Forum\",\"t\":\"mw-signin\",\"v\":1}",
+      "expect": {
+        "ok": true,
+        "pub": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "keyMode": "pairwise",
+        "ledger": null,
+        "iat": 1792512000000,
+        "exp": 1792512300000,
+        "requestId": "GfEGS2GdSdNTkurHJhzXJg",
+        "statement": "Sign in to Example Forum",
+        "idp": "https://id.example",
+        "build": "0.3.0-vectors"
+      }
+    },
+    {
+      "id": "si-002-ledger",
+      "description": "valid proof with the ledger label on a listed mirror",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"mirror.example\",\"origin\":\"https://mirror.example\",\"ledger\":\"mw1:nVGogcS2OGGkiSuvcAgt2jRveEh\",\"pub\":\"p256:BOpsWcRwvUm9K026uKRK_I6uThCfW-qr8aplkBzZaJY9wafowrFqh6flYhPBITtdEu5cozWtZy8gdXu1ieRTPeU\",\"keyMode\":\"ledger\",\"nonce\":\"5xl5Ew4FEfhGhBn9u_uMjgUo23X7orTz2rhtl1UA9H4\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"8hlc9a7M4X_fI17tKKsGaMTtaPOabddG6cmWdoIKKvB3dEDhBZvmnpU-ZnhYNjAXWHBncBh4ju2EWSOZTazBTA\"}",
+      "verifier": {
+        "origin": "https://mirror.example",
+        "ledger": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "signingInput": "mw-signin-v1\n{\"build\":\"0.3.0-vectors\",\"domain\":\"mirror.example\",\"exp\":1792512300000,\"iat\":1792512000000,\"idp\":\"https://id.example\",\"keyMode\":\"ledger\",\"ledger\":\"mw1:nVGogcS2OGGkiSuvcAgt2jRveEh\",\"nbf\":1792512000000,\"nonce\":\"5xl5Ew4FEfhGhBn9u_uMjgUo23X7orTz2rhtl1UA9H4\",\"origin\":\"https://mirror.example\",\"pub\":\"p256:BOpsWcRwvUm9K026uKRK_I6uThCfW-qr8aplkBzZaJY9wafowrFqh6flYhPBITtdEu5cozWtZy8gdXu1ieRTPeU\",\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"resources\":[],\"statement\":\"Sign in to Example Forum\",\"t\":\"mw-signin\",\"v\":1}",
+      "expect": {
+        "ok": true,
+        "pub": "p256:BOpsWcRwvUm9K026uKRK_I6uThCfW-qr8aplkBzZaJY9wafowrFqh6flYhPBITtdEu5cozWtZy8gdXu1ieRTPeU",
+        "keyMode": "ledger",
+        "ledger": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "iat": 1792512000000,
+        "exp": 1792512300000,
+        "requestId": "GfEGS2GdSdNTkurHJhzXJg",
+        "statement": "Sign in to Example Forum",
+        "idp": "https://id.example",
+        "build": "0.3.0-vectors"
+      }
+    },
+    {
+      "id": "si-003-hub",
+      "description": "valid proof with the hub label",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"abcdefghijklmnopqrstuvwxyz234567.hub.example\",\"origin\":\"https://abcdefghijklmnopqrstuvwxyz234567.hub.example\",\"ledger\":null,\"pub\":\"p256:BNgTbkdKeVbxzoSXVpS4LIgd_DLNf5ht75usntDQWXhk8fRJeLrQtGM47ReM16YjlwOv7uCVBqYmmijJ10LSUzE\",\"keyMode\":\"hub\",\"nonce\":\"sJmSCNbW7W7cv0sDDmMbiX0RWlYXkjMMybskl7U-xDA\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"UhYx2jMcn6CY-bh-Z0rRLzAHupuEr977YQq-Szgq3_fyb6uodskx1Foexos89IXBEoHNAyo67ktDUYamLFT9vw\"}",
+      "verifier": {
+        "origin": "https://abcdefghijklmnopqrstuvwxyz234567.hub.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "signingInput": "mw-signin-v1\n{\"build\":\"0.3.0-vectors\",\"domain\":\"abcdefghijklmnopqrstuvwxyz234567.hub.example\",\"exp\":1792512300000,\"iat\":1792512000000,\"idp\":\"https://id.example\",\"keyMode\":\"hub\",\"ledger\":null,\"nbf\":1792512000000,\"nonce\":\"sJmSCNbW7W7cv0sDDmMbiX0RWlYXkjMMybskl7U-xDA\",\"origin\":\"https://abcdefghijklmnopqrstuvwxyz234567.hub.example\",\"pub\":\"p256:BNgTbkdKeVbxzoSXVpS4LIgd_DLNf5ht75usntDQWXhk8fRJeLrQtGM47ReM16YjlwOv7uCVBqYmmijJ10LSUzE\",\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"resources\":[],\"statement\":\"Sign in to Example Forum\",\"t\":\"mw-signin\",\"v\":1}",
+      "expect": {
+        "ok": true,
+        "pub": "p256:BNgTbkdKeVbxzoSXVpS4LIgd_DLNf5ht75usntDQWXhk8fRJeLrQtGM47ReM16YjlwOv7uCVBqYmmijJ10LSUzE",
+        "keyMode": "hub",
+        "ledger": null,
+        "iat": 1792512000000,
+        "exp": 1792512300000,
+        "requestId": "GfEGS2GdSdNTkurHJhzXJg",
+        "statement": "Sign in to Example Forum",
+        "idp": "https://id.example",
+        "build": "0.3.0-vectors"
+      }
+    },
+    {
+      "id": "si-004-linked",
+      "description": "valid proof with a linked label (the forum key on the shop)",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"shop.example\",\"origin\":\"https://shop.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"linked\",\"nonce\":\"jkx-bRtCs286X5Swptp6BOd6rM1Y1MkoyLuf2xWwPc4\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"OcememYARmyRPYcxgjvXZDSvschQzj7_hpJXbgmuibKeLQyk0d6Pe-mXemI1hmwNntUiHh0SGL1Uphjh_SHeAQ\"}",
+      "verifier": {
+        "origin": "https://shop.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "signingInput": "mw-signin-v1\n{\"build\":\"0.3.0-vectors\",\"domain\":\"shop.example\",\"exp\":1792512300000,\"iat\":1792512000000,\"idp\":\"https://id.example\",\"keyMode\":\"linked\",\"ledger\":null,\"nbf\":1792512000000,\"nonce\":\"jkx-bRtCs286X5Swptp6BOd6rM1Y1MkoyLuf2xWwPc4\",\"origin\":\"https://shop.example\",\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"resources\":[],\"statement\":\"Sign in to Example Forum\",\"t\":\"mw-signin\",\"v\":1}",
+      "expect": {
+        "ok": true,
+        "pub": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "keyMode": "linked",
+        "ledger": null,
+        "iat": 1792512000000,
+        "exp": 1792512300000,
+        "requestId": "GfEGS2GdSdNTkurHJhzXJg",
+        "statement": "Sign in to Example Forum",
+        "idp": "https://id.example",
+        "build": "0.3.0-vectors"
+      }
+    },
+    {
+      "id": "si-005-resources",
+      "description": "valid proof with one resource",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"cEZtWRrtte_DjXoYYKXh1Rbf3toGoDFDmDt4ftz1_bM\",\"statement\":\"Sign in to Example Forum\",\"resources\":[\"https://forum.example/tos\"],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"sTCc3ivPNgwiCjXIGjn1FI_b8k-p1keA9ouKSgaQyuy1GwFNryQpfReFDaCIHjozyxntYCW4kZ324_DVNI1P_g\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": [
+          "https://forum.example/tos"
+        ]
+      },
+      "signingInput": "mw-signin-v1\n{\"build\":\"0.3.0-vectors\",\"domain\":\"forum.example\",\"exp\":1792512300000,\"iat\":1792512000000,\"idp\":\"https://id.example\",\"keyMode\":\"pairwise\",\"ledger\":null,\"nbf\":1792512000000,\"nonce\":\"cEZtWRrtte_DjXoYYKXh1Rbf3toGoDFDmDt4ftz1_bM\",\"origin\":\"https://forum.example\",\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"resources\":[\"https://forum.example/tos\"],\"statement\":\"Sign in to Example Forum\",\"t\":\"mw-signin\",\"v\":1}",
+      "expect": {
+        "ok": true,
+        "pub": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "keyMode": "pairwise",
+        "ledger": null,
+        "iat": 1792512000000,
+        "exp": 1792512300000,
+        "requestId": "GfEGS2GdSdNTkurHJhzXJg",
+        "statement": "Sign in to Example Forum",
+        "idp": "https://id.example",
+        "build": "0.3.0-vectors"
+      }
+    },
+    {
+      "id": "si-010-foreign-origin",
+      "description": "proof made for another origin",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"evil.example\",\"origin\":\"https://evil.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"k2f7fQ2fOk31rWfzmlRPN5CYUsmMpkBFYXen2gT-Gb4\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"iDV82ehlP9PqROzC7AmdmaBBYVL-vlme3MqGPk4ngYQK_lpk52J_ZdN7NpqzjoOuGd1asTAPDYzr_e-0t7NmSw\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "origin"
+      }
+    },
+    {
+      "id": "si-011-foreign-domain",
+      "description": "right origin, foreign domain",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"evil.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"PXrYgGJ-80WFmDMmDvHCxwH9ogfT4wSqL98yyrwaJxo\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"Mmp2vLMuvb4fUv6UEtvF4O9JF4SWXq-rkp0wArSBs10tw8o98zsyg5tR7tLSFV8P7_TS_cTMof2oFBXpxHN7wA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "domain"
+      }
+    },
+    {
+      "id": "si-012-exp-over-5-min",
+      "description": "exp 1 ms over 5 minutes after iat",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"7G9uryto1nqE0BU6rSHLsF48zPQQtQ1xK_1K3QmZ5wk\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300001,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"xUyS0obbHVoJOnGlHKK8ZNpJLI5tA6mA_JTL0E1Byqf4mDqZbo-ISFU83JEVVVhG2awV4cyG3xBR9XsmJKBsIg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "too-long"
+      }
+    },
+    {
+      "id": "si-013-future-nbf",
+      "description": "nbf beyond now + skew",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"SB703NviTeGzxhIgqYAwUjqPHq0s5KLVwSWDGMTkeHw\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512200000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"HC2B2I4r_zbsJDDhHbSpJ5YB7-JX4nlDdsRuddJHtUtY9EpB_k9zpL0J7fPCNbjh4AL2DgUm7sELp2ru3lZnRw\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "not-yet-valid"
+      }
+    },
+    {
+      "id": "si-014-reused-nonce",
+      "description": "the nonce was already consumed",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"Nj92t38P63NewFrCHX330fYhtwsDharoNpeql94UyQk\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"bsqKhqXFFHkCdY2slxpgQK84TamjQb94AP7U7AzZRq6fTEbRYJ1ru94HER09bWi34zVHzeN_fkuZEB024DD06w\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "used",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "replay"
+      }
+    },
+    {
+      "id": "si-015-high-s-accepted",
+      "description": "the same signature with s replaced by n - s (malleated): accepted",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"a6jbyW4uroAJ5-5GTO4pr5IFpWaC4J_UV4KnD0tY454\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"ABoWe0DsgMpXNwzRedAPMuAFXGwsIRTuIPwbe_UcBMfvdTFuhKdR3B8xgnIxgsWraMEx-bnKzJKrXZwEfhZ4Sg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": true,
+        "pub": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "keyMode": "pairwise",
+        "ledger": null,
+        "iat": 1792512000000,
+        "exp": 1792512300000,
+        "requestId": "GfEGS2GdSdNTkurHJhzXJg",
+        "statement": "Sign in to Example Forum",
+        "idp": "https://id.example",
+        "build": "0.3.0-vectors"
+      }
+    },
+    {
+      "id": "si-016-high-s-replay",
+      "description": "a malleated copy of a proof whose nonce was consumed: the nonce dedupes it",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"pVCEvy2BOkkHmLHCS33jO_B6-tC5MIePe81-bTkHpbs\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"A--6imwmkh_u3p1K8loX06G70XzGqtS4KvkgIJtZhZC1d6sptoK3_fR-wcqNGDBNqlj1dr_RDiTvWVmT5YNzlg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "used",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "replay"
+      }
+    },
+    {
+      "id": "si-017-der-signature",
+      "description": "the signature in DER form with alg ES256-P1363: refused",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"DqOEPC7dvSvsJXaZiaHPCIQTO5kvpmOKwlXrxgdoi0E\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"MEUCIQCPQNba_qjGH7NBxaBMfTeN75ZW79SCikhFxKzCJJlJDAIgV8lezs-2-8dgyTd9qioZElb_3io7I1gBkOxt8eBVw_c\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "sig"
+      }
+    },
+    {
+      "id": "si-018-alg-es256",
+      "description": "alg 'ES256' (DER-style name): refused",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"DqOEPC7dvSvsJXaZiaHPCIQTO5kvpmOKwlXrxgdoi0E\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256\",\"sig\":\"j0DW2v6oxh-zQcWgTH03je-WVu_UgopIRcSswiSZSQxXyV7Oz7b7x2DJN32qKhkSVv_eKjsjWAGQ7G3x4FXD9w\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "alg"
+      }
+    },
+    {
+      "id": "si-019-duplicate-keys",
+      "description": "duplicate JSON key in c",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"l7nWZL8mzv2A3z_P6AjH8DwkyGj8FeUvz_RSplba4YU\",\"statement\":\"Sign in to Evil\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"KfjewXwjg0quvukPpV58VryRTvM20qPXVrABXNkDZ2wAPH9EG51JWxhb2G6p0pdIHVzr6r8bOx8v9lBCC1gnRQ\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "parse"
+      }
+    },
+    {
+      "id": "si-020-non-nfc-statement",
+      "description": "statement not in NFC (e + combining acute)",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"GtRi8srxqN_G_OJ7cnWi4bbKm7S8fMhKtzpOyLWNnt8\",\"statement\":\"Sign in to Café\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"POwqYLapYdfyV6-5easeeBKMxkPUB4l9Gm_tQfA09GeewoNrunwLCVQXTNs2kU9IhiSfhgLzm8NsH0h5SNm-Sg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Café",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "statement"
+      }
+    },
+    {
+      "id": "si-021-unknown-field",
+      "description": "an unknown field in c",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"yAilkFVnxVizVvbpHrwp8gsrZ97_l8E1LZ_fZiiMjoE\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\",\"scope\":\"admin\"},\"alg\":\"ES256-P1363\",\"sig\":\"YHpX_ugrzoOqUmWmtB2rdUIL_jFesz0OcgKfz4BpfnZM2U6LkKob2sV9cZRv3AT84rudn0uXGzDgM-TPHfoOBA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "parse"
+      }
+    },
+    {
+      "id": "si-022-ledger-unexpected",
+      "description": "ledger present when the verifier expects none",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":\"mw1:nVGogcS2OGGkiSuvcAgt2jRveEh\",\"pub\":\"p256:BOpsWcRwvUm9K026uKRK_I6uThCfW-qr8aplkBzZaJY9wafowrFqh6flYhPBITtdEu5cozWtZy8gdXu1ieRTPeU\",\"keyMode\":\"ledger\",\"nonce\":\"ftHKvFCz8g0zXEjNGX_Mk2P5WIIuAJ1CAci-yX84NE4\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"NoDak14jw4gWfwz-i6OHTRkDsqOwPNUTt7vYxEmmh80NdG5s94bLNg38o5kdaacnHfLl2PVMD_HtzmdYLsAoJQ\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "ledger"
+      }
+    },
+    {
+      "id": "si-023-keymode-not-allowed",
+      "description": "keyMode the verifier did not allow",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BNgTbkdKeVbxzoSXVpS4LIgd_DLNf5ht75usntDQWXhk8fRJeLrQtGM47ReM16YjlwOv7uCVBqYmmijJ10LSUzE\",\"keyMode\":\"hub\",\"nonce\":\"1creV4w0yy1A99R_E4yv-BIVue8I3Wx45xUsOgq8y7c\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"fZx6VH6nPPRF-U0fB3g5IuP9TEQiAo97LqlCaHLjxayfhE5_hRDlXEb8p5n6Q3AeAhma1RnJnPdemNY2cowG5Q\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "keymode"
+      }
+    },
+    {
+      "id": "si-024-over-4-kib",
+      "description": "proof over 4 KiB",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"Lw3waY_-7Wl165vHRLBxLNKuyA6GAqbuh6hux7_1U9U\",\"statement\":\"Sign in to Example Forum\",\"resources\":[\"https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"v2RdGlxOXx_9gqgjQJ_aJ38WDlW-g7cqPbdnLaafkbIKrPAT_1AdclovUJiusxw2Pmfp2srTUTaPlS0cG3ivNQ\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": [
+          "https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "https://forum.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expect": {
+        "ok": false,
+        "reason": "parse"
+      }
+    },
+    {
+      "id": "si-025-bad-signature",
+      "description": "signature over a different object",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"Z_GF0ZB2OZioC6PcnScl5N_fLr3jYLlhZ7RHzML72YU\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"TCCKJUEQLREBW0aXBUAtaGimjA-axY256RGpkUf5eC4H2DxDUmJLWnhRHcsyj0lAaXbrYMvKzTMNHbL9H0EGbg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "sig"
+      }
+    },
+    {
+      "id": "si-026-nonce-not-issued",
+      "description": "a 'site' proof whose nonce came from the identity origin, never issued by the verifier",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"67W3uNS98ujOIIflwj_xN3b5TXEVCSIHQFYRsu-IEMM\",\"statement\":\"\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"QOhavDZIevNnjCJKx3GrflivSu7ouaVHLscjwTLVQv_HcMaRTpsiylGwZCxons14SXZtWkzIj-Ta5iGHHmXSZQ\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "unknown",
+      "issued": {
+        "statement": "",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "nonce"
+      }
+    },
+    {
+      "id": "si-027-expired",
+      "description": "verified after exp + skew",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"TE9WW7bG0FYdFKW52vosbAXVHHwNqHRRGSUMKnv8BP4\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"bwxm-1f_tD_Nl8OBi4ZYm5CbY8T-_VBKhGfECF7AsTkVfczE6l6QzdcCuLnGKTRZ79cYEksU4Ts1DQaWAhL2ew\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512420001
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "expired"
+      }
+    },
+    {
+      "id": "si-028-idp-not-allowed",
+      "description": "identity origin not in allowIdps",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"P-W4DOtFOQ6xTcSubEldQyGUZrV_-1ZszIHyaBZBSoI\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.other.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"XOL8EPc2egnfRt5SIWm5dT5tJ_Xn2ZiO-aoavdKkxvyHUPYnCMfDsRZX4tnK4EQkiZgI5Pp6_eCFEB2rIjfRfA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "idp"
+      }
+    },
+    {
+      "id": "si-029-statement-mismatch",
+      "description": "statement differs from the issued challenge",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"C0tiU1jMBK4qCEA7qX9x6Iy6Gw1xp4d42DDQx0cNMkU\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"knv5IGzTIt3Vv45Y12ciMyCzCOp7K9pTCB8dmorUV8SYU_Ag2GEbGTiIzdK_fv10gVkFKctI-xHpwaFNR8-wUw\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum as moderator",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "statement"
+      }
+    },
+    {
+      "id": "si-030-version",
+      "description": "v 2",
+      "proof": "{\"c\":{\"v\":2,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"YvvU8UqnYJ04NFOYy5Uv2EqMp9AYQiUOpHKVyD2If1w\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"MPwCMweRYBfZkbgoVdBL38ig9R_h4QLVC8nK7loZeWgDz1aPCl93UoIpMPtUm2KL9ZOsFey64fX8dbGyAPw9Mg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "version"
+      }
+    },
+    {
+      "id": "si-031-control-character",
+      "description": "statement with a newline",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"ygn872GJOuwoex7ks1MuS-Ivsh98AHv7RGG6qHTJUGQ\",\"statement\":\"Sign in\\nto Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"qVHQa4EU7COvWyOo0l9zb8y_M7GMhL0aTKntf4GqrWRwG2D41BgOA9m8TjsbGzVkooPZSZwrJfj5eeZ1oBVqoA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in\nto Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "statement"
+      }
+    },
+    {
+      "id": "si-032-bidi-control",
+      "description": "statement with U+202E",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"oLSrIxX1yu-FKHmjLvNB3JGJah8m_30V8LUqxHHIzuo\",\"statement\":\"Sign in to ‮Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"_5Ii3mD5TuP0PQggBQItBWdBLkEHztwVEDIzbQiu7m7dyY-RWM-hNkBi6YF9HSmD-ulUkjmc5m3habW8tAOCSA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to ‮Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "statement"
+      }
+    },
+    {
+      "id": "si-033-ledger-mismatch",
+      "description": "ledger differs from the expected one",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"mirror.example\",\"origin\":\"https://mirror.example\",\"ledger\":\"mw1:cFXgYqBSMryioohxEdR-vcPlOVV\",\"pub\":\"p256:BKaBkua-wPfkpbyrS5VM4l1U74nqfI5SaJmiO8uq0teRyaTptJshxlZk_QqVAmLtXx3CH-UpEnLAEoL7J0nl9Zc\",\"keyMode\":\"ledger\",\"nonce\":\"15wHS0RTDFxdVE--UOOQJqXUqXUyhfH64B2UFvwdeo4\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"FPgsC8fX3lcLLqDqhE4kElaeJFxWohY49aoxOHvzqt0EUrt-Umzyja4_JROtWrv7Q211cozLyT2fICRwR7wcnQ\"}",
+      "verifier": {
+        "origin": "https://mirror.example",
+        "ledger": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "ledger"
+      }
+    },
+    {
+      "id": "si-034-order-origin-before-nonce",
+      "description": "foreign origin and a never-issued nonce: origin is checked first",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"evil.example\",\"origin\":\"https://evil.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"5DUZNWj7Jyicd7WD7gH3L9tIW-pTViQKmKsebTGR9tg\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"C66-45Al4ztXIMNFcClEn_Vz-RgjS9C2iora6t2CLtJR5xbNGs0s7n1au50QBR6O1DLnRB0bTX6-cYBYIZdoGA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "unknown",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "origin"
+      }
+    },
+    {
+      "id": "si-035-order-nonce-before-signature",
+      "description": "bad signature and a consumed nonce: the nonce is checked first",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"vXfFwr6M2Sp-2GOaLVOBZMYreQOkmZ9l9dxH3iRqbT8\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"qkD5VlXrLDfMjTn4ZYeEWM7HlPZLPPX0A8hPZmmWd-Il-xw7ZdBf2JBtzx1z3_NyRGj2671cOfXBypjKGzsJjA\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792512001000
+      },
+      "nonce": "used",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "replay"
+      }
+    },
+    {
+      "id": "si-036-skew-inside",
+      "description": "iat 100 s ahead of the verifier clock, inside the 120 s skew: accepted",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"M0ZOXzSF858NIyyu75zY27nlguyLNsqI8sbUpz3cppQ\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"vYwMwkshGMMi-fhF5V5WDInGHkMo-5tlptDmGNooF2XEnE9Y-zzAlRhCMd0UBBAdYwmsozwfTOCYxduQq8_bMg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792511900000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": true,
+        "pub": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "keyMode": "pairwise",
+        "ledger": null,
+        "iat": 1792512000000,
+        "exp": 1792512300000,
+        "requestId": "GfEGS2GdSdNTkurHJhzXJg",
+        "statement": "Sign in to Example Forum",
+        "idp": "https://id.example",
+        "build": "0.3.0-vectors"
+      }
+    },
+    {
+      "id": "si-037-skew-outside",
+      "description": "iat 130 s ahead of the verifier clock: refused",
+      "proof": "{\"c\":{\"v\":1,\"t\":\"mw-signin\",\"domain\":\"forum.example\",\"origin\":\"https://forum.example\",\"ledger\":null,\"pub\":\"p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs\",\"keyMode\":\"pairwise\",\"nonce\":\"SWOXyR0LN3MPgtKk--qrlicEpRqu5MunTs3D7_jQ-xk\",\"statement\":\"Sign in to Example Forum\",\"resources\":[],\"iat\":1792512000000,\"nbf\":1792512000000,\"exp\":1792512300000,\"requestId\":\"GfEGS2GdSdNTkurHJhzXJg\",\"idp\":\"https://id.example\",\"build\":\"0.3.0-vectors\"},\"alg\":\"ES256-P1363\",\"sig\":\"A8tbnhf9AiaPT1aXbFsf9CWDtHKfrKKXKc1TTQsdPkRF9uNv1JwElc5o6kapW6wBRSCH2sXbeTS1TWx5i1j0wg\"}",
+      "verifier": {
+        "origin": "https://forum.example",
+        "ledger": null,
+        "allowKeyModes": [
+          "pairwise",
+          "ledger",
+          "hub",
+          "linked"
+        ],
+        "allowIdps": [
+          "https://id.example"
+        ],
+        "maxAgeMs": 300000,
+        "maxSkewMs": 120000,
+        "now": 1792511870000
+      },
+      "nonce": "issued",
+      "issued": {
+        "statement": "Sign in to Example Forum",
+        "resources": []
+      },
+      "expect": {
+        "ok": false,
+        "reason": "not-yet-valid"
+      }
+    }
+  ]
+}

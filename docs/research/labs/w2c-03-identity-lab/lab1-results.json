@@ -1,0 +1,46 @@
+{
+  "env": {
+    "node": "v24.22.0",
+    "cpu": "Apple M3",
+    "cores": 8,
+    "platform": "darwin/arm64"
+  },
+  "deterministic": true,
+  "perChainDiffers": true,
+  "nobleMatchesOpenSSL": true,
+  "pubLen": 65,
+  "jwkImport": {
+    "extractable": false,
+    "sigLen": 64,
+    "verifies": true,
+    "exportBlocked": "InvalidAccessError"
+  },
+  "pkcs8NoPub": {
+    "node_ok": true,
+    "xyMatches": true
+  },
+  "opensslKeygenPerSec": 71140,
+  "nobleIncrementalPerSec": 26730,
+  "forgeryHours": {
+    "32": {
+      "singleCoreOpenSSLKeygen_hours": 16.8,
+      "singleCoreNobleIncremental_hours": 44.6,
+      "at_1e9_per_sec_hours": 0.00119
+    },
+    "48": {
+      "singleCoreOpenSSLKeygen_hours": 1100000,
+      "singleCoreNobleIncremental_hours": 2930000,
+      "at_1e9_per_sec_hours": 78.2
+    },
+    "64": {
+      "singleCoreOpenSSLKeygen_hours": 72000000000,
+      "singleCoreNobleIncremental_hours": 192000000000,
+      "at_1e9_per_sec_hours": 5120000
+    }
+  },
+  "birthday50pct": {
+    "32": 77162,
+    "48": 19753494,
+    "64": 5056894494
+  }
+}

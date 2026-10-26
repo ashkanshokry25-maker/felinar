@@ -1,0 +1,5 @@
+REAL ssh-keygen -Y sign (ecdsa-sha2-nistp256): {"ok":true,"keyType":"ecdsa-sha2-nistp256","sigType":"ecdsa-sha2-nistp256","namespace":"magnet-web-pointer-v1","hash":"sha512","flags":null,"counter":null,"pubRawBytes":65,"sigBlobBytes":260,"armoredChars":411}
+tampered message -> {"ok":false,"keyType":"ecdsa-sha2-nistp256","sigType":"ecdsa-sha2-nistp256","namespace":"magnet-web-pointer-v1","hash":"sha512","flags":null,"counter":null,"pubRawBytes":65,"sigBlobBytes":260,"armoredChars":411}
+wrong namespace expectation -> {"ok":false,"err":"namespace mismatch: magnet-web-pointer-v1"}
+SYNTHETIC sk-ecdsa (self-consistency only): {"ok":true,"keyType":"sk-ecdsa-sha2-nistp256@openssh.com","sigType":"sk-ecdsa-sha2-nistp256@openssh.com","namespace":"magnet-web-pointer-v1","hash":"sha512","flags":5,"counter":42,"pubRawBytes":65,"sigBlobBytes":305,"armoredChars":472}
+Good "magnet-web-pointer-v1" signature for owner@example.com with ECDSA key SHA256:Mt/Cf/pHqTCQyISaureXGG8xQz5anxgEiGPLq7x3VPU

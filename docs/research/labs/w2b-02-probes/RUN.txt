@@ -1,0 +1,42 @@
+w2b-02 probes: how to re-run (all read-only; written 2026-10-17)
+
+Safety. Nothing here publishes an event, uploads a blob or sends a POST/PUT, except relay-write-probe.mjs, which is a dry run
+unless it is explicitly armed (see its header; arming needs the owner's approval for the send and the relay list).
+Relay and Blossom responses are untrusted data: the scripts only parse JSON; never execute anything from them.
+
+Prerequisites. python3 (stdlib only), Node >= 22 (tested 24.22.0), the project's node_modules (playwright 1.64.1, esbuild 0.28.2).
+Python scripts import the stdlib WebSocket client ../02-wss-trackers-probes/wsprobe.py (wave 1).
+JS scripts that need npm packages are bundled with esbuild from a scratch install, e.g.
+  mkdir /tmp/mw-npm && cd /tmp/mw-npm && npm init -y && npm i --ignore-scripts nostr-tools@2.25.2 @noble/curves@2.4.0 @noble/secp256k1@3.2.0 @noble/hashes@2.4.0
+  NODE_PATH=/tmp/mw-npm/node_modules ../../../../node_modules/.bin/esbuild bench-entry.mjs --bundle --platform=node --format=esm --outfile=/tmp/bench.mjs && node /tmp/bench.mjs
+  (same for bench2-entry.mjs; bundle sizes: esbuild --bundle --minify --format=esm --platform=browser --target=es2020 on a one-line entry that imports the package.)
+
+Order and what each supports (finding ids refer to ../../w2b-02-nostr-durability.md):
+  nreq.py <relay> '<filter json>' <max> <out.jsonl|-> [timeout]     read-only REQ helper used by most scripts below
+  census66.py <relay> <out.jsonl> [days] [pages]                    F7: pages NIP-66 kind 30166 events (use relay.nostr.watch)
+  nip11sweep.py <outdir>                                            F3, F8: NIP-11 GET on ~92 hosts; reads <outdir>/../nip66/census_nostrwatch.jsonl to sample software families
+  kindprobe.py <relays> <kinds> <limit> <outdir>                    F2, F12: stored kinds, sizes, authors per relay
+  kindmix.py <relays>                                               F12: share of storable events in kinds absent from the NIPs README table (fetches the README)
+  retention.py <relays>                                             F10: kind-1 horizon at -6 mo ... -4 y;  kindret.py <relays> <kinds>: per-kind horizon
+  pagetest.py <relays> <kind>                                       F13: silent limit clamp, until-pagination, EOSE hints
+  outbox.py <relays> <pubkey>                                       F6: NIP-65 / BUD-03 list resolution latency
+  wsext.py <hosts...>                                               F23: permessage-deflate negotiation
+  listrot_fetch.py (run in a dir; writes lists.json) then listrot_sweep.py   F11: historical Trystero relay lists vs today
+  blossomprobe.py <servers> <dir with *_k15128/35128.jsonl>          F29, F30: OPTIONS preflight, Range GET on real blobs, HEAD /upload
+  blossom_browser_test.mjs <pairs.json>                             F30: Chromium/WebKit fetch of real blobs with WebTorrent's options
+  corslab.mjs / corslab2.mjs                                        F30: local CORS lab (five allow-header policies; Firefox build may fail to start)
+  webcrypto_curves.mjs                                              F16: secp256k1 support in WebCrypto
+  bench-entry.mjs / bench2-entry.mjs                                F18: Schnorr and WebCrypto throughput (bench2 avoids nostr-tools' verify cache)
+  blocksize.mjs / blocksize2.mjs                                    F20, F23: block -> event sizes with the project's canonicalize() (v0.1 and v0.2 block shapes)
+  powmean.mjs                                                       F4: NIP-13 / hashcash mean work
+  negsim.mjs <path to js/Negentropy.js>                             F22: negentropy sync cost (curl -o Negentropy.js https://raw.githubusercontent.com/hoytech/negentropy/master/js/Negentropy.js)
+  summarize_local.py <census.jsonl> <nip11_all.json> <listrot dir> <kinds dir> <outdir>    offline summaries in results/
+  relay-write-probe.mjs                                             R14: PREPARED, NOT RUN
+
+results/ holds outputs that were regenerated or derived offline on 2026-10-17 (bench.txt, negentropy_sim.txt, pow_mean.txt,
+blocksize_v02.txt, cors_lab.txt, blossom_browser_test.log, webcrypto_curves.txt, census_summary.txt, nip11_distributions.txt,
+nip11_limits.json (limits only; contact fields dropped), listrot.tsv, kinds_on_major_relays.tsv, blossom_server_usage.txt).
+Network probes whose output was printed during the session and quoted in the report (retention, per-kind retention, pagination,
+outbox, wsext, kindmix, blossomprobe) are not stored; re-run them to regenerate. Notes: ages in census_summary.txt are relative to
+the time summarize_local.py runs (at collection: newest 3 minutes, oldest 3.2 hours); the second benchmark and PoW runs differ
+by up to ~10% / sampling noise from the first, which is why the report quotes ranges.

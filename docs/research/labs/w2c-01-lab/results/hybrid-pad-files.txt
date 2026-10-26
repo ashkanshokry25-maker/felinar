@@ -1,0 +1,16 @@
+# hybrid.mjs: zeros vs 404 for .pad paths, stock WebConn 2026-10-17T21:40:42Z
+expected btih (sha1(info)) : 0376c6746e161011c6c20f9f38d644662813057d
+expected btmh (sha256(info)): 1220cf8730c8cac78de0fd0126dd434122809133849aa65149f8de8705dfa3ee79b3
+parse-torrent infoHash      : 0376c6746e161011c6c20f9f38d644662813057d | infoHashV2: (none)
+parse-torrent files         : site/a.txt(100000), site/.pad/14688(14688), site/b.txt(50000), site/.pad/15536(15536), site/c.txt(5000)
+pieces: 12  total length: 185224  whole padded length: 185224
+{"padMode":"zeros","done":true,"ms":46,"downloaded":185224,"of":185224,"torrentFiles":["site/a.txt","site/.pad/14688","site/b.txt","site/.pad/15536","site/c.txt"],"btih":"0376c6746e161011c6c20f9f38d644662813057d","padRequests":["/site/.pad/14688:1","/site/.pad/15536:1"],"warn":[]}
+{"padMode":"404","done":false,"ms":12002,"downloaded":152456,"of":185224,"torrentFiles":["site/a.txt","site/.pad/14688","site/b.txt","site/.pad/15536","site/c.txt"],"btih":"0376c6746e161011c6c20f9f38d644662813057d","padRequests":["/site/.pad/14688:2","/site/.pad/15536:2"],"warn":[]}
+
+# hybrid-hardened.mjs: 404 for .pad paths, HardenedWebConn
+expected btih (sha1(info)) : d82e38564a8dfa219e94d0e6bc27bb8c3b4e7429
+expected btmh (sha256(info)): 12207821732341de617b164e729228e071b54b0199e034d047903a26603677f6b29d
+parse-torrent infoHash      : d82e38564a8dfa219e94d0e6bc27bb8c3b4e7429 | infoHashV2: (none)
+parse-torrent files         : site/a.txt(100000), site/.pad/14688(14688), site/b.txt(50000), site/.pad/15536(15536), site/c.txt(5000)
+pieces: 12  total length: 185224  whole padded length: 185224
+{"padMode":"404","done":true,"ms":43,"downloaded":185224,"of":185224,"torrentFiles":["site/a.txt","site/.pad/14688","site/b.txt","site/.pad/15536","site/c.txt"],"btih":"d82e38564a8dfa219e94d0e6bc27bb8c3b4e7429","padRequests":[],"warn":[]}

@@ -1,0 +1,12 @@
+---
+import { ClientRouter } from 'astro:transitions';
+const base = import.meta.env.BASE_URL;
+const { title } = Astro.props;
+---
+<html lang="en"><head><meta charset="utf-8"><title>{title}</title><link rel="icon" href={base + 'favicon.png'}><ClientRouter /></head>
+<body><nav><a href={base}>home</a> <a id="to-about" href={base + 'about/'}>about</a></nav><slot />
+<script>
+  document.addEventListener('astro:page-load', () => { fetch(import.meta.env.BASE_URL + 'data.json').then((r) => r.json()).then((j) => { window.__data = j; }); });
+</script>
+<style>nav a{margin-right:8px} body{background:url('/bg.png')}</style>
+</body></html>

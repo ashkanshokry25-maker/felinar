@@ -1,0 +1,35 @@
+# fly.toml for the Node reference tracker (UNTESTED; prices from docs.fly.io/about/pricing read 2026-10-17:
+# shared-cpu-1x 256MB $2.19/mo, 512MB $3.69/mo, 1GB $6.70/mo; outbound $0.02/GB in NA/EU; shared IPv4 + IPv6 free).
+app = "mw-rtc"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  OPEN = "1"                      # or mount an allow-list and set ALLOW_FILE
+  ANNOUNCE_INTERVAL_S = "120"
+  TRUST_ANY_PROXY = "1"           # Fly's proxy terminates TLS and is the only way in; client IP arrives in Fly-Client-IP
+  CLIENT_IP_HEADER = "fly-client-ip"
+  MAX_CONNECTIONS = "8000"        # 512 MB machine: about 25 KiB RSS per connection + ~70 MB baseline
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"      # a stopped machine drops every WebSocket and the first visitor then waits 10 s + U(0, 5 min)
+  auto_start_machines = false
+  min_machines_running = 1
+  [http_service.concurrency]
+    type = "connections"          # docs: default type; soft_limit defaults to 20 if unset, hard_limit unset = none
+    soft_limit = 7000
+    hard_limit = 8000
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

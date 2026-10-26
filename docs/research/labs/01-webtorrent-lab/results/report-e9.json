@@ -1,0 +1,22 @@
+{
+  "errors": [],
+  "cases": {
+    "without_Buffer_global": {
+      "errors": [
+        "unhandledrejection: Buffer is not defined"
+      ],
+      "warnings": [],
+      "seeded": true,
+      "readBack": "TIMEOUT (callback never invoked)",
+      "destroyCallbackWithin3s": true
+    },
+    "with_minimal_Buffer_shim": {
+      "errors": [],
+      "warnings": [],
+      "seeded": true,
+      "readBack": "OK",
+      "destroyCallbackWithin3s": true
+    }
+  },
+  "bufferGlobalAtStart": "undefined"
+}

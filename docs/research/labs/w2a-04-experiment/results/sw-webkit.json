@@ -1,0 +1,39 @@
+{
+ "browser": "webkit 27.2",
+ "originDelayMs": 40,
+ "n": 15,
+ "overhead": {},
+ "scope": {
+  "blogSW_defaultScope": {
+   "ok": true,
+   "scope": "http://127.0.0.1:54090/blog/"
+  },
+  "blogSW_scopeRoot_noHeader": {
+   "ok": false,
+   "name": "SecurityError",
+   "msg": "Scope URL should start with the given script URL"
+  },
+  "blog2SW_scopeRoot_withHeader": {
+   "ok": true,
+   "scope": "http://127.0.0.1:54090/"
+  },
+  "rootPath_scopeBlog": {
+   "ok": true,
+   "scope": "http://127.0.0.1:54090/blog/sub/"
+  },
+  "done": true
+ },
+ "first": {
+  "controllerAtStart": false,
+  "steps": [],
+  "controllerAfterReady": true,
+  "resourcesLoadedBeforeSW": [
+   "app.css:0",
+   "app.js:0",
+   "first.js:0",
+   "sw-marker.js:0"
+  ],
+  "lateFetchViaSW": true,
+  "done": true
+ }
+}

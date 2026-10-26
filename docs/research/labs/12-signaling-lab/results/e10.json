@@ -1,0 +1,25 @@
+{
+  "name": "e10 peerId across torrents",
+  "chromium": "156.0.8078.4",
+  "wait": {
+    "ok": true,
+    "ms": 151
+  },
+  "clientPeerIds": {
+    "A": "2d5757303330302d56435a665a72574656687870",
+    "B": "2d5757303330302d2f686978656a4d632f477832"
+  },
+  "wiresOnA": [
+    {
+      "tag": "rv",
+      "type": "webrtc",
+      "peerId": "2d5757303330302d2f686978656a4d632f477832"
+    },
+    {
+      "tag": "content",
+      "type": "webrtc",
+      "peerId": "2d5757303330302d2f686978656a4d632f477832"
+    }
+  ],
+  "samePeerIdAcrossTorrents": true
+}

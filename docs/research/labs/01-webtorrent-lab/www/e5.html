@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E5 upload throttle (uploadLimit) in browser build</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { runs: {}, errors: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e5', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = new Map(); this.length = opts.length }
+  put (i, buf, cb = () => {}) { this.chunks.set(i, new Uint8Array(buf)); queueMicrotask(() => cb(null)) }
+  get (i, o, cb) { if (typeof o === 'function') { cb = o; o = {} } const c = this.chunks.get(i); if (!c) { const e = new Error('Chunk not found'); e.notFound = true; return queueMicrotask(() => cb(e)) } const off = (o && o.offset) || 0; const len = (o && o.length) || (c.length - off); queueMicrotask(() => cb(null, c.slice(off, off + len))) }
+  close (cb = () => {}) { queueMicrotask(() => cb(null)) }
+  destroy (cb = () => {}) { this.chunks.clear(); queueMicrotask(() => cb(null)) }
+}
+try {
+  R.defaults = {}
+  const probe = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  R.defaults = { maxConns: probe.maxConns, _uploadLimit: probe._uploadLimit, _downloadLimit: probe._downloadLimit, throttleUpEnabled: probe.throttleGroups.up.enabled, secure: probe.secure, seedOutgoingConnections: probe.seedOutgoingConnections, enableWebSeeds: probe.enableWebSeeds, lsd: probe.lsd, utPex: probe.utPex, hasDHT: !!probe.dht, userAgent: probe.userAgent, peerIdPrefix: String.fromCharCode(...probe.peerIdBuffer.slice(0, 8)), defaultTrackerOpts: JSON.stringify(probe.tracker) }
+  await new Promise(r => probe.destroy(r))
+  const bytes = new Uint8Array(262144); let x = 5555
+  for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; bytes[i] = x & 255 }
+  const TR = 'ws://127.0.0.1:18082'
+  const mkc = o => new WebTorrent({ dht: false, lsd: false, utPex: false, tracker: { rtcConfig: { iceServers: [] } }, ...o })
+  async function run (label, upOpts, nameSuffix) {
+    const A = mkc(upOpts); const B = mkc({})
+    const f = new File([bytes], 'thr-' + nameSuffix + '.bin')
+    const tA = A.seed(f, { announce: [TR], name: 'thr-' + nameSuffix + '.bin', pieceLength: 16384, store: MemStore })
+    await new Promise(r => tA.once('ready', r))
+    const tB = B.add(tA.magnetURI, { store: MemStore })
+    let done = false; tB.on('done', () => { done = true })
+    const t0 = performance.now()
+    for (let i = 0; i < 600 && !done; i++) await sleep(50)
+    R.runs[label] = { done, ms: Math.round(performance.now() - t0), aUploaded: tA.uploaded }
+    await new Promise(r => A.destroy(r)); await new Promise(r => B.destroy(r))
+  }
+  await run('unlimited', {}, 'a')
+  await run('uploadLimit_32KiBps_at_construct', { uploadLimit: 32768 }, 'b')
+  // runtime throttle via client.throttleUpload
+  {
+    const A = mkc({}); const B = mkc({})
+    A.throttleUpload(65536)
+    const f = new File([bytes], 'thr-c.bin')
+    const tA = A.seed(f, { announce: [TR], name: 'thr-c.bin', pieceLength: 16384, store: MemStore })
+    await new Promise(r => tA.once('ready', r))
+    const tB = B.add(tA.magnetURI, { store: MemStore }); let done = false; tB.on('done', () => { done = true })
+    const t0 = performance.now(); for (let i = 0; i < 600 && !done; i++) await sleep(50)
+    R.runs.throttleUpload_64KiBps_runtime = { done, ms: Math.round(performance.now() - t0) }
+    await new Promise(r => A.destroy(r)); await new Promise(r => B.destroy(r))
+  }
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

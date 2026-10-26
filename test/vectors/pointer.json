@@ -1,0 +1,1694 @@
+{
+  "format": "MW-PTR/1 (v=mw1), v0.2.1",
+  "about": "Golden vectors for the magnet-web pointer record (docs/INTERFACES.md \"src/common/pointer.js\", src/common/pointer.js). APPEND ONLY: never edit or remove a vector; add new ones with new ids and append their hashes to LOCK.json (test/unit/formats-vectors.test.mjs enforces this).",
+  "keys": {
+    "K1": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+    "K2": "p256:BBrpwcLPQo-7cIRajGfIyRDaH-5NC8tknEO9ZWngpbaePcpi70PYX1RpaE6YTKGp9VVfWhMKuDtuKKJm1qT5saQ"
+  },
+  "vectors": [
+    {
+      "id": "ptr-001-signed",
+      "description": "A signed record with a tagged owner, two trackers, web seed, xs and gen; verifies at `now`.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "sig": "UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411200\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 541,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-002-unknown-key-after-signing",
+      "description": "An unknown key appended after signing: unknown keys are signed, so the signature fails.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; zz=1; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "sig": "UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+            "extra": {
+              "zz": "1"
+            },
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411200\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nzz=1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; zz=1; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+        "verify": {
+          "ok": false,
+          "reason": "bad-sig",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 547,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-003-wrong-scope",
+      "description": "The same record checked against another scope: the scope is part of the signing input.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+      "scope": "other.example",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "sig": "UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411200\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nother.example",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+        "verify": {
+          "ok": false,
+          "reason": "bad-sig",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:cRj58hLGMJYNg-Yy5FZcfeAuMZC",
+        "bytes": 541,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-004-expired",
+      "description": "The same record after exp: a fresh source refuses it.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1800187201000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "sig": "UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411200\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+        "verify": {
+          "ok": false,
+          "reason": "expired",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": true
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 541,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-005-seq-rollback",
+      "description": "A lower seq than the cached record for the scope.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "cachedSeq": 1792411201
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "sig": "UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411200\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411200; exp=1800187200; sig=UY77emIDg23jAAjR5fxlN2hh_-BT9r0UGRwbwf9hsj5LwbYSA5zUT74KeQwpWIMRR16nc3b74GRd3xpvEDHN4w",
+        "verify": {
+          "ok": false,
+          "reason": "seq-rollback",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 541,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-006-aud-ct-lg",
+      "description": "aud=, ct=, lg= and consent= are parsed fields and signed.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; consent=gate; aud=kids; ct=https://example.com/report; lg=https://example.com/legal; seq=1792411201; exp=1800187200; sig=Pusv2vx_UContTuqWSc6dktKpgF0n1NbasevcW7RsLwqy-GcFT7YwaQofNcLRVdkwkaXLSnVGs_nwPkSX9c2qw",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": "gate",
+            "aud": "kids",
+            "ct": "https://example.com/report",
+            "lg": "https://example.com/legal",
+            "why": null,
+            "seq": 1792411201,
+            "exp": 1800187200,
+            "sig": "Pusv2vx_UContTuqWSc6dktKpgF0n1NbasevcW7RsLwqy-GcFT7YwaQofNcLRVdkwkaXLSnVGs_nwPkSX9c2qw",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\naud=kids\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\nconsent=gate\nct=https://example.com/report\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nlg=https://example.com/legal\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411201\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; consent=gate; aud=kids; ct=https://example.com/report; lg=https://example.com/legal; seq=1792411201; exp=1800187200; sig=Pusv2vx_UContTuqWSc6dktKpgF0n1NbasevcW7RsLwqy-GcFT7YwaQofNcLRVdkwkaXLSnVGs_nwPkSX9c2qw",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 626,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-007-withdrawn",
+      "description": "A signed withdrawal (st=withdrawn, zero btih, why=, ct=): ok and withdrawn.",
+      "text": "v=mw1; st=withdrawn; btih=0000000000000000000000000000000000000000; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; ct=mailto:abuse@example.com; why=copyright; seq=1792411300; exp=1800187200; sig=UZwzjTC6qBz7vnnb1dNGxnq99JpqqDX4BHS7ETCuGIEQEabdHlDILocqJ-aJ-N7Bd7Qeif2UCVPQSDR1UqGAqA",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "cachedSeq": 1792411200
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": "withdrawn",
+            "btih": "0000000000000000000000000000000000000000",
+            "dn": null,
+            "xs": [],
+            "ws": [],
+            "tr": [],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": null,
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": "mailto:abuse@example.com",
+            "lg": null,
+            "why": "copyright",
+            "seq": 1792411300,
+            "exp": 1800187200,
+            "sig": "UZwzjTC6qBz7vnnb1dNGxnq99JpqqDX4BHS7ETCuGIEQEabdHlDILocqJ-aJ-N7Bd7Qeif2UCVPQSDR1UqGAqA",
+            "extra": {},
+            "signed": true,
+            "withdrawn": true,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=0000000000000000000000000000000000000000\nct=mailto:abuse@example.com\nexp=1800187200\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411300\nst=withdrawn\nv=mw1\nwhy=copyright\nexample.com",
+        "format": "v=mw1; st=withdrawn; btih=0000000000000000000000000000000000000000; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; ct=mailto:abuse@example.com; why=copyright; seq=1792411300; exp=1800187200; sig=UZwzjTC6qBz7vnnb1dNGxnq99JpqqDX4BHS7ETCuGIEQEabdHlDILocqJ-aJ-N7Bd7Qeif2UCVPQSDR1UqGAqA",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "withdrawn",
+          "withdrawn": true,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 334,
+        "strings": 2
+      }
+    },
+    {
+      "id": "ptr-008-unknown-status",
+      "description": "An unknown st= value is read as withdrawn (fail closed).",
+      "text": "v=mw1; st=paused; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411302; exp=1800187200; sig=WC71r7mcrbUK5QAdcQSFsGs3xJomtap75zGe1MLnHwtaDOuEW--_5wR_D1nikbUSGdqs-GAP52oZRFCsWIDJ3Q",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": "paused",
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411302,
+            "exp": 1800187200,
+            "sig": "WC71r7mcrbUK5QAdcQSFsGs3xJomtap75zGe1MLnHwtaDOuEW--_5wR_D1nikbUSGdqs-GAP52oZRFCsWIDJ3Q",
+            "extra": {},
+            "signed": true,
+            "withdrawn": true,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411302\nst=paused\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; st=paused; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411302; exp=1800187200; sig=WC71r7mcrbUK5QAdcQSFsGs3xJomtap75zGe1MLnHwtaDOuEW--_5wR_D1nikbUSGdqs-GAP52oZRFCsWIDJ3Q",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "withdrawn",
+          "withdrawn": true,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 552,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-009-status-ok",
+      "description": "st=ok is active.",
+      "text": "v=mw1; st=ok; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411303; exp=1800187200; sig=49JKLb7eXDwngIZ8WalHWgkikHFrwriidm-NX-YjqxV5wOBaHi8qT7WH6zGEfGUrLhg_yRXwCxg5X9SrTCXOcw",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": "ok",
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411303,
+            "exp": 1800187200,
+            "sig": "49JKLb7eXDwngIZ8WalHWgkikHFrwriidm-NX-YjqxV5wOBaHi8qT7WH6zGEfGUrLhg_yRXwCxg5X9SrTCXOcw",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411303\nst=ok\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; st=ok; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; seq=1792411303; exp=1800187200; sig=49JKLb7eXDwngIZ8WalHWgkikHFrwriidm-NX-YjqxV5wOBaHi8qT7WH6zGEfGUrLhg_yRXwCxg5X9SrTCXOcw",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "bytes": 548,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-010-rotation",
+      "description": "A new owner key with rot= signed by the pinned key: accepted silently.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BBrpwcLPQo-7cIRajGfIyRDaH-5NC8tknEO9ZWngpbaePcpi70PYX1RpaE6YTKGp9VVfWhMKuDtuKKJm1qT5saQ; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; rot=uxypbhhR52hq1S8X27cqz1JF0t7BCuRhBtCUXdCUzVw125NuCtxdkLtPoxtMfW9oNE_9hJtG_qcml-l0uI3DJA; seq=1792411400; exp=1800187200; sig=0SnQqivNCZd1udueNQOIHoAmWcTQrDgwYK2wAjtDCOisjEzqKfYzVCVuXgHKM1WAkRPpFmQadtp9tKYZRZA__A",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "pinnedOwner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I"
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com",
+              "wss://tracker.webtorrent.dev"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": "p256:BBrpwcLPQo-7cIRajGfIyRDaH-5NC8tknEO9ZWngpbaePcpi70PYX1RpaE6YTKGp9VVfWhMKuDtuKKJm1qT5saQ",
+            "gen": "c0ffee0000000000000000000000000000000000000000000000000000000000",
+            "rot": "uxypbhhR52hq1S8X27cqz1JF0t7BCuRhBtCUXdCUzVw125NuCtxdkLtPoxtMfW9oNE_9hJtG_qcml-l0uI3DJA",
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411400,
+            "exp": 1800187200,
+            "sig": "0SnQqivNCZd1udueNQOIHoAmWcTQrDgwYK2wAjtDCOisjEzqKfYzVCVuXgHKM1WAkRPpFmQadtp9tKYZRZA__A",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\ngen=c0ffee0000000000000000000000000000000000000000000000000000000000\nowner=p256:BBrpwcLPQo-7cIRajGfIyRDaH-5NC8tknEO9ZWngpbaePcpi70PYX1RpaE6YTKGp9VVfWhMKuDtuKKJm1qT5saQ\nrot=uxypbhhR52hq1S8X27cqz1JF0t7BCuRhBtCUXdCUzVw125NuCtxdkLtPoxtMfW9oNE_9hJtG_qcml-l0uI3DJA\nseq=1792411400\ntr=wss://tracker.example.com\ntr=wss://tracker.webtorrent.dev\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; tr=wss://tracker.webtorrent.dev; owner=p256:BBrpwcLPQo-7cIRajGfIyRDaH-5NC8tknEO9ZWngpbaePcpi70PYX1RpaE6YTKGp9VVfWhMKuDtuKKJm1qT5saQ; gen=c0ffee0000000000000000000000000000000000000000000000000000000000; rot=uxypbhhR52hq1S8X27cqz1JF0t7BCuRhBtCUXdCUzVw125NuCtxdkLtPoxtMfW9oNE_9hJtG_qcml-l0uI3DJA; seq=1792411400; exp=1800187200; sig=0SnQqivNCZd1udueNQOIHoAmWcTQrDgwYK2wAjtDCOisjEzqKfYzVCVuXgHKM1WAkRPpFmQadtp9tKYZRZA__A",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": true,
+          "expired": false
+        },
+        "ledgerId": "mw1:4CUog0OyVtrmhLuaCPWZ1xaheVI",
+        "bytes": 633,
+        "strings": 3
+      }
+    },
+    {
+      "id": "ptr-011-untagged-owner",
+      "description": "A v0.2 record with an untagged owner key: bad-owner, whatever the signature.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; owner=BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; seq=1792411000; exp=1800187200; sig=Yvf7c9gZahONy3eiGf-jgIbGThE8cL_OhKczADusn7kkbprnxI2K0wtVS_DV42TV2zr1wJaZNpVK6CM-ei8zlg",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": null,
+            "xs": [],
+            "ws": [],
+            "tr": [],
+            "chain": null,
+            "max": null,
+            "owner": "BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "gen": null,
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": 1792411000,
+            "exp": 1800187200,
+            "sig": "Yvf7c9gZahONy3eiGf-jgIbGThE8cL_OhKczADusn7kkbprnxI2K0wtVS_DV42TV2zr1wJaZNpVK6CM-ei8zlg",
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\nexp=1800187200\nowner=BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I\nseq=1792411000\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; owner=BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I; seq=1792411000; exp=1800187200; sig=Yvf7c9gZahONy3eiGf-jgIbGThE8cL_OhKczADusn7kkbprnxI2K0wtVS_DV42TV2zr1wJaZNpVK6CM-ei8zlg",
+        "verify": {
+          "ok": false,
+          "reason": "bad-owner",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:UXO8XzJlqrx06OjCYJNjSHg0hpT",
+        "bytes": 271,
+        "strings": 2
+      }
+    },
+    {
+      "id": "ptr-012-magnet",
+      "description": "A bare magnet link: an unsigned record with an unmoderated btih ledger.",
+      "text": "magnet:?xt=urn:btih:6b3a0d1c5e7f90214365879aabbccddeeff00112&dn=Peer%20Guestbook&tr=wss%3A%2F%2Ftracker.example.com",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": null,
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [],
+            "ws": [],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": null,
+            "max": null,
+            "owner": null,
+            "gen": null,
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": null,
+            "seq": null,
+            "exp": null,
+            "sig": null,
+            "extra": {},
+            "signed": false,
+            "withdrawn": false,
+            "kind": "magnet"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com",
+        "verify": {
+          "ok": false,
+          "reason": "unsigned",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+        "bytes": 115,
+        "strings": 1
+      }
+    },
+    {
+      "id": "ptr-013-withdrawal-without-btih",
+      "description": "A withdrawal without btih= parses (read as 40 zeros) but is unsigned here.",
+      "text": "v=mw1; st=withdrawn; why=owner",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": "withdrawn",
+            "btih": "0000000000000000000000000000000000000000",
+            "dn": null,
+            "xs": [],
+            "ws": [],
+            "tr": [],
+            "chain": null,
+            "max": null,
+            "owner": null,
+            "gen": null,
+            "rot": null,
+            "cs": null,
+            "consent": null,
+            "aud": null,
+            "ct": null,
+            "lg": null,
+            "why": "owner",
+            "seq": null,
+            "exp": null,
+            "sig": null,
+            "extra": {},
+            "signed": false,
+            "withdrawn": true,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nst=withdrawn\nv=mw1\nwhy=owner\nexample.com",
+        "format": "v=mw1; st=withdrawn; why=owner",
+        "verify": {
+          "ok": false,
+          "reason": "unsigned",
+          "status": "withdrawn",
+          "withdrawn": true,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "btih:0000000000000000000000000000000000000000",
+        "bytes": 30,
+        "strings": 1
+      }
+    },
+    {
+      "id": "ptr-014-rotation-v2-keeps-ledger",
+      "description": "Code review round 1: a key rotation with rot= v2 (bound to the scope and chain) and lo= naming the ledger owner. Accepted silently against the old pinned key, and the ledger id is the one of the old key (see ptr-015).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg; lo=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ; rot=TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg; seq=1792411260; exp=1800187200; sig=vmZBhrUkfptRL_p54Wlai_eJC1QehXd3-iTTiq7MS46WDH2ZqzbHPUjskQp9Z_zFbfDAqBffJyBMhJLdMlOG0w",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "pinnedOwner": "p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ"
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "owner": "p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg",
+            "lo": "p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ",
+            "rot": "TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg",
+            "chain": null,
+            "seq": 1792411260,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nlo=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ\nowner=p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg\nrot=TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg\nseq=1792411260\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg; lo=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ; rot=TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg; seq=1792411260; exp=1800187200; sig=vmZBhrUkfptRL_p54Wlai_eJC1QehXd3-iTTiq7MS46WDH2ZqzbHPUjskQp9Z_zFbfDAqBffJyBMhJLdMlOG0w",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": true,
+          "expired": false
+        },
+        "ledgerId": "mw1:7m_j1T8TW4VQNIMJ3BMhIZdkSY2",
+        "bytes": 516,
+        "strings": 3,
+        "hubLabel": "5o2sjqhxh3ovlhzxb6mobi4j2c646m5o"
+      }
+    },
+    {
+      "id": "ptr-015-ledger-owner-before-rotation",
+      "description": "Code review round 1: the record of the old key before the rotation of ptr-014; its ledger id (and hub label) equal ptr-014's, because ptr-014 carries lo=.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ; seq=1792411200; exp=1800187200; sig=eUmWm98w5m3MtCOZKZncg8l78GTfZmMXAV_WFbb2kytKz36eRHiqcZRAzgy2vHHyIpGU6dkxhihgAtEiXk4Cbw",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "owner": "p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ",
+            "lo": null,
+            "rot": null,
+            "chain": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nowner=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ\nseq=1792411200\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ; seq=1792411200; exp=1800187200; sig=eUmWm98w5m3MtCOZKZncg8l78GTfZmMXAV_WFbb2kytKz36eRHiqcZRAzgy2vHHyIpGU6dkxhihgAtEiXk4Cbw",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:7m_j1T8TW4VQNIMJ3BMhIZdkSY2",
+        "bytes": 327,
+        "strings": 2,
+        "hubLabel": "5o2sjqhxh3ovlhzxb6mobi4j2c646m5o"
+      }
+    },
+    {
+      "id": "ptr-016-rotation-v2-other-scope",
+      "description": "Code review round 1: the rot= v2 value of ptr-014 reused in a record for another scope pinned to the same old key: it does not verify there, so the change is not silent (owner-changed).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg; rot=TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg; seq=1792411260; exp=1800187200; sig=IPsSLKSZ_FZZ7bt3Fy9cMfbJvPlkPB1kRRklD1TICJTHR9uvWLJq5wcNqlJLlB7EpjuTuHkmA4AaL0gdbTEBPQ",
+      "scope": "other.example",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "pinnedOwner": "p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ"
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "owner": "p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg",
+            "lo": null,
+            "rot": "TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg",
+            "chain": null,
+            "seq": 1792411260,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nowner=p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg\nrot=TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg\nseq=1792411260\ntr=wss://tracker.example.com\nv=mw1\nother.example",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BCWiY7aVFvLTCBZc9pLPl4Hdr1GGK6HmCPAt_LKXxz65hV7wGMjaURZ2nD2kgLUwlklldAF-D5gqkE6ImnYyIXg; rot=TmqDWq350qg85TEd_AP9dKmDYeueaX-EuMDt_Twbj_XnYnXlPk2QDZryklcv4gSPiy5CWD8MbGFd0jkwUNruQg; seq=1792411260; exp=1800187200; sig=IPsSLKSZ_FZZ7bt3Fy9cMfbJvPlkPB1kRRklD1TICJTHR9uvWLJq5wcNqlJLlB7EpjuTuHkmA4AaL0gdbTEBPQ",
+        "verify": {
+          "ok": false,
+          "reason": "owner-changed",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:mv0PDuGQoFAwG9kyouh8HRARvFh",
+        "bytes": 419,
+        "strings": 2
+      }
+    },
+    {
+      "id": "ptr-017-empty-status",
+      "description": "Code review round 1: st= with an empty value is read as withdrawn (fail-closed); formatPointer keeps st= so the signature still verifies.",
+      "text": "v=mw1; st=; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ; seq=1792411205; exp=1800187200; sig=OjSsO_YAcbbxudgo4Oo4UBSeKl1BdwjAug-gBYYY_tQo4sU4ypLgIxxscxI_ogE8XLSPXasdyYSBOxXpfV195g",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": "",
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "owner": "p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ",
+            "lo": null,
+            "rot": null,
+            "chain": null,
+            "seq": 1792411205,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": true,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nowner=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ\nseq=1792411205\nst=\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; st=; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BFF3rqI49SluB_zgxhqdHeuR10lXmJtfu3HwTfBXC_Yfsx1xsyPCcALvbYxzub7ehv2rUuOPEsq-w-xk5Clp6UQ; seq=1792411205; exp=1800187200; sig=OjSsO_YAcbbxudgo4Oo4UBSeKl1BdwjAug-gBYYY_tQo4sU4ypLgIxxscxI_ogE8XLSPXasdyYSBOxXpfV195g",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "withdrawn",
+          "withdrawn": true,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "mw1:7m_j1T8TW4VQNIMJ3BMhIZdkSY2",
+        "bytes": 332,
+        "strings": 2
+      }
+    },
+    {
+      "id": "ptr-018-unsigned-hub-label",
+      "description": "Code review round 1: an unsigned record. Its hub label is base32(sha256(\"mw-label-v1\\nbtih\\n\" + btih)), never the label of a signed site (those hash \"ledger\" and the ledger id).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "owner": null,
+            "lo": null,
+            "rot": null,
+            "chain": null,
+            "seq": null,
+            "exp": null,
+            "signed": false,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook",
+        "verify": {
+          "ok": false,
+          "reason": "unsigned",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false
+        },
+        "ledgerId": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+        "bytes": 73,
+        "strings": 1,
+        "hubLabel": "3v3hnmslrus6o7xq2jfbon27ujw6qaou"
+      }
+    },
+    {
+      "id": "ptr-019-freeze-fields",
+      "description": "v0.3 freeze fields (V03-DESIGN-REVIEW 2.5.3): org= twice, nx= (commitment to K4), ml= and idp= are parsed fields and signed. Keys: K3 signs; K4 is the committed next key.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; org=https://example.com; org=https://www.example.com:8443; nx=k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI; ml=0.3.0; idp=https://id.example; seq=1792411100; exp=1800187200; sig=5MRr-M0hQDRrBi1L2Gt024EcSNbWf3m_1vTPaJHoVssIEUJ7NtLOg-qunx6wrAM6mby5M0lGM1UTnFntM6jewA",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [],
+            "ws": [],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": null,
+            "owner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+            "lo": null,
+            "rot": null,
+            "org": [
+              "https://example.com",
+              "https://www.example.com:8443"
+            ],
+            "nx": "k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI",
+            "ml": "0.3.0",
+            "idp": "https://id.example",
+            "seq": 1792411100,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nidp=https://id.example\nml=0.3.0\nnx=k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI\norg=https://example.com\norg=https://www.example.com:8443\nowner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg\nseq=1792411100\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; org=https://example.com; org=https://www.example.com:8443; nx=k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI; ml=0.3.0; idp=https://id.example; seq=1792411100; exp=1800187200; sig=5MRr-M0hQDRrBi1L2Gt024EcSNbWf3m_1vTPaJHoVssIEUJ7NtLOg-qunx6wrAM6mby5M0lGM1UTnFntM6jewA",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "none"
+        },
+        "ledgerId": "mw1:8WGj1PxCLk59aN2QPPz-c7eG9aH",
+        "bytes": 468,
+        "strings": 2,
+        "withinMax": true,
+        "hubLabel": "lmgpi4rl5ezmnlskf4ed3ovr3362f3sy"
+      },
+      "keys": {
+        "K3": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "K4": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+        "K5": "p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo"
+      }
+    },
+    {
+      "id": "ptr-020-four-org-budget",
+      "description": "v0.3: four org= entries (the maximum) with nx=, ml= and idp= stay within the 900-byte MW-PTR/1 limit.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; owner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; org=https://example.com; org=https://www.example.com; org=https://shop.example.com; org=https://blog.example.com; nx=k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI; ml=0.3.0; idp=https://id.example; seq=1792411110; exp=1800187200; sig=dVYSV3u7W55zz6UVGlOd6oIU5V_ZVOb1LdBNj0OtkI4qYPcOEFDF0-bxylp5cMwyM4ZaXSjOoEOAuDBU1KMTwg",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://cdn.example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": null,
+            "owner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+            "lo": null,
+            "rot": null,
+            "org": [
+              "https://example.com",
+              "https://www.example.com",
+              "https://shop.example.com",
+              "https://blog.example.com"
+            ],
+            "nx": "k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI",
+            "ml": "0.3.0",
+            "idp": "https://id.example",
+            "seq": 1792411110,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nidp=https://id.example\nml=0.3.0\nnx=k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI\norg=https://blog.example.com\norg=https://example.com\norg=https://shop.example.com\norg=https://www.example.com\nowner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg\nseq=1792411110\ntr=wss://tracker.example.com\nv=mw1\nws=https://cdn.example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://cdn.example.com/ws/; tr=wss://tracker.example.com; owner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; org=https://example.com; org=https://www.example.com; org=https://shop.example.com; org=https://blog.example.com; nx=k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI; ml=0.3.0; idp=https://id.example; seq=1792411110; exp=1800187200; sig=dVYSV3u7W55zz6UVGlOd6oIU5V_ZVOb1LdBNj0OtkI4qYPcOEFDF0-bxylp5cMwyM4ZaXSjOoEOAuDBU1KMTwg",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "none"
+        },
+        "ledgerId": "mw1:8WGj1PxCLk59aN2QPPz-c7eG9aH",
+        "bytes": 634,
+        "strings": 3,
+        "withinMax": true,
+        "hubLabel": "lmgpi4rl5ezmnlskf4ed3ovr3362f3sy"
+      },
+      "keys": {
+        "K3": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "K4": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+        "K5": "p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo"
+      }
+    },
+    {
+      "id": "ptr-021-nx-match",
+      "description": "v0.3 (MF-28): the previous record (owner K3) committed nx= to K4; a record of K4 without rot= is accepted silently against the pin K3 (rotated, nx match); lo= keeps the ledger id of K3.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs; lo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; seq=1792411200; exp=1800187200; sig=rdIEKRyFPtWW7YS9q22vTVvXLHIAV1brMwupnxdV-QjXQV6nbD04jojc1OSXIx7Bt0H2_Xf6bh3NAvuSvxMO_g",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "pinnedOwner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "previousRecord": {
+          "owner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+          "nx": "k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI"
+        }
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [],
+            "ws": [],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": null,
+            "owner": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+            "lo": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+            "rot": null,
+            "org": [],
+            "nx": null,
+            "ml": null,
+            "idp": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nlo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg\nowner=p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs\nseq=1792411200\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs; lo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; seq=1792411200; exp=1800187200; sig=rdIEKRyFPtWW7YS9q22vTVvXLHIAV1brMwupnxdV-QjXQV6nbD04jojc1OSXIx7Bt0H2_Xf6bh3NAvuSvxMO_g",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": true,
+          "expired": false,
+          "nx": "match"
+        },
+        "ledgerId": "mw1:8WGj1PxCLk59aN2QPPz-c7eG9aH",
+        "bytes": 424,
+        "strings": 2,
+        "withinMax": true,
+        "hubLabel": "lmgpi4rl5ezmnlskf4ed3ovr3362f3sy"
+      },
+      "keys": {
+        "K3": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "K4": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+        "K5": "p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo"
+      }
+    },
+    {
+      "id": "ptr-022-nx-mismatch",
+      "description": "v0.3 (MF-28): a stolen K3 signs a valid rot= v2 to K5, but the previous record committed nx= to K4: refused (nx-mismatch).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo; lo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; rot=yAM_tZ63UX_T-A3s_tNcBmqqqGSZHeECHh1DzNGPVAF46EPN3pi-1QrONUVN38zGbe2Xe6shEILC1mMyBK_W8Q; seq=1792411210; exp=1800187200; sig=i9GtkZgB-9Js5AYRFBR-w1V3LlDVV_5Ztp5bZil4wSQSfmSMaU5vKNlSt-65hyoBBjOxu08czMci0M1IeKfFeg",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "pinnedOwner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "previousRecord": {
+          "owner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+          "nx": "k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI"
+        }
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [],
+            "ws": [],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": null,
+            "owner": "p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo",
+            "lo": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+            "rot": "yAM_tZ63UX_T-A3s_tNcBmqqqGSZHeECHh1DzNGPVAF46EPN3pi-1QrONUVN38zGbe2Xe6shEILC1mMyBK_W8Q",
+            "org": [],
+            "nx": null,
+            "ml": null,
+            "idp": null,
+            "seq": 1792411210,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nlo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg\nowner=p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo\nrot=yAM_tZ63UX_T-A3s_tNcBmqqqGSZHeECHh1DzNGPVAF46EPN3pi-1QrONUVN38zGbe2Xe6shEILC1mMyBK_W8Q\nseq=1792411210\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo; lo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; rot=yAM_tZ63UX_T-A3s_tNcBmqqqGSZHeECHh1DzNGPVAF46EPN3pi-1QrONUVN38zGbe2Xe6shEILC1mMyBK_W8Q; seq=1792411210; exp=1800187200; sig=i9GtkZgB-9Js5AYRFBR-w1V3LlDVV_5Ztp5bZil4wSQSfmSMaU5vKNlSt-65hyoBBjOxu08czMci0M1IeKfFeg",
+        "verify": {
+          "ok": false,
+          "reason": "nx-mismatch",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "mismatch"
+        },
+        "ledgerId": "mw1:8WGj1PxCLk59aN2QPPz-c7eG9aH",
+        "bytes": 516,
+        "strings": 3,
+        "withinMax": true,
+        "hubLabel": "lmgpi4rl5ezmnlskf4ed3ovr3362f3sy"
+      },
+      "keys": {
+        "K3": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "K4": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+        "K5": "p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo"
+      }
+    },
+    {
+      "id": "ptr-023-rot-v1-refused",
+      "description": "v0.3 (MF-28, PTR A5): rot= signed over the deleted v1 input (\"mw-rot-v1\", no scope) by the pinned K3 no longer verifies: owner-changed. Supersedes the verify expectation of ptr-010-rotation.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs; lo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; rot=7UTx9X1b8AHh_eB76jrsilf7QGZygtabJroiQD4yuNQ-GRr5_G8wIeayCpacAfVdfKGsPzBCVetr85tbMoOT0A; seq=1792411220; exp=1800187200; sig=OsWV56_1AjDF1A4QmI0WRIpusWvmw-DkrWZiBV3av2teDZ7LGKKxF5LwJ0Q07IoEDpBrBqNfv4sHMx5ZNVzBgA",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "pinnedOwner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg"
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [],
+            "ws": [],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": null,
+            "owner": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+            "lo": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+            "rot": "7UTx9X1b8AHh_eB76jrsilf7QGZygtabJroiQD4yuNQ-GRr5_G8wIeayCpacAfVdfKGsPzBCVetr85tbMoOT0A",
+            "org": [],
+            "nx": null,
+            "ml": null,
+            "idp": null,
+            "seq": 1792411220,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nlo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg\nowner=p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs\nrot=7UTx9X1b8AHh_eB76jrsilf7QGZygtabJroiQD4yuNQ-GRr5_G8wIeayCpacAfVdfKGsPzBCVetr85tbMoOT0A\nseq=1792411220\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs; lo=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; rot=7UTx9X1b8AHh_eB76jrsilf7QGZygtabJroiQD4yuNQ-GRr5_G8wIeayCpacAfVdfKGsPzBCVetr85tbMoOT0A; seq=1792411220; exp=1800187200; sig=OsWV56_1AjDF1A4QmI0WRIpusWvmw-DkrWZiBV3av2teDZ7LGKKxF5LwJ0Q07IoEDpBrBqNfv4sHMx5ZNVzBgA",
+        "verify": {
+          "ok": false,
+          "reason": "owner-changed",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "none"
+        },
+        "ledgerId": "mw1:8WGj1PxCLk59aN2QPPz-c7eG9aH",
+        "bytes": 516,
+        "strings": 3,
+        "withinMax": true,
+        "hubLabel": "lmgpi4rl5ezmnlskf4ed3ovr3362f3sy"
+      },
+      "keys": {
+        "K3": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "K4": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+        "K5": "p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo"
+      },
+      "supersedes": "ptr-010-rotation"
+    },
+    {
+      "id": "ptr-024-nx-changed",
+      "description": "v0.3 (MF-28): the same owner K3 re-commits nx= to another key (K5) after committing to K4: refused (nx-changed), so a thief holding K3 cannot re-commit before rotating.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; nx=rJdyD_Rc_UatTzT6pgVnUhjgr5Hpr8ndvRvRNb292vc; seq=1792411230; exp=1800187200; sig=f46NiHso6vPMjggg6sNQFTp_Ke40WCdfZE_FWsJLUd73JSRE1uYCVu1HgvVEq7oBo5QqH73k-pwRuGdutDm3XA",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000,
+        "pinnedOwner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "previousRecord": {
+          "owner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+          "nx": "k9d3_xoORzt8H9kGassJBfZEY6ftMV1pPebwPBmegUI"
+        }
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [],
+            "ws": [],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": null,
+            "owner": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+            "lo": null,
+            "rot": null,
+            "org": [],
+            "nx": "rJdyD_Rc_UatTzT6pgVnUhjgr5Hpr8ndvRvRNb292vc",
+            "ml": null,
+            "idp": null,
+            "seq": 1792411230,
+            "exp": 1800187200,
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\ndn=Peer%20Guestbook\nexp=1800187200\nnx=rJdyD_Rc_UatTzT6pgVnUhjgr5Hpr8ndvRvRNb292vc\nowner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg\nseq=1792411230\ntr=wss://tracker.example.com\nv=mw1\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; tr=wss://tracker.example.com; owner=p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg; nx=rJdyD_Rc_UatTzT6pgVnUhjgr5Hpr8ndvRvRNb292vc; seq=1792411230; exp=1800187200; sig=f46NiHso6vPMjggg6sNQFTp_Ke40WCdfZE_FWsJLUd73JSRE1uYCVu1HgvVEq7oBo5QqH73k-pwRuGdutDm3XA",
+        "verify": {
+          "ok": false,
+          "reason": "nx-changed",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "changed"
+        },
+        "ledgerId": "mw1:8WGj1PxCLk59aN2QPPz-c7eG9aH",
+        "bytes": 375,
+        "strings": 2,
+        "withinMax": true,
+        "hubLabel": "lmgpi4rl5ezmnlskf4ed3ovr3362f3sy"
+      },
+      "keys": {
+        "K3": "p256:BNioh5owqujnU_qVIYk-zciyE9A5X8-Zrd_Gu6XUdNpgUYzAe4RfTfeZhIkMVFmUgiBu0pfTbyKawBa8Sfl9FUg",
+        "K4": "p256:BMPHZET_HDKb7kUqOFmL95nbXYzxNb_L56UfWBe1XuwRbZ23rfGQCAaWmc5awW79ZqKVJNvLLWzH-6IPbaGeMUs",
+        "K5": "p256:BEPLXsJCSlWiz9CrHGCbVdxDdDGKHxlT_jyenrFEY0IuKO_hQDLlOsntBfibOcOA3to2TtWn96ffugG6nEvuZJo"
+      }
+    },
+    {
+      "id": "ptr-025-five-org",
+      "description": "v0.3: more than four org= entries do not parse (bad-value).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; org=https://a.example; org=https://b.example; org=https://c.example; org=https://d.example; org=https://e.example",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": false,
+          "error": "bad-value"
+        }
+      }
+    },
+    {
+      "id": "ptr-026-org-not-origin",
+      "description": "v0.3: org= must be an exact origin; a trailing slash (a URL, not an origin) does not parse (bad-value).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; org=https://example.com/",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": false,
+          "error": "bad-value"
+        }
+      }
+    },
+    {
+      "id": "ptr-027-doors-hub-link",
+      "description": "v0.3 C2 doors (S4 D2): a light-link record signed for the hub scope btih:<hex> with chain=, two owner doors (org=) and three guest doors in one dr= key (a port allowed); it verifies on any door, and the ledger id follows owner and chain. Key: K6.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://example.com/ws/; tr=wss://tracker.example.com; chain=guestbook; owner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0; org=https://example.com; org=https://www.example.com; dr=door-one.example.org,door-two.example.net:8443,mirror.example.com; seq=1792411200; exp=1800187200; sig=rCBigK54ZBxXwCA4cUSWJ38ZABhEVpEbRpczWPujtFmXprJGpZxiSpOFg5bu878n9OkdeIYgp0BRYlXsJxn37w",
+      "scope": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": "guestbook",
+            "owner": "p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0",
+            "lo": null,
+            "rot": null,
+            "org": [
+              "https://example.com",
+              "https://www.example.com"
+            ],
+            "dr": [
+              "door-one.example.org",
+              "door-two.example.net:8443",
+              "mirror.example.com"
+            ],
+            "nx": null,
+            "ml": null,
+            "idp": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\nchain=guestbook\ndn=Peer%20Guestbook\ndr=door-one.example.org,door-two.example.net:8443,mirror.example.com\nexp=1800187200\norg=https://example.com\norg=https://www.example.com\nowner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0\nseq=1792411200\ntr=wss://tracker.example.com\nv=mw1\nws=https://example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nbtih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://example.com/ws/; tr=wss://tracker.example.com; chain=guestbook; owner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0; org=https://example.com; org=https://www.example.com; dr=door-one.example.org,door-two.example.net:8443,mirror.example.com; seq=1792411200; exp=1800187200; sig=rCBigK54ZBxXwCA4cUSWJ38ZABhEVpEbRpczWPujtFmXprJGpZxiSpOFg5bu878n9OkdeIYgp0BRYlXsJxn37w",
+        "verify": {
+          "ok": true,
+          "reason": null,
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "none"
+        },
+        "ledgerId": "mw1:3tAHNDimx2sJStkO5BHPFW_BLXD",
+        "bytes": 575,
+        "strings": 3,
+        "withinMax": true,
+        "hubLabel": "4x56pipnpk2wjq3gal3ycvce2xwdlreh"
+      },
+      "keys": {
+        "K6": "p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0"
+      }
+    },
+    {
+      "id": "ptr-028-doors-hostname-scope",
+      "description": "v0.3 C2 doors: the same record checked under a hostname scope fails (bad-sig): a hub-scope record moves between doors, a per-domain page-tag record does not.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://example.com/ws/; tr=wss://tracker.example.com; chain=guestbook; owner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0; org=https://example.com; org=https://www.example.com; dr=door-one.example.org,door-two.example.net:8443,mirror.example.com; seq=1792411200; exp=1800187200; sig=rCBigK54ZBxXwCA4cUSWJ38ZABhEVpEbRpczWPujtFmXprJGpZxiSpOFg5bu878n9OkdeIYgp0BRYlXsJxn37w",
+      "scope": "example.com",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": "guestbook",
+            "owner": "p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0",
+            "lo": null,
+            "rot": null,
+            "org": [
+              "https://example.com",
+              "https://www.example.com"
+            ],
+            "dr": [
+              "door-one.example.org",
+              "door-two.example.net:8443",
+              "mirror.example.com"
+            ],
+            "nx": null,
+            "ml": null,
+            "idp": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\nchain=guestbook\ndn=Peer%20Guestbook\ndr=door-one.example.org,door-two.example.net:8443,mirror.example.com\nexp=1800187200\norg=https://example.com\norg=https://www.example.com\nowner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0\nseq=1792411200\ntr=wss://tracker.example.com\nv=mw1\nws=https://example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nexample.com",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://example.com/ws/; tr=wss://tracker.example.com; chain=guestbook; owner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0; org=https://example.com; org=https://www.example.com; dr=door-one.example.org,door-two.example.net:8443,mirror.example.com; seq=1792411200; exp=1800187200; sig=rCBigK54ZBxXwCA4cUSWJ38ZABhEVpEbRpczWPujtFmXprJGpZxiSpOFg5bu878n9OkdeIYgp0BRYlXsJxn37w",
+        "verify": {
+          "ok": false,
+          "reason": "bad-sig",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "none"
+        },
+        "ledgerId": "mw1:3tAHNDimx2sJStkO5BHPFW_BLXD",
+        "bytes": 575,
+        "strings": 3,
+        "withinMax": true,
+        "hubLabel": "4x56pipnpk2wjq3gal3ycvce2xwdlreh"
+      },
+      "keys": {
+        "K6": "p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0"
+      }
+    },
+    {
+      "id": "ptr-029-doors-door-removed",
+      "description": "v0.3 C2 doors: one door removed from dr= after signing: the signing input changes and the signature fails (bad-sig), so a link rewriter cannot strip a signed door.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://example.com/ws/; tr=wss://tracker.example.com; chain=guestbook; owner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0; org=https://example.com; org=https://www.example.com; dr=door-one.example.org,mirror.example.com; seq=1792411200; exp=1800187200; sig=rCBigK54ZBxXwCA4cUSWJ38ZABhEVpEbRpczWPujtFmXprJGpZxiSpOFg5bu878n9OkdeIYgp0BRYlXsJxn37w",
+      "scope": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": true,
+          "fields": {
+            "v": "mw1",
+            "st": null,
+            "btih": "6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "dn": "Peer Guestbook",
+            "xs": [
+              "https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent"
+            ],
+            "ws": [
+              "https://example.com/ws/"
+            ],
+            "tr": [
+              "wss://tracker.example.com"
+            ],
+            "chain": "guestbook",
+            "owner": "p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0",
+            "lo": null,
+            "rot": null,
+            "org": [
+              "https://example.com",
+              "https://www.example.com"
+            ],
+            "dr": [
+              "door-one.example.org",
+              "mirror.example.com"
+            ],
+            "nx": null,
+            "ml": null,
+            "idp": null,
+            "seq": 1792411200,
+            "exp": 1800187200,
+            "extra": {},
+            "signed": true,
+            "withdrawn": false,
+            "kind": "pointer"
+          }
+        },
+        "signingInput": "mw-pointer-v1\nbtih=6b3a0d1c5e7f90214365879aabbccddeeff00112\nchain=guestbook\ndn=Peer%20Guestbook\ndr=door-one.example.org,mirror.example.com\nexp=1800187200\norg=https://example.com\norg=https://www.example.com\nowner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0\nseq=1792411200\ntr=wss://tracker.example.com\nv=mw1\nws=https://example.com/ws/\nxs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent\nbtih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+        "format": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dn=Peer%20Guestbook; xs=https://example.com/_mw/t/6b3a0d1c5e7f90214365879aabbccddeeff00112.torrent; ws=https://example.com/ws/; tr=wss://tracker.example.com; chain=guestbook; owner=p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0; org=https://example.com; org=https://www.example.com; dr=door-one.example.org,mirror.example.com; seq=1792411200; exp=1800187200; sig=rCBigK54ZBxXwCA4cUSWJ38ZABhEVpEbRpczWPujtFmXprJGpZxiSpOFg5bu878n9OkdeIYgp0BRYlXsJxn37w",
+        "verify": {
+          "ok": false,
+          "reason": "bad-sig",
+          "status": "active",
+          "withdrawn": false,
+          "rotated": false,
+          "expired": false,
+          "nx": "none"
+        },
+        "ledgerId": "mw1:3tAHNDimx2sJStkO5BHPFW_BLXD",
+        "bytes": 549,
+        "strings": 3,
+        "withinMax": true,
+        "hubLabel": "4x56pipnpk2wjq3gal3ycvce2xwdlreh"
+      },
+      "keys": {
+        "K6": "p256:BEBH8yiOv2vv1mGTV2f4wjcinwKubXWjgLhpiSv2i3ujXnqNIqlsjJkEtbONWV4y5UScwQ8i9Xb4sB3m1XlotU0"
+      }
+    },
+    {
+      "id": "ptr-030-dr-nine-hosts",
+      "description": "v0.3 C2 doors: dr= names at most 8 hosts; nine do not parse (bad-value).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dr=a.example.org,b.example.org,c.example.org,d.example.org,e.example.org,f.example.org,g.example.org,h.example.org,i.example.org",
+      "scope": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": false,
+          "error": "bad-value"
+        }
+      }
+    },
+    {
+      "id": "ptr-031-dr-not-a-host",
+      "description": "v0.3 C2 doors: a dr= entry is a host, not a URL; a scheme does not parse (bad-value).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dr=https://door.example.org",
+      "scope": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": false,
+          "error": "bad-value"
+        }
+      }
+    },
+    {
+      "id": "ptr-032-dr-twice",
+      "description": "v0.3 C2 doors: dr= is a single key holding a comma list; a second dr= key is duplicate-key.",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dr=a.example.org; dr=b.example.org",
+      "scope": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": false,
+          "error": "duplicate-key"
+        }
+      }
+    },
+    {
+      "id": "ptr-033-dr-repeated-host",
+      "description": "v0.3 C2 doors: the hosts of dr= must differ (bad-value).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dr=a.example.org,a.example.org",
+      "scope": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": false,
+          "error": "bad-value"
+        }
+      }
+    },
+    {
+      "id": "ptr-034-dr-uppercase",
+      "description": "v0.3 C2 doors: dr= hosts are lowercase as WHATWG URL prints them; Door.example.org does not parse (bad-value).",
+      "text": "v=mw1; btih=6b3a0d1c5e7f90214365879aabbccddeeff00112; dr=Door.example.org",
+      "scope": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+      "verifyOptions": {
+        "now": 1792411200000
+      },
+      "expect": {
+        "parse": {
+          "ok": false,
+          "error": "bad-value"
+        }
+      }
+    }
+  ]
+}

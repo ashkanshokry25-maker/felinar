@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E11 torrent option uploads:0 (no unchoke slots): can a peer still download? do extension messages still flow?</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { errors: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e11', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = new Map(); this.length = opts.length }
+  put (i, buf, cb = () => {}) { this.chunks.set(i, new Uint8Array(buf)); queueMicrotask(() => cb(null)) }
+  get (i, o, cb) { if (typeof o === 'function') { cb = o; o = {} } const c = this.chunks.get(i); if (!c) { const e = new Error('Chunk not found'); e.notFound = true; return queueMicrotask(() => cb(e)) } const off = (o && o.offset) || 0; const len = (o && o.length) || (c.length - off); queueMicrotask(() => cb(null, c.slice(off, off + len))) }
+  close (cb = () => {}) { queueMicrotask(() => cb(null)) }
+  destroy (cb = () => {}) { this.chunks.clear(); queueMicrotask(() => cb(null)) }
+}
+let got = 0; let wireA = null
+class Gossip { constructor (w) { this.w = w } onMessage (buf) { got++ } }
+Gossip.prototype.name = 'ashgossip'
+try {
+  const mk = () => new WebTorrent({ dht: false, lsd: false, utPex: false, tracker: { rtcConfig: { iceServers: [] } } })
+  const A = mk(); const B = mk()
+  const TR = 'ws://127.0.0.1:18082'
+  const bytes = new Uint8Array(131072); let x = 99; for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; bytes[i] = x & 255 }
+  const tA = A.seed(new File([bytes], 'u0.bin'), { announce: [TR], name: 'u0.bin', pieceLength: 16384, store: MemStore, uploads: 0 })
+  tA.on('wire', w => { wireA = w; w.use(Gossip) })
+  await new Promise(r => tA.once('ready', r))
+  R.rechokeNumSlots = tA._rechokeNumSlots
+  const tB = B.add(tA.magnetURI, { store: MemStore })
+  tB.on('wire', w => w.use(Gossip))
+  for (let i = 0; i < 80 && !tB.done; i++) await sleep(100)
+  R.bDoneWithin8s = tB.done; R.bProgress = tB.progress; R.bDownloaded = tB.downloaded; R.bMetadata = !!tB.metadata
+  R.bWires = tB.wires.map(w => ({ peerChoking: w.peerChoking, hasFast: w.hasFast, allowedFastFromPeer: w.peerAllowedFastSet.length }))
+  R.aWires = tA.wires.map(w => ({ amChoking: w.amChoking, peerInterested: w.peerInterested, allowedFastSent: w.allowedFastSet.length }))
+  if (wireA && wireA.peerExtendedMapping.ashgossip) { for (let i = 0; i < 5; i++) wireA.extended('ashgossip', new Uint8Array(100)) ; await sleep(800); R.extMessagesReceivedByB = got }
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

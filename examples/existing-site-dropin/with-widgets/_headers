@@ -1,0 +1,13 @@
+# Response headers of the forum's host. Drop-in never synthesizes or removes them for documents.
+# The identity page opens in a popup and answers its opener, so pages with the sign-in button must not send
+# Cross-Origin-Opener-Policy: same-origin; same-origin-allow-popups is safe. Referrer-Policy: no-referrer is advised.
+/*
+  X-Fixture-Host: example-forum
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Referrer-Policy: no-referrer
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+/data.json
+  Cache-Control: no-cache

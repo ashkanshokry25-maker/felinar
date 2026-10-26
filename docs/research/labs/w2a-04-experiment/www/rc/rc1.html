@@ -1,0 +1,3 @@
+<!doctype html><html><body><script>
+(async()=>{ await navigator.serviceWorker.register('/rc/sw.js',{scope:'/rc/'}); await navigator.serviceWorker.ready; await new Promise(r=>setTimeout(r,300)); location.href='/rc/rc2.html' })()
+</script></body></html>

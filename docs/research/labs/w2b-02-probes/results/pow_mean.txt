@@ -1,0 +1,4 @@
+{"bits":12,"reps":200,"expected":4096,"mean_hashes":3803,"median_hashes":2436,"p95_hashes":11776,"mean_ms":5.7,"hashes_per_s":664286}
+{"bits":14,"reps":100,"expected":16384,"mean_hashes":13122,"median_hashes":8807,"p95_hashes":38560,"mean_ms":19.6,"hashes_per_s":670569}
+{"bits":16,"reps":40,"expected":65536,"mean_hashes":72175,"median_hashes":58664,"p95_hashes":264229,"mean_ms":172.4,"hashes_per_s":418600}
+{"bits":18,"reps":12,"expected":262144,"mean_hashes":203872,"median_hashes":143034,"p95_hashes":661369,"mean_ms":334.4,"hashes_per_s":609701}

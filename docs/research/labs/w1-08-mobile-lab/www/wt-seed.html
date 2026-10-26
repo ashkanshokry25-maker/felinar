@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>seeder</title>
+<script type="module">
+const q = new URLSearchParams(location.search); const MB = +q.get('mb'); const TR = q.get('tr');
+const out = { errors: [] };
+window.addEventListener('error', e => out.errors.push('onerror: ' + e.message));
+try {
+  const { default: WebTorrent } = await import('/webtorrent.min.js');
+  const bytes = new Uint8Array(MB * 1024 * 1024);
+  let s = 123456789; for (let i = 0; i < bytes.length; i += 4) { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; bytes[i] = s; bytes[i+1] = s >>> 8; bytes[i+2] = s >>> 16; bytes[i+3] = s >>> 24; }
+  const c = new WebTorrent({ dht: false, lsd: false, webSeeds: false, tracker: { rtcConfig: { iceServers: [] } } });
+  c.on('error', e => out.errors.push('client error: ' + (e && e.message || e)));
+  const t = await new Promise((res, rej) => { const tt = c.seed(new File([bytes], 'site.bin'), { name: 'site.bin', announce: [TR] }, res); tt.on('error', rej); });
+  out.magnet = t.magnetURI; out.pieceLength = t.pieceLength; out.infoHash = t.infoHash;
+  window.__sha = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('');
+  out.sha = window.__sha;
+} catch (e) { out.thrown = String(e && e.stack || e).slice(0, 400); }
+window.__result = out;
+</script>

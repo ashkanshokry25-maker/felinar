@@ -1,0 +1,38 @@
+<!doctype html><meta charset="utf-8"><title>wt-transfer-experiment</title>
+<script type="module">
+class MemStore {
+  constructor(chunkLength, opts) { this.chunkLength = chunkLength; this.length = opts.length; this.chunks = []; }
+  put(i, buf, cb) { this.chunks[i] = buf; queueMicrotask(() => cb(null)); }
+  get(i, o, cb) { const b = this.chunks[i]; if (!b) return queueMicrotask(() => cb(new Error('Chunk not found'))); const off = (o && o.offset) || 0; const len = (o && o.length != null) ? o.length : b.length - off; queueMicrotask(() => cb(null, off === 0 && len === b.length ? b : b.slice(off, off + len))); }
+  close(cb) { queueMicrotask(() => cb && cb(null)); }
+  destroy(cb) { this.chunks = []; queueMicrotask(() => cb && cb(null)); }
+}
+const STORE = new URLSearchParams(location.search).get('store');
+const storeOpt = STORE === 'mem' ? { store: MemStore, storeCacheSlots: 0 } : {};
+const out = { errors: [], log: [], store: STORE || 'default' };
+window.addEventListener('error', e => out.errors.push('window.onerror: ' + e.message));
+window.addEventListener('unhandledrejection', e => out.errors.push('unhandledrejection: ' + (e.reason && e.reason.message || e.reason)));
+const hex = (u8) => Array.from(u8, b => b.toString(16).padStart(2, '0')).join('');
+try {
+  const q = new URLSearchParams(location.search); const TR = q.get('tr');
+  const { default: WebTorrent } = await import('/webtorrent.min.js');
+  const rtc = { iceServers: [] };
+  const mk = () => new WebTorrent({ dht: false, lsd: false, webSeeds: false, tracker: { rtcConfig: rtc } });
+  const c1 = mk(), c2 = mk();
+  for (const c of [c1, c2]) c.on('error', e => out.errors.push('client error: ' + (e && e.message || e)));
+  const bytes = new Uint8Array(3 * 1024 * 1024); for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 31 + (i >> 9) * 7) & 255;
+  const want = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
+  const t1 = await new Promise((res, rej) => { const tt = c1.seed(new File([bytes], 'site.bin'), { name: 'site.bin', announce: [TR], ...storeOpt }, res); tt.on('error', rej); });
+  out.infoHash = t1.infoHash; out.seedPieceLength = t1.pieceLength;
+  const t0 = performance.now();
+  const t2 = c2.add(t1.magnetURI, { announce: [TR], ...storeOpt });
+  t2.on('error', e => out.errors.push('torrent2 error: ' + (e && e.message || e)));
+  await new Promise((res, rej) => { const to = setTimeout(() => rej(new Error('download timeout 30s; progress=' + t2.progress + ' peers=' + t2.numPeers)), 30000); t2.on('done', () => { clearTimeout(to); res(); }); });
+  out.downloadMs = Math.round(performance.now() - t0);
+  const f = t2.files[0]; const buf = new Uint8Array(await f.arrayBuffer());
+  out.bytes = buf.length; out.sha256Match = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', buf))) === want;
+  out.wireTypes = t2.wires.map(w => w.type);
+  c1.destroy(); c2.destroy();
+} catch (e) { out.thrown = String(e && e.stack || e).split('\n').slice(0, 4).join(' | '); }
+window.__result = out;
+</script>

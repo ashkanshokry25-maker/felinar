@@ -1,0 +1,110 @@
+[
+ {
+  "store": "mem",
+  "MB": 24,
+  "pieceLength": 32768,
+  "downloadMs": 10520,
+  "length": 25165824,
+  "blobSize": 25165824,
+  "errors": [],
+  "marks": [
+   {
+    "label": "baseline",
+    "downloaderRendererMB": 94,
+    "totalChromiumMB": 529
+   },
+   {
+    "label": "downloaded (all pieces held by chunk store)",
+    "downloaderRendererMB": 161,
+    "totalChromiumMB": 587
+   },
+   {
+    "label": "after file.blob()",
+    "downloaderRendererMB": 161,
+    "totalChromiumMB": 612
+   },
+   {
+    "label": "after IndexedDB put(Blob)",
+    "downloaderRendererMB": 162,
+    "totalChromiumMB": 620
+   },
+   {
+    "label": "after client.destroy() + gc",
+    "downloaderRendererMB": 162,
+    "totalChromiumMB": 620
+   }
+  ]
+ },
+ {
+  "store": "mem",
+  "MB": 48,
+  "pieceLength": 65536,
+  "downloadMs": 2767,
+  "length": 50331648,
+  "blobSize": 50331648,
+  "errors": [],
+  "marks": [
+   {
+    "label": "baseline",
+    "downloaderRendererMB": 94,
+    "totalChromiumMB": 638
+   },
+   {
+    "label": "downloaded (all pieces held by chunk store)",
+    "downloaderRendererMB": 224,
+    "totalChromiumMB": 788
+   },
+   {
+    "label": "after file.blob()",
+    "downloaderRendererMB": 282,
+    "totalChromiumMB": 836
+   },
+   {
+    "label": "after IndexedDB put(Blob)",
+    "downloaderRendererMB": 225,
+    "totalChromiumMB": 837
+   },
+   {
+    "label": "after client.destroy() + gc",
+    "downloaderRendererMB": 224,
+    "totalChromiumMB": 836
+   }
+  ]
+ },
+ {
+  "store": "mem",
+  "MB": 128,
+  "pieceLength": 131072,
+  "downloadMs": 11037,
+  "length": 134217728,
+  "blobSize": 134217728,
+  "errors": [],
+  "marks": [
+   {
+    "label": "baseline",
+    "downloaderRendererMB": 95,
+    "totalChromiumMB": 948
+   },
+   {
+    "label": "downloaded (all pieces held by chunk store)",
+    "downloaderRendererMB": 296,
+    "totalChromiumMB": 1131
+   },
+   {
+    "label": "after file.blob()",
+    "downloaderRendererMB": 434,
+    "totalChromiumMB": 1359
+   },
+   {
+    "label": "after IndexedDB put(Blob)",
+    "downloaderRendererMB": 297,
+    "totalChromiumMB": 1260
+   },
+   {
+    "label": "after client.destroy() + gc",
+    "downloaderRendererMB": 296,
+    "totalChromiumMB": 1259
+   }
+  ]
+ }
+]

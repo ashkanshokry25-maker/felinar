@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><title>wt-b64-experiment</title>
+<script type="module">
+class MemStore {
+  constructor(chunkLength, opts) { this.chunkLength = chunkLength; this.length = opts.length; this.chunks = []; }
+  put(i, buf, cb) { this.chunks[i] = buf; queueMicrotask(() => cb(null)); }
+  get(i, o, cb) { const b = this.chunks[i]; if (!b) return queueMicrotask(() => cb(new Error('Chunk not found'))); const off = (o && o.offset) || 0; const len = (o && o.length != null) ? o.length : b.length - off; queueMicrotask(() => cb(null, off === 0 && len === b.length ? b : b.slice(off, off + len))); }
+  close(cb) { queueMicrotask(() => cb && cb(null)); }
+  destroy(cb) { this.chunks = []; queueMicrotask(() => cb && cb(null)); }
+}
+const STORE = new URLSearchParams(location.search).get('store');
+const storeOpt = STORE === 'mem' ? { store: MemStore, storeCacheSlots: 0 } : {};
+const out = { natives: {}, errors: [], store: STORE || 'default' };
+for (const k of ['toHex','toBase64','setFromHex','setFromBase64']) out.natives[k] = typeof Uint8Array.prototype[k];
+for (const k of ['fromHex','fromBase64']) out.natives[k] = typeof Uint8Array[k];
+window.addEventListener('error', e => out.errors.push('window.onerror: ' + e.message));
+window.addEventListener('unhandledrejection', e => out.errors.push('unhandledrejection: ' + (e.reason && e.reason.message || e.reason)));
+const done = (o) => { window.__result = o; };
+try {
+  const { default: WebTorrent } = await import('/webtorrent.min.js');
+  out.imported = true;
+  const client = new WebTorrent({ tracker: false, dht: false, lsd: false, webSeeds: false });
+  client.on('error', e => out.errors.push('client error: ' + (e && e.message || e)));
+  out.clientCreated = true;
+  const bytes = new Uint8Array(600000); for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 7 + (i >> 8)) & 255;
+  const file = new File([bytes], 'a.bin');
+  const t = await new Promise((res, rej) => {
+    const to = setTimeout(() => rej(new Error('seed timeout 20s')), 20000);
+    try { const tt = client.seed(file, { name: 'a.bin', announce: [], ...storeOpt }, (torrent) => { clearTimeout(to); res(torrent); }); tt.on('error', e => { clearTimeout(to); rej(e); }); } catch (e) { clearTimeout(to); rej(e); }
+  });
+  out.seed = { infoHash: t.infoHash, magnetURI: t.magnetURI.slice(0, 80), pieceLength: t.pieceLength, pieces: t.pieces.length, length: t.length, torrentFileBytes: t.torrentFile.length };
+  const c2 = new WebTorrent({ tracker: false, dht: false, lsd: false, webSeeds: false });
+  c2.on('error', e => out.errors.push('client2 error: ' + (e && e.message || e)));
+  const t2 = c2.add(t.magnetURI, { announce: [], ...storeOpt });
+  t2.on('error', e => out.errors.push('torrent2 error: ' + (e && e.message || e)));
+  out.add = { infoHash: t2.infoHash };
+  await new Promise(r => setTimeout(r, 500));
+  client.destroy(); c2.destroy();
+} catch (e) { out.thrown = String(e && e.stack || e).split('\n').slice(0, 4).join(' | '); }
+done(out);
+</script>

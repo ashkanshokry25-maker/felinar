@@ -1,0 +1,123 @@
+{
+ "date": "2026-10-20T15:12:55.470Z",
+ "playwright": "1.64.1",
+ "chromium": {
+  "version": "156.0.8078.4",
+  "features": {
+   "secure": true,
+   "gum": [
+    "audio: Fake Default Audio Input",
+    "video: fake_device_0"
+   ],
+   "gdm": "ok: screen:-3:0, 1280x720, monitor",
+   "mediaSession": {
+    "togglemicrophone": "ok",
+    "togglecamera": "ok",
+    "hangup": "ok",
+    "enterpictureinpicture": "ok"
+   },
+   "documentPictureInPicture": true,
+   "audioSession": "absent",
+   "wakeLock": true
+  },
+  "call": {
+   "sdp": {
+    "offerInitial": 5734,
+    "offerComplete": 7135,
+    "answerInitial": 5440,
+    "answerComplete": 5665
+   },
+   "A": {
+    "state": "connected",
+    "received-audio": 9702,
+    "received-video": 115600,
+    "sent-audio": 9746,
+    "target-audio": 32000,
+    "sent-video": 121359,
+    "target-video": 1700000,
+    "dtls": "connected",
+    "setParameters": "maxBitrate 150000, scaleResolutionDownBy 2",
+    "replaceTrackNull": "ok",
+    "remoteFingerprint": true
+   },
+   "B": {
+    "state": "connected",
+    "received-audio": 9746,
+    "received-video": 121359,
+    "sent-audio": 9702,
+    "target-audio": 32000,
+    "sent-video": 115600,
+    "target-video": 1700000,
+    "dtls": "connected",
+    "setParameters": "maxBitrate 150000, scaleResolutionDownBy 2",
+    "replaceTrackNull": "ok",
+    "remoteFingerprint": true
+   }
+  }
+ },
+ "webkit": {
+  "version": "27.2",
+  "features": {
+   "secure": true,
+   "gum": [
+    "audio: Mock audio device 1",
+    "video: Mock video device 1"
+   ],
+   "gdm": "InvalidStateError: getDisplayMedia must be called from a user gesture handler.",
+   "mediaSession": {
+    "togglemicrophone": "ok",
+    "togglecamera": "ok",
+    "hangup": "TypeError",
+    "enterpictureinpicture": "TypeError"
+   },
+   "documentPictureInPicture": false,
+   "audioSession": "present",
+   "wakeLock": true
+  },
+  "firstPageAfterSecondCaptures": {
+   "tracks": [
+    "audio: muted",
+    "video: muted"
+   ],
+   "events": [
+    "video muted",
+    "audio muted"
+   ]
+  },
+  "displayFromClick": "ok: Mock screen device 1",
+  "callTwoBrowsers": {
+   "sdp": {
+    "offerInitial": 5898,
+    "offerComplete": 6304,
+    "answerInitial": 5624,
+    "answerComplete": 5787
+   },
+   "A": {
+    "state": "connected",
+    "received-audio": 16303,
+    "received-video": 135952,
+    "sent-audio": 16413,
+    "target-audio": 32000,
+    "sent-video": 140136,
+    "target-video": 1700000,
+    "dtls": "connected",
+    "setParameters": "maxBitrate 150000, scaleResolutionDownBy 2",
+    "replaceTrackNull": "ok",
+    "remoteFingerprint": true
+   },
+   "B": {
+    "state": "connected",
+    "received-audio": 16332,
+    "received-video": 140136,
+    "sent-audio": 16303,
+    "target-audio": 32000,
+    "sent-video": 135180,
+    "target-video": 1700000,
+    "dtls": "connected",
+    "setParameters": "maxBitrate 150000, scaleResolutionDownBy 2",
+    "replaceTrackNull": "ok",
+    "remoteFingerprint": true
+   }
+  }
+ }
+}

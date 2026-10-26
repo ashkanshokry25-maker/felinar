@@ -1,0 +1,26 @@
+{
+ "mirror on load only (spec 7.2)": {
+  "afterSoftNavigation": {
+   "top": "/",
+   "frame": "/about",
+   "text": "home about\nHELLO-ABOUT-vite-react"
+  },
+  "afterReload": {
+   "top": "/",
+   "frame": "/",
+   "text": "home about\nHELLO-HOME-vite-react"
+  }
+ },
+ "plus patched history.pushState/replaceState + popstate in frame": {
+  "afterSoftNavigation": {
+   "top": "/about",
+   "frame": "/about",
+   "text": "home about\nHELLO-ABOUT-vite-react"
+  },
+  "afterReload": {
+   "top": "/about",
+   "frame": "/about",
+   "text": "home about\nHELLO-ABOUT-vite-react"
+  }
+ }
+}

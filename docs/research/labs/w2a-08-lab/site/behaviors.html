@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Behaviors</title>
+<meta name="viewport" content="width=1024"><meta name="theme-color" content="#aa3366">
+<style>body{margin:8px;font:16px sans-serif} .row{margin:6px 0}</style></head><body>
+<h1 id="h">Behaviors</h1><p><a id="a-home" href="/a.html">plain internal link</a></p>
+<div class="row"><button id="b-alert">alert</button> <button id="b-confirm">confirm</button> <button id="b-prompt">prompt</button> <button id="b-print">print</button></div>
+<div class="row"><button id="b-open">window.open same-origin</button> <button id="b-open-ext">window.open ext</button>
+ <a id="a-blank" target="_blank" href="/popup.html">_blank</a> <a id="a-blank-ext" target="_blank" href="http://127.0.0.1:{{EXT}}/popup">_blank ext</a> <a id="a-blank-opener" target="_blank" rel="opener" href="/popup.html">_blank opener</a></div>
+<div class="row"><a id="a-top" target="_top" href="/b.html">_top same</a> <a id="a-top-ext" target="_top" href="http://127.0.0.1:{{EXT}}/page">_top ext</a> <button id="b-framebust">framebust (click)</button> <a id="a-parent" target="_parent" href="/c.html">_parent same</a></div>
+<div class="row"><a id="a-ext" href="http://127.0.0.1:{{EXT}}/page">ext link</a> <button id="b-ext-js">ext via location.href</button> <a id="a-mailto" href="mailto:test@example.com">mailto</a> <a id="a-tel" href="tel:+15551234567">tel</a>
+ <a id="a-pdf" href="/file.pdf">pdf</a> <a id="a-dl" download href="/dl.txt">download attr</a> <a id="a-attach" href="/attach.bin">attachment</a> <button id="b-blobdl">blob download</button></div>
+<div class="row"><button id="b-oauth">oauth popup</button> <a id="a-bust" href="/bust.html">bust page</a> <a id="a-strict" href="/strictcsp.html">strict csp page</a></div>
+<div class="row"><button id="b-share">share</button> <button id="b-fs">fullscreen</button> <button id="b-unload">set beforeunload</button> <button id="b-clipw">clipboard write</button> <button id="b-sw">register own SW</button></div>
+<div class="row">
+<form id="f-ext-post" method="post" action="http://127.0.0.1:{{EXT}}/post-redirect"><input name="a" value="1"><button id="f-ext-post-btn">post ext (303 back)</button></form>
+<form id="f-ext-deny" method="post" action="http://127.0.0.1:{{EXT}}/post-deny"><button id="f-ext-deny-btn">post ext (XFO deny)</button></form>
+<form id="f-self-post" method="post" action="/submit"><button id="f-self-post-btn">post same-origin</button></form>
+<form id="f-get" method="get" action="/search.html"><input name="q" value="hello"><button id="f-get-btn">GET form</button></form></div>
+<div id="out"></div>
+<script>
+var R = window.__res = {}; var sb = {}
+window.addEventListener('beforeprint', function () { R.beforeprint = true })
+window.addEventListener('afterprint', function () { R.afterprint = true })
+function on(id, fn) { document.getElementById(id).addEventListener('click', fn) }
+window.addEventListener('message', function (e) { R.msg = (R.msg || []).concat([JSON.stringify(e.data).slice(0, 60)]) })
+on('b-oauth', function () { var w = window.open('/oauth-callback.html', 'oauthpp'); R.oauthOpen = w ? 'window' : 'null' })
+on('b-alert', function () { var t = performance.now(); alert('hello'); R.alertMs = Math.round(performance.now() - t); R.alertReturned = true })
+on('b-confirm', function () { R.confirm = confirm('sure?') })
+on('b-prompt', function () { R.prompt = prompt('name?', 'dflt') })
+on('b-print', function () { R.printCalled = true; try { window.print() } catch (e) { R.printErr = e.name } })
+on('b-open', function () { var w = window.open('/popup.html', 'pp'); R.open = w ? 'window' : 'null' })
+on('b-open-ext', function () { var w = window.open('http://127.0.0.1:{{EXT}}/popup', 'ppx'); R.openExt = w ? 'window' : 'null' })
+on('b-framebust', function () { try { top.location.href = location.href; R.framebust = 'assigned' } catch (e) { R.framebust = 'threw ' + e.name } })
+on('b-ext-js', function () { location.href = 'http://127.0.0.1:{{EXT}}/page' })
+on('b-blobdl', function () { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['blob bytes'], { type: 'text/plain' })); a.download = 'blob.txt'; document.body.appendChild(a); a.click(); R.blobdl = 'clicked' })
+on('b-share', function () { R.shareExists = !!navigator.share; if (!navigator.share) return; navigator.share({ url: location.href, title: 't' }).then(function () { R.share = 'ok' }, function (e) { R.share = e.name }) })
+on('b-fs', function () { R.fsEnabled = document.fullscreenEnabled; try { var p = document.documentElement.requestFullscreen(); if (p && p.then) p.then(function () { R.fs = 'ok' }, function (e) { R.fs = e.name + ':' + e.message.slice(0, 60) }) } catch (e) { R.fs = 'threw ' + e.name } })
+on('b-unload', function () { window.onbeforeunload = function (e) { e.preventDefault(); e.returnValue = ''; return '' } ; R.unloadSet = true })
+on('b-clipw', function () { navigator.clipboard.writeText('x').then(function () { R.clip = 'ok' }, function (e) { R.clip = e.name }) })
+on('b-sw', function () { navigator.serviceWorker.register('/site-sw.js', { scope: '/' }).then(function (r) { R.sw = 'registered ' + r.scope }, function (e) { R.sw = 'rejected ' + e.name + ':' + e.message.slice(0, 80) }) })
+</script></body></html>

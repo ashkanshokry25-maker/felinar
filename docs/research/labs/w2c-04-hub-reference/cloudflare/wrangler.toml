@@ -1,0 +1,33 @@
+# Cloudflare variant: Workers + static assets. NOT deployed in this research (no account); worker.js is unit-tested with mocks only.
+name = "mw-hub-sites"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+
+# Zone must be the sites domain itself (apex of the zone): Universal SSL covers the apex and first-level subdomains only.
+# DNS: a PROXIED wildcard record (e.g. "* AAAA 100::") so requests reach Cloudflare; the Worker answers them.
+routes = [
+  { pattern = "*.hub-sites.example/*", zone_name = "hub-sites.example" },
+  { pattern = "hub-sites.example/*", zone_name = "hub-sites.example" },
+]
+
+[vars]
+SITES_DOMAIN = "hub-sites.example"
+CONTROL_URL = "https://hub.example"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+# Static asset requests are free and unlimited; the Worker runs for everything else, and each run is a billed Worker request
+# (Free plan: 100,000 per day, then HTTP 429 for run_worker_first routes; Paid: $5/month incl. 10M requests).
+# Negative patterns win over positive ones, so exclude loader assets by EXTENSION: /_mw/hub/status has none and still reaches the Worker,
+# /mw-sw.js sits outside /_mw/ and also reaches it (denylist check on the SW script itself).
+run_worker_first = ["/*", "!/_mw/*.js", "!/_mw/*.css", "!/_mw/*.svg", "!/_mw/*.webmanifest"]
+
+[[kv_namespaces]]
+binding = "DENYLIST"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[observability]
+enabled = true

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>felinar dev seeder</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 1rem; max-width: 60rem; }
+  pre { white-space: pre-wrap; word-break: break-all; background: #f1f2f4; padding: .75rem; border-radius: 6px; }
+  #state { font-weight: 600; }
+  .ok { color: #0a6b2d; } .bad { color: #b3261e; }
+</style>
+</head>
+<body>
+<h1>felinar dev seeder</h1>
+<p>Seeds the site that <code>tools/publish.mjs</code> wrote, from the web seed directory of the dev server
+(<code>/ws/summary.json</code> and <code>/ws/&lt;name&gt;/...</code>), with the same name and piece length, so the
+infohash is the one in the pointer. It is served by <code>tools/dev-server.mjs --dev --webseed &lt;publish out dir&gt;</code> at
+<code>/_dev/seeder.html</code>; <code>tools/demo.mjs</code> opens it in a headless Chromium. Query parameters:
+<code>?tr=&lt;ws url&gt;</code> (repeatable) replaces the tracker list, <code>?summary=&lt;url&gt;</code> and <code>?base=&lt;url&gt;</code>
+change where the summary and the files come from.</p>
+<p>v0.3 (V03-DESIGN-REVIEW 2.8.6, MF-50): <code>?persist=1</code> keeps the pieces in the browser profile (IndexedDB, on disk) with the
+loader's own chunk store (<code>/_dev/store-idb.js</code>, needs <code>--dev</code>) instead of tab memory, so a restart keeps seeding from
+disk: when the profile already holds every piece of this infohash, the page adds the torrent (<code>/ws/&lt;torrent&gt;</code>) against that
+store and verifies it instead of fetching the files again. Run it in a browser with a profile directory (<code>tools/live.mjs</code>
+<code>launchBrowser({ profileDir })</code>); a fresh context has nothing to keep.</p>
+<p id="state" role="status">starting</p>
+<pre id="log"></pre>
+<script type="module">
+// The state a driver (Playwright) reads: window.__seeder.
+const state = window.__seeder = {
+  ok: false, ready: false, error: null, expected: null, btih: null, name: null, files: 0, bytes: 0, peers: 0, trackers: [], warnings: [],
+  persist: false, resumed: false, persisted: false,
+};
+const params = new URLSearchParams(location.search);
+const logEl = document.getElementById('log');
+const stateEl = document.getElementById('state');
+
+function log(line) {
+  logEl.textContent += new Date().toISOString().slice(11, 19) + ' ' + line + '\n';
+  console.log('[seeder] ' + line);
+}
+function setState(text, cls) {
+  stateEl.textContent = text;
+  stateEl.className = cls || '';
+  document.title = 'felinar seeder: ' + text;
+}
+function fail(message) {
+  state.ok = false;
+  state.error = message;
+  setState('error: ' + message, 'bad');
+  log('ERROR ' + message);
+}
+
+// abstract-chunk-store (callback API) in memory: WebTorrent's default browser store is OPFS and
+// would clash with the loader's own storage on the same origin. The default; ?persist=1 uses the IndexedDB store of the loader instead.
+class MemoryStore {
+  constructor(chunkLength) { this.chunkLength = chunkLength; this.chunks = []; this.closed = false; }
+  put(index, buf, cb) { this.chunks[index] = buf; queueMicrotask(() => cb && cb(null)); }
+  get(index, opts, cb) {
+    if (typeof opts === 'function') { cb = opts; opts = null; }
+    const buf = this.chunks[index];
+    if (!buf) return queueMicrotask(() => cb(new Error('Chunk not found')));
+    const offset = (opts && opts.offset) || 0;
+    const length = (opts && opts.length) || buf.length - offset;
+    return queueMicrotask(() => cb(null, buf.subarray(offset, offset + length)));
+  }
+  close(cb) { this.closed = true; queueMicrotask(() => cb && cb(null)); }
+  destroy(cb) { this.chunks = []; this.close(cb); }
+}
+
+const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+const encodeSegments = (p) => p.split('/').map(encodeURIComponent).join('/');
+
+async function main() {
+  if (typeof Uint8Array.prototype.toHex !== 'function') {
+    throw new Error('this browser lacks Uint8Array.prototype.toHex, which the WebTorrent bundle calls (Chromium 140, Firefox 133, Safari 18.2 or later; tools/demo.mjs uses Playwright Chromium)');
+  }
+  const { default: WebTorrent } = await import('/_mw/webtorrent.min.js');
+  const summaryUrl = params.get('summary') || '/ws/summary.json';
+  setState('reading ' + summaryUrl);
+  const res = await fetch(summaryUrl, { cache: 'no-store' });
+  if (!res.ok) throw new Error(summaryUrl + ' answered HTTP ' + res.status + ' (start the dev server with --webseed <publish output directory>)');
+  const summary = await res.json();
+  if (!/^[0-9a-f]{40}$/.test(summary.btih || '') || !summary.name || !summary.pieceLength || !Array.isArray(summary.files)) {
+    throw new Error('summary.json is not a publish summary (btih, name, pieceLength, files)');
+  }
+  state.expected = summary.btih;
+  state.name = summary.name;
+  const base = params.get('base') || (summary.mode === 'dropin' ? '/ws/site/' : '/ws/' + encodeURIComponent(summary.name) + '/');
+  const trackers = params.getAll('tr').length ? params.getAll('tr') : (summary.tr || []);
+  state.trackers = trackers;
+  log('site ' + summary.name + ', btih ' + summary.btih + ', ' + summary.files.length + ' files, trackers: ' + (trackers.join(', ') || '(none)'));
+
+  // v0.3: the pieces in the browser profile (disk), not in the tab. The store is the one the loader's file lane uses.
+  state.persist = params.get('persist') === '1' || params.get('store') === 'idb';
+  let Store = MemoryStore;
+  let probe = null;
+  if (state.persist) {
+    const { IdbChunkStore } = await import('/_dev/store-idb.js');
+    Store = IdbChunkStore.factory({ name: summary.btih, length: summary.length });
+    probe = new IdbChunkStore(summary.pieceLength, { name: summary.btih, length: summary.length });
+    // Resume: every piece of this infohash is already in the profile. Add the torrent against the store; WebTorrent verifies the pieces.
+    if (await probe.complete()) {
+      const torrentUrl = params.get('torrent') || '/ws/' + encodeURIComponent(summary.torrent || 'site.torrent');
+      setState('resuming from the browser profile');
+      const tr = await fetch(torrentUrl, { cache: 'no-store' });
+      if (!tr.ok) throw new Error(torrentUrl + ' answered HTTP ' + tr.status);
+      const client0 = new WebTorrent();
+      client0.on('error', (err) => fail(err && err.message ? err.message : String(err)));
+      const resumed = client0.add(new Uint8Array(await tr.arrayBuffer()), { announce: trackers, store: Store }, (t) => {
+        if (t.infoHash !== summary.btih) {
+          fail('infohash mismatch: the torrent is ' + t.infoHash + ', the pointer says ' + summary.btih);
+          return;
+        }
+        const done = () => {
+          state.ok = true;
+          state.ready = true;
+          state.resumed = true;
+          state.persisted = true;
+          state.btih = t.infoHash;
+          state.files = t.files.length;
+          state.bytes = t.length;
+          setState('seeding ' + t.infoHash + ' from the browser profile, peers ' + t.numPeers, 'ok');
+          log('resumed ' + t.files.length + ' files from the profile without fetching them; announcing to ' + (trackers.join(', ') || 'no tracker'));
+        };
+        if (t.done) done(); else t.once('done', done);
+      });
+      resumed.on('warning', (w) => {
+        const text = w && w.message ? w.message : String(w);
+        state.warnings.push(text);
+        log('warning: ' + text);
+      });
+      resumed.on('error', (err) => fail(err && err.message ? err.message : String(err)));
+      resumed.on('wire', () => { state.peers = resumed.numPeers; });
+      setInterval(() => { state.peers = resumed.numPeers; if (state.ready) setState('seeding ' + state.btih + ' from the browser profile, peers ' + resumed.numPeers + ', uploaded ' + resumed.uploaded + ' bytes', 'ok'); }, 2000);
+      return;
+    }
+  }
+
+  // The files, in torrent order, each checked against the length and sha256 publish wrote.
+  const files = [];
+  let bytes = 0;
+  for (const entry of summary.files) {
+    setState('fetching ' + entry.path);
+    const r = await fetch(base + encodeSegments(entry.path), { cache: 'no-store' });
+    if (!r.ok) throw new Error(base + entry.path + ' answered HTTP ' + r.status);
+    const blob = await r.blob();
+    const data = await blob.arrayBuffer();
+    if (data.byteLength !== entry.length) throw new Error(entry.path + ' is ' + data.byteLength + ' bytes, summary.json says ' + entry.length);
+    if (entry.sha256 && hex(await crypto.subtle.digest('SHA-256', data)) !== entry.sha256) throw new Error(entry.path + ' does not match the sha256 in summary.json');
+    // File names cannot hold '/', but create-torrent reads item.fullPath first
+    const file = new File([data], entry.path.split('/').pop());
+    Object.defineProperty(file, 'fullPath', { value: entry.path });
+    files.push(file);
+    bytes += data.byteLength;
+  }
+  state.files = files.length;
+  state.bytes = bytes;
+
+  setState('seeding');
+  const client = new WebTorrent();
+  client.on('error', (err) => fail(err && err.message ? err.message : String(err)));
+  // No `private` option here: on seed() it would change the info dictionary and with it the infohash.
+  const torrent = client.seed(files, { name: summary.name, pieceLength: summary.pieceLength, announce: trackers, store: Store }, (t) => {
+    if (t.infoHash !== summary.btih) {
+      fail('infohash mismatch: seeded ' + t.infoHash + ', the pointer says ' + summary.btih + ' (same files, name and piece length are required)');
+      return;
+    }
+    state.ok = true;
+    state.ready = true;
+    state.btih = t.infoHash;
+    setState('seeding ' + t.infoHash + ' (' + files.length + ' files), peers 0', 'ok');
+    log('infohash matches the pointer; announcing to ' + (trackers.join(', ') || 'no tracker'));
+    if (probe) {
+      // persisted = every piece is in the profile (the writes finish a little after the torrent is ready)
+      const check = async () => {
+        if (await probe.complete().catch(() => false)) {
+          state.persisted = true;
+          log('every piece is stored in the browser profile; a restart seeds from disk');
+        } else setTimeout(check, 500);
+      };
+      check();
+    }
+  });
+  torrent.on('warning', (w) => {
+    const text = w && w.message ? w.message : String(w);
+    state.warnings.push(text);
+    log('warning: ' + text);
+  });
+  torrent.on('error', (err) => fail(err && err.message ? err.message : String(err)));
+  torrent.on('wire', () => { state.peers = torrent.numPeers; log('peer connected, ' + torrent.numPeers + ' peer(s)'); });
+  setInterval(() => {
+    state.peers = torrent.numPeers;
+    if (state.ready) setState('seeding ' + state.btih + ', peers ' + torrent.numPeers + ', uploaded ' + torrent.uploaded + ' bytes', 'ok');
+  }, 2000);
+}
+
+main().catch((err) => fail(err && err.message ? err.message : String(err)));
+</script>
+</body>
+</html>

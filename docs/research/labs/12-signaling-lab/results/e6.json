@@ -1,0 +1,80 @@
+{
+  "name": "e6 Trystero 0.26.0 torrent strategy vs local tracker",
+  "chromium": "156.0.8078.4",
+  "timeToPeerJoin": {
+    "ok": true,
+    "ms": 153
+  },
+  "wallMs": 159,
+  "tlogA": [
+    [
+      "join",
+      147,
+      "ehkm3sbfodUu0n2izX1s"
+    ]
+  ],
+  "announcesPageA": [
+    {
+      "t": 195,
+      "event": "<absent>",
+      "left": "<absent>",
+      "numwant": 3,
+      "nOffers": 1,
+      "hasAnswer": false,
+      "ihLen": 20
+    },
+    {
+      "t": 207,
+      "event": "<absent>",
+      "left": "<absent>",
+      "nOffers": 0,
+      "hasAnswer": true,
+      "ihLen": 20
+    }
+  ],
+  "trackerSideEvents": [
+    {
+      "ev": "update",
+      "ih": "34633674366d363436723365346736613431316c",
+      "left": null,
+      "numwant": 1,
+      "offers": 1
+    },
+    {
+      "ev": "update",
+      "ih": "34633674366d363436723365346736613431316c",
+      "left": null,
+      "numwant": 1,
+      "offers": 1
+    },
+    {
+      "ev": "update",
+      "ih": "34633674366d363436723365346736613431316c",
+      "left": null,
+      "numwant": 0
+    }
+  ],
+  "actionRttIdleMs": {
+    "n": 150,
+    "p50": 0.7,
+    "p90": 1.6,
+    "p99": 2.2,
+    "max": 2.4
+  },
+  "roomPingMs": {
+    "n": 20,
+    "p50": 0,
+    "p90": 1,
+    "p99": 1,
+    "max": 1
+  },
+  "actionRttDuringBulkMs": {
+    "n": 400,
+    "p50": 3007.5,
+    "p90": 4603.7,
+    "p99": 4962.1,
+    "max": 4991.6
+  },
+  "bulkSendMs": 10409,
+  "bulkRecvBytesB": 134217728
+}

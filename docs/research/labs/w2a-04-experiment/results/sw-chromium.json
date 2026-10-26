@@ -1,0 +1,109 @@
+{
+ "browser": "chromium 156.0.8078.4",
+ "originDelayMs": 40,
+ "n": 15,
+ "overhead": {
+  "nosw": {
+   "cold_sw_stopped_before_nav": {
+    "workerStart_med": 0,
+    "responseStart_med": 43,
+    "responseStart_p90": 43.8,
+    "dcl_med": 48.1
+   },
+   "warm_sw_running": {
+    "workerStart_med": 0,
+    "responseStart_med": 42.6,
+    "responseStart_p90": 43.5,
+    "dcl_med": 48.2
+   }
+  },
+  "nofetch": {
+   "cold_sw_stopped_before_nav": {
+    "workerStart_med": 0,
+    "responseStart_med": 42.3,
+    "responseStart_p90": 43.4,
+    "dcl_med": 48.2
+   },
+   "warm_sw_running": {
+    "workerStart_med": 0,
+    "responseStart_med": 43,
+    "responseStart_p90": 43.2,
+    "dcl_med": 49
+   }
+  },
+  "passthrough": {
+   "cold_sw_stopped_before_nav": {
+    "workerStart_med": 0,
+    "responseStart_med": 43.4,
+    "responseStart_p90": 44.1,
+    "dcl_med": 48.8
+   },
+   "warm_sw_running": {
+    "workerStart_med": 0,
+    "responseStart_med": 42.8,
+    "responseStart_p90": 44.2,
+    "dcl_med": 48.6
+   }
+  },
+  "nf": {
+   "cold_sw_stopped_before_nav": {
+    "workerStart_med": 0.3,
+    "responseStart_med": 43.5,
+    "responseStart_p90": 44,
+    "dcl_med": 49.6
+   },
+   "warm_sw_running": {
+    "workerStart_med": 0.2,
+    "responseStart_med": 43.6,
+    "responseStart_p90": 43.9,
+    "dcl_med": 49.5
+   }
+  },
+  "nfp": {
+   "cold_sw_stopped_before_nav": {
+    "workerStart_med": 0.3,
+    "responseStart_med": 43.7,
+    "responseStart_p90": 44,
+    "dcl_med": 49.1
+   },
+   "warm_sw_running": {
+    "workerStart_med": 0.3,
+    "responseStart_med": 43.5,
+    "responseStart_p90": 44.3,
+    "dcl_med": 49.2
+   }
+  }
+ },
+ "scope": {
+  "blogSW_defaultScope": {
+   "ok": true,
+   "scope": "http://127.0.0.1:58250/blog/"
+  },
+  "blogSW_scopeRoot_noHeader": {
+   "ok": false,
+   "name": "SecurityError",
+   "msg": "Failed to register a ServiceWorker for scope ('http://127.0.0.1:58250/') with script ('http://127.0.0.1:58250/blog/sw.js'): The path of the provided scope ('/') is not under the max scope allowed ('/b"
+  },
+  "blog2SW_scopeRoot_withHeader": {
+   "ok": true,
+   "scope": "http://127.0.0.1:58250/"
+  },
+  "rootPath_scopeBlog": {
+   "ok": true,
+   "scope": "http://127.0.0.1:58250/blog/sub/"
+  },
+  "done": true
+ },
+ "first": {
+  "controllerAtStart": false,
+  "steps": [],
+  "controllerAfterReady": true,
+  "resourcesLoadedBeforeSW": [
+   "app.css:0",
+   "app.js:0",
+   "first.js:0"
+  ],
+  "lateFetchViaSW": true,
+  "done": true
+ }
+}

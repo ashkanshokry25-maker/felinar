@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-labelledby="sp-title sp-desc">
+  <!-- Source of the repository's social preview (1280 x 640). GitHub's "Social preview" setting takes a PNG,
+       JPG or GIF under 1 MB, not an SVG: export a PNG of this file at 1280 x 640 (any browser screenshot of the
+       file at that size works) and upload it under Settings, General, Social preview. -->
+  <title id="sp-title">felinar</title>
+  <desc id="sp-desc">Websites loaded by magnet link, verified in your browser, from a plain static host. No backend. The light web. A static host and visitors' browsers share the site's files, and a signed site ledger carries shared data.</desc>
+  <defs>
+    <linearGradient id="sp-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0e1f"/>
+      <stop offset="1" stop-color="#1c1756"/>
+    </linearGradient>
+    <linearGradient id="sp-tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b52f0"/>
+      <stop offset="1" stop-color="#3a2fbf"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#sp-bg)"/>
+
+  <!-- the mark (same drawing as docs/assets/logo.svg, scaled) -->
+  <g transform="translate(96 84) scale(1.125)">
+    <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#sp-tile)"/>
+    <g fill="none" stroke="#ffffff">
+      <path d="M34 46 V70 A30 30 0 0 0 94 70 V46" stroke-width="16"/>
+      <circle cx="64" cy="67" r="15" stroke-width="4.5"/>
+      <ellipse cx="64" cy="67" rx="6.5" ry="15" stroke-width="3.5"/>
+      <path d="M49 67 H79" stroke-width="3.5"/>
+    </g>
+    <g fill="#ffffff">
+      <rect x="26" y="24" width="16" height="16" rx="2"/>
+      <rect x="86" y="24" width="16" height="16" rx="2"/>
+    </g>
+  </g>
+
+  <g font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="96" y="340" fill="#ffffff" font-size="86" font-weight="700" letter-spacing="-1">felinar</text>
+    <text x="98" y="402" fill="#d4d6f2" font-size="34">Websites loaded by magnet link, verified in your browser,</text>
+    <text x="98" y="446" fill="#d4d6f2" font-size="34">from a plain static host. No backend. The light web.</text>
+    <g font-size="22" font-weight="600">
+      <rect x="96" y="494" width="216" height="46" rx="23" fill="none" stroke="#8f88ff" stroke-width="2"/>
+      <text x="204" y="524" fill="#c9c5ff" text-anchor="middle">Signed by your key</text>
+      <rect x="328" y="494" width="270" height="46" rx="23" fill="none" stroke="#8f88ff" stroke-width="2"/>
+      <text x="463" y="524" fill="#c9c5ff" text-anchor="middle">Shared data, no backend</text>
+      <rect x="614" y="494" width="270" height="46" rx="23" fill="none" stroke="#8f88ff" stroke-width="2"/>
+      <text x="749" y="524" fill="#c9c5ff" text-anchor="middle">One tag for existing sites</text>
+    </g>
+  </g>
+
+  <!-- right: a static host and visitors' browsers passing pieces to each other -->
+  <g stroke-linecap="round">
+    <path d="M1050 172 L972 300 M1074 172 L1128 286" stroke="#7c829e" stroke-width="3" fill="none"/>
+    <path d="M972 300 L1128 286 M972 300 L1036 430 M1128 286 L1036 430 M1128 286 L1176 452 M1036 430 L1176 452 M1036 430 L944 520"
+          stroke="#8f88ff" stroke-width="3" stroke-dasharray="2 9" fill="none"/>
+  </g>
+  <rect x="984" y="108" width="156" height="64" rx="14" fill="#151a33" stroke="#7c829e" stroke-width="2.5"/>
+  <text x="1062" y="148" fill="#e6e8ff" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" text-anchor="middle">static host</text>
+  <g fill="#151a33" stroke="#8f88ff" stroke-width="3">
+    <circle cx="972" cy="300" r="30"/>
+    <circle cx="1128" cy="286" r="30"/>
+    <circle cx="1036" cy="430" r="30"/>
+    <circle cx="1176" cy="452" r="24"/>
+    <circle cx="944" cy="520" r="22"/>
+  </g>
+  <g fill="#c9c5ff">
+    <rect x="958" y="290" width="28" height="20" rx="3"/>
+    <rect x="1114" y="276" width="28" height="20" rx="3"/>
+    <rect x="1022" y="420" width="28" height="20" rx="3"/>
+  </g>
+</svg>

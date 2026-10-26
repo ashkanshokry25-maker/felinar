@@ -1,0 +1,15 @@
+# Minimal Prometheus config for the reference tracker box. Prometheus itself can run on a different host
+# (scrape over WireGuard/SSH tunnel; the metrics port is loopback-only on purpose).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files:
+  - mwt.rules.yml
+scrape_configs:
+  - job_name: mwt            # tracker.mjs  (METRICS_PORT)
+    static_configs: [{ targets: ['127.0.0.1:9464'] }]
+  - job_name: caddy          # Caddy admin API, `metrics` global option enabled
+    metrics_path: /metrics
+    static_configs: [{ targets: ['127.0.0.1:2019'] }]
+  - job_name: node           # node_exporter (CPU, network, conntrack, file descriptors)
+    static_configs: [{ targets: ['127.0.0.1:9100'] }]

@@ -1,0 +1,19 @@
+Service Worker capability harness (research aid for docs/research/04-service-worker-serving.md)
+
+What it tests (Chromium only unless you point it at another browser binary):
+  A  iframe control: normal / sandbox="allow-scripts" / sandbox="allow-scripts allow-same-origin"
+  B  SW idle termination (no events for 20 s, then 65 s more) via a boot timestamp in SW globals
+  C  page-fed streamed Response with 40 s gaps (SW -> clients.matchAll -> MessageChannel pull protocol)
+  D  same-URL dispatch on request.destination: "document" -> shell, "iframe" -> site content
+  E  hard reload (CDP Page.reload ignoreCache:true) then normal reload; is the iframe still served by the SW?
+
+Run (needs deno >= 2 and a browser binary; FAST=1 skips A-C):
+  [FAST=1] [PROFILE_PARENT=/some/writable/dir] deno run --allow-net --allow-read --allow-write --allow-run --allow-env server.mjs \
+    "<path to chrome-headless-shell or other Chromium>" --remote-debugging-port=0 --no-first-run --incognito
+
+Notes:
+  - --incognito was needed here because the sandboxed scratch directory made Chromium's SW disk cache fail
+    ("AbortError: Failed to register a ServiceWorker ... Operation has been aborted").
+  - The server creates a throw-away browser profile (sw-exp-profile-*) in the OS temp dir, or in $PROFILE_PARENT if set; delete it afterwards.
+  - Firefox / Safari are NOT covered: server.mjs only passes flags through; the CDP part (test E) is Chromium specific.
+  - The scripts are test code written for this research, not production code.

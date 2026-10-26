@@ -1,0 +1,77 @@
+# deploy/tracker/Caddyfile: HTTPS and the WebSocket proxy in front of tools/tracker.mjs (see docker-compose.yml
+# and README.md in this directory). The site address is the TRACKER_DOMAIN environment variable, which
+# docker compose passes to the container. Caddy gets and renews the certificate itself (ACME), so ports 80
+# and 443 of this machine must be reachable from the internet and TRACKER_DOMAIN must point at it.
+#
+# Adapted from the research reference deployment, which passed `caddy validate` with Caddy 2.11.7
+# (docs/research/labs/w2b-01-tracker-resilience-ref/deploy/Caddyfile). Check this copy with:
+#   docker compose run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+{
+	# Keep open WebSockets for up to 30 s when the configuration reloads or Caddy stops, instead of
+	# cutting them at once.
+	grace_period 30s
+	servers {
+		timeouts {
+			read_header 10s
+			idle 5m
+		}
+	}
+	# caddy_http_* metrics on the admin endpoint, localhost:2019/metrics inside the container only.
+	metrics
+}
+
+{$TRACKER_DOMAIN} {
+	# Only WebSocket upgrades reach the tracker; everything else gets a short static answer, so the
+	# tracker's /stats.json stays private.
+	@ws {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle @ws {
+		reverse_proxy tracker:8000 {
+			# Without this, a reload closes every WebSocket at once.
+			stream_close_delay 30s
+			# tools/tracker.mjs has no idle close of its own: end any stream after a day. Loaders
+			# reconnect within about a second (the reconnect shim in src/loader/torrent.js).
+			stream_timeout 24h
+			health_uri /healthz
+			health_interval 15s
+			health_timeout 3s
+		}
+	}
+	handle /healthz {
+		reverse_proxy tracker:8000
+	}
+	handle {
+		respond "WebRTC signalling endpoint (WebSocket only)." 200
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+
+	# Privacy by default: client addresses masked to /24 (IPv4) and /48 (IPv6), forwarding headers and
+	# cookies dropped, files kept 7 days. The log lives in the caddy_data volume.
+	log {
+		output file /data/tracker-access.log {
+			roll_size 50MiB
+			roll_keep 7
+			roll_keep_for 168h
+		}
+		format filter {
+			request>remote_ip ip_mask {
+				ipv4 24
+				ipv6 48
+			}
+			request>client_ip ip_mask {
+				ipv4 24
+				ipv6 48
+			}
+			request>headers>X-Forwarded-For delete
+			request>headers>Cookie delete
+			wrap json
+		}
+	}
+}

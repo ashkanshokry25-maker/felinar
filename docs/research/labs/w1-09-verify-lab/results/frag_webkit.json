@@ -1,0 +1,25 @@
+{
+  "engine": "webkit",
+  "base": "http://127.0.0.1:60643",
+  "version": "27.2",
+  "pageHash": "#magnet%3A%3Fxt%3Durn%3Abtih%3A0123456789abcdef0123456789abcdef01234567%26tr%3Dwss%253A%252F%252Ft.example",
+  "pageHashEqualsSecret": true,
+  "requestLog": [
+    {
+      "method": "GET",
+      "url": "/",
+      "referer": null
+    },
+    {
+      "method": "GET",
+      "url": "/sub.js",
+      "referer": "http://127.0.0.1:60643/"
+    }
+  ],
+  "fragmentAppearsInAnyServerRequest": false,
+  "swControlled": true,
+  "swSaw": {
+    "lastNavigateUrl": "http://127.0.0.1:60643/other#magnet%3A%3Fxt%3Durn%3Abtih%3A0123456789abcdef0123456789abcdef01234567%26tr%3Dwss%253A%252F%252Ft.example"
+  },
+  "swSawFragment": true
+}

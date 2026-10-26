@@ -1,0 +1,20 @@
+[
+ {
+  "bundle": "out/wt-slimnodebug.js",
+  "engine": "webkit",
+  "version": "27.2",
+  "seeder": {
+   "infoHash": "d0037167fc5786a0b755637e93e5995d23e935a4",
+   "done": true,
+   "progress": 1
+  },
+  "infoHashMatchesCreateTorrent": true,
+  "leecher": {
+   "wires": [],
+   "warnings": [],
+   "errors": [],
+   "done": false
+  },
+  "shaMatches": false
+ }
+]

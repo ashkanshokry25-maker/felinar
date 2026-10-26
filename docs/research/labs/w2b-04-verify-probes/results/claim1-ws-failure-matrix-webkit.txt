@@ -1,0 +1,74 @@
+{"engine":"webkit","version":"27.2"}
+=== WebSocket API (events seen by script) ===
+- ok-open-then-clean-close-1000
+    ctorThrew=null  csp=[]
+    events: open@5ms -> close(code=1000,reason="bye",wasClean=true)@5ms
+    devtoolsConsole(not readable by page script): []
+- ok-open-then-app-close-4001
+    ctorThrew=null  csp=[]
+    events: open@3ms -> close(code=4001,reason="app-reason",wasClean=true)@3ms
+    devtoolsConsole(not readable by page script): []
+- ok-open-then-server-abrupt-tcp-drop
+    ctorThrew=null  csp=[]
+    events: open@26ms -> error[Event,ownKeys=1]@89ms -> close(code=1006,reason="",wasClean=false)@89ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55105/ok-abrupt' failed: The network connection was lost."]
+- tcp-connection-refused
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@90ms -> close(code=1006,reason="",wasClean=false)@90ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55104/' failed: Could not connect to the server."]
+- dns-unresolvable-host
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@127ms -> close(code=1006,reason="",wasClean=false)@127ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://no-such-host-7f3a91.invalid/' failed: A server with the specified hostname could not be found."]
+- non-websocket-server-200
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@46ms -> close(code=1006,reason="",wasClean=false)@46ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55105/non-ws-200' failed: There was a bad response from the server."]
+- http-403-on-upgrade
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@42ms -> close(code=1006,reason="",wasClean=false)@42ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55105/http-403' failed: There was a bad response from the server."]
+- http-500-on-upgrade
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@121ms -> close(code=1006,reason="",wasClean=false)@121ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55105/http-500' failed: There was a bad response from the server."]
+- http-302-on-upgrade
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@93ms -> close(code=1006,reason="",wasClean=false)@93ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55105/redirect-302' failed: The network connection was lost."]
+- bad-Sec-WebSocket-Accept
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@72ms -> close(code=1006,reason="",wasClean=false)@72ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55105/bad-accept' failed: cannot parse response"]
+- unoffered-subprotocol
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@28ms -> close(code=1006,reason="",wasClean=false)@28ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:55105/unoffered-subprotocol' failed: There was a bad response from the server."]
+- tls-selfsigned-cert (wss)
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@129ms -> close(code=1006,reason="",wasClean=false)@129ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'wss://127.0.0.1:55106/' failed: The certificate for this server is invalid. You might be connecting to a server that is pretending to be “127.0.0.1” which could put your confi"]
+- wss-to-plain-http-port (TLS handshake fails)
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@125ms -> close(code=1006,reason="",wasClean=false)@125ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'wss://127.0.0.1:55105/ok-close-1000' failed: A TLS error caused the secure connection to fail."]
+- restricted-port-6000 (browser port block list)
+    ctorThrew=null STILL-PENDING-after-4000ms(readyState=3) csp=[]
+    events: error[Event,ownKeys=1]@0ms
+    devtoolsConsole(not readable by page script): []
+- invalid-url-with-fragment
+    ctorThrew={"name":"SyntaxError","message":"The string did not match the expected pattern."}  csp=[]
+    events: (none)
+    devtoolsConsole(not readable by page script): []
+- blackhole-192.0.2.1 (env-dependent, 5s window)
+    ctorThrew=null STILL-PENDING-after-5000ms(readyState=0) csp=[]
+    events: (none)
+    devtoolsConsole(not readable by page script): []
+- csp-connect-src-none
+    ctorThrew={"name":"SecurityError","message":"The operation is insecure."}  csp=[]
+    events: (none)
+    devtoolsConsole(not readable by page script): ["[error] Refused to connect to ws://127.0.0.1:55105/ok-close-1000 because it does not appear in the connect-src directive of the Content Security Policy."]
+- mixed-content (https page -> ws://non-loopback)
+    ctorThrew=null STILL-PENDING-after-4000ms(readyState=3) csp=[]
+    events: error[Event,ownKeys=1]@0ms
+    devtoolsConsole(not readable by page script): []

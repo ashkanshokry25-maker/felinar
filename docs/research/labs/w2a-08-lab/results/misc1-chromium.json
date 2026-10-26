@@ -1,0 +1,91 @@
+{
+  "engine": "chromium",
+  "rows": [
+    {
+      "test": "frame-buster at load",
+      "label": "sandbox without allow-top-navigation*",
+      "shellLoadsIn3_5s": 0,
+      "topUrl": "/bust.html",
+      "console": [
+        "Unsafe attempt to initiate navigation for frame with URL 'http://127.0.0.1:54415/' from frame with URL 'http://127.0.0.1:54415/bust.html'. The frame attempting navigation of the top-level window is sa"
+      ]
+    },
+    {
+      "test": "frame-buster at load",
+      "label": "sandbox with by-user-activation",
+      "shellLoadsIn3_5s": 0,
+      "topUrl": "/bust.html",
+      "console": [
+        "Unsafe attempt to initiate navigation for frame with URL 'http://127.0.0.1:54415/' from frame with URL 'http://127.0.0.1:54415/bust.html'. The frame attempting navigation of the top-level window is sa"
+      ]
+    },
+    {
+      "test": "frame-buster at load",
+      "label": "no sandbox",
+      "shellLoadsIn3_5s": 402,
+      "topUrl": "/bust.html",
+      "console": []
+    },
+    {
+      "test": "pdf link in frame",
+      "label": "sandbox BASE",
+      "frameUrl": "/behaviors.html",
+      "contentType": "text/html",
+      "downloads": 1,
+      "console": []
+    },
+    {
+      "test": "pdf link in frame",
+      "label": "no sandbox",
+      "frameUrl": "/behaviors.html",
+      "contentType": "text/html",
+      "downloads": 1,
+      "console": []
+    },
+    {
+      "test": "popup callback: window.opener",
+      "label": "no agent",
+      "popupTitle": "CB {\"opener\":false,\"parentOpener\":true,\"isTop\":false}"
+    },
+    {
+      "test": "popup callback: window.opener",
+      "label": "agent injected by SW",
+      "popupTitle": "CB {\"opener\":true,\"parentOpener\":true,\"isTop\":false,\"posted\":true}",
+      "openerGotMessages": [
+        "{\"mw\":\"token\",\"via\":\"opener\"}"
+      ]
+    },
+    {
+      "test": "agent injection vs strict CSP",
+      "label": "meta CSP, agent injected before it",
+      "state": {
+        "site": "ran",
+        "agent": "ran",
+        "title": "strict:ran"
+      },
+      "console": []
+    },
+    {
+      "test": "agent injection vs strict CSP",
+      "label": "header CSP, agent injected without nonce",
+      "state": {
+        "site": "ran",
+        "agent": null,
+        "title": "strict:no-agent-yet"
+      },
+      "console": [
+        "Loading the script 'http://127.0.0.1:54415/_mw/agent.js' violates the following Content Security Policy directive: \"script-src 'nonce-abc123' 'strict-dynamic'\". Note that 'script-src-elem' was not explicitly set, so 'scr"
+      ]
+    },
+    {
+      "test": "agent injection vs strict CSP",
+      "label": "header CSP, agent injected with the page nonce",
+      "state": {
+        "site": "ran",
+        "agent": "ran",
+        "title": "strict:ran"
+      },
+      "console": []
+    }
+  ]
+}

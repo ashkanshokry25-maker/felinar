@@ -1,0 +1,24 @@
+# Firefox launch check, 2026-10-17T21:54:48Z, Darwin mba 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 2, Playwright 1.64.1 firefox-1555
+## node ff-launch.mjs
+browserType.launch: Failed to launch the browser process.
+Browser logs:
+
+<launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-nl2tUI -juggler-pipe -silent
+<launched> pid=17813
+[pid=17813][err] *** You are running in headless mode.
+[pid=17813][err] Could not find profile folder.
+[pid=17813] <process did exit: exitCode=1, signal=null>
+[pid=17813] starting temporary directories cleanup
+Call log:
+  - <launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-nl2tUI -juggler-pipe -silent
+  - <launched> pid=17813
+  - [pid=17813][err] *** You are running in headless mode.
+  - [pid=17813][err] Could not find profile folder.
+
+## direct: firefox --version
+Mozilla Firefox 157.0
+
+## direct: headless with an existing empty profile dir (25 s alarm)
+*** You are running in headless mode.
+Could not find profile folder.
+screenshot exists:        0

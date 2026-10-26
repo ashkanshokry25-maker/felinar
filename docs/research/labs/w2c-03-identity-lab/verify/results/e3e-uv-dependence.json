@@ -1,0 +1,7 @@
+{
+ "v1_uvRequired": "e16b8142971854c8",
+ "v1_again": "e16b8142971854c8",
+ "v1_uvDiscouraged_authenticatorUV_on": "e16b8142971854c8",
+ "v1_uvDiscouraged_authenticatorUV_off": "NotAllowedError",
+ "v1_uvRequired_authenticatorUV_off": "NotAllowedError"
+}

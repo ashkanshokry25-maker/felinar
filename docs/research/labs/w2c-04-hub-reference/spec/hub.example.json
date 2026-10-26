@@ -1,0 +1,49 @@
+{
+  "v": 1,
+  "name": "Example Hub",
+  "description": "Static magnet-web hub. Serves only the loader shell; site content comes from peers and web seeds.",
+  "sites_domain": "hub-sites.example",
+  "loader": {
+    "version": "0.1.0",
+    "build_id": "ab12cd34"
+  },
+  "operator": {
+    "contact": "mailto:abuse@hub.example",
+    "abuse": "https://hub.example/abuse",
+    "security_txt": "https://hub.example/.well-known/security.txt",
+    "policy": "https://hub.example/policy",
+    "takedown_policy": "https://hub.example/policy/takedown",
+    "terms_of_service": "https://hub.example/terms",
+    "jurisdiction": "CA-ON",
+    "dmca_agent": "https://www.copyright.gov/dmca-directory/ (look up: Example Hub)"
+  },
+  "moderation": {
+    "deny_list": "https://hub.example/_mw/deny.json",
+    "deny_list_format": "w2b-06 R3 (signed, double-hashed); same file is served at /_mw/deny.json on every label origin",
+    "labeler_pubkey": "EXAMPLE-b64url-raw-P-256-public-key-65-bytes",
+    "enforcement": "edge 451 + Clear-Site-Data \"storage\" + loader status ping",
+    "status_endpoint": "/_mw/hub/status"
+  },
+  "services": {
+    "trackers": [
+      "wss://tracker.hub.example"
+    ],
+    "webseed": "https://ws.hub.example/",
+    "doh": [
+      "https://cloudflare-dns.com/dns-query",
+      "https://dns.google/resolve"
+    ]
+  },
+  "directory": {
+    "offered": false,
+    "note": "w2b-06 R4: no hub-run directory or search; if a catalogue is wanted it is an operator-curated allowlist behind full notice-and-action"
+  },
+  "limits": {
+    "max_site_bytes_advertised": 134217728
+  },
+  "mirrors": [
+    "https://hub2.example"
+  ],
+  "label_grammar": "^[a-z2-7]{32}$ (ARCHITECTURE.md v0.2 section 3.2: hubLabelFor())",
+  "mode": "allowlist (default) | open (documented risk acceptance)"
+}

@@ -1,0 +1,9 @@
+{
+ "v1_uvRequired": "b893442beceb46ae",
+ "v1_again": "b893442beceb46ae",
+ "v1_uvDiscouraged_authenticatorUV_on": "b893442beceb46ae",
+ "afterDelete_get": "NotAllowedError",
+ "reRegisterError": null,
+ "reRegistered_get": "bff7ae41d7151a55",
+ "reRegisteredDiffersFromOriginal": true
+}

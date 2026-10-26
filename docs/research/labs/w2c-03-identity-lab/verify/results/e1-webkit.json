@@ -1,0 +1,44 @@
+{
+ "engine": "webkit",
+ "version": "27.2",
+ "origin": "http://localhost:59793",
+ "setup": {
+  "stored": true,
+  "privExtractable": false,
+  "swActive": true
+ },
+ "loaderControlled": true,
+ "frames": {
+  "sandbox=allow-scripts allow-same-origin": {
+   "origin": "http://localhost:59793",
+   "isolatedOrigin": "http://localhost:59793",
+   "foundKey": true,
+   "keyExtractable": false,
+   "signedLen": 64,
+   "verifiesWithVisitorPub": true,
+   "exported": false,
+   "exportErr": "InvalidAccessError",
+   "swController": true,
+   "fetchWho": "sw"
+  },
+  "sandbox=allow-scripts": {
+   "origin": "http://localhost:59793",
+   "isolatedOrigin": "http://localhost:59793",
+   "idbError": "SecurityError: IDBFactory.open() called in an invalid security context",
+   "swError": "SecurityError",
+   "fetchWho": "network"
+  },
+  "no sandbox": {
+   "origin": "http://localhost:59793",
+   "isolatedOrigin": "http://localhost:59793",
+   "foundKey": true,
+   "keyExtractable": false,
+   "signedLen": 64,
+   "verifiesWithVisitorPub": true,
+   "exported": false,
+   "exportErr": "InvalidAccessError",
+   "swController": true,
+   "fetchWho": "sw"
+  }
+ }
+}

@@ -1,0 +1,113 @@
+# v0.3 C2 integration notes (integrator of phase C2)
+
+Integrator of phase C2, 2026-10-20 19:37 to 21:50 ET (times below are ET). Source of truth:
+[research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md](../research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md) ("SZ") and the lanes' briefs; the
+contracts are in [ARCHITECTURE.md](../ARCHITECTURE.md) (8.1, 15.14, 15.15) and the "v0.3 C2" part of [INTERFACES.md](../INTERFACES.md).
+Where a lane and INTERFACES disagreed, INTERFACES won unless this file says why not. The lanes' own notes:
+[seed-policy](seed-policy.md), [pin-node](pin-node.md), [calls](calls.md), [zero-setup](zero-setup.md), [docs-strings](docs-strings.md),
+[seed-engine](seed-engine.md), [wire-ui](wire-ui.md), [doors](doors.md).
+
+## How this pass was run
+
+All eight lanes had landed when the pass started (seed-policy, docs-strings, pin-node, zero-setup, seed-engine, calls, wire-ui,
+doors). Every lane reported that its task text said "BRIEF: undefined" (the build script passed a field the inline lane list no
+longer had); each lane read its brief from `.orchestration/args/c2/<lane>.md`, so the briefs reached them. The doors lane reported
+an incident at 19:21 ET (writes through scratchpad symlinks into the repository, repaired from checkpoint `d855aa0` by 19:29 ET);
+the integrator found the repaired tree consistent (no symlink under `src/`, `tools/` or `test/`) and removed the remaining
+scratchpad links that pointed into the repository (`unlink`, never a recursive delete) so nothing can write through them again.
+The checkpoint loop (pid 89675, restarted 19:31 ET) kept running.
+
+Network policy held in every browser run: Chromium with `chromiumArgs()` (plus `--allow-loopback-in-peer-connection` and, for
+calls, both fake-media flags), WebKit on `http://127.0.0.1` only; E-ZS-1 is the one exception, described under its row below (two
+names mapped to 127.0.0.1 in front of the local-only resolver rule). No run reached a non-local address; every run's request guard
+reported "every request stayed on 127.0.0.1". Nothing was pushed.
+
+## Results
+
+| Suite | Before the pass (19:37 to 19:47 ET) | After the pass |
+|---|---|---|
+| lint-floor | clean, 146 files | clean, 146 files |
+| unit (`npm test`) | 1,962 tests: 1,947 pass, 14 fail, 1 skipped (docs-links, formats-vectors, five exact-surface tests of the C2 surface, and one mw_pin1 test that failed only under the parallel run) | 1,967 tests: 1,967 pass, 0 fail, 0 skipped (21:46 ET, the final tree after the last document edits; the door view's browser test moved to `test:browser`) |
+| `node test/e2e/run.mjs` | the 60 scenarios of v0.3: 41 passed and 8 failed (the media lab group: E-CH-6M, E-MD-1, 2, 10, 7, 8, 9, E-FI-3), then the run ended on an unhandled rejection in E-ID-7 (the members scenarios, the hardening scenario and 13 did not run) | 71 of 71 PASS and network policy PASS, 487.1 s (21:26 to 21:34 ET, the final tree; the same 71 of 71 in 451.6 s at 21:03 to 21:11 ET, before C2-24): the 60, plus E-CL-3, E-CL-1, E-CL-2, E-PS-1 to E-PS-4, E-ZS-1, DOOR-DOWN, DOOR-HASH, DOOR-GUEST |
+| `node test/e2e/run.mjs --webkit` | not run | 76 of 76 PASS and network policy PASS, 494.8 s (21:34 to 21:42 ET, the final tree; the same 76 of 76 in 497.4 s at 21:11 to 21:19 ET, before C2-24): the 71, plus W7, W-SI, W-MD, E-CL-1W and DOOR-GUEST-W in WebKit 27.2 |
+| `npm run test:browser` | not run | 40 tests: 39 pass, 1 skipped (the v0.1 worker test), 0 fail (21:43 ET; new: calls in Chromium and WebKit, the door view) |
+| `npm run test:example` | not run | 170 of 170 (21:44 ET; 169 of 170 before C2-24) |
+
+## Findings and fixes (C2-1 to C2-24)
+
+| Id | Seam | What broke | Fix |
+|---|---|---|---|
+| C2-1 | `test/vectors`, formats-vectors | `pin.json` and `calls.json` were not listed, and 45 vectors were not locked (pin 15, calls 22, pointer `ptr-027` to `ptr-034` of doors 8). | `FILES` lists both; the 45 entries appended to `LOCK.json` in landing order (pin, calls, pointer), the hashes checked against the three lanes' notes. No `FROZEN` head added (that happens at a release). |
+| C2-2 | docs-links | Every top document that cites the design by name failed "every named .md exists". | `docs/research/v03` is in `SEARCH`. |
+| C2-3 | wire-ui and five tests the lane did not own | The C2 surface (calls, `net.seeding`, `net.dock`, `net.keep`, the six call codes, `features.calls`) failed exact-surface assertions in sdk-v03-tables (6 tests), sdk-v03-gating (2), dropin-binding, dropin-v03 and integration-v03-reconcile (1 each). | Lane wire-ui's patch applied as delivered (`git apply --check` clean): the C2 classes, the codes after the 29 of R 2.11.2, `calls` and the `net` additions in the binding's paths, `features.calls: false` where calls are off. |
+| C2-4 | doors and three files it did not own | The SDK refused the door view (a sandboxed frame has origin `"null"`): `mw.ready()` gave `E_NO_HOST` there. `boot.js` imported the loader by a relative specifier, which Chromium resolved against another door's origin on the same host. `ledger-admin` could not write `_doors`. | The doors lane's three patches applied: the SDK takes the hello path for a frame with origin `"null"` that the door renderer marked (`window.__mwDoor`), posting to its parent with `'*'` (an opaque origin cannot be named); `boot.js` imports `new URL(LOADER_URL, document.baseURI)`; `ledger-admin doors --door <host>... / --clear-doors / --show` writes the owner's `_doors` item. |
+| C2-5 | `src/chain/state.js` (freeze group) | `cfgOk` refused any `_mw.cfg` that names `calls`, so readers hid the whole item (chat, files and media read as off with it), and `ledger-admin cfg --calls` refused to write it. | `CFG.calls = ['off', 'contacts']` (a state rule, MF-21; blocks stay valid). Test: every value `ledger-admin` can write passes the reader schema (`integration-c2.test.mjs`). v0.3 is not published, so no deployed peer has the old rule. |
+| C2-6 | `src/loader/api.js` ActivationTracker | Reading `addEventListener` on the door view's cross-origin window throws inside `watch()`. | The read is in a `try`; such a target is not watched (`navigator.userActivation` still counts). app.js's `guardActivationWatch` stays as a second guard. |
+| C2-7 | seed-engine and wire-ui: mw_pin1 in the page | `pinwire.js` was imported nowhere: no page sent a chal or verified a hello, no receipt could arrive, the pin's own page offered no `window.__mwPinHost`, the heartbeat was never read, and files and media never got the pin evidence (seed-engine's requests O1 and O2 to wire-ui, which landed after wire-ui had started). | `app.js` attaches a `PinWire` to the TorrentManager (verifier on every page whose site names `_mw.cfg.pin`; responder, `__mwPinHost` (IndexedDB stores `pin-<ih>`) and no member budget only in the pin's own page); `_mw.cfg.pin` is looked for each second during the first minute (the ledger arrives just after the manager starts), then at the 10 s seed tick; the heartbeat is read at `<first ws= base>/pin-status.json` at PinWire's 10-minute pace; `mountV03Services` passes `owner`, `pinEvidence` and `evidenceInputs` to files and media; `inspect().pin` (read-only) shows the key, the responder, pin wires, receipts and the heartbeat. e2e E-PS-1. |
+| C2-8 | pin-node `tools/pin.mjs` and the fixture | pin.mjs asked the page for `__mwPinHost` only right after the render and after reloads; the page offers it once it has read `_mw.cfg.pin` and checked the bridge, seconds later, so a pinned file (or an approval made in between) waited for the next reload. | Every status tick asks again until the page has offered its host once (and says "no pin host yet" once per page). `runPin` has an `onPage` hook; the fixture takes a pre-made `keyFile` (so `_mw.cfg.pin` can name it before the pinned page loads) and exposes `inspect()`. |
+| C2-9 | calls and wire-ui: "same local network" | The call filter drops loopback and private candidates unless both people chose "same local network", which has no switch or strings in C2 (wire-ui O6), so two browsers on one machine could never connect (calls request R-3). | `window.__mwShell.setCallPrefs({ sameLan, hideIp })`, only in a development build (loopback or `<meta name="mw-dev">`), for this page only, never stored; `callDeps` reads it. A production page has no such hook, so site code cannot relax the candidate filter there. |
+| C2-10 | wire-ui carry meter | The meter's two lines sat in the loader bar, which lies over the top of the site and stays open while a notice is shown (a shared hub's): they covered the site's top row, and e2e E-ID-7 could not click the guestbook's Sign in (alone after the first fix it passed; in the full run, with peers, the visit line came back and it failed again). With no bytes from visitors the line also said "0% of the bytes came from 0 visitors", and the tracker line "1 connected" counted only this visitor. | The meter moved into Settings, "Sharing" (`createSeedUi` takes a `meterHost`; the bar keeps the upload card and the keeper line); the visit line appears once a visitor carried bytes, the tracker line once the report counts someone else. The pure helpers (`carryMeter`, `trackerText`) are unchanged. |
+| C2-11 | ui `createCards` (v0.3 code) | The header and prompt slots are as wide as the viewport, and `all: initial` gave them `pointer-events: auto`: the strip beside the signed-in header card swallowed clicks meant for the site (e2e: a site button 160 px left of the card). | Both slots `pointer-events: none`; the cards keep `auto`. |
+| C2-12 | wire-ui call panel placement | At the bottom right the panel overlapped the loader cards at the bottom centre on viewports narrower than about 1,400 px; each overlay's redress guard then cancelled the other's buttons ("Cancelled: something moved or covered this button") and the first call card could not be confirmed. | On computers the panel sits at the top right under the loader's pill (phones were already at the top), with a maximum height. |
+| C2-13 | wire-ui call panel styles | The panel's stylesheet loads asynchronously into its closed root; a card shown before it applied moved when it did, and its guard (which records the button's place at `start()`) cancelled it as "moved". In Playwright WebKit 27.2 the `<link>` never loaded at all on the shell page (`link.sheet` stayed null; a plain test page loads the same pattern; cause not found), so the panel was unstyled and unusable. | The panel copies the rules of the shell's own, already loaded `/_mw/ui.css` (`document.styleSheets`) into a `<style>` in its root: no request, no wait, no movement. Fallback when the sheet cannot be read: the `<link>`, and every open card's guards take their place again once it has loaded (also after the panel is mounted again). e2e E-CL-1W. |
+| C2-14 | seed-engine and the v0.3 media lab | `src/files/lane.js` and `src/media/lane.js` now import `src/loader/availability.js`, which the e2e media lab did not copy: the lab never loaded and E-CH-6M, E-MD-1, 2, 10, 7, 8, 9 and E-FI-3 failed. | `copyLab` copies `availability.js`. |
+| C2-15 | e2e runner | A waiter a failed step left behind (a popup promise) ended the whole run with an unhandled rejection before the step was reported. | `run.mjs` logs such a rejection as a note and goes on. |
+| C2-16 | flaky unit tests | `torrent-seed-lanes`: the mw_pin1 test waited 20 event-loop turns for WebCrypto, which runs off the main thread; under the full parallel run it failed (alone it passed). `identity-service`: "no clear name in the sealed item" looked for `Ana` in 1,390 random base64url characters, a chance match about once in 100 runs. | A real-time wait for the condition (at most 5 s); the name is looked for quoted in the JSON and as the field name inside the ciphertext bytes. |
+| C2-17 | zero-setup requests | `dist-ship/` (ship's work directory) was not ignored; no npm script for `ship`; the one-box README and Compose file were outside repo-layout's flag and link checks. | `.gitignore`, `npm run ship`, repo-layout covers `deploy/one-box/README.md` and `docker-compose.yml`. |
+| C2-18 | calls e2e harness (`scenarios-calls.mjs`, never run before) | Written contract-first, it had not met the loader. | Its visitors join the run's failure report; the site's test buttons sit in a left column clear of the signed-in header; capture tracks are recorded at `MediaDevices.prototype` (an own property on `navigator.mediaDevices` was sometimes gone in WebKit by the time the loader captured); results carry the error message; `MW_E2E_SHOTS=<dir>` keeps screenshots and opens shadow roots for inspection (debug only). |
+| C2-19 | calls in WebKit (measured, Playwright WebKit 27.2) | WebKit offers only an mDNS host candidate (`<uuid>.local`) until the page has captured; two WebKit browsers on one machine never connected the swarm with those (0 peers after 45 s), so no ring could travel. After a capture the offers carry this machine's address and the swarm connects. | E-CL-1W starts an audio capture in each WebKit shell before "Share and load" (test arrangement, kept out of the loader's "every track ends" check). On real networks the site's STUN gives server-reflexive candidates; two Safari visitors without STUN on one LAN are a gate row. |
+| C2-20 | doors request 6 | The door view's browser test sat in `loader-doors.test.mjs`, which `npm run test:browser` does not run. | Moved to `test/unit/loader-doors-browser.test.mjs`. |
+| C2-22 | pin page: what its own site code can reach | `window.__mwPinHost` is on the pinned page's window, where the site's same-origin code can call it: `start({ ih })` would make the pin node join and seed any swarm, past the moderator queue and the month cap. | The page's host starts only an infohash the node itself lists as pinned and not paused (`file.pinned` over the bridge); anything else answers `not-pinned`. e2e E-PS-1 checks both answers. |
+| C2-23 | e2e isolation: one ledger for many sites | Every e2e site published on scope 127.0.0.1 with the run's owner key and no `chain` has the same ledger id (owner plus scope), so the main site, the members site and the calls site shared one ledger and merged their `_mw.cfg`: in the full run the calls members read `features.calls` as false and E-CL-1 to E-CL-3 failed (alone they passed). | The members, calls and C2 sites publish with a `chain` of their own (`e2e-members`, `e2e-calls-<setting>`, `e2e-c2-<key>`). Product behaviour is unchanged: one owner key and one scope are one ledger by design (ARCHITECTURE 6). |
+| C2-24 | examples/social and the SDK's error table | The template's `ERROR_TEXT` must equal the SDK's English table (social-lib test); the six C2 call codes were missing, so `npm run test:example` failed (169 of 170). | The six sentences added, word for word from `src/loader/strings.js` (the template makes no calls). |
+| C2-21 | E-ZS-1 environment (measured) | This Chromium build (156) ignores `--unsafely-treat-insecure-origin-as-secure` (with and without a user data directory): an `http://127-0-0-1.nip.io` page stayed insecure, with no worker and no WebCrypto. | E-ZS-1 serves its two names over HTTPS with a certificate made in the run (openssl, one day) and a browser of its own with `--ignore-certificate-errors`. |
+
+## End-to-end scenarios added
+
+| Id | File | What it shows |
+|---|---|---|
+| E-PS-1 | `test/e2e/scenarios-c2.mjs` | A member's 5 MiB public upload is lane H and "Only on this device" (E0). The pin node (tools/pin.mjs through the fixture, its key named in `_mw.cfg.pin`) is asked to keep it: the request is entered at the pin as its page bridge would enter it (`file.request` with the uploader's key) and approved as a moderator would with `--approve`, because C2 has no path from a member's page to the pin's queue (open item O-1). The pinned page authenticates on the file wire (hello verified against `_mw.cfg.pin`), fetches from the uploader and sends a receipt: the uploader reads "Kept by the site" (E4), hand-off `kept`, over an authenticated pin wire; the signed heartbeat lists the item, hashed, for this ledger, and names no infohash in the clear. Measured on loopback: kept 5,057 to 5,074 ms after the approval in six runs (SZ's 60 s target is for Wi-Fi, a gate row). |
+| E-PS-2 | same | Two peers that announce every piece of an upload they never fetched (have messages, no data; checked: they hold 0 bytes) give the uploader tier E1, `reported: true`, "Kept by you and at least {n} others online now (reported)", never "Kept by the site". With two of them the hand-off reads "sent": two complete bitfields end H, the residual risk seed-engine documents (spot-checks, E2, are v0.4). |
+| E-PS-3 | same | A member whose month record is at the desktop cap (20 GB, written into the loader's pref store, then a reload) has K and E locked and H open, and the bar says "Sharing paused"; another member fetches the member's 512 KiB upload: 524,288 bytes leave in H, 0 in K and E, and the month figure does not move. The wires read as not local through a `getStats` wrapper (srflx), because two tabs on one machine are a host-to-host pair, which the cap does not count (seed-policy's open item). |
+| E-PS-4 | same | A phone (Pixel 7 emulation, Wi-Fi by `connection.type`, a battery that charges at 90%, a recording Wake Lock): `mw.net.dock({ hours: 2 })` and the card's button take the screen Wake Lock inside the click; K and E open while dock mode runs (row 2, dock mode as the opt-in); "Stop and let the screen sleep" releases the lock and closes them. |
+| E-ZS-1 | same | A site published for `127-0-0-1.nip.io` (page tag only) renders at `https://127-0-0-1.nip.io:<port>/` with an owner resolver (`<meta name="mw-doh">`, a counting stub on 127.0.0.1) that receives no query in 10 s; a control site at `c2-zs-control.example.net` in the same browser does query the stub for `_magnet.c2-zs-control.example.net`. Network policy: a Chromium of its own with `chromiumArgs()`, whose resolver rule gets `MAP 127-0-0-1.nip.io 127.0.0.1, MAP c2-zs-control.example.net 127.0.0.1` in front of the local-only `MAP * ~NOTFOUND`, so no name reaches a DNS server and no packet leaves the machine; a request guard of its own allows only those names, 127.0.0.1 and localhost. |
+| E-CL-3, E-CL-1, E-CL-2, E-CL-1W | `test/e2e/scenarios-calls.mjs` (lane calls) | Wired into `run.mjs` and made to run (C2-9 to C2-13, C2-18, C2-19). Loopback: E-CL-1 connected 629 to 716 ms after the accept in Chromium (seven runs), E-CL-1W 650 to 686 ms in WebKit (three runs, with a screen shared from a trusted click); E-CL-2's leaver's pairs closed in 12 and 14 ms in the final runs. |
+| DOOR-DOWN, DOOR-HASH, DOOR-GUEST, DOOR-GUEST-W | `test/e2e/scenarios-doors.mjs` | The doors lane's request 7, from its flow probe: the run's build on static doors on 127.0.0.1. |
+
+## Readings and deviations kept
+
+- **HOST_ONLY_METHODS** (wire-ui deviation 1): `calls.start`, `accept`, `decline`, `camera`, `screen`, `net.dock`, `net.keep`, not
+  every `calls.*` method as INTERFACES C2 says, so hang-up, mute and the reads keep working. Kept: a call cannot exist in host-only
+  mode, and a hang-up that answered `E_HOST_ONLY` could leave a call the person cannot end from the site. INTERFACES now says so.
+- **`net.keep`** needs a click only to turn keeping on; dock mode is for phones and the keeper tab for computers (wire-ui 2, 5).
+- **`mw.net.seeding().month.cap`** is `null` for "no cap" (Infinity does not cross the Bridge as itself; wire-ui 4).
+- **The ledger's `_doors` item and the SDK's door hello** are the doors lane's design, applied as delivered.
+- **examples/social needed no label handling** (the notes' "if needed"): its media view says "Kept by the hub" only for
+  `available: 'kept'`, which in C2 needs E3 or E4 (the evidence `avail.keptBySite` needs), and otherwise "Available only while
+  someone who has it is online"; it shows no counts, so neither line claims more than its evidence. Only its error table changed
+  (C2-24).
+
+## Open items (for the owner and the next phase)
+
+- **O-1, no page-to-pin request path.** Nothing in a member's page reaches the pin's queue: `files.pinRequest` and
+  `media.pinRequest` answer `E_POLICY` ("this site runs no pin node") and the owner's automatic request (SZ-6) requests nothing,
+  because the services get no `pin` seam. The pin's queue is filled by its own page's bridge (`file.request`), which nothing in the
+  loader calls. Pin-node's v0.4 proposal (a request signed by the requester with a prefix of its own, verified by the node) is the
+  way to build it without trusting a page-written author; the node side is built since the v0.3 code review (`src/pin/frames.js`
+  `makePinRequest`, `verifyPinRequest`: an unsigned or forged request is refused), the page side is not. Until then a pin keeps what
+  its operator approves (`--approve`).
+- **Owner decisions SZ-1 to SZ-6 are unsigned**; the builds ship them behind flags that keep today's behaviour (no phone K and E by
+  default, no hand-off while hidden, `--exp 399` for `ship`, the call caps and audio-only defaults as constants, no relay offered,
+  the pin's owner auto-accept only with `--auto-accept owner`).
+- **Not run anywhere:** every C2 gate row on real devices and networks (G-PS-1 to G-PS-14, G-ZS1 to G-ZS4, G-CL-1 to G-CL-9,
+  G-DR-1 to G-DR-4): phones in the background, dock mode on a real phone, calls on iPhone and Android, a certificate from Let's
+  Encrypt, a real server for `ship`, nip.io from a phone, a relay. Every rate, cap and window is chosen, not measured.
+- **From the lanes, still open:** drop-in mode answers `E_UNSUPPORTED` for `mw.net.seeding`, `dock` and `keep` until the drop-in engine
+  calls `api.setNet` (wire-ui O5); the keeper tab lists no kept items (O3); private own files get no upload-card line (O4); keeping
+  something does not trigger `seed.ask` (O7); `call.call` and `call.join` button strings do not exist (the cards say "Continue"; calls
+  R-4); the fetch sentence "Fetching also shares it with others while this page is open" overstates sharing under a budget, where an
+  incomplete E item stays idle (seed-engine O4: the owner chooses between letting such an item run and qualifying the sentence); the
+  one-box CI job prints the Caddy image digest for `CADDY_IMAGE` and Dependabot does not watch `deploy/one-box` (zero-setup O2).
+- **Seen, not fixed:** the loader's signed-in header card covers the bottom centre of the site while it is shown (by design of the
+  ui lane, now without blocking clicks beside it); the French strings have not been read by a French speaker; `avail.heldBy` and
+  `meter.visit` have no singular (the meter now appears only when visitors carried bytes).

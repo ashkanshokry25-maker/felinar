@@ -1,0 +1,99 @@
+# Browser-level check, run 2026-10-17 ~21:00Z. Engine: @ghostery/adblocker 2.20.1 (third-party engine, NOT uBO/Brave themselves). Source page https://example.com/ (third party).
+# List versions: EasyList/EasyPrivacy 202610172031; uBO filters 2026-10-17 19:45Z; uBO privacy 2026-10-17 19:16Z; unbreak 2026-10-16; Hagezi lists 2026-10-17 15:27-16:07Z; BlockListProject tracking 2026-07-18.
+## A) uBO set (min lists) + EasyList + EasyPrivacy
+allowed           websocket       wss://tracker.openwebtorrent.com/
+allowed           websocket       wss://tracker.webtorrent.dev/
+allowed           websocket       wss://open.ftorrent.com/
+allowed           websocket       wss://tracker.novage.com.ua/
+allowed           websocket       wss://tracker.btorrent.xyz/
+allowed           websocket       wss://tracker.files.fm:7073/announce
+allowed           websocket       wss://tracker.example-site.org/
+allowed           websocket       wss://tracker.example-site.org/announce
+allowed           websocket       wss://rtc.example-site.org/
+allowed           websocket       wss://signal.example-site.org/
+allowed           websocket       wss://t.example-site.org/
+allowed           websocket       wss://stats.example-site.org/
+allowed           websocket       wss://analytics.example-site.org/
+allowed           websocket       wss://nos.lol/
+allowed           websocket       wss://relay.damus.io/
+allowed           websocket       wss://relay.primal.net/
+allowed           websocket       wss://broker.emqx.io:8084/mqtt
+allowed           websocket       wss://broker.hivemq.com:8884/mqtt
+allowed           websocket       wss://test.mosquitto.org:8081/mqtt
+allowed           websocket       wss://public:public@public.cloud.shiftr.io/
+allowed           xmlhttprequest  https://cloudflare-dns.com/dns-query?name=_magnet.example.com&type=TXT
+allowed           xmlhttprequest  https://dns.google/resolve?name=_magnet.example.com&type=TXT
+allowed           xmlhttprequest  https://tracker.openwebtorrent.com/stats.json
+
+## B) Brave default bundle (all sources listed in Brave list_catalog.json 'default' + privacy + first-party)
+allowed           websocket       wss://tracker.openwebtorrent.com/
+allowed           websocket       wss://tracker.webtorrent.dev/
+allowed           websocket       wss://open.ftorrent.com/
+allowed           websocket       wss://tracker.novage.com.ua/
+allowed           websocket       wss://tracker.btorrent.xyz/
+allowed           websocket       wss://tracker.files.fm:7073/announce
+allowed           websocket       wss://tracker.example-site.org/
+allowed           websocket       wss://tracker.example-site.org/announce
+allowed           websocket       wss://rtc.example-site.org/
+allowed           websocket       wss://signal.example-site.org/
+allowed           websocket       wss://t.example-site.org/
+allowed           websocket       wss://stats.example-site.org/
+allowed           websocket       wss://analytics.example-site.org/
+allowed           websocket       wss://nos.lol/
+allowed           websocket       wss://relay.damus.io/
+allowed           websocket       wss://relay.primal.net/
+allowed           websocket       wss://broker.emqx.io:8084/mqtt
+allowed           websocket       wss://broker.hivemq.com:8884/mqtt
+allowed           websocket       wss://test.mosquitto.org:8081/mqtt
+allowed           websocket       wss://public:public@public.cloud.shiftr.io/
+allowed           xmlhttprequest  https://cloudflare-dns.com/dns-query?name=_magnet.example.com&type=TXT
+allowed           xmlhttprequest  https://dns.google/resolve?name=_magnet.example.com&type=TXT
+allowed           xmlhttprequest  https://tracker.openwebtorrent.com/stats.json
+
+## C) AdGuard Base + Tracking Protection
+allowed           websocket       wss://tracker.openwebtorrent.com/
+allowed           websocket       wss://tracker.webtorrent.dev/
+allowed           websocket       wss://open.ftorrent.com/
+allowed           websocket       wss://tracker.novage.com.ua/
+allowed           websocket       wss://tracker.btorrent.xyz/
+allowed           websocket       wss://tracker.files.fm:7073/announce
+allowed           websocket       wss://tracker.example-site.org/
+allowed           websocket       wss://tracker.example-site.org/announce
+allowed           websocket       wss://rtc.example-site.org/
+allowed           websocket       wss://signal.example-site.org/
+allowed           websocket       wss://t.example-site.org/
+allowed           websocket       wss://stats.example-site.org/
+allowed           websocket       wss://analytics.example-site.org/
+allowed           websocket       wss://nos.lol/
+allowed           websocket       wss://relay.damus.io/
+allowed           websocket       wss://relay.primal.net/
+allowed           websocket       wss://broker.emqx.io:8084/mqtt
+allowed           websocket       wss://broker.hivemq.com:8884/mqtt
+allowed           websocket       wss://test.mosquitto.org:8081/mqtt
+allowed           websocket       wss://public:public@public.cloud.shiftr.io/
+allowed           xmlhttprequest  https://cloudflare-dns.com/dns-query?name=_magnet.example.com&type=TXT
+allowed           xmlhttprequest  https://dns.google/resolve?name=_magnet.example.com&type=TXT
+allowed           xmlhttprequest  https://tracker.openwebtorrent.com/stats.json
+
+## D) DNS-level lists (hostname or parent domain listed)
+adguard-base.txt             entries=12547     hits=none
+adguard-dns.txt              entries=185402    hits=none
+adguard-tracking.txt         entries=110903    hits=none
+blp-abuse.txt                entries=435119    hits=none
+blp-ads.txt                  entries=235901    hits=none
+blp-malware.txt              entries=2656393   hits={"broker.hivemq.com": "BLOCK via broker.hivemq.com"}
+blp-piracy.txt               entries=2154      hits=none
+blp-torrent.txt              entries=2620      hits={"tracker.openwebtorrent.com": "BLOCK via tracker.openwebtorrent.com", "webtorrent.io": "BLOCK via webtorrent.io", "tracker.novage.com.ua": "BLOCK via tracker.novage.com.ua", "tracker.files.fm": "BLOCK via tracker.files.fm"}
+blp-tracking.txt             entries=143876    hits={"stun.l.google.com": "BLOCK via stun.l.google.com"}
+hagezi-anti.piracy.txt       entries=56386     hits={"tracker.openwebtorrent.com": "BLOCK via openwebtorrent.com", "openwebtorrent.com": "BLOCK via openwebtorrent.com", "tracker.webtorrent.dev": "BLOCK via tracker.webtorrent.dev", "webtorrent.io": "BLOCK via webtorrent.io", "open.ftorrent.com": "BLOCK via open.ftorrent.com", "tracker.novage.com.ua": "BLOCK via tracker.novage.com.ua", "tracker.btorrent.xyz": "BLOCK via btorrent.xyz", "btorrent.xyz": "BLOCK via btorrent.xyz", "tracker.files.fm": "BLOCK via tracker.files.fm"}
+hagezi-fake.txt              entries=17431     hits=none
+hagezi-light.txt             entries=62919     hits={"broker.emqx.io": "BLOCK via broker.emqx.io", "broker.hivemq.com": "BLOCK via broker.hivemq.com"}
+hagezi-multi.txt             entries=165068    hits={"broker.emqx.io": "BLOCK via broker.emqx.io", "broker.hivemq.com": "BLOCK via broker.hivemq.com"}
+hagezi-popupads.txt          entries=47261     hits=none
+hagezi-pro.plus.txt          entries=215452    hits={"broker.emqx.io": "BLOCK via broker.emqx.io", "broker.hivemq.com": "BLOCK via broker.hivemq.com"}
+hagezi-pro.txt               entries=201573    hits={"broker.emqx.io": "BLOCK via broker.emqx.io", "broker.hivemq.com": "BLOCK via broker.hivemq.com"}
+hagezi-tif.txt               entries=2033060   hits={"broker.hivemq.com": "BLOCK via broker.hivemq.com"}
+hagezi-ultimate.txt          entries=239727    hits={"broker.emqx.io": "BLOCK via broker.emqx.io", "broker.hivemq.com": "BLOCK via broker.hivemq.com"}
+oisd-big.txt                 entries=234266    hits=none
+oisd-small.txt               entries=56754     hits=none
+stevenblack-hosts.txt        entries=73637     hits=none

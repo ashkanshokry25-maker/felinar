@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Social: a network of personal sites, loaded by magnet link, peer-to-peer. A felinar example and template.">
+  <title>Social</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="icon" href="/img/social.svg" type="image/svg+xml">
+</head>
+<body data-app="social">
+  <a class="skip" href="#main">Skip to content</a>
+  <noscript>
+    <div class="notice" role="note">
+      <strong>This site loads from other visitors' browsers and needs JavaScript.</strong>
+    </div>
+  </noscript>
+
+  <header class="site-head">
+    <div class="wrap bar">
+      <a class="brand" href="/" id="brand">
+        <img class="logo" src="/img/social.svg" alt="" width="32" height="32">
+        <span id="brand-name">Social</span>
+      </a>
+      <div class="bar-right">
+        <button type="button" class="btn ghost" id="theme-toggle" aria-label="Colour theme: automatic">Theme: auto</button>
+        <span id="identity-chip" class="chip-id" hidden></span>
+        <button type="button" class="btn primary" id="sign-in" hidden>Sign in</button>
+      </div>
+    </div>
+    <div class="wrap">
+      <nav id="main-nav" class="nav" aria-label="Main">
+        <a href="/" data-nav="home">Timeline</a>
+        <a href="/messages" data-nav="messages">Messages</a>
+        <a href="/notifications" data-nav="notifications">Alerts <span id="alerts-count" class="count" hidden></span></a>
+        <a href="/media" data-nav="media">Media</a>
+        <a href="/settings" data-nav="settings">Settings</a>
+        <a href="/about" data-nav="about">About</a>
+      </nav>
+      <p id="sync-line" class="sync" role="status" aria-live="polite"></p>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <main id="main" tabindex="-1">
+      <h1 id="view-title" tabindex="-1">Social</h1>
+      <div id="standalone" class="notice" hidden>
+        <strong>Open this site through the felinar loader.</strong>
+        <span id="standalone-why" class="small"></span>
+      </div>
+      <div id="view"></div>
+    </main>
+    <aside id="side" aria-label="More about this page" hidden></aside>
+  </div>
+
+  <footer class="wrap foot small muted">
+    <p>Every person and every group here is its own site, with its own signed log that visitors copy and check. No backend, no ranking.
+      <a href="/about">What this can and cannot do</a>.</p>
+  </footer>
+
+  <div id="live-polite" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="live-assertive" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+  <div id="toasts" class="toasts"></div>
+
+  <template id="tpl-about">
+    <section class="card prose" aria-labelledby="about-what">
+      <h2 id="about-what">What this is</h2>
+      <p>Social is a template for a network of personal sites. Every person and every group is its own site with its own signed log, a site ledger, and all of them point at the same template. Your timeline is put together in your own browser from the people you follow. Nobody ranks it, and there is no central feed.</p>
+      <p>It is pseudonymous, not anonymous. People connected to a site see your IP address next to the key you use there. <span data-privacy="whatOthersSee"></span></p>
+    </section>
+
+    <section class="card prose" aria-labelledby="about-lives">
+      <h2 id="about-lives">Where things live</h2>
+      <dl class="facts">
+        <div><dt>Your posts, comments and follows</dt><dd>On your own ledger. Everyone who opens your page or follows you holds a copy. <span data-privacy="publicByDesign"></span></dd></div>
+        <div><dt>Your timeline</dt><dd>Built in this browser from the ledgers it holds. It is not stored anywhere else.</dd></div>
+        <div><dt>Messages and rooms</dt><dd><span data-privacy="conversations"></span> <span data-privacy="messagesArrive"></span></dd></div>
+        <div><dt>Private photos and videos</dt><dd>Encrypted on your device before they leave it. Only you, after signing in, and the people you share them with can open them, and the site's own code on this origin can open them too while you are signed in. On a hub, that code is the hub's. People you share with can keep a copy.</dd></div>
+        <div><dt>Your private record</dt><dd><span data-privacy="recordNote"></span></dd></div>
+      </dl>
+    </section>
+
+    <section class="card prose" aria-labelledby="about-lasts">
+      <h2 id="about-lasts">How long things last</h2>
+      <p>An item stays reachable while someone who has it is connected to you: its author's devices, readers who chose to share, or a hub pin. A hub pin is central storage that the hub's operator pays for and can be made to remove, so each item says which it is: <em>Kept by the hub</em>, or <em>Available only while someone who has it is online</em>.</p>
+      <p>Deleting hides a post from copies that sync. <span data-privacy="deleteLimits"></span></p>
+    </section>
+
+    <section class="card prose" aria-labelledby="about-ceiling">
+      <h2 id="about-ceiling">What this design cannot do</h2>
+      <p>These need an index over everyone's data. This template does not have one, and an index would be a labelled central component.</p>
+      <div class="table-wrap">
+        <table class="ceiling">
+          <caption class="sr-only">Capabilities that need an index</caption>
+          <thead>
+            <tr><th scope="col">Capability</th><th scope="col">In this design</th><th scope="col">What would close it</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Chronological feed of people you follow</th><td data-label="In this design">Yes, while their windows are reachable (see How long things last)</td><td data-label="What would close it">Nothing needed</td></tr>
+            <tr><th scope="row">Ranked or algorithmic feed, trending</th><td data-label="In this design">No</td><td data-label="What would close it">A hub indexer that crawls ledgers as a peer</td></tr>
+            <tr><th scope="row">Search across everyone</th><td data-label="In this design">No; only what this browser holds</td><td data-label="What would close it">The same indexer</td></tr>
+            <tr><th scope="row">Replies and mentions from people you do not follow when you are offline</th><td data-label="In this design">Only through notices held by the hub pin mailbox</td><td data-label="What would close it">The mailbox (already a central component)</td></tr>
+            <tr><th scope="row">Global follower counts, like counts</th><td data-label="In this design">No; counts are of what you can see, or self-reported</td><td data-label="What would close it">An indexer</td></tr>
+            <tr><th scope="row">Spam fighting across the hub</th><td data-label="In this design">Per ledger only (bans, fee, allow list, premoderation)</td><td data-label="What would close it">A hub reputation service</td></tr>
+            <tr><th scope="row">Push notifications when the page is closed</th><td data-label="In this design">No</td><td data-label="What would close it">A Web Push relay</td></tr>
+            <tr><th scope="row">Durability for phone-only members</th><td data-label="In this design">Only with the hub pin</td><td data-label="What would close it">The hub pin (central storage)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted">None of the "would close it" components is part of this version. Each would be a backend, and would be labelled as one.</p>
+    </section>
+
+    <section class="card prose" aria-labelledby="about-limits">
+      <h2 id="about-limits">Limits on this device</h2>
+      <p id="about-follow-cap">You can follow up to 250 people on a phone and 1,000 on a computer. These are chosen limits that real-device tests confirm or lower.</p>
+      <p><span data-privacy="keyMatching"></span></p>
+      <p><span data-privacy="scriptsNote"></span> <span data-privacy="neverWords"></span></p>
+    </section>
+  </template>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

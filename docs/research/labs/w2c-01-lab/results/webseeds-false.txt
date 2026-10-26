@@ -1,0 +1,3 @@
+# webseeds-false.mjs 2026-10-17T21:40:54Z
+{"clientOption_webSeeds":true,"urlListInTorrent":["http://127.0.0.1:53665/site.bundle"],"done":true,"hitsOnUrlListHost":9,"hitsOnHardenedHost":7}
+{"clientOption_webSeeds":false,"urlListInTorrent":["http://127.0.0.1:53665/site.bundle"],"done":true,"hitsOnUrlListHost":0,"hitsOnHardenedHost":16}

@@ -1,0 +1,7 @@
+<!doctype html><html><body><script>
+(async()=>{ const rep=(o)=>fetch('/__report',{method:'POST',body:JSON.stringify({rc:true,...o})})
+ if(!navigator.serviceWorker.controller){ await new Promise(r=>{navigator.serviceWorker.addEventListener('controllerchange',r,{once:true});setTimeout(r,2000)}) }
+ const c=navigator.serviceWorker.controller; if(!c){ await rep({controlled:false}); return }
+ const mc=new MessageChannel(); const p=new Promise(r=>mc.port1.onmessage=e=>r(e.data)); c.postMessage({type:'who'},[mc.port2]); const ans=await p
+ await rep({controlled:true,...ans}) })()
+</script></body></html>

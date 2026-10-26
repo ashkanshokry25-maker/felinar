@@ -1,0 +1,12 @@
+{
+  "name": "e12 hostile metadata_size on a bare-infohash swarm",
+  "mitigation_wire_ut_metadata_cancel": false,
+  "chromium": "156.0.8078.4",
+  "honestSide": {
+    "metadataRequestsSent": 1833,
+    "utMetadataSize": 10000000,
+    "fetching": true,
+    "allocatedBytes": 10000000,
+    "wireAlive": true
+  }
+}

@@ -1,0 +1,21 @@
+ok     "wp-content/themes/t/style.css"
+REJECT "wp-content/themes/t/style.css?ver=6.4.2"  <- forbidden character in "style.css?ver=6.4.2"
+ok     "wp-content/themes/t/style.css@ver=6.4.2"
+REJECT "index.php?p=123.html"  <- forbidden character in "index.php?p=123.html"
+ok     "blog/foo4B54.html"
+ok     "blog/café/index.html"
+REJECT "blog/café/index.html"  <- not NFC (APFS preserves NFD but treats NFC/NFD as one name; URL paths never normalize); case/normalization collision with "blog/café/index.html"
+ok     "img/IMG_001.JPG"
+REJECT "img/img_001.jpg"  <- case/normalization collision with "img/IMG_001.JPG"
+REJECT "img/a#b.png"  <- forbidden character in "a#b.png"
+REJECT "img/100%.png"  <- forbidden character in "100%.png"
+REJECT "img/a%41.png"  <- forbidden character in "a%41.png"
+REJECT "img\\dir.png"  <- forbidden character in "img\dir.png"
+REJECT "img/../x.png"  <- dot segment ".." (URL parser removes it); leading/trailing space or trailing dot in ".."
+ok     ".well-known/security.txt"
+ok     ".htaccess"
+REJECT "_mw/sdk.js"  <- collides with reserved magnet-web path
+REJECT "mw-sw.js"  <- collides with reserved magnet-web path
+REJECT "blog/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...(310 chars)"  <- segment > 255 bytes
+
+12 of 19 test paths rejected

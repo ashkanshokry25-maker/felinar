@@ -1,0 +1,73 @@
+{
+ "chromium": "156.0.8078.4",
+ "results": [
+  {
+   "store": "null",
+   "id": "512",
+   "half": {
+    "label": "1 download 50%",
+    "rendererMB": 422
+   },
+   "downloadMs": 25629,
+   "pieces": 2048,
+   "pieceLength": 262144,
+   "length": 536870912,
+   "mb": 512,
+   "marks": [
+    {
+     "label": "0 baseline (page loaded, WebTorrent imported)",
+     "rendererMB": 93
+    },
+    {
+     "label": "1 download 50%",
+     "rendererMB": 422
+    },
+    {
+     "label": "2 download complete (gc)",
+     "rendererMB": 441
+    },
+    {
+     "label": "3 (null store: nothing to read back)",
+     "rendererMB": 441
+    }
+   ]
+  },
+  {
+   "store": "idb",
+   "id": "512",
+   "half": {
+    "label": "1 download 50%",
+    "rendererMB": 444
+   },
+   "downloadMs": 25661,
+   "pieces": 2048,
+   "pieceLength": 262144,
+   "length": 536870912,
+   "serveMs": 253,
+   "serveBytes": 536870912,
+   "mb": 512,
+   "marks": [
+    {
+     "label": "0 baseline (page loaded, WebTorrent imported)",
+     "rendererMB": 92
+    },
+    {
+     "label": "1 download 50%",
+     "rendererMB": 444
+    },
+    {
+     "label": "2 download complete (gc)",
+     "rendererMB": 458
+    },
+    {
+     "label": "3 all files streamed back out of the store (gc)",
+     "rendererMB": 458
+    },
+    {
+     "label": "4 client destroyed (gc)",
+     "rendererMB": 458
+    }
+   ]
+  }
+ ]
+}

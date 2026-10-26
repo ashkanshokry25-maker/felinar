@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E12 uploadLimit on a DOWNLOADER: is uploadLimit:0 really "download only"?</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { runs: {}, errors: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e12', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = new Map(); this.length = opts.length }
+  put (i, buf, cb = () => {}) { this.chunks.set(i, new Uint8Array(buf)); queueMicrotask(() => cb(null)) }
+  get (i, o, cb) { if (typeof o === 'function') { cb = o; o = {} } const c = this.chunks.get(i); if (!c) { const e = new Error('Chunk not found'); e.notFound = true; return queueMicrotask(() => cb(e)) } const off = (o && o.offset) || 0; const len = (o && o.length) || (c.length - off); queueMicrotask(() => cb(null, c.slice(off, off + len))) }
+  close (cb = () => {}) { queueMicrotask(() => cb(null)) }
+  destroy (cb = () => {}) { this.chunks.clear(); queueMicrotask(() => cb(null)) }
+}
+try {
+  const mk = o => new WebTorrent({ dht: false, lsd: false, utPex: false, tracker: { rtcConfig: { iceServers: [] } }, ...o })
+  const TR = 'ws://127.0.0.1:18082'
+  const A = mk({})
+  const bytes = new Uint8Array(131072); let x = 31337; for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; bytes[i] = x & 255 }
+  const tA = A.seed(new File([bytes], 'up.bin'), { announce: [TR], name: 'up.bin', pieceLength: 16384, store: MemStore })
+  await new Promise(r => tA.once('ready', r))
+  for (const [label, opts] of [['uploadLimit_default(-1)', {}], ['uploadLimit_0', { uploadLimit: 0 }], ['uploadLimit_512', { uploadLimit: 512 }], ['uploadLimit_4096', { uploadLimit: 4096 }]]) {
+    const B = mk(opts)
+    const tB = B.add(tA.magnetURI, { store: MemStore })
+    const t0 = performance.now(); let done = false; tB.on('done', () => { done = true })
+    for (let i = 0; i < 100 && !done; i++) await sleep(100)
+    R.runs[label] = { done, ms: Math.round(performance.now() - t0), progress: Number(tB.progress.toFixed(3)), gotMetadata: !!tB.metadata, numPeers: tB.numPeers }
+    await new Promise(r => B.destroy(r))
+  }
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

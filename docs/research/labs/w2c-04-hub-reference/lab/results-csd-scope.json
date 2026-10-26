@@ -1,0 +1,46 @@
+{
+  "browser": "156.0.8078.4",
+  "when": "2026-10-17T21:29:36.650Z",
+  "note": "registrable domain hub.localhost is NOT in the PSL (*.localhost is a secure context in Chromium); cookie was set with Domain=hub.localhost by each page",
+  "results": [
+    {
+      "directiveSentFromA": "\"storage\"",
+      "A_after": {
+        "localStorage": null,
+        "swRegistrations": 0,
+        "cookie": "c=1"
+      },
+      "B_after_sibling": {
+        "localStorage": "v",
+        "swRegistrations": 1,
+        "cookie": "c=1"
+      }
+    },
+    {
+      "directiveSentFromA": "\"cache\", \"storage\"",
+      "A_after": {
+        "localStorage": null,
+        "swRegistrations": 0,
+        "cookie": "c=1"
+      },
+      "B_after_sibling": {
+        "localStorage": "v",
+        "swRegistrations": 1,
+        "cookie": "c=1"
+      }
+    },
+    {
+      "directiveSentFromA": "\"cookies\"",
+      "A_after": {
+        "localStorage": "v",
+        "swRegistrations": 1,
+        "cookie": ""
+      },
+      "B_after_sibling": {
+        "localStorage": "v",
+        "swRegistrations": 1,
+        "cookie": ""
+      }
+    }
+  ]
+}

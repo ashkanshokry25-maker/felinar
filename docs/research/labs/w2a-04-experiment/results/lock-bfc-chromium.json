@@ -1,0 +1,25 @@
+{
+ "browser": "chromium 156.0.8078.4",
+ "trials": [
+  {
+   "B_got_lock": true,
+   "wait_ms_after_B_load": 6
+  },
+  {
+   "B_got_lock": true,
+   "wait_ms_after_B_load": 9
+  },
+  {
+   "B_got_lock": true,
+   "wait_ms_after_B_load": 1
+  },
+  {
+   "B_got_lock": true,
+   "wait_ms_after_B_load": 5
+  },
+  {
+   "B_got_lock": true,
+   "wait_ms_after_B_load": 8
+  }
+ ]
+}

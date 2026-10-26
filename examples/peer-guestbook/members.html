@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="The optional members area of the Peer Guestbook example: chat and file listings, both off until the owner and you turn them on.">
+  <title>Members - Peer Guestbook</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="icon" href="/img/peer.png" type="image/png">
+</head>
+<body data-page="members">
+  <header class="site-head">
+    <div class="wrap row">
+      <img class="logo" src="/img/peer.png" alt="" width="40" height="40">
+      <div>
+        <h1>Members area</h1>
+        <p class="tagline">Optional. Messages and files, both off until the owner turns them on and you do too.</p>
+      </div>
+    </div>
+    <nav class="wrap site-nav" aria-label="Site">
+      <a href="/">Guestbook</a>
+      <a href="/members.html" aria-current="page">Members</a>
+      <a href="/profile.html">Profile</a>
+      <a href="/about.html">About</a>
+    </nav>
+    <div id="auth-bar" class="wrap auth-bar" hidden>
+      <p id="auth-state" class="small" aria-live="polite"></p>
+      <button type="button" id="sign-in" hidden>Sign in</button>
+      <button type="button" id="sign-out" class="quiet" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="standalone" class="notice" hidden role="status">
+      <strong>Open this site through the felinar loader.</strong>
+      <span>You are looking at the static files directly, so messages and files are off.</span>
+      <span id="standalone-why" class="small muted"></span>
+    </div>
+
+    <article class="card" id="members-intro">
+      <h2>Off by default</h2>
+      <p>Messages and file listings are optional. They stay off until the site owner turns them on. Messages then wait for you to turn on chat, and a file is fetched only when you tap Fetch. Until then nothing here connects your browser to other visitors.</p>
+      <details>
+        <summary>For the site owner</summary>
+        <p class="small">Turn the features on with the owner key, offline: <code>ledger-admin cfg --chat members --files members</code>. Chat and files need the site's own connection servers, so publish with <code>--tracker wss://tracker.example.org --stun stun:stun.example.org:3478</code>. The settings are advisory: honest loaders enforce them.</p>
+      </details>
+    </article>
+
+    <article class="card" id="members-old" hidden>
+      <h2>This loader has no members area</h2>
+      <p>The loader that opened this page is older than the version with sign-in, messages and files. Update the loader to use them.</p>
+    </article>
+
+    <article class="card" id="members-guest" hidden>
+      <h2>Sign in first</h2>
+      <p>Messages and files belong to your key on this site, so you sign in before you turn anything on.</p>
+      <div class="row"><button type="button" id="members-sign-in">Sign in</button></div>
+    </article>
+
+    <div id="members-signed" class="stack" hidden>
+      <article class="card" id="chat-card">
+        <h2>Messages</h2>
+        <p id="chat-status" class="state-line" aria-live="polite">Checking...</p>
+        <p id="chat-consent" class="small muted" hidden>Chat connects your browser to other visitors of this site. They see your IP address and when you are active. Messages are encrypted between you and the people you write to. Anyone you write to can keep what you send. Chat also travels over the connections your browser already has for this site's ledger.</p>
+        <div class="row"><button type="button" id="chat-enable" hidden>Turn on chat</button></div>
+        <div id="lobby" hidden>
+          <h3>Lobby</h3>
+          <p id="lobby-note" class="small muted">Public and signed. Anyone connected can read this, and a recording proves what you wrote.</p>
+          <ul id="lobby-log" class="entries" aria-live="polite"></ul>
+          <p id="lobby-empty" class="muted">No messages yet.</p>
+          <form id="lobby-form">
+            <label for="lobby-msg">Message</label>
+            <div class="row">
+              <input id="lobby-msg" name="msg" maxlength="500" autocomplete="off" enterkeyhint="send">
+              <button type="submit" id="lobby-send">Send</button>
+            </div>
+          </form>
+        </div>
+      </article>
+
+      <article class="card" id="files-card">
+        <h2>Files</h2>
+        <p id="files-status" class="state-line" aria-live="polite">Checking...</p>
+        <div id="files-on" hidden>
+          <form id="file-form">
+            <label for="file-input">Share a file with this site's members</label>
+            <div class="row">
+              <input id="file-input" name="file" type="file">
+              <button type="submit" id="file-share">Share</button>
+            </div>
+          </form>
+          <p class="small muted">Files you share here are public on this site, and people who fetch one see your IP address while you share it. Location and camera details are removed from pictures first.</p>
+          <ul id="file-list" class="entries"></ul>
+          <p id="file-empty" class="muted">No files have been shared yet.</p>
+          <p id="file-fetch-note" class="small muted" hidden>Fetching also shares it with others while this page is open, and they see your IP address next to it.</p>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="wrap small muted">
+    <p><a href="/">Back to the guestbook</a>. Part of the felinar example.</p>
+  </footer>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module" src="/js/members.js"></script>
+</body>
+</html>

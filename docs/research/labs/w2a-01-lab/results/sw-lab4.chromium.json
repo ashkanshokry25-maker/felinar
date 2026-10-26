@@ -1,0 +1,61 @@
+{
+ "A_getRegistration_semantics": {
+  "registered_site_only": "/app/",
+  "only_site_registration_at_app": {
+   "getRegistration('/')": null,
+   "getRegistration(location.href)": "/app/",
+   "getRegistrations": [
+    "/app/"
+   ]
+  },
+  "registered_ours": "/",
+  "both_registrations": {
+   "getRegistration('/')": "/",
+   "getRegistration(location.href)": "/app/",
+   "getRegistrations": [
+    "/app/",
+    "/"
+   ]
+  },
+  "controller_of_app_page": "/app/sw-site.js",
+  "whoami_on_app_page": "SITE"
+ },
+ "B_nonroot_sw_scope": {
+  "Service-Worker-Allowed header=false": {
+   "defaultScope": "/repo/",
+   "scopeRoot": "ERR SecurityError: Failed to register a ServiceWorker for scope ('http://127.0.0.1:60192/') with script ('htt"
+  },
+  "Service-Worker-Allowed header=true": {
+   "defaultScope": "/repo/",
+   "scopeRoot": "/"
+  }
+ },
+ "C_sandbox_modals": {
+  "v0.2 flags (no allow-modals)": {
+   "result": {
+    "confirm": false,
+    "prompt": null,
+    "print": "returned"
+   },
+   "console": [
+    "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+    "Ignored call to 'confirm()'. The document is sandboxed, and the 'allow-modals' keyword is not set.",
+    "Ignored call to 'prompt()'. The document is sandboxed, and the 'allow-modals' keyword is not set.",
+    "Ignored call to 'alert()'. The document is sandboxed, and the 'allow-modals' keyword is not set."
+   ]
+  },
+  "with allow-modals": {
+   "result": {
+    "confirm": false,
+    "prompt": null,
+    "print": "returned"
+   },
+   "console": [
+    "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+    "DIALOG:confirm",
+    "DIALOG:prompt",
+    "DIALOG:alert"
+   ]
+  }
+ }
+}

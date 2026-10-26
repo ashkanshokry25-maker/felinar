@@ -1,0 +1,32 @@
+name: Bug report
+description: Something in the loader, drop-in script, Service Worker, ledger or tools does not behave as documented
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes: { label: Version, description: "felinar version or commit", placeholder: "0.3.0" }
+    validations: { required: true }
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [Loader shell, Drop-in script, Service Worker, Site ledger (mw.db), Publisher tools (publish/keygen), Tracker tooling, Build, Docs]
+    validations: { required: true }
+  - type: dropdown
+    id: mode
+    attributes: { label: Mode, options: [Shell (per-domain), Drop-in, Hub (subdomain), Hub (shared origin), Not applicable] }
+  - type: textarea
+    id: browsers
+    attributes: { label: Browsers and devices, description: "Name, version, OS; include the other visitor's browser when peers are involved", placeholder: "Safari 18.4 iPhone 15 (LTE) <-> Chrome 141 macOS (Wi-Fi)" }
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes: { label: Steps to reproduce, description: "Minimal steps; a pointer record or magnet with a tiny site helps. Never paste private keys." }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Expected vs actual }
+    validations: { required: true }
+  - type: textarea
+    id: diagnostics
+    attributes: { label: Diagnostics, description: "Paste the loader's Settings > Debug export (it contains no keys), console errors, tracker URLs and whether a web seed (ws=) and torrent URL (xs=) were in the pointer." }

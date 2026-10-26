@@ -1,0 +1,477 @@
+{
+ "chromium": {
+  "version": "156.0.8078.4",
+  "runs": [
+   {
+    "label": "easy: stun A + C",
+    "cls": "easy-mapping",
+    "mappingVaries": false,
+    "reason": "early",
+    "tDone": 122,
+    "tFirstSrflx": 5,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:63211"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard: stun A + B",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 123,
+    "tFirstSrflx": 3,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:51939",
+     "203.0.113.7:52939"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "single stun A",
+    "cls": "unknown-single-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": 4,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:53924"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "udp dead: stun BLACKHOLE x2",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "budget",
+    "tDone": 2503,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard + turn OK",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 119,
+    "tFirstSrflx": 2,
+    "tRelay": 57,
+    "srflx": [
+     "203.0.113.7:61934",
+     "203.0.113.7:62934"
+    ],
+    "relay": [
+     null
+    ],
+    "errors": []
+   },
+   {
+    "label": "easy + turn dead (blackhole)",
+    "cls": "easy-probable",
+    "mappingVaries": false,
+    "reason": "budget",
+    "tDone": 2503,
+    "tFirstSrflx": 2,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:57909"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "easy + turn tcp refused",
+    "cls": "easy-mapping",
+    "mappingVaries": false,
+    "reason": "early",
+    "tDone": 132,
+    "tFirstSrflx": 7,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:65167"
+    ],
+    "relay": [],
+    "errors": [
+     "701:Failed to establish connection"
+    ]
+   },
+   {
+    "label": "stun A+B + turn tcp OK",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 131,
+    "tFirstSrflx": 5,
+    "tRelay": 70,
+    "srflx": [
+     "203.0.113.7:56821",
+     "203.0.113.7:57821"
+    ],
+    "relay": [
+     "tcp"
+    ],
+    "errors": []
+   }
+  ]
+ },
+ "chromium-mdns-default": {
+  "version": "156.0.8078.4",
+  "runs": [
+   {
+    "label": "easy: stun A + C",
+    "cls": "easy-mapping",
+    "mappingVaries": false,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": 12,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:51246"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard: stun A + B",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": 2,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:57897",
+     "203.0.113.7:58897"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "single stun A",
+    "cls": "unknown-single-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 120,
+    "tFirstSrflx": 5,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:60233"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "udp dead: stun BLACKHOLE x2",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "budget",
+    "tDone": 2503,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard + turn OK",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 118,
+    "tFirstSrflx": 2,
+    "tRelay": 58,
+    "srflx": [
+     "203.0.113.7:49167",
+     "203.0.113.7:50167"
+    ],
+    "relay": [
+     null
+    ],
+    "errors": []
+   },
+   {
+    "label": "easy + turn dead (blackhole)",
+    "cls": "easy-probable",
+    "mappingVaries": false,
+    "reason": "budget",
+    "tDone": 2503,
+    "tFirstSrflx": 2,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:54494"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "easy + turn tcp refused",
+    "cls": "easy-mapping",
+    "mappingVaries": false,
+    "reason": "early",
+    "tDone": 120,
+    "tFirstSrflx": 2,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:52329"
+    ],
+    "relay": [],
+    "errors": [
+     "701:Failed to establish connection"
+    ]
+   },
+   {
+    "label": "stun A+B + turn tcp OK",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": 2,
+    "tRelay": 62,
+    "srflx": [
+     "203.0.113.7:55500",
+     "203.0.113.7:56500"
+    ],
+    "relay": [
+     "tcp"
+    ],
+    "errors": []
+   }
+  ]
+ },
+ "chromium-no-udp-policy": {
+  "version": "156.0.8078.4",
+  "runs": [
+   {
+    "label": "easy: stun A + C",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 129,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard: stun A + B",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 123,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "single stun A",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 123,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "udp dead: stun BLACKHOLE x2",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard + turn OK",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "easy + turn dead (blackhole)",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "easy + turn tcp refused",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 124,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": [
+     "701:Failed to establish connection"
+    ]
+   },
+   {
+    "label": "stun A+B + turn tcp OK",
+    "cls": "relay-only-reachable",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 123,
+    "tFirstSrflx": null,
+    "tRelay": 62,
+    "srflx": [],
+    "relay": [
+     "tcp"
+    ],
+    "errors": []
+   }
+  ]
+ },
+ "webkit": {
+  "version": "27.2",
+  "runs": [
+   {
+    "label": "easy: stun A + C",
+    "cls": "easy-probable",
+    "mappingVaries": false,
+    "reason": "early",
+    "tDone": 794,
+    "tFirstSrflx": 40,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:49758"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard: stun A + B",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 156,
+    "tFirstSrflx": 3,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:64018",
+     "203.0.113.7:65018"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "single stun A",
+    "cls": "unknown-single-stun",
+    "mappingVaries": null,
+    "reason": "early",
+    "tDone": 154,
+    "tFirstSrflx": 3,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:65445"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "udp dead: stun BLACKHOLE x2",
+    "cls": "udp-blocked-or-no-stun",
+    "mappingVaries": null,
+    "reason": "budget",
+    "tDone": 2502,
+    "tFirstSrflx": null,
+    "tRelay": null,
+    "srflx": [],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "hard + turn OK",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 206,
+    "tFirstSrflx": 4,
+    "tRelay": 55,
+    "srflx": [
+     "203.0.113.7:58653",
+     "203.0.113.7:59653"
+    ],
+    "relay": [
+     null
+    ],
+    "errors": []
+   },
+   {
+    "label": "easy + turn dead (blackhole)",
+    "cls": "easy-probable",
+    "mappingVaries": false,
+    "reason": "budget",
+    "tDone": 2503,
+    "tFirstSrflx": 3,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:58881"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "easy + turn tcp refused",
+    "cls": "easy-probable",
+    "mappingVaries": false,
+    "reason": "budget",
+    "tDone": 2504,
+    "tFirstSrflx": 4,
+    "tRelay": null,
+    "srflx": [
+     "203.0.113.7:65190"
+    ],
+    "relay": [],
+    "errors": []
+   },
+   {
+    "label": "stun A+B + turn tcp OK",
+    "cls": "hard",
+    "mappingVaries": true,
+    "reason": "early",
+    "tDone": 208,
+    "tFirstSrflx": 3,
+    "tRelay": 57,
+    "srflx": [
+     "203.0.113.7:60615",
+     "203.0.113.7:61615"
+    ],
+    "relay": [
+     null
+    ],
+    "errors": []
+   }
+  ]
+ }
+}

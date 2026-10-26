@@ -1,0 +1,81 @@
+{
+ "chromium": "156.0.8078.4",
+ "results": [
+  {
+   "store": "mem",
+   "id": "512",
+   "half": {
+    "label": "1 download 50%",
+    "rendererMB": 653
+   },
+   "downloadMs": 25619,
+   "pieces": 2048,
+   "pieceLength": 262144,
+   "length": 536870912,
+   "mb": 512,
+   "marks": [
+    {
+     "label": "0 baseline (page loaded, WebTorrent imported)",
+     "rendererMB": 93
+    },
+    {
+     "label": "1 download 50%",
+     "rendererMB": 653
+    },
+    {
+     "label": "2 download complete (gc)",
+     "rendererMB": 918
+    },
+    {
+     "label": "3 all file Blobs built (still holding pieces)",
+     "rendererMB": 1121
+    },
+    {
+     "label": "4 Blobs written to IndexedDB (gc)",
+     "rendererMB": 919
+    },
+    {
+     "label": "5 client destroyed (gc)",
+     "rendererMB": 919
+    }
+   ]
+  },
+  {
+   "store": "idb",
+   "id": "512",
+   "half": {
+    "label": "1 download 50%",
+    "rendererMB": 443
+   },
+   "downloadMs": 25675,
+   "pieces": 2048,
+   "pieceLength": 262144,
+   "length": 536870912,
+   "serveMs": 269,
+   "serveBytes": 536870912,
+   "mb": 512,
+   "marks": [
+    {
+     "label": "0 baseline (page loaded, WebTorrent imported)",
+     "rendererMB": 92
+    },
+    {
+     "label": "1 download 50%",
+     "rendererMB": 443
+    },
+    {
+     "label": "2 download complete (gc)",
+     "rendererMB": 453
+    },
+    {
+     "label": "3 all files streamed back out of the store (gc)",
+     "rendererMB": 453
+    },
+    {
+     "label": "4 client destroyed (gc)",
+     "rendererMB": 453
+    }
+   ]
+  }
+ ]
+}

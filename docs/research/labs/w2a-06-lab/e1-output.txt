@@ -1,0 +1,31 @@
+--- raw fs.readdirSync order (this filesystem) ---
+A root: .DS_Store .htaccess .well-known 404.html _headers about.html css data img index.html js
+B root: .DS_Store .htaccess .well-known 404.html _headers about.html css data img index.html js
+
+--- (1) directory-path input, default filters ---
+A: 4b7dec99f4d64f184b731200777cd17cfa472303 8 files: 404.html, _headers, about.html, css/app.css, data/about.json, img/peer.png, index.html, js/app.js
+B: 4b7dec99f4d64f184b731200777cd17cfa472303 8 files: 404.html, _headers, about.html, css/app.css, data/about.json, img/peer.png, index.html, js/app.js
+same infohash A vs B (dir input, reversed creation order + other mtimes + other path)? true
+.well-known present in dir-input torrent? false
+dotfiles/_headers present? .htaccess:false _headers:true .DS_Store:false
+
+--- (2) explicit sorted Blob list incl. dotfiles (what a CI publisher should do) ---
+A: e046c1317941c559baab305360adaad4af04c132 11 files: .htaccess, .well-known/assetlinks.json, .well-known/security.txt, 404.html, _headers, about.html, css/app.css, data/about.json, img/peer.png, index.html, js/app.js
+same infohash A vs B? true | .well-known included? true
+
+--- (3) .torrent BYTES: creationDate pinned vs not ---
+pinned creationDate: identical bytes? true
+unpinned creationDate: identical bytes? false | same infohash? true
+creationDate=new Date(0) gotcha -> "creation date" written = 1792270345 (0 is falsy -> Date.now() used)
+
+--- (4) default piece length chosen by create-torrent for small sites ---
+  0.5 MiB site -> default piece 16 KiB -> 32 pieces (vs 2 at 256 KiB)
+    1 MiB site -> default piece 16 KiB -> 64 pieces (vs 4 at 256 KiB)
+    5 MiB site -> default piece 16 KiB -> 320 pieces (vs 20 at 256 KiB)
+   10 MiB site -> default piece 16 KiB -> 640 pieces (vs 40 at 256 KiB)
+   32 MiB site -> default piece 32 KiB -> 1024 pieces (vs 128 at 256 KiB)
+  100 MiB site -> default piece 128 KiB -> 800 pieces (vs 400 at 256 KiB)
+  500 MiB site -> default piece 512 KiB -> 1000 pieces (vs 2000 at 256 KiB)
+
+--- (5) default announce list added when announce is not set ---
+trackers baked in by default: 8 udp://tracker.leechers-paradise.org:6969 udp://tracker.coppersurfer.tk:6969 udp://tracker.opentrackr.org:1337 udp://explodie.org:6969 udp://tracker.empire-js.us:1337 wss://tracker.btorrent.xyz wss://tracker.openwebtorrent.com wss://tracker.webtorrent.dev

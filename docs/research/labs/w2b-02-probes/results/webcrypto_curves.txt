@@ -1,0 +1,3 @@
+chromium 156.0.8078.4 {"ECDSA secp256k1":"NotSupportedError: Failed to execute 'generateKey' on 'Subt","ECDSA P-256":"supported","Ed25519":"supported","ECDH secp256k1":"NotSupportedError: Failed to execute 'generateKey' on 'Subt"}
+webkit 27.2 {"ECDSA secp256k1":"NotSupportedError: The algorithm is not supported","ECDSA P-256":"supported","Ed25519":"supported","ECDH secp256k1":"NotSupportedError: The algorithm is not supported"}
+node v24.22.0 {"ECDSA secp256k1":"NotSupportedError","ECDSA P-256":"supported"}

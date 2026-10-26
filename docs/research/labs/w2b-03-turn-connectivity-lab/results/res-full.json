@@ -1,0 +1,1734 @@
+{
+ "chromium": {
+  "version": "156.0.8078.4",
+  "ice": [
+   {
+    "label": "no-servers",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 60865,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      118,
+      "complete"
+     ]
+    ],
+    "tNull": 118,
+    "gatherState": "complete",
+    "tComplete": 118,
+    "sdpBytes": 565,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A",
+    "cands": [
+     {
+      "t": 1,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 59404,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 7,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 59404,
+      "rel": "192.168.x.y:59404",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      119,
+      "complete"
+     ]
+    ],
+    "tNull": 119,
+    "gatherState": "complete",
+    "tComplete": 119,
+    "sdpBytes": 695,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A+C (same mapping)",
+    "cands": [
+     {
+      "t": 1,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 57870,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 6,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 57870,
+      "rel": "192.168.x.y:57870",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      122,
+      "complete"
+     ]
+    ],
+    "tNull": 122,
+    "gatherState": "complete",
+    "tComplete": 122,
+    "sdpBytes": 693,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A+B (mapping varies by dest)",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 62116,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 9,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 62116,
+      "rel": "192.168.x.y:62116",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 11,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 63116,
+      "rel": "192.168.x.y:62116",
+      "url": "stun:127.0.0.1:34781",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      123,
+      "complete"
+     ]
+    ],
+    "tNull": 123,
+    "gatherState": "complete",
+    "tComplete": 123,
+    "sdpBytes": 825,
+    "sdpCandLines": 3,
+    "stats": [
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34781",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn udp OK",
+    "cands": [
+     {
+      "t": 1,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 51394,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 7,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 51394,
+      "rel": "192.168.x.y:51394",
+      "url": "stun:127.0.0.1:34790",
+      "relayProto": null
+     },
+     {
+      "t": 63,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40001,
+      "rel": "203.0.113.7:51394",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      125,
+      "complete"
+     ]
+    ],
+    "tNull": 125,
+    "gatherState": "complete",
+    "tComplete": 125,
+    "sdpBytes": 823,
+    "sdpCandLines": 3,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34790",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn tcp OK",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 53125,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 71,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40002,
+      "rel": "203.0.113.7:64826",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "relayProto": "tcp"
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      126,
+      "complete"
+     ]
+    ],
+    "tNull": 126,
+    "gatherState": "complete",
+    "tComplete": 126,
+    "sdpBytes": 694,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "tcp",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn udp+tcp OK (one entry, 2 urls)",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 53600,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 6,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 53600,
+      "rel": "192.168.x.y:53600",
+      "url": "stun:127.0.0.1:34790",
+      "relayProto": null
+     },
+     {
+      "t": 69,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40003,
+      "rel": "203.0.113.7:53600",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     },
+     {
+      "t": 70,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40004,
+      "rel": "203.0.113.7:64828",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "relayProto": "tcp"
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      129,
+      "complete"
+     ]
+    ],
+    "tNull": 129,
+    "gatherState": "complete",
+    "tComplete": 129,
+    "sdpBytes": 952,
+    "sdpCandLines": 4,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34790",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "tcp",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn udp BLACKHOLE",
+    "cands": [
+     {
+      "t": 1,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 56374,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 564,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn tcp BLACKHOLE",
+    "cands": [
+     {
+      "t": 1,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 49590,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 566,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn udp REFUSED (closed port)",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 55343,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 566,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn tcp REFUSED (closed port)",
+    "cands": [
+     {
+      "t": 1,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 65070,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [
+     {
+      "t": 126,
+      "code": 701,
+      "text": "Failed to establish connection",
+      "url": "turn:127.0.0.1:34792?transport=tcp",
+      "addr": null,
+      "port": null
+     }
+    ],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      126,
+      "complete"
+     ]
+    ],
+    "tNull": 126,
+    "gatherState": "complete",
+    "tComplete": 126,
+    "sdpBytes": 566,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A + turn udp OK",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 63399,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 9,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 63399,
+      "rel": "192.168.x.y:63399",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 70,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40005,
+      "rel": "203.0.113.7:63399",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      130,
+      "complete"
+     ]
+    ],
+    "tNull": 130,
+    "gatherState": "complete",
+    "tComplete": 130,
+    "sdpBytes": 824,
+    "sdpCandLines": 3,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A + turn udp OK + BLACKHOLE udp",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 59463,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 10,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 59463,
+      "rel": "192.168.x.y:59463",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 70,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40006,
+      "rel": "203.0.113.7:59463",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 824,
+    "sdpCandLines": 3,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "policy=relay, turn udp OK",
+    "cands": [
+     {
+      "t": 66,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40007,
+      "rel": "0.0.0.0:0",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      128,
+      "complete"
+     ]
+    ],
+    "tNull": 128,
+    "gatherState": "complete",
+    "tComplete": 128,
+    "sdpBytes": 587,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "policy=relay, no servers",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      116,
+      "complete"
+     ]
+    ],
+    "tNull": 116,
+    "gatherState": "complete",
+    "tComplete": 116,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": []
+   }
+  ],
+  "peer": [
+   {
+    "label": "no-servers",
+    "tOffer": 120,
+    "sdpBytes": 543,
+    "candLines": 1,
+    "iceTimeout": false
+   },
+   {
+    "label": "stun A",
+    "tOffer": 125,
+    "sdpBytes": 672,
+    "candLines": 2,
+    "iceTimeout": false
+   },
+   {
+    "label": "turn udp OK",
+    "tOffer": 124,
+    "sdpBytes": 801,
+    "candLines": 3,
+    "iceTimeout": false
+   },
+   {
+    "label": "turn udp BLACKHOLE",
+    "tOffer": 5003,
+    "sdpBytes": 542,
+    "candLines": 1,
+    "iceTimeout": true
+   },
+   {
+    "label": "6 urls (CF-like): udp OK, udp refused, tcp OK, tcp blackhole, tcp refused, tcp blackhole",
+    "tOffer": 5002,
+    "sdpBytes": 929,
+    "candLines": 4,
+    "iceTimeout": true
+   },
+   {
+    "label": "2 urls: udp OK + tcp OK",
+    "tOffer": 129,
+    "sdpBytes": 929,
+    "candLines": 4,
+    "iceTimeout": false
+   }
+  ],
+  "alloc": {
+   "t0": 1792271705.719,
+   "t1": 1792271707.099,
+   "n": 10,
+   "gatherMs": [
+    123,
+    124,
+    129,
+    119,
+    121,
+    124,
+    124,
+    126,
+    128,
+    119
+   ]
+  },
+  "thr": {
+   "label": "chromium",
+   "tOpen": 17,
+   "maxMessageSize": 262144,
+   "runs": [
+    {
+     "size": 1024,
+     "MBps": 21.8,
+     "Mbps": 183,
+     "sec": 1.47
+    },
+    {
+     "size": 4096,
+     "MBps": 28.7,
+     "Mbps": 241,
+     "sec": 1.11
+    },
+    {
+     "size": 16384,
+     "MBps": 31.4,
+     "Mbps": 263,
+     "sec": 1.02
+    },
+    {
+     "size": 65536,
+     "MBps": 31.5,
+     "Mbps": 264,
+     "sec": 1.02
+    },
+    {
+     "size": 262144,
+     "MBps": 29.6,
+     "Mbps": 248,
+     "sec": 1.08
+    }
+   ],
+   "rttMs": {
+    "p50": 0.1,
+    "p95": 0.2,
+    "max": 4.8
+   }
+  }
+ },
+ "webkit": {
+  "version": "27.2",
+  "ice": [
+   {
+    "label": "no-servers",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      33,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 457,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     }
+    ]
+   },
+   {
+    "label": "stun A",
+    "cands": [
+     {
+      "t": 9,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 61384,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 587,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     }
+    ]
+   },
+   {
+    "label": "stun A+C (same mapping)",
+    "cands": [
+     {
+      "t": 26,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 62642,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 586,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780"
+     }
+    ]
+   },
+   {
+    "label": "stun A+B (mapping varies by dest)",
+    "cands": [
+     {
+      "t": 13,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 61257,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 17,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 62257,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34781",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 708,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34781"
+     }
+    ]
+   },
+   {
+    "label": "turn udp OK",
+    "cands": [
+     {
+      "t": 5,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 50608,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34790",
+      "relayProto": null
+     },
+     {
+      "t": 59,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40023,
+      "rel": "203.0.113.7:50608",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 716,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34790"
+     }
+    ]
+   },
+   {
+    "label": "turn tcp OK",
+    "cands": [
+     {
+      "t": 66,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40024,
+      "rel": "203.0.113.7:65029",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 594,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=tcp"
+     }
+    ]
+   },
+   {
+    "label": "turn udp+tcp OK (one entry, 2 urls)",
+    "cands": [
+     {
+      "t": 4,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 63137,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34790",
+      "relayProto": null
+     },
+     {
+      "t": 64,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40025,
+      "rel": "203.0.113.7:63137",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     },
+     {
+      "t": 65,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40026,
+      "rel": "203.0.113.7:65040",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 840,
+    "sdpCandLines": 3,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=tcp"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34790"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp"
+     }
+    ]
+   },
+   {
+    "label": "turn udp BLACKHOLE",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 457,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     }
+    ]
+   },
+   {
+    "label": "turn tcp BLACKHOLE",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     }
+    ]
+   },
+   {
+    "label": "turn udp REFUSED (closed port)",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     }
+    ]
+   },
+   {
+    "label": "turn tcp REFUSED (closed port)",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     }
+    ]
+   },
+   {
+    "label": "stun A + turn udp OK",
+    "cands": [
+     {
+      "t": 2,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 62377,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 60,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40027,
+      "rel": "203.0.113.7:62377",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      0,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 715,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780"
+     }
+    ]
+   },
+   {
+    "label": "stun A + turn udp OK + BLACKHOLE udp",
+    "cands": [
+     {
+      "t": 3,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 65073,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 54,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40028,
+      "rel": "203.0.113.7:65073",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 716,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp"
+     }
+    ]
+   },
+   {
+    "label": "policy=relay, turn udp OK",
+    "cands": [
+     {
+      "t": 55,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40029,
+      "rel": "0.0.0.0:0",
+      "url": "turn:127.0.0.1:34790?transport=udp",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      3,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 587,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "url": "turn:127.0.0.1:34790?transport=udp"
+     }
+    ]
+   },
+   {
+    "label": "policy=relay, no servers",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": []
+   }
+  ],
+  "peer": [
+   {
+    "label": "no-servers",
+    "error": "no-offer-in-20s"
+   },
+   {
+    "label": "stun A",
+    "tOffer": 5004,
+    "sdpBytes": 563,
+    "candLines": 1,
+    "iceTimeout": true
+   },
+   {
+    "label": "turn udp OK",
+    "tOffer": 5004,
+    "sdpBytes": 693,
+    "candLines": 2,
+    "iceTimeout": true
+   },
+   {
+    "label": "turn udp BLACKHOLE",
+    "error": "no-offer-in-20s"
+   },
+   {
+    "label": "6 urls (CF-like): udp OK, udp refused, tcp OK, tcp blackhole, tcp refused, tcp blackhole",
+    "tOffer": 5019,
+    "sdpBytes": 821,
+    "candLines": 3,
+    "iceTimeout": true
+   },
+   {
+    "label": "2 urls: udp OK + tcp OK",
+    "tOffer": 5011,
+    "sdpBytes": 819,
+    "candLines": 3,
+    "iceTimeout": true
+   }
+  ],
+  "alloc": {
+   "t0": 1792271893.655,
+   "t1": 1792271973.898,
+   "n": 10,
+   "gatherMs": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "thr": {
+   "error": "Error: page.evaluate: Error: open timeout"
+  }
+ }
+}

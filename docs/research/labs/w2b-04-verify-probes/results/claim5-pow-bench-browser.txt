@@ -1,0 +1,10 @@
+### chromium 156.0.8078.4
+  preimage 394 bytes (1 parent): {"js_1w_MHs":0.501,"js_4w_MHs":1.447,"js_5w_MHs":1.691,"webcrypto_1w_MHs":0.579,"mint14_1w_ms":{"mean":32.4,"median":22,"p95":98.8},"mint16_1w_ms":{"mean":173.9,"median":129.1,"p95":531.1}}
+     implied expected mint ms @14 bits: 1w JS 32.7, 4w 11.32, 5w 9.69, webcrypto-loop 28.3 | @16 bits: 1w 130.81, 5w 38.76, webcrypto 113.19
+  preimage 528 bytes (3 parent): {"js_1w_MHs":0.374,"js_4w_MHs":1.111,"js_5w_MHs":1.343,"webcrypto_1w_MHs":0.524,"mint14_1w_ms":{"mean":49.7,"median":28.3,"p95":181.9},"mint16_1w_ms":{"mean":283.1,"median":205.9,"p95":882.9}}
+     implied expected mint ms @14 bits: 1w JS 43.81, 4w 14.75, 5w 12.2, webcrypto-loop 31.27 | @16 bits: 1w 175.23, 5w 48.8, webcrypto 125.07
+### webkit 27.2
+  preimage 394 bytes (1 parent): {"js_1w_MHs":0.293,"js_4w_MHs":1.113,"js_5w_MHs":1.363,"webcrypto_1w_MHs":0.068,"mint14_1w_ms":{"mean":57.5,"median":38,"p95":155},"mint16_1w_ms":{"mean":201.1,"median":131,"p95":585}}
+     implied expected mint ms @14 bits: 1w JS 55.92, 4w 14.72, 5w 12.02, webcrypto-loop 240.94 | @16 bits: 1w 223.67, 5w 48.08, webcrypto 963.76
+  preimage 528 bytes (3 parent): {"js_1w_MHs":0.246,"js_4w_MHs":0.823,"js_5w_MHs":0.945,"webcrypto_1w_MHs":0.085,"mint14_1w_ms":{"mean":59.7,"median":44,"p95":161},"mint16_1w_ms":{"mean":233.9,"median":149,"p95":782}}
+     implied expected mint ms @14 bits: 1w JS 66.6, 4w 19.91, 5w 17.34, webcrypto-loop 192.75 | @16 bits: 1w 266.41, 5w 69.35, webcrypto 771.01

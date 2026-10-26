@@ -1,0 +1,82 @@
+{
+ "chromium http://localhost": {
+  "ver": "156.0.8078.4",
+  "isSecureContext": true,
+  "swApi": true,
+  "origin": "http://localhost:61209",
+  "registered": true,
+  "controlled": true,
+  "fetchStatus": 200,
+  "fetchBody": "from-sw:/virtual/a.txt:bytes=0-9",
+  "xSw": "1",
+  "iframeText": "from-sw:/virtual/page.html:",
+  "playwrightSeesServiceWorkers": 1
+ },
+ "chromium http://127.0.0.1": {
+  "ver": "156.0.8078.4",
+  "isSecureContext": true,
+  "swApi": true,
+  "origin": "http://127.0.0.1:61209",
+  "registered": true,
+  "controlled": true,
+  "fetchStatus": 200,
+  "fetchBody": "from-sw:/virtual/a.txt:bytes=0-9",
+  "xSw": "1",
+  "iframeText": "from-sw:/virtual/page.html:",
+  "playwrightSeesServiceWorkers": 1
+ },
+ "webkit http://localhost": {
+  "ver": "27.2",
+  "isSecureContext": true,
+  "swApi": true,
+  "origin": "http://localhost:61209",
+  "registered": true,
+  "controlled": true,
+  "fetchStatus": 200,
+  "fetchBody": "from-sw:/virtual/a.txt:bytes=0-9",
+  "xSw": "1",
+  "iframeText": "from-sw:/virtual/page.html:",
+  "playwrightSeesServiceWorkers": 0
+ },
+ "webkit http://127.0.0.1": {
+  "ver": "27.2",
+  "isSecureContext": true,
+  "swApi": true,
+  "origin": "http://127.0.0.1:61209",
+  "registered": true,
+  "controlled": true,
+  "fetchStatus": 200,
+  "fetchBody": "from-sw:/virtual/a.txt:bytes=0-9",
+  "xSw": "1",
+  "iframeText": "from-sw:/virtual/page.html:",
+  "playwrightSeesServiceWorkers": 0
+ },
+ "chromium localhost + serviceWorkers:'block'": {
+  "ver": "156.0.8078.4",
+  "isSecureContext": true,
+  "swApi": true,
+  "origin": "http://localhost:61209",
+  "error": "ready timeout 5s",
+  "playwrightSeesServiceWorkers": 0
+ },
+ "webkit localhost + serviceWorkers:'block'": {
+  "ver": "27.2",
+  "isSecureContext": true,
+  "swApi": true,
+  "origin": "http://localhost:61209",
+  "error": "ready timeout 5s",
+  "playwrightSeesServiceWorkers": 0
+ },
+ "chromium LAN http://192.168.18.5 (insecure)": {
+  "error": "page.goto: Timeout 30000ms exceeded.",
+  "playwrightSeesServiceWorkers": 0
+ },
+ "chromium LAN with --unsafely-treat-insecure-origin-as-secure": {
+  "error": "page.goto: Timeout 30000ms exceeded.",
+  "playwrightSeesServiceWorkers": 0
+ },
+ "webkit LAN http://192.168.18.5 (insecure)": {
+  "error": "page.goto: Timeout 30000ms exceeded.",
+  "playwrightSeesServiceWorkers": 0
+ }
+}

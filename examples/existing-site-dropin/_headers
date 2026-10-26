@@ -1,0 +1,10 @@
+# Response headers the host sends. Drop-in never synthesizes or removes them for documents.
+/*
+  X-Fixture-Host: existing-site
+  Referrer-Policy: no-referrer
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+/data.json
+  Cache-Control: no-cache

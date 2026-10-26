@@ -1,0 +1,26 @@
+{
+  "engine": "chromium",
+  "rows": [
+    {
+      "label": "SW sets Referrer-Policy: no-referrer on site documents (ARCH 7.1)",
+      "extRequests": [
+        "/embed (iframe) referer=null",
+        "/pixel.png (image) referer=null"
+      ]
+    },
+    {
+      "label": "SW sets nothing (browser default strict-origin-when-cross-origin)",
+      "extRequests": [
+        "/embed (iframe) referer=http://127.0.0.1:61714/",
+        "/pixel.png (image) referer=http://127.0.0.1:61714/"
+      ]
+    },
+    {
+      "label": "SW sets strict-origin-when-cross-origin",
+      "extRequests": [
+        "/embed (iframe) referer=http://127.0.0.1:61714/",
+        "/pixel.png (image) referer=http://127.0.0.1:61714/"
+      ]
+    }
+  ]
+}

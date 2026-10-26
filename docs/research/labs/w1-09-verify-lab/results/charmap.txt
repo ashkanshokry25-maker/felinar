@@ -1,0 +1,4 @@
+# charmap_check.mjs against dl/cr_escape.cc (run 2026-10-17T22:02:55Z)
+words: 0xffffffff 0xfc00987d 0x78000001 0xb8000001 0xffffffff 0xffffffff 0xffffffff 0xffffffff
+bytes 0..255 where Chromium kQueryCharmap and encodeURIComponent disagree: []
+unescaped by Chromium: !'()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~

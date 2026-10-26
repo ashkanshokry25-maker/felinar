@@ -1,0 +1,35 @@
+# WebKit 27.2 (Playwright build, JavaScriptCore) on macOS; ENGINE=webkit
+## native (control)
+native on webkit 27.2: 134/140 passed
+  fromBase64                   26/26
+  fromHex                      18/18
+  prototype/setFromBase64      32/36
+  prototype/setFromHex         24/26
+  prototype/toBase64           20/20
+  prototype/toHex              14/14
+  FAIL prototype/setFromBase64/throws-when-target-is-backed-by-immutable-arraybuffer.js [sloppy]: no arg factories match include immutable and exclude undefined
+  FAIL prototype/setFromBase64/throws-when-target-is-backed-by-immutable-arraybuffer.js [strict]: no arg factories match include immutable and exclude undefined
+  FAIL prototype/setFromBase64/trailing-garbage.js [sloppy]: Uint8Array.prototype.setFromBase64 requires a valid base64 string
+  FAIL prototype/setFromBase64/trailing-garbage.js [strict]: Uint8Array.prototype.setFromBase64 requires a valid base64 string
+  FAIL prototype/setFromHex/throws-when-target-is-backed-by-immutable-arraybuffer.js [sloppy]: no arg factories match include immutable and exclude undefined
+
+## stripped (natives deleted, no polyfill)
+stripped on webkit 27.2: 16/140 passed
+  fromBase64                   2/26
+  fromHex                      2/18
+  prototype/setFromBase64      2/36
+  prototype/setFromHex         4/26
+  prototype/toBase64           2/20
+  prototype/toHex              4/14
+  FAIL fromBase64/alphabet.js [sloppy]: Uint8Array.fromBase64 is not a function. (In 'Uint8Array.fromBase64('x+/y')', 'Uint8Array.fromBase64' is undefined)
+
+## stripped+polyfill
+stripped+polyfill u8-polyfill.js on webkit 27.2: 84/140 passed
+  fromBase64                   26/26
+  fromHex                      18/18
+  prototype/setFromBase64      2/36
+  prototype/setFromHex         4/26
+  prototype/toBase64           20/20
+  prototype/toHex              14/14
+  FAIL prototype/setFromBase64/alphabet.js [sloppy]: target.setFromBase64 is not a function. (In 'target.setFromBase64('x+/y')', 'target.setFromBase64' is undefined)
+  FAIL prototype/setFromBase64/alphabet.js [strict]: target.setFromBase64 is not a function. (In 'target.setFromBase64('x+/y')', 'target.setFromBase64' is undefined)

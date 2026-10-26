@@ -1,0 +1,76 @@
+{
+ "info": {
+  "node": "v24.22.0",
+  "webtorrent": "3.0.21",
+  "infoHashNodeSeeder": "fe44390ce3296a2a8ff46cbaa1814267643576d9",
+  "infoHashLabMemoryObjects": "d0037167fc5786a0b755637e93e5995d23e935a4",
+  "sameInfoHashAcrossNodeDirAndMemoryInput": false,
+  "nodePeerIdPrefix": "-WW0300-",
+  "torrentFiles": 5,
+  "seederUploaded": 0
+ },
+ "trackerSwarm": 1,
+ "results": {
+  "chromium": {
+   "attempts": [
+    {
+     "wires": [],
+     "warnings": [
+      "Connection error: Connection failed."
+     ],
+     "errors": [],
+     "done": false,
+     "shaMatches": false
+    },
+    {
+     "wires": [],
+     "warnings": [
+      "Connection error: Connection failed."
+     ],
+     "errors": [],
+     "done": false,
+     "shaMatches": false
+    }
+   ],
+   "version": "156.0.8078.4"
+  },
+  "chromium_default_mdns": {
+   "attempts": [
+    {
+     "wires": [],
+     "warnings": [],
+     "errors": [],
+     "done": false,
+     "shaMatches": false
+    },
+    {
+     "wires": [],
+     "warnings": [],
+     "errors": [],
+     "done": false,
+     "shaMatches": false
+    }
+   ],
+   "version": "156.0.8078.4"
+  },
+  "webkit": {
+   "attempts": [
+    {
+     "wires": [],
+     "warnings": [],
+     "errors": [],
+     "done": false,
+     "shaMatches": false
+    },
+    {
+     "wires": [],
+     "warnings": [],
+     "errors": [],
+     "done": false,
+     "shaMatches": false
+    }
+   ],
+   "version": "27.2"
+  }
+ }
+}

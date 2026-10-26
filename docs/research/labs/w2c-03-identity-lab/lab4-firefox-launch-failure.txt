@@ -1,0 +1,44 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Failed to launch the browser process.
+Browser logs:
+
+<launching> /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/pw-browsers/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/tmp/playwright_firefoxdev_profile-jYI6Ae -juggler-pipe -silent
+<launched> pid=31598
+[pid=31598][err] *** You are running in headless mode.
+[pid=31598][err] Could not find profile folder.
+[pid=31598] <process did exit: exitCode=1, signal=null>
+[pid=31598] starting temporary directories cleanup
+Call log:
+  - <launching> /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/pw-browsers/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/tmp/playwright_firefoxdev_profile-jYI6Ae -juggler-pipe -silent
+  - <launched> pid=31598
+  - [pid=31598][err] *** You are running in headless mode.
+  - [pid=31598][err] Could not find profile folder.
+  - [pid=31598] <process did exit: exitCode=1, signal=null>
+  - [pid=31598] starting temporary directories cleanup
+  - [pid=31598] <gracefully close start>
+  - [pid=31598] <kill>
+  - [pid=31598] <skipped force kill spawnedProcess.killed=false processClosed=true>
+  - [pid=31598] finished temporary directories cleanup
+  - [pid=31598] <gracefully close end>
+
+    at /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/lab/lab4-engines.mjs:16:34 {
+  log: [
+    '  - <launching> /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/pw-browsers/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/tmp/playwright_firefoxdev_profile-jYI6Ae -juggler-pipe -silent',
+    '  - <launched> pid=31598',
+    '  - [pid=31598][err] *** You are running in headless mode.',
+    '  - [pid=31598][err] Could not find profile folder.',
+    '  - [pid=31598] <process did exit: exitCode=1, signal=null>',
+    '  - [pid=31598] starting temporary directories cleanup',
+    '  - [pid=31598] <gracefully close start>',
+    '  - [pid=31598] <kill>',
+    '  - [pid=31598] <skipped force kill spawnedProcess.killed=false processClosed=true>',
+    '  - [pid=31598] finished temporary directories cleanup',
+    '  - [pid=31598] <gracefully close end>'
+  ],
+  name: 'Error'
+}
+
+Node.js v24.22.0

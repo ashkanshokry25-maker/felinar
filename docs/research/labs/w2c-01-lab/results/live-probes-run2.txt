@@ -1,0 +1,53 @@
+# live probes 2026-10-17T21:23:29Z from Toronto (cf-ray YYZ); local resolver sinkholes w3s.link -> 0.0.0.0
+
+## IPFS public gateways (gateway-checker list 2026-10-17 + others), CID bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m
+https://4everland.io | GET=301 t=0.196530s body=121B ACAO=* AR= CR= LOC=https://bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m.ipfs.4everland.io/ SUNSET= | OPTIONS: HTTP/2 301  ACAH=[Content-Type Range User-Agent X-Requested-With ]
+https://apac.orbitor.dev | GET=206 t=0.229111s body=10B ACAO=* AR=bytes CR=bytes 0-9/32 LOC= SUNSET= | OPTIONS: HTTP/2 200  ACAH=[Content-Type Range User-Agent X-Requested-With ]
+https://dget.top | GET=403 t=0.130119s body=5622B ACAO= AR= CR= LOC= SUNSET= | OPTIONS: HTTP/2 403  ACAH=[]
+https://dweb.link | GET=429 t=0.138985s body=188B ACAO=* AR= CR= LOC= SUNSET=Mon, 21 Sep 2026 00:00:00 GMT | OPTIONS: HTTP/2 521  ACAH=[]
+https://eu.orbitor.dev | GET=206 t=0.236528s body=10B ACAO=* AR=bytes CR=bytes 0-9/32 LOC= SUNSET= | OPTIONS: HTTP/2 200  ACAH=[Content-Type Range User-Agent X-Requested-With ]
+https://gateway.lighthouse.storage | GET=402 t=0.424778s body=17B ACAO=* AR= CR= LOC= SUNSET= | OPTIONS: HTTP/1.1 204 No Content ACAH=[* ]
+https://gateway.pinata.cloud | GET=206 t=5.643459s body=10B ACAO=* AR= CR=bytes 0-9/32 LOC= SUNSET= | OPTIONS: HTTP/2 204  ACAH=[]
+https://ipfs.cyou | GET=000 t=12.011532s body=B ACAO= AR= CR= LOC= SUNSET= | OPTIONS: curl: (28) Connection timed out after 12003 milliseconds ACAH=[]
+https://ipfs.filebase.io | GET=206 t=0.186137s body=10B ACAO=* AR= CR=bytes 0-9/32 LOC= SUNSET= | OPTIONS: HTTP/2 204  ACAH=[Content-Type, Range, User-Agent, X-Requested-With ]
+https://ipfs.io | GET=429 t=0.125933s body=188B ACAO=* AR= CR= LOC= SUNSET=Mon, 21 Sep 2026 00:00:00 GMT | OPTIONS: HTTP/2 521  ACAH=[]
+https://ipfs.orbitor.dev | GET=206 t=0.229074s body=10B ACAO=* AR=bytes CR=bytes 0-9/32 LOC= SUNSET= | OPTIONS: HTTP/2 200  ACAH=[Content-Type Range User-Agent X-Requested-With ]
+https://ipfs.storry.tv | GET=301 t=0.634940s body=118B ACAO=* AR= CR= LOC=https://bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m.ipfs.storry.tv/ SUNSET= | OPTIONS: HTTP/2 301  ACAH=[DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Access-Control-Expose-Headers,Accept-Ranges ]
+https://latam.orbitor.dev | GET=000 t=0.104360s body=B ACAO= AR= CR= LOC= SUNSET= | OPTIONS: curl: (7) Failed to connect to latam.orbitor.dev port 443 after 104 ms: Couldn't connect to server ACAH=[]
+https://nftstorage.link | GET=302 t=0.122932s body=143B ACAO= AR= CR= LOC=https://ipfs.io/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m SUNSET= | OPTIONS: HTTP/2 302  ACAH=[]
+https://storacha.link | GET=301 t=0.137393s body=167B ACAO= AR= CR= LOC=https://dweb.link/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m SUNSET= | OPTIONS: HTTP/2 301  ACAH=[]
+https://trustless-gateway.link | GET=000 t=12.001429s body=B ACAO= AR= CR= LOC= SUNSET= | OPTIONS: curl: (28) Operation timed out after 12004 milliseconds with 0 bytes received ACAH=[]
+https://w3s.link | GET=000 t=0.102053s body=B ACAO= AR= CR= LOC= SUNSET= | OPTIONS: curl: (7) Failed to connect to w3s.link port 443 after 102 ms: Couldn't connect to server ACAH=[]
+
+## Blossom servers (blob = sha256 b1674191...f553)
+https://24242.io | GET=404 t=0.234285s sz=24 ACAO=* CR= LOC= | OPT: HTTP/2 200  ACAH=[Authorization, * ]
+https://blossom.band | GET=404 t=0.177565s sz=9 ACAO=* CR= LOC= | OPT: HTTP/2 204  ACAH=[Authorization,Accept,Range,Cache-Control,If-Modified-Since,Content-Disposition,Content-Encoding,Content-Language,Content-Type,Content-Length,Expires,x-nb-no-redirect,x-nb-bypass-cache,x-content-type,x-content-length,x-sha-256,Referer ]
+https://blossom.f7z.io | GET=404 t=0.433461s sz=14 ACAO=* CR= LOC= | OPT: HTTP/2 204  ACAH=[Authorization,Content-Type,* ]
+https://blossom.nostr.build | GET=404 t=0.190380s sz=9 ACAO=* CR= LOC= | OPT: HTTP/2 204  ACAH=[Authorization,Accept,Range,Cache-Control,If-Modified-Since,Content-Disposition,Content-Encoding,Content-Language,Content-Type,Content-Length,Expires,x-nb-no-redirect,x-nb-bypass-cache,x-content-type,x-content-length,x-sha-256,Referer ]
+https://blossom.oxtr.dev | GET=404 t=0.424374s sz=0 ACAO=* CR= LOC= | OPT: HTTP/1.1 200 OK ACAH=[* ]
+https://blossom.primal.net | GET=200 t=1.047834s sz=184292 ACAO=* CR= LOC= | OPT: HTTP/2 200  ACAH=[Authorization, * ]
+https://blossom.yakihonne.com | GET=404 t=0.995885s sz=14 ACAO=* CR= LOC= | OPT: HTTP/1.1 204 No Content ACAH=[Authorization,Content-Type,* ]
+https://cdn.hzrd149.com | GET=206 t=0.174792s sz=10 ACAO=* CR=bytes 0-9/184292 LOC= | OPT: HTTP/2 204  ACAH=[Authorization,Content-Type,* ]
+https://cdn.nostrcheck.me | GET=000 t=12.009540s sz=0 ACAO= CR= LOC= | OPT: curl: (28) Operation timed out after 12007 milliseconds with 0 bytes received ACAH=[]
+https://cdn.satellite.earth | GET=302 t=0.157963s sz=0 ACAO=https://example.org CR= LOC=https://blob.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553 | OPT: HTTP/1.1 204 No Content ACAH=[cache-control,range ]
+https://nostr.download | GET=206 t=0.392024s sz=10 ACAO=* CR=bytes 0-9/184292 LOC= | OPT: HTTP/2 200  ACAH=[authorization,content-type,x-sha-256,x-content-length,x-content-type,x-identical-media,* ]
+https://nostrmedia.com | GET=404 t=1.550036s sz=14 ACAO=* CR= LOC= | OPT: HTTP/2 204  ACAH=[* ]
+
+## Arweave / ar.io gateways (txid nBOEA5n1...Iq Q, 1,503,086 B)
+https://ar-io.dev | GET=302 t=0.421680s sz=137 ACAO=* AR= CR= LOC=https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.ar-io.dev/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ?  | OPT: HTTP/2 204  ACAH=[cache-control,range ]
+https://ar-io.net | GET=000 t=0.073473s sz=0 ACAO= AR= CR= LOC=  | OPT: curl: (6) Could not resolve host: ar-io.net ACAH=[]
+https://ardrive.net | GET=302 t=0.421055s sz=139 ACAO=* AR= CR= LOC=https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.ardrive.net/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ?  | OPT: HTTP/2 204  ACAH=[cache-control,range ]
+https://ario.permagate.io | GET=503 t=3.312752s sz=114 ACAO= AR= CR= LOC=  | OPT: HTTP/2 503  ACAH=[]
+https://arweave.developerdao.com | GET=502 t=0.372167s sz=150 ACAO= AR= CR= LOC=  | OPT: HTTP/2 502  ACAH=[]
+https://arweave.net | GET=302 t=0.116402s sz=748 ACAO=* AR= CR= LOC=https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.arweave.net/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ  | OPT: HTTP/2 302  ACAH=[* ]
+https://arweave.nyc | GET=404 t=6.990594s sz=2035 ACAO=* AR= CR= LOC=  | OPT: HTTP/1.1 204 No Content ACAH=[* ]
+https://g8way.io | GET=000 t=0.104663s sz=0 ACAO= AR= CR= LOC=  | OPT: curl: (7) Failed to connect to g8way.io port 443 after 104 ms: Couldn't connect to server ACAH=[]
+https://permagate.io | GET=503 t=0.835273s sz=165 ACAO= AR= CR= LOC=  | OPT: HTTP/2 503  ACAH=[]
+https://turbo-gateway.com | GET=000 t=0.105093s sz=0 ACAO= AR= CR= LOC=  | OPT: curl: (7) Failed to connect to turbo-gateway.com port 443 after 105 ms: Couldn't connect to server ACAH=[]
+https://vilenarios.com | GET=302 t=0.159253s sz=142 ACAO=* AR= CR= LOC=https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.vilenarios.com/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ?  | OPT: HTTP/2 204  ACAH=[cache-control,range ]
+
+## delegated routing
+delegated-ipfs.dev: 200 0.237302s
+cid.contact: 200 0.153197s
+
+## DNS cross-check 2026-10-17T21:25:06Z: ar-io.net and g8way.io return SERVFAIL (lame delegation) from BOTH Cloudflare and Google DoH; turbo-gateway.com, w3s.link, latam.orbitor.dev resolve globally but this Mac's resolver sinkholes them to 0.0.0.0 (local blocklist), so 'unreachable' in the probes above = LOCAL for those three.

@@ -1,0 +1,37 @@
+[webkit] spec-7.2             dialogs            {"test":"dialogs","dialogs":[],"res":{"alertMs":0,"alertReturned":true,"confirm":false,"prompt":null},"console":[]}
+[webkit] spec-7.2             print              {"test":"print","res":{"printCalled":true},"console":[]}
+[webkit] spec-7.2             beforeunload       {"test":"beforeunload","dialogs":[],"frameNowAt":"/a.html","console":[]}
+[webkit] spec-7.2             popups             {"test":"popups","out":{"#b-open":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":[]},"#a-blank":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":[]},"#b-open-ext":{"url":"/popup","title":"EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http
+[webkit] spec-7.2             downloads          {"test":"downloads","out":{"#a-dl":"dl.txt.html","#a-attach":"attach.bin","#b-blobdl":"blob.txt"},"frameStill":"/behaviors.html","console":[]}
+[webkit] spec-7.2             customProtocols    {"test":"customProtocols","out":{"#a-mailto":"/behaviors.html","#a-tel":"/behaviors.html"},"console":[]}
+[webkit] spec-7.2             targetTop          {"test":"targetTop","topUrl":"/b.html","topReloaded":true,"frameUrl":"/b.html","console":[]}
+[webkit] spec-7.2             api                {"test":"api","res":{"shareExists":true,"share":"ok","fsEnabled":true,"fs":"ok","clip":"ok"},"console":[]}
+[webkit] spec-7.2             ownServiceWorker   {"test":"ownServiceWorker","res":{"sw":"registered http://127.0.0.1:60992/"},"regs":[{"scope":"/","active":"/site-sw.js","waiting":null,"installing":null}],"console":[]}
+[webkit] plus-modals          dialogs            {"test":"dialogs","dialogs":["alert","confirm","prompt"],"res":{"alertMs":1,"alertReturned":true,"confirm":true,"prompt":""},"console":[]}
+[webkit] plus-modals          print              {"test":"print","res":{"printCalled":true},"console":[]}
+[webkit] plus-modals          beforeunload       {"test":"beforeunload","dialogs":["beforeunload"],"frameNowAt":"/a.html","console":[]}
+[webkit] plus-modals          popups             {"test":"popups","out":{"#b-open":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":2,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":["alert"]},"#a-blank":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":["alert"]},"#b-open-ext":{"url":"/popup","title":"EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"o
+[webkit] plus-modals          downloads          {"test":"downloads","out":{"#a-dl":"dl.txt.html","#a-attach":"attach.bin","#b-blobdl":"blob.txt"},"frameStill":"/behaviors.html","console":[]}
+[webkit] plus-modals          customProtocols    {"test":"customProtocols","out":{"#a-mailto":"/behaviors.html","#a-tel":"/behaviors.html"},"console":[]}
+[webkit] plus-modals          targetTop          {"test":"targetTop","topUrl":"/b.html","topReloaded":true,"frameUrl":"/b.html","console":[]}
+[webkit] plus-modals          api                {"test":"api","res":{"shareExists":true,"share":"ok","fsEnabled":true,"fs":"ok","clip":"ok"},"console":[]}
+[webkit] plus-modals          ownServiceWorker   {"test":"ownServiceWorker","res":{"sw":"registered http://127.0.0.1:60992/"},"regs":[{"scope":"/","active":"/site-sw.js","waiting":null,"installing":null}],"console":[]}
+[webkit] plus-modals+escape   dialogs            {"test":"dialogs","dialogs":["alert","confirm","prompt"],"res":{"alertMs":0,"alertReturned":true,"confirm":true,"prompt":""},"console":[]}
+[webkit] plus-modals+escape   print              {"test":"print","res":{"printCalled":true},"console":[]}
+[webkit] plus-modals+escape   beforeunload       {"test":"beforeunload","dialogs":["beforeunload"],"frameNowAt":"/a.html","console":[]}
+[webkit] plus-modals+escape   popups             {"test":"popups","out":{"#b-open":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":["alert"]},"#a-blank":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":["alert"]},"#b-open-ext":{"url":"/popup","title":"EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"o
+[webkit] plus-modals+escape   downloads          {"test":"downloads","out":{"#a-dl":"dl.txt.html","#a-attach":"attach.bin","#b-blobdl":"blob.txt"},"frameStill":"/behaviors.html","console":[]}
+[webkit] plus-modals+escape   customProtocols    {"test":"customProtocols","out":{"#a-mailto":"/behaviors.html","#a-tel":"/behaviors.html"},"console":[]}
+[webkit] plus-modals+escape   targetTop          {"test":"targetTop","topUrl":"/b.html","topReloaded":true,"frameUrl":"/b.html","console":[]}
+[webkit] plus-modals+escape   api                {"test":"api","res":{"shareExists":true,"share":"ok","fsEnabled":true,"fs":"ok","clip":"ok"},"console":[]}
+[webkit] plus-modals+escape   ownServiceWorker   {"test":"ownServiceWorker","res":{"sw":"registered http://127.0.0.1:60992/"},"regs":[{"scope":"/","active":"/site-sw.js","waiting":null,"installing":null}],"console":[]}
+[webkit] no-sandbox           dialogs            {"test":"dialogs","dialogs":["alert","confirm","prompt"],"res":{"alertMs":0,"alertReturned":true,"confirm":true,"prompt":""},"console":[]}
+[webkit] no-sandbox           print              {"test":"print","res":{"printCalled":true},"console":[]}
+[webkit] no-sandbox           beforeunload       {"test":"beforeunload","dialogs":["beforeunload"],"frameNowAt":"/a.html","console":[]}
+[webkit] no-sandbox           popups             {"test":"popups","out":{"#b-open":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":["alert"]},"#a-blank":{"url":"/popup.html","title":"POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60992\",\"opaque\":false,\"top\":false,\"sw\":true}","dialogs":["alert"]},"#b-open-ext":{"url":"/popup","title":"EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"o
+[webkit] no-sandbox           downloads          {"test":"downloads","out":{"#a-dl":"dl.txt.html","#a-attach":"attach.bin","#b-blobdl":"blob.txt"},"frameStill":"/behaviors.html","console":[]}
+[webkit] no-sandbox           customProtocols    {"test":"customProtocols","out":{"#a-mailto":"/behaviors.html","#a-tel":"/behaviors.html"},"console":[]}
+[webkit] no-sandbox           targetTop          {"test":"targetTop","topUrl":"/b.html","topReloaded":true,"frameUrl":"/b.html","console":[]}
+[webkit] no-sandbox           api                {"test":"api","res":{"shareExists":true,"share":"ok","fsEnabled":true,"fs":"ok","clip":"ok"},"console":[]}
+[webkit] no-sandbox           ownServiceWorker   {"test":"ownServiceWorker","res":{"sw":"registered http://127.0.0.1:60992/"},"regs":[{"scope":"/","active":"/site-sw.js","waiting":null,"installing":null}],"console":[]}
+saved $HOME/Documents/Projects/magnet-web/docs/research/w2a-08-lab/results/sandbox-webkit.json

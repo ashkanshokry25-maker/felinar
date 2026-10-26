@@ -1,0 +1,41 @@
+{
+ "browser": "chromium 156.0.8078.4",
+ "trials": [
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "2f7d5fde-6afd-4077-89d6-34dbdcf233fd",
+   "source": "2f7d5fde-6afd-4077-89d6-34dbdcf233fd",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  },
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "c19b74a3-944b-4dfd-98c7-c4d1dba249e9",
+   "source": "c19b74a3-944b-4dfd-98c7-c4d1dba249e9",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  },
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "908a1846-6cab-44de-8ade-748a2ca0e814",
+   "source": "908a1846-6cab-44de-8ade-748a2ca0e814",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  },
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "1263d0ff-1d0a-4034-af82-c8b6012a7983",
+   "source": "1263d0ff-1d0a-4034-af82-c8b6012a7983",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  }
+ ]
+}

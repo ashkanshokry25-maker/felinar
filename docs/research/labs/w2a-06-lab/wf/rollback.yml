@@ -1,0 +1,32 @@
+# .github/workflows/rollback.yml : "rollback" = roll FORWARD to an old release with a NEW seq (loaders refuse a lower seq)
+name: rollback
+on:
+  workflow_dispatch:
+    inputs:
+      channel: { type: choice, options: [beta, prod], required: true }
+      release: { description: 'release id to restore, e.g. 1.4.1-9f8e7d6c', type: string, required: true }
+permissions: {}
+concurrency: { group: mw-publish, queue: max }
+env: { CDN: 'https://seed.example.com' }
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - env: { GH_TOKEN: "${{ github.token }}", REL: "${{ inputs.release }}" }
+        run: |
+          set -euo pipefail
+          gh release download "rel-${REL}" --repo "$GITHUB_REPOSITORY" --dir out
+          node tools/mw.mjs seed-verify out/site.torrent "${CDN}/r/${REL}/" --origin "https://$([ '${{ inputs.channel }}' = prod ] && echo example.com || echo beta.example.com)"   # the old prefix must still be intact
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: release, path: out, if-no-files-found: error }
+  pointer:
+    needs: fetch
+    permissions: { id-token: write, contents: read }
+    uses: ./.github/workflows/pointer.yml
+    with:
+      channel: ${{ inputs.channel }}
+      host: ${{ inputs.channel == 'prod' && 'example.com' || 'beta.example.com' }}
+      rel: ${{ inputs.release }}

@@ -1,0 +1,483 @@
+/* src/loader/ui.css: the shell loader's own styles (ARCHITECTURE §5.10, DESIGN-REVIEW S10).
+   System fonts, no external assets, light and dark via prefers-color-scheme. The site iframe covers
+   the viewport (position: fixed; inset: 0); the loader bar floats over it: top on desktop, bottom on
+   phones padded by the safe-area insets, and it shrinks to a small pill once the site is shown. */
+
+:root {
+  --mw-bg: #f6f7f9;
+  --mw-panel: #ffffff;
+  --mw-fg: #15181d;
+  --mw-muted: #5b6575;
+  --mw-border: #d3d9e2;
+  --mw-chip: #e9edf3;
+  --mw-accent: #2453c7;
+  --mw-accent-fg: #ffffff;
+  --mw-ok: #1d7f46;
+  --mw-warn: #9a5b00;
+  --mw-err: #b42318;
+  --mw-scrim: rgba(15, 18, 24, 0.45);
+  --mw-shadow: 0 10px 32px rgba(0, 0, 0, 0.18);
+  --mw-bar-bg: rgba(246, 247, 249, 0.94);
+  --mw-z: 2147483000;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mw-bg: #101318;
+    --mw-panel: #171b22;
+    --mw-fg: #e6e9ef;
+    --mw-muted: #9aa4b5;
+    --mw-border: #2b313c;
+    --mw-chip: #1f252f;
+    --mw-accent: #7aa2ff;
+    --mw-accent-fg: #0b0e14;
+    --mw-ok: #52d08a;
+    --mw-warn: #f2b84b;
+    --mw-err: #ff7b72;
+    --mw-scrim: rgba(0, 0, 0, 0.6);
+    --mw-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
+    --mw-bar-bg: rgba(16, 19, 24, 0.94);
+  }
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--mw-bg);
+  color: var(--mw-fg);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+[hidden] { display: none !important; }
+
+.mw-root {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.mw-site { position: relative; }
+
+.mw-site-frame {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  /* Code review round 1: the page's own canvas colour. A transparent frame showed the shell's light grey
+     under sites without a background (their canvas is transparent when both schemes match). */
+  background: #fff;
+  background: Canvas;
+  display: block;
+}
+
+/* ---- loader bar -------------------------------------------------------------------------------- */
+.mw-bar {
+  position: fixed;
+  z-index: var(--mw-z);
+  top: 0;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  padding: 6px max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left));
+  padding-top: max(6px, env(safe-area-inset-top));
+  background: var(--mw-bar-bg);
+  border-bottom: 1px solid var(--mw-border);
+  font-size: 13px;
+  -webkit-backdrop-filter: saturate(1.2) blur(6px);
+  backdrop-filter: saturate(1.2) blur(6px);
+}
+
+.mw-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 30px;
+}
+
+.mw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--mw-border);
+  background: var(--mw-panel);
+  color: var(--mw-fg);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.mw-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mw-muted);
+}
+.mw-connected .mw-dot { background: var(--mw-ok); }
+.mw-has-error .mw-dot { background: var(--mw-err); }
+
+.mw-status {
+  flex: 1 1 12em;
+  min-width: 8em;
+  color: var(--mw-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mw-status.mw-ok { color: var(--mw-ok); }
+.mw-status.mw-warn { color: var(--mw-warn); }
+.mw-status.mw-error { color: var(--mw-err); }
+
+.mw-progress {
+  position: relative;
+  flex: 0 0 110px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--mw-chip);
+  overflow: hidden;
+}
+.mw-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--mw-accent);
+  transition: width 0.2s ease-out;
+}
+.mw-progress.mw-done .mw-progress-fill { background: var(--mw-ok); }
+.mw-progress.mw-indeterminate .mw-progress-fill {
+  width: 30%;
+  animation: mw-slide 1.2s ease-in-out infinite;
+}
+@keyframes mw-slide { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+.mw-progress-text { color: var(--mw-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.mw-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.mw-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--mw-chip);
+  color: var(--mw-fg);
+  white-space: nowrap;
+  max-width: 28em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.mw-chip.mw-warn { color: var(--mw-warn); }
+
+.mw-subline { margin-top: 4px; color: var(--mw-muted); }
+
+/* collapsed: only the pill remains, pinned to the corner */
+.mw-bar.mw-collapsed {
+  left: auto;
+  right: max(8px, env(safe-area-inset-right));
+  top: max(8px, env(safe-area-inset-top));
+  padding: 0;
+  background: transparent;
+  border: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.mw-collapsed .mw-status,
+.mw-collapsed .mw-progress,
+.mw-collapsed .mw-progress-text,
+.mw-collapsed .mw-chips,
+.mw-collapsed .mw-settings-btn,
+.mw-collapsed .mw-subline,
+.mw-collapsed .mw-banners { display: none; }
+.mw-collapsed .mw-pill { box-shadow: var(--mw-shadow); }
+
+/* ---- buttons, inputs ---------------------------------------------------------------------------- */
+.mw-btn {
+  font: inherit;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--mw-border);
+  background: var(--mw-panel);
+  color: var(--mw-fg);
+  cursor: pointer;
+}
+.mw-btn:hover { border-color: var(--mw-accent); }
+.mw-btn:focus-visible, .mw-pill:focus-visible, .mw-input:focus-visible { outline: 2px solid var(--mw-accent); outline-offset: 2px; }
+.mw-btn:disabled { opacity: 0.5; cursor: default; }
+.mw-btn.mw-primary { background: var(--mw-accent); border-color: var(--mw-accent); color: var(--mw-accent-fg); }
+.mw-btn.mw-link { background: transparent; border-color: transparent; color: var(--mw-accent); text-decoration: underline; padding-left: 4px; padding-right: 4px; }
+.mw-btn.mw-small { min-height: 26px; padding: 2px 8px; }
+.mw-btn.mw-danger { color: var(--mw-err); }
+
+.mw-input {
+  font: inherit;
+  box-sizing: border-box;
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--mw-border);
+  background: var(--mw-bg);
+  color: var(--mw-fg);
+  min-width: 0;
+}
+textarea.mw-input { width: 100%; resize: vertical; }
+.mw-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.mw-file { max-width: 100%; font-size: 12px; }
+
+/* ---- banners and notice ------------------------------------------------------------------------- */
+.mw-banners:empty { display: none; }
+.mw-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--mw-chip);
+  border-left: 3px solid var(--mw-accent);
+}
+.mw-banner.mw-warn { border-left-color: var(--mw-warn); }
+.mw-banner.mw-error { border-left-color: var(--mw-err); }
+.mw-banner-text { flex: 1 1 16em; }
+.mw-banner-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+.mw-notice {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--mw-panel);
+  border: 1px solid var(--mw-border);
+  box-shadow: var(--mw-shadow);
+}
+.mw-notice-text { margin: 0 0 6px; }
+
+.mw-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* ---- dialogs ------------------------------------------------------------------------------------ */
+.mw-scrim {
+  position: fixed;
+  z-index: calc(var(--mw-z) + 1);
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: var(--mw-scrim);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px 16px;
+  overflow: auto;
+}
+.mw-dialog {
+  box-sizing: border-box;
+  width: min(34rem, 100%);
+  margin-top: 6vh;
+  padding: 16px 18px;
+  background: var(--mw-panel);
+  color: var(--mw-fg);
+  border: 1px solid var(--mw-border);
+  border-radius: 14px;
+  box-shadow: var(--mw-shadow);
+}
+.mw-dialog h2 { margin: 0 0 8px; font-size: 18px; }
+.mw-dialog h3 { margin: 0 0 6px; font-size: 14px; }
+.mw-dialog p { margin: 0 0 10px; }
+.mw-error { border-left: 4px solid var(--mw-err); }
+.mw-error-detail { color: var(--mw-muted); white-space: pre-line; }
+.mw-details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0 0 12px; }
+.mw-details dt { color: var(--mw-muted); }
+.mw-details dd { margin: 0; word-break: break-all; }
+.mw-section { padding: 12px 0; border-top: 1px solid var(--mw-border); }
+.mw-section:first-of-type { border-top: 0; }
+.mw-field { margin-bottom: 8px; }
+.mw-toggle { display: flex; gap: 8px; align-items: center; font-weight: 600; cursor: pointer; }
+.mw-switch { width: 18px; height: 18px; margin: 0; accent-color: var(--mw-accent); }
+.mw-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.mw-value { font-variant-numeric: tabular-nums; }
+.mw-note { color: var(--mw-muted); font-size: 12px; margin: 2px 0 6px; }
+.mw-note.mw-ok { color: var(--mw-ok); }
+.mw-note.mw-error { color: var(--mw-err); }
+.mw-note:empty { display: none; }
+.mw-diag { margin: 0 0 8px; padding-left: 18px; }
+.mw-diag-row { margin-bottom: 6px; }
+.mw-diag-remedy { display: block; color: var(--mw-muted); font-size: 12px; }
+.mw-log {
+  max-height: 30vh;
+  overflow: auto;
+  margin: 0;
+  padding: 6px;
+  font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--mw-bg);
+  border: 1px solid var(--mw-border);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.mw-log:empty { display: none; }
+.mw-dialog-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--mw-border); }
+
+/* ---- boot screen (before loader.js runs) -------------------------------------------------------- */
+.mw-boot-msg { margin: 0; color: var(--mw-muted); }
+/* Code review round 1 (item 22): the static non-root hint shows only when boot.js has not replaced the line. */
+.mw-boot-hint { animation: mw-boot-hint 0s linear 6s both; }
+@keyframes mw-boot-hint { from { visibility: hidden; } to { visibility: visible; } }
+.mw-boot-error {
+  box-sizing: border-box;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+}
+.mw-boot-error h1 { font-size: 20px; margin: 0 0 10px; }
+.mw-boot-error ul { padding-left: 20px; }
+
+/* ---- phones: bar at the bottom, dialogs as bottom sheets, bigger touch targets ---------------- */
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .mw-bar {
+    top: auto;
+    bottom: 0;
+    border-bottom: 0;
+    border-top: 1px solid var(--mw-border);
+    padding-top: 6px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  .mw-bar.mw-collapsed {
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .mw-btn, .mw-pill { min-height: 40px; }
+  /* Code review round 1: 16 px fields on phones, or iOS Safari zooms the page on focus and stays zoomed. */
+  .mw-input, textarea.mw-input, select.mw-input { font-size: 16px; }
+  .mw-progress { flex-basis: 70px; }
+  .mw-chip { max-width: 16em; }
+  .mw-scrim { align-items: flex-end; padding: 0; }
+  .mw-dialog {
+    width: 100%;
+    margin: 0;
+    max-height: 90vh;
+    max-height: 90dvh;
+    overflow: auto;
+    border-radius: 14px 14px 0 0;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-progress.mw-indeterminate .mw-progress-fill { animation: none; width: 100%; opacity: 0.4; }
+  .mw-progress-fill { transition: none; }
+}
+
+/* v0.3: the in-page cards (createCards in ui.js) live in a closed shadow root and are styled through the
+   CSSOM, so they need nothing here. These rules cover the shell's own settings rows only. */
+.mw-row[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .mw-root * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ---- v0.3 C2 (lane wire-ui): seeding lines, dock mode and the call panel ---------------------------------
+   research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md 3.1.4, 3.1.5, 3.3 and 3.5. The seeding lines sit in the loader bar
+   (createSeedUi in ui.js); the dim page of dock mode covers everything; the call panel (src/loader/call-ui.js) is a
+   closed shadow root that loads this file, so its .mw-call rules apply inside it and [data-mw-call] places its host. */
+
+.mw-uploads, .mw-keeper, .mw-meter { margin-top: 4px; color: var(--mw-muted); font-size: 12px; }
+.mw-uploads p, .mw-keeper p, .mw-meter p { margin: 2px 0; }
+.mw-uploads {
+  background: var(--mw-panel);
+  border: 1px solid var(--mw-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--mw-fg);
+}
+.mw-upload-name { font-weight: 600; margin-right: 6px; }
+.mw-upload-note { color: var(--mw-muted); }
+.mw-collapsed .mw-uploads,
+.mw-collapsed .mw-keeper,
+.mw-collapsed .mw-meter { display: none; }
+.mw-seed-line { margin-top: 6px; }
+.mw-dock-row { margin: 6px 0; }
+
+/* Dock mode: a dim, nearly black page while the screen is kept on (S1 D3); one line of text and one button. */
+.mw-dock {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  inset: 0;
+  z-index: calc(var(--mw-z) + 1);
+  background: rgba(0, 0, 0, 0.94);
+  color: #9aa4b5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.mw-dock-text { max-width: 28em; margin: 0; font-size: 15px; }
+.mw-dock .mw-dock-stop { background: #1f252f; border-color: #2b313c; color: #e6e9ef; }
+
+/* The call panel's host in the loader's document: bottom right on a computer, at the top on a phone (the loader bar
+   is at the bottom there). Above the dim page of dock mode, so a call that rings on a docked phone is seen. */
+/* C2 integrator: top right on computers too, under the loader's pill (top 8px, about 30px high). At the bottom right the
+   panel overlapped the loader cards (bottom centre, up to 640px wide, the signed-in header among them) on viewports
+   narrower than about 1400px, and each overlay's redress guard then cancelled the other's buttons (e2e E-CL-1). */
+[data-mw-call] {
+  position: fixed;
+  right: 12px;
+  top: max(48px, calc(env(safe-area-inset-top) + 40px));
+  bottom: auto;
+  z-index: calc(var(--mw-z) + 2);
+  width: 360px;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 64px);
+  overflow: auto;
+}
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  [data-mw-call] {
+    left: 8px;
+    right: 8px;
+    bottom: auto;
+    top: max(8px, env(safe-area-inset-top));
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* Inside the call panel's shadow root. */
+.mw-call { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--mw-fg); }
+.mw-call-live {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.mw-call-card, .mw-call-panel {
+  background: var(--mw-panel);
+  border: 1px solid var(--mw-border);
+  border-radius: 12px;
+  box-shadow: var(--mw-shadow);
+  padding: 12px 14px;
+  margin-top: 8px;
+}
+.mw-call-title { margin: 0; font-size: 16px; font-weight: 700; }
+.mw-call-sub { margin: 0 0 6px; color: var(--mw-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.mw-call-text { margin: 6px 0; }
+.mw-call-actions, .mw-call-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.mw-call-btn { min-height: 44px; min-width: 44px; }
+.mw-call-btn.mw-call-accept, .mw-call-btn.mw-call-confirm { background: var(--mw-accent); border-color: var(--mw-accent); color: var(--mw-accent-fg); }
+.mw-call-btn.mw-call-hangup, .mw-call-btn.mw-call-decline { color: var(--mw-err); }
+.mw-call-btn[aria-pressed="true"] { background: var(--mw-chip); }
+.mw-call-status { margin: 4px 0 0; color: var(--mw-muted); font-size: 13px; }
+.mw-call-status:empty { display: none; }
+.mw-call-head { margin: 0; display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+.mw-call-clock { color: var(--mw-muted); font-variant-numeric: tabular-nums; }
+.mw-call-notice { margin: 4px 0; color: var(--mw-warn); font-size: 13px; }
+.mw-call-people { list-style: none; margin: 6px 0; padding: 0; }
+.mw-call-person { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.mw-call-person-state { color: var(--mw-muted); }
+.mw-call-person[data-state="left"] .mw-call-person-name { color: var(--mw-muted); text-decoration: line-through; }
+.mw-call-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.mw-call-video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; object-fit: cover; }
+.mw-call-audio { display: none; }
+.mw-call-local { width: 96px; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; object-fit: cover; float: right; margin: 4px 0 0 6px; }

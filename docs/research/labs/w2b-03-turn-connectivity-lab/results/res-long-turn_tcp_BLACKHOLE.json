@@ -1,0 +1,69 @@
+{
+ "chromium": {
+  "version": "156.0.8078.4",
+  "ice": [
+   {
+    "label": "turn tcp BLACKHOLE",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 56203,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [
+     {
+      "t": 39957,
+      "code": 701,
+      "text": "TURN allocate request timed out.",
+      "url": "turn:127.0.0.1:34791?transport=tcp",
+      "addr": null,
+      "port": null
+     }
+    ],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      39957,
+      "complete"
+     ]
+    ],
+    "tNull": 39957,
+    "gatherState": "complete",
+    "tComplete": 39957,
+    "sdpBytes": 566,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     }
+    ]
+   }
+  ]
+ }
+}

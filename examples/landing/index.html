@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>felinar: websites by magnet link, no backend</title>
+<meta name="description" content="Websites loaded by magnet link, verified in your browser, from a plain static host. No backend. The light web. Shared data lives in the site ledger: a signed, hash-linked log that every visitor copies and verifies.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="felinar">
+<meta property="og:description" content="Websites loaded by magnet link, verified in your browser, from a plain static host. No backend. The light web.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect x='4' y='4' width='120' height='120' rx='28' fill='%234b42e0'/%3E%3Cpath d='M34 46V70a30 30 0 0 0 60 0V46' fill='none' stroke='%23fff' stroke-width='16'/%3E%3Ccircle cx='64' cy='67' r='15' fill='none' stroke='%23fff' stroke-width='4.5'/%3E%3Crect x='26' y='24' width='16' height='16' rx='2' fill='%23fff'/%3E%3Crect x='86' y='24' width='16' height='16' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/styles.css">
+<script type="module" src="/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="/" aria-label="felinar, home">
+      <svg class="brand-mark" viewBox="0 0 128 128" width="36" height="36" aria-hidden="true" focusable="false">
+        <rect x="4" y="4" width="120" height="120" rx="28" class="mark-tile"/>
+        <g fill="none" class="mark-glyph-stroke">
+          <path d="M34 46 V70 A30 30 0 0 0 94 70 V46" stroke-width="16"/>
+          <circle cx="64" cy="67" r="15" stroke-width="4.5"/>
+          <ellipse cx="64" cy="67" rx="6.5" ry="15" stroke-width="3.5"/>
+          <path d="M49 67 H79" stroke-width="3.5"/>
+        </g>
+        <g class="mark-glyph-fill">
+          <rect x="26" y="24" width="16" height="16" rx="2"/>
+          <rect x="86" y="24" width="16" height="16" rx="2"/>
+        </g>
+      </svg>
+      <span class="brand-name">felinar</span>
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <ul>
+        <li><a href="#why">Why</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#start">Get started</a></li>
+        <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/README.md">Docs</a></li>
+        <li><a href="https://github.com/ashkanshokry25-maker/felinar">GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Open source, MIT license. Version 0.3.0, pre-release.</p>
+        <h1 id="hero-title">Websites loaded by magnet link, verified in your browser, from a plain static host. No backend. The light web.</h1>
+        <p class="lede">No backend means there's no application server or database for you to run. You still need an HTTPS
+          static host, which serves the loader on every visit and keeps the site loading when nobody else is online.
+          Visitors find each other through WebSocket trackers and STUN servers, public ones or your own.</p>
+        <p class="lede">Shared data lives in the <strong>site ledger</strong>: a signed, hash-linked log that every
+          visitor copies and verifies. No mining, no consensus, no finality.</p>
+        <p class="cta-row">
+          <a class="button primary" href="#start">Get started</a>
+          <a class="button" href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/WHY.md">Read the case for it</a>
+        </p>
+      </div>
+
+      <aside class="reach" id="reach" data-state="checking" aria-labelledby="reach-title">
+        <h2 id="reach-title">How this page reached you</h2>
+        <p class="reach-stat" id="reach-stat" hidden>
+          <span class="reach-num" id="reach-peers">0</span>
+          <span class="reach-num-label" id="reach-peers-label">peers connected now</span>
+        </p>
+        <div aria-live="polite">
+          <p class="reach-source" id="reach-source">This box shows where this page came from when felinar delivers
+            it: from the host, from other visitors or from this device.</p>
+          <dl class="reach-bytes" id="reach-bytes" hidden>
+            <div id="reach-download-peers"><dt>From other visitors</dt><dd id="reach-from-peers">0 B</dd></div>
+            <div id="reach-download-host"><dt>From the host</dt><dd id="reach-from-host">0 B</dd></div>
+            <div id="reach-uploaded-row" hidden><dt>Passed on to others</dt><dd id="reach-uploaded">0 B</dd></div>
+          </dl>
+          <p class="reach-note" id="reach-note"></p>
+        </div>
+        <p class="reach-actions"><button type="button" class="button small" id="reach-share" hidden>Sharing options</button></p>
+        <p class="reach-mode" id="reach-mode"></p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="band" id="why" aria-labelledby="why-title">
+    <div class="wrap">
+      <h2 id="why-title">Why felinar</h2>
+      <p class="section-lede">Every benefit below comes with the condition it depends on. The long version, with the
+        numbers and their sources, is in <a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/WHY.md">WHY.md</a>.</p>
+      <ul class="cards" role="list">
+        <li class="card">
+          <h3>Hosting that costs next to nothing</h3>
+          <p>Your site stays a folder of files on a plain static host: GitHub Pages, Cloudflare Pages or a bucket
+            behind a CDN. Visitors who choose to share pass the files on to each other.</p>
+          <p class="condition"><strong>Condition:</strong> peers carry a real share of the bytes only for large sites
+            with many visitors online at once. A site under about 16 MiB gets about 0% of its first load from peers
+            (a model, not a measurement). Choose it for resilience, not to cut a small bill.</p>
+        </li>
+        <li class="card">
+          <h3>Shared data without a backend</h3>
+          <p>Guestbooks, comments and notices live in the site ledger, moderated with your keys. Your pages use it
+            through <code>mw.db</code>: create, read, update and delete, with no database to run.</p>
+          <p class="condition"><strong>Condition:</strong> everything written is public and there's no finality. New
+            entries spread only while someone with a copy is online, so keep a snapshot on your host or a pinned node.</p>
+        </li>
+        <li class="card">
+          <h3>Your domain and your key stay in charge</h3>
+          <p>The site is addressed by its content, and a pointer signed with your owner key names the current
+            version. Browsers check every piece and remember your key from the first visit.</p>
+          <p class="condition"><strong>Condition:</strong> your HTTPS host and your DNS are still the trust root.
+            Whoever controls them controls what visitors run.</p>
+        </li>
+        <li class="card">
+          <h3>One script tag for an existing site</h3>
+          <p>Drop-in mode leaves your HTML on your host, so URLs, redirects, 404 pages and search results stay as they
+            are. If the runtime fails, pages load from the host as before.</p>
+          <p class="condition"><strong>Condition:</strong> new visitors still need your host, and filling each
+            visitor's copy can multiply your host's traffic. The publish tool prints the figure for your site.</p>
+        </li>
+        <li class="card">
+          <h3>Returning visitors ride out an outage</h3>
+          <p>In shell mode the browser keeps a verified copy and serves it at your site's own URLs, online or
+            offline.</p>
+          <p class="condition"><strong>Condition:</strong> only for visitors who loaded the site before and still hold
+            the copy; Safari may clear it after 7 days without a visit. Crawlers see the loader, not your pages.</p>
+        </li>
+        <li class="card">
+          <h3>No tracking added by the loader</h3>
+          <p>No analytics, no telemetry and no third-party scripts. Nothing connects to a peer, tracker, STUN server or
+            DNS-over-HTTPS service until the visitor chooses, and "Load from host only" sits right beside "Share and
+            load".</p>
+          <p class="condition"><strong>Condition:</strong> your host still sees each visitor's IP address, as any web
+            host does. Once a visitor shares, other visitors and the connection servers can see their IP address and
+            that they're viewing your site.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band alt" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <h2 id="how-title">How it works</h2>
+      <ol class="steps">
+        <li><h3>Loader</h3><p>Every visit downloads a small loader from your HTTPS host.</p></li>
+        <li><h3>Pointer</h3><p>The loader checks the signature on the site's pointer, a tag in the page or a DNS
+          record read over DNS-over-HTTPS, and on later visits that it carries the key remembered on the
+          first.</p></li>
+        <li><h3>Pieces</h3><p>Files come from your host's web seed and, if the visitor agrees, from other visitors
+          over WebRTC. Trackers and STUN servers only introduce browsers. Every piece is checked against the
+          infohash.</p></li>
+        <li><h3>Copy</h3><p>The verified files and the site ledger are kept in the browser's storage.</p></li>
+        <li><h3>Serve</h3><p>A Service Worker answers your site's own URLs from that copy, so links,
+          <code>fetch('/data.json')</code> and client-side routers work unchanged. In drop-in mode your host
+          still serves the HTML.</p></li>
+        <li><h3>Ledger</h3><p>Your pages read and write shared data with <code>mw.db</code>. Entries are signed,
+          carry a small spam fee and travel to other visitors over the same connections.</p></li>
+      </ol>
+
+      <div class="modes">
+        <div class="mode">
+          <h3>Shell mode</h3>
+          <p>For new or peer-first sites. Your site runs in a same-URL frame, from its torrent. Returning visitors
+            keep working when the host is down.</p>
+          <p class="condition">Search engines and link previews see the loader, not your content.</p>
+        </div>
+        <div class="mode">
+          <h3>Drop-in mode</h3>
+          <p>For existing sites. One script tag; your HTML stays on your host. After the first page view, the other
+            files come from the visitor's verified copy.</p>
+          <p class="condition">The host stays in the loop for every new visitor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="data" aria-labelledby="data-title">
+    <div class="wrap two-col">
+      <div>
+        <h2 id="data-title">Shared data in a few lines</h2>
+        <p>Publish with an open writing policy, then any page of the site can write to its ledger and react to
+          every visitor's entries. Each write is signed with the visitor's own key and pays a small proof-of-work
+          fee against spam.</p>
+        <p class="condition">Everything written with mw.db is public and copied to every visitor. Deleting an entry
+          hides it for visitors who receive the deletion.</p>
+        <p><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/CRUD.md">The data guide</a> and
+          <a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/SDK.md">the SDK reference</a> cover the rest.</p>
+      </div>
+      <pre class="code" tabindex="0" aria-label="Example: a guestbook with mw.db"><code>import mw from '/_mw/sdk.js';
+await mw.ready();
+
+// Read: now and after every change
+mw.db.subscribe(({ lists }) =&gt; {
+  render(lists.guestbook || []);
+});
+
+// Create: signed, with a spam fee
+await mw.db.append('guestbook', {
+  msg: 'Hello!',
+});
+
+// Delete one of your own entries
+await mw.db.tombstone(entry.h);</code></pre>
+    </div>
+  </section>
+
+  <section class="band alt" id="not" aria-labelledby="not-title">
+    <div class="wrap">
+      <h2 id="not-title">What it is not</h2>
+      <ul class="plain-list">
+        <li><strong>Not free of servers.</strong> Every visit downloads the loader from your HTTPS host, and trackers
+          and STUN servers introduce visitors to each other.</li>
+        <li><strong>Not a cryptocurrency chain.</strong> No mining, no consensus, no finality. The proof-of-work on
+          each post is a spam fee, not security.</li>
+        <li><strong>Not anonymous.</strong> Peers, trackers and STUN servers see each visitor's IP address. There's
+          no private mode.</li>
+        <li><strong>Not a backup.</strong> Browsers can clear their copy. Your host's files, a ledger snapshot and a
+          pinned node are the floor.</li>
+        <li><strong>Not for private data.</strong> Accounts, payments, email and secrets stay on a server.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band" id="start" aria-labelledby="start-title">
+    <div class="wrap two-col">
+      <div>
+        <h2 id="start-title">Get started</h2>
+        <p>You need Node 22 or newer and git. The demo builds the loader and the identity page, publishes an example
+          guestbook, starts a local tracker, a dev server and the identity page, and prints the address to open. Open it
+          in two different browsers, choose "Share and load" in both, and sign the guestbook in one: the post signs you in
+          at the identity page first, and the entry appears in the other.</p>
+        <p>Status: version 0.3.0 passes its unit and end-to-end suites on one development machine, over loopback
+          only. The release gate on real phones and browsers hasn't run yet, so nothing here is called
+          production-ready.</p>
+        <ul class="link-list">
+          <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/QUICKSTART.md">Quickstart: publish a site</a></li>
+          <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/MIGRATION.md">Move an existing site</a></li>
+          <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/FAQ.md">Questions and short answers</a></li>
+          <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/CRITIQUE.md">The case against this design</a></li>
+        </ul>
+      </div>
+      <pre class="code" tabindex="0" aria-label="Commands: run the demo"><code>git clone https://github.com/ashkanshokry25-maker/felinar.git
+cd felinar
+npm ci
+npm run demo</code></pre>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <p>This page is published through felinar itself.
+      <a href="https://github.com/ashkanshokry25-maker/felinar/tree/main/examples/landing">Its source</a> is in the repository.</p>
+    <ul class="footer-links" role="list">
+      <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/LICENSE">MIT License</a></li>
+      <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/SECURITY.md">Security</a></li>
+      <li><a href="https://github.com/ashkanshokry25-maker/felinar/blob/main/docs/PRIVACY.md">Privacy</a></li>
+    </ul>
+  </div>
+</footer>
+</body>
+</html>

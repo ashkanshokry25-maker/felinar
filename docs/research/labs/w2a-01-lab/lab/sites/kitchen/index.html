@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>kitchen</title>
+<link rel="stylesheet" href="/css/root.css">
+<link rel="stylesheet" href="css/rel.css">
+<link rel="modulepreload" href="/js/chunk2.mjs">
+<link rel="icon" href="/img/abs.png">
+</head><body>
+<h1 id="h">kitchen</h1>
+<div id="bg-abs"></div><div id="bg-rel"></div>
+<img id="img-abs" src="/img/abs.png" alt=""><img id="img-rel" src="img/rel.png" alt="">
+<img id="img-srcset" srcset="/img/abs2.png 1x, /img/abs3.png 2x" alt="">
+<a id="a-abs" href="/about.html">abs</a> <a id="a-rel" href="about.html">rel</a> <a id="a-frag" href="#frag">frag</a>
+<a id="a-top" href="/about.html" target="_top">top</a>
+<form id="f-get" action="/search" method="get"><input name="q" value="1"><button id="f-go">go</button></form>
+<svg width="0" height="0"><symbol id="sym" viewBox="0 0 10 10"><rect width="10" height="10"/></symbol><linearGradient id="grad"><stop offset="0" stop-color="red"/></linearGradient></svg>
+<svg id="svg-use" width="10" height="10"><use href="#sym"/></svg>
+<svg width="10" height="10"><rect id="svg-fill" width="10" height="10" fill="url(#grad)"/></svg>
+<div id="frag" style="height:10px"></div>
+<script type="module" src="/js/main.mjs"></script>
+</body></html>

@@ -1,0 +1,234 @@
+{
+ "date": "2026-10-17T21:47:12.032Z",
+ "cpu": "Apple M3",
+ "results": {
+  "chromium 156.0.8078.4 | 2 MiB in 20 files": {
+   "idb files as Blob, 1 tx (default durability)": {
+    "writeMs": 3.3,
+    "readAllMs": 1.8,
+    "reopenAndReadFirstMs": 0.1
+   },
+   "idb files as Blob, 1 tx (durability strict)": {
+    "writeMs": 6.7,
+    "readAllMs": 1.7,
+    "reopenAndReadFirstMs": 0.1
+   },
+   "idb files as Blob, 1 tx (durability relaxed)": {
+    "writeMs": 3.2,
+    "readAllMs": 1.8,
+    "reopenAndReadFirstMs": 0.2
+   },
+   "idb files as Uint8Array, 1 tx": {
+    "writeMs": 4.5,
+    "readAllMs": 1.3,
+    "reopenAndReadFirstMs": 0.1
+   },
+   "idb 256KiB pieces as Uint8Array, 1 tx": {
+    "writeMs": 2.2,
+    "readAllMs": 0.5,
+    "reopenAndReadFirstMs": 0.2
+   },
+   "idb 256KiB pieces, 1 tx PER piece": {
+    "writeMs": 6.3
+   },
+   "Cache Storage put(Response(Blob)) x files": {
+    "writeMs": 5.8,
+    "readAllMs": 3.3
+   },
+   "OPFS createSyncAccessHandle (worker) per file": {
+    "writeMs": 18.3,
+    "readAllMs": 4.5
+   }
+  },
+  "chromium 156.0.8078.4 | 16 MiB in 60 files": {
+   "idb files as Blob, 1 tx (default durability)": {
+    "writeMs": 12.3,
+    "readAllMs": 7.2,
+    "reopenAndReadFirstMs": 0.3
+   },
+   "idb files as Blob, 1 tx (durability strict)": {
+    "writeMs": 26.2,
+    "readAllMs": 7,
+    "reopenAndReadFirstMs": 0.1
+   },
+   "idb files as Blob, 1 tx (durability relaxed)": {
+    "writeMs": 12.9,
+    "readAllMs": 7.1,
+    "reopenAndReadFirstMs": 0.2
+   },
+   "idb files as Uint8Array, 1 tx": {
+    "writeMs": 16.3,
+    "readAllMs": 6.8,
+    "reopenAndReadFirstMs": 0.2
+   },
+   "idb 256KiB pieces as Uint8Array, 1 tx": {
+    "writeMs": 16.9,
+    "readAllMs": 6.8,
+    "reopenAndReadFirstMs": 0.3
+   },
+   "idb 256KiB pieces, 1 tx PER piece": {
+    "writeMs": 59
+   },
+   "Cache Storage put(Response(Blob)) x files": {
+    "writeMs": 19.9,
+    "readAllMs": 13.7
+   },
+   "OPFS createSyncAccessHandle (worker) per file": {
+    "writeMs": 58.3,
+    "readAllMs": 20.8
+   }
+  },
+  "chromium 156.0.8078.4 | 48 MiB in 120 files": {
+   "idb files as Blob, 1 tx (default durability)": {
+    "writeMs": 30.8,
+    "readAllMs": 21.6,
+    "reopenAndReadFirstMs": 0.3
+   },
+   "idb files as Blob, 1 tx (durability strict)": {
+    "writeMs": 53.2,
+    "readAllMs": 22.6,
+    "reopenAndReadFirstMs": 0.2
+   },
+   "idb files as Blob, 1 tx (durability relaxed)": {
+    "writeMs": 30.7,
+    "readAllMs": 19.1,
+    "reopenAndReadFirstMs": 0.2
+   },
+   "idb files as Uint8Array, 1 tx": {
+    "writeMs": 44.4,
+    "readAllMs": 16.9,
+    "reopenAndReadFirstMs": 0.3
+   },
+   "idb 256KiB pieces as Uint8Array, 1 tx": {
+    "writeMs": 56.2,
+    "readAllMs": 19.7,
+    "reopenAndReadFirstMs": 0.3
+   },
+   "idb 256KiB pieces, 1 tx PER piece": {
+    "writeMs": 169.7
+   },
+   "Cache Storage put(Response(Blob)) x files": {
+    "writeMs": 42.1,
+    "readAllMs": 35.1
+   },
+   "OPFS createSyncAccessHandle (worker) per file": {
+    "writeMs": 133.8,
+    "readAllMs": 46.8
+   }
+  },
+  "webkit 27.2 | 2 MiB in 20 files": {
+   "idb files as Blob, 1 tx (default durability)": {
+    "writeMs": 11,
+    "readAllMs": 3,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb files as Blob, 1 tx (durability strict)": {
+    "writeMs": 13,
+    "readAllMs": 3,
+    "reopenAndReadFirstMs": 1
+   },
+   "idb files as Blob, 1 tx (durability relaxed)": {
+    "writeMs": 11,
+    "readAllMs": 3,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb files as Uint8Array, 1 tx": {
+    "writeMs": 3,
+    "readAllMs": 1,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb 256KiB pieces as Uint8Array, 1 tx": {
+    "writeMs": 2,
+    "readAllMs": 0,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb 256KiB pieces, 1 tx PER piece": {
+    "writeMs": 2
+   },
+   "Cache Storage put(Response(Blob)) x files": {
+    "writeMs": 8,
+    "readAllMs": 4
+   },
+   "OPFS createSyncAccessHandle (worker) per file": {
+    "writeMs": 6,
+    "readAllMs": 11
+   }
+  },
+  "webkit 27.2 | 16 MiB in 60 files": {
+   "idb files as Blob, 1 tx (default durability)": {
+    "writeMs": 35,
+    "readAllMs": 12,
+    "reopenAndReadFirstMs": 1
+   },
+   "idb files as Blob, 1 tx (durability strict)": {
+    "writeMs": 36,
+    "readAllMs": 11,
+    "reopenAndReadFirstMs": 1
+   },
+   "idb files as Blob, 1 tx (durability relaxed)": {
+    "writeMs": 33,
+    "readAllMs": 12,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb files as Uint8Array, 1 tx": {
+    "writeMs": 48,
+    "readAllMs": 5,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb 256KiB pieces as Uint8Array, 1 tx": {
+    "writeMs": 46,
+    "readAllMs": 5,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb 256KiB pieces, 1 tx PER piece": {
+    "writeMs": 66
+   },
+   "Cache Storage put(Response(Blob)) x files": {
+    "writeMs": 27,
+    "readAllMs": 17
+   },
+   "OPFS createSyncAccessHandle (worker) per file": {
+    "writeMs": 25,
+    "readAllMs": 36
+   }
+  },
+  "webkit 27.2 | 48 MiB in 120 files": {
+   "idb files as Blob, 1 tx (default durability)": {
+    "writeMs": 68,
+    "readAllMs": 29,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb files as Blob, 1 tx (durability strict)": {
+    "writeMs": 88,
+    "readAllMs": 26,
+    "reopenAndReadFirstMs": 1
+   },
+   "idb files as Blob, 1 tx (durability relaxed)": {
+    "writeMs": 66,
+    "readAllMs": 25,
+    "reopenAndReadFirstMs": 1
+   },
+   "idb files as Uint8Array, 1 tx": {
+    "writeMs": 144,
+    "readAllMs": 16,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb 256KiB pieces as Uint8Array, 1 tx": {
+    "writeMs": 136,
+    "readAllMs": 16,
+    "reopenAndReadFirstMs": 0
+   },
+   "idb 256KiB pieces, 1 tx PER piece": {
+    "writeMs": 194
+   },
+   "Cache Storage put(Response(Blob)) x files": {
+    "writeMs": 67,
+    "readAllMs": 44
+   },
+   "OPFS createSyncAccessHandle (worker) per file": {
+    "writeMs": 53,
+    "readAllMs": 70
+   }
+  }
+ }
+}

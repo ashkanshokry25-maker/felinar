@@ -1,0 +1,2 @@
+webkit 27.2 {"wasm m=19MiB t=2":{"min":20,"med":21},"noble m=19MiB t=2":{"min":108,"med":123},"wasm m=64MiB t=3":{"min":107,"med":109},"noble m=64MiB t=3":{"min":549,"med":551},"noble scrypt N=2^16":{"min":111,"med":125}} 
+ ratio noble/wasm 19MiB t=2: 5.9  64MiB t=3: 5.1

@@ -1,0 +1,4 @@
+@import url(/css/imported.css);
+#bg-abs{background:url(/img/abs.png);width:20px;height:20px}
+@font-face{font-family:F;src:url(/fonts/f.woff2)}
+#h{font-family:F,sans-serif}

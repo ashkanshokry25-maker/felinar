@@ -1,0 +1,1 @@
+{"Comment":"magnet-web pointer seq=1792270345 rel=1.4.2","Changes":[{"Action":"DELETE","ResourceRecordSet":{"Name":"_magnet.example.com.","Type":"TXT","TTL":300,"ResourceRecords":[{"Value":"\"OLD-1\" \"OLD-2\""}]}},{"Action":"CREATE","ResourceRecordSet":{"Name":"_magnet.example.com.","Type":"TXT","TTL":300,"ResourceRecords":[{"Value":"\"NEW-1\" \"NEW-2\""}]}}]}

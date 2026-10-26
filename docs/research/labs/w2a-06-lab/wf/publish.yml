@@ -1,0 +1,128 @@
+# .github/workflows/publish.yml  (reference outline; tools/mw.mjs subcommands are specified in section C, not yet written)
+name: publish
+run-name: publish ${{ github.ref_name }} (${{ github.event_name }})
+
+on:
+  push:
+    tags: ['v[0-9]*.[0-9]*.[0-9]*']          # v1.4.2 -> prod channel; v1.5.0-rc.1 -> beta (decided in `plan`)
+    branches: [main]                         # every merge to main -> beta channel
+  workflow_dispatch:
+    inputs:
+      channel: { description: 'channel for a manual run', type: choice, options: [beta, prod], default: beta }
+
+permissions: {}                              # deny everything; each job re-grants only what it needs
+
+concurrency:
+  group: mw-publish
+  queue: max                                 # FIFO, up to 100 pending. The default (single) cancels older pending runs.
+
+env:
+  SITE_NAME: site                            # torrent name: constant across releases (part of the infohash and of the seed layout)
+  PIECE_LENGTH: '262144'                     # 256 KiB; create-torrent's default would be 16 KiB for sites under ~16 MiB
+  CDN: https://seed.example.com              # web seed origin. Drop-in mode: the site's own origin (same-origin, no CORS needed)
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    outputs:
+      channel: ${{ steps.p.outputs.channel }}
+      host: ${{ steps.p.outputs.host }}
+      version: ${{ steps.p.outputs.version }}
+      epoch: ${{ steps.p.outputs.epoch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - id: p
+        env: { DISPATCH_CHANNEL: "${{ inputs.channel }}" }
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF" in
+            refs/tags/v*-*) CH=beta; V="${GITHUB_REF_NAME#v}" ;;
+            refs/tags/v*)   CH=prod; V="${GITHUB_REF_NAME#v}" ;;
+            *)              CH="${DISPATCH_CHANNEL:-beta}"; V="0.0.0-edge.$(git rev-parse --short=8 HEAD)" ;;
+          esac
+          if [ "$CH" = prod ]; then HOST=example.com; else HOST=beta.example.com; fi
+          { echo "channel=$CH"; echo "host=$HOST"; echo "version=$V"; echo "epoch=$(git log -1 --pretty=%ct)"; } >> "$GITHUB_OUTPUT"
+
+  build:                                      # runs the site's npm dependencies: NO id-token, NO secrets, read-only token
+    needs: plan
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    env: { SOURCE_DATE_EPOCH: "${{ needs.plan.outputs.epoch }}" }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci --ignore-scripts && npm run build      # lockfile install; pin generators' build ids (e.g. Next.js generateBuildId = git sha)
+      - run: node tools/mw.mjs inject dist --script /_mw/boot.js   # drop-in mode only: ONE idempotent <script> tag, added BEFORE the torrent is made
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: dist, path: dist, include-hidden-files: true, if-no-files-found: error, retention-days: 7 }
+
+  pack:                                       # still no secrets: deterministic torrent + staged tree + release.json
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    outputs:
+      rel: ${{ steps.r.outputs.rel }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: dist, path: dist }
+      - id: r
+        env: { VERSION: "${{ needs.plan.outputs.version }}", EPOCH: "${{ needs.plan.outputs.epoch }}" }
+        run: |
+          set -euo pipefail
+          node tools/mw.mjs pack dist --name "$SITE_NAME" --piece-length "$PIECE_LENGTH" --created "$EPOCH" --version "$VERSION" --out out
+          cp -R dist /tmp/dist-again && node tools/mw.mjs pack /tmp/dist-again --name "$SITE_NAME" --piece-length "$PIECE_LENGTH" --created "$EPOCH" --version "$VERSION" --out /tmp/out-again
+          cmp out/release.json /tmp/out-again/release.json   # determinism guard: same btih from a different path/mtime/walk order
+          echo "rel=$(jq -r .rel out/release.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: release, path: out, include-hidden-files: true, if-no-files-found: error, retention-days: 90 }
+
+  seed:                                       # first job that can write anywhere: OIDC -> AWS role limited to the seed bucket
+    needs: [plan, pack]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.plan.outputs.channel == 'prod' && 'production' || 'beta' }}   # prod: required reviewers + tag-only deployment rule
+    permissions: { id-token: write, contents: read }
+    env: { REL: "${{ needs.pack.outputs.rel }}", BUCKET: example-mw-seed, HOST: "${{ needs.plan.outputs.host }}" }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: release, path: out }
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::111122223333:role/mw-seed-writer   # trust policy: aud + sub only (repo-ID 'immutable' sub format since 2026-07-15, environment-scoped); to pin the workflow file, customise the sub claim to include job_workflow_ref
+          aws-region: us-east-1
+          role-duration-seconds: 900
+      - name: upload staged tree + .torrent to an immutable release prefix
+        run: |
+          set -euo pipefail
+          P="s3://${BUCKET}/r/${REL}"
+          if [ -n "$(aws s3 ls "$P/" | head -n1)" ]; then echo "::error::$P exists; releases are immutable"; exit 1; fi
+          aws s3 sync out/tree "$P/${SITE_NAME}/" --only-show-errors --content-type application/octet-stream --cache-control 'public, max-age=31536000, immutable'
+          aws s3 cp out/site.torrent "$P/site.torrent" --only-show-errors --content-type application/x-bittorrent --cache-control 'public, max-age=31536000, immutable'
+      - name: verify the PUBLIC seed exactly as a browser would use it (preflight + every piece via Range + sha1)
+        run: node tools/mw.mjs seed-verify out/site.torrent "${CDN}/r/${REL}/" --origin "https://${HOST}" --retries 6
+
+  pointer:                                    # sign -> publish -> verify -> smoke, shared with rollback.yml
+    needs: [plan, pack, seed]
+    permissions: { id-token: write, contents: read }
+    uses: ./.github/workflows/pointer.yml
+    with:
+      channel: ${{ needs.plan.outputs.channel }}
+      host: ${{ needs.plan.outputs.host }}
+      rel: ${{ needs.pack.outputs.rel }}
+
+  release:                                    # permanent record: .torrent + release.json on a GitHub Release; also the rollback source
+    needs: [plan, pack, pointer]
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: release, path: out }
+      - env: { GH_TOKEN: "${{ github.token }}", REL: "${{ needs.pack.outputs.rel }}" }
+        run: gh release create "rel-${REL}" out/site.torrent out/release.json --repo "$GITHUB_REPOSITORY" --title "release ${REL}" --notes "channel ${{ needs.plan.outputs.channel }}"

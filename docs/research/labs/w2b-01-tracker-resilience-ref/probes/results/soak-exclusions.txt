@@ -1,0 +1,2 @@
+# Samples that coincided with a LOCAL fault of the measuring machine (never edit the raw .jsonl). Format: <ts> <reason>
+2026-10-17T21:30:06Z three different operators timed out in the same 8 s window while tracker.webtorrent.dev (first in the list) answered; coincides with the local load test (8k loopback connections plus a TIME_WAIT backlog on a macOS ephemeral port range of 16,384)

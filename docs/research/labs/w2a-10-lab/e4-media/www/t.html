@@ -1,0 +1,45 @@
+<!doctype html><meta charset="utf-8"><title>e4</title><body>
+<script>
+const q = new URLSearchParams(location.search)
+const variant = q.get('variant'); const file = q.get('file'); const tag = q.get('el') || 'video'
+const events = []; const t0 = performance.now()
+const rec = (type, extra) => events.push({ t: Math.round(performance.now() - t0), type, ...extra })
+const swlog = []; const bc = new BroadcastChannel('e4log'); bc.onmessage = e => swlog.push(e.data)
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+async function main () {
+  if (variant !== 'net') {
+    await navigator.serviceWorker.register('/sw.js'); await navigator.serviceWorker.ready
+    if (!navigator.serviceWorker.controller) await new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }))
+  }
+  const el = document.createElement(tag); el.muted = true; el.playsInline = true; el.preload = 'auto'
+  for (const ev of ['loadstart', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough', 'playing', 'waiting', 'stalled', 'seeking', 'seeked', 'error', 'ended', 'abort', 'emptied']) {
+    el.addEventListener(ev, () => rec(ev, { ct: +el.currentTime.toFixed(2), rs: el.readyState, ns: el.networkState }))
+  }
+  document.body.append(el)
+  el.src = variant === 'net' ? '/media/' + file : `/m/${variant}/${file}`
+  const waitFor = (ev, ms) => new Promise(res => { const to = setTimeout(() => res(false), ms); el.addEventListener(ev, () => { clearTimeout(to); res(true) }, { once: true }) })
+  const R = { variant, file, tag, ua: navigator.userAgent.slice(0, 120) }
+  const MW = +q.get('w') || 5000
+  const metaOrErr = await Promise.race([waitFor('loadedmetadata', MW), waitFor('error', MW).then(() => false)])
+  R.metadata = metaOrErr && el.readyState >= 1
+  R.duration = Number.isFinite(el.duration) ? +el.duration.toFixed(2) : null
+  if (!R.metadata) { R.error = el.error ? { code: el.error.code, message: el.error.message } : null; return finish(R, el) }
+  let playP = null
+  try { playP = el.play() } catch (e) { R.playThrew = String(e) }
+  const playing = await Promise.race([waitFor('playing', 5000), playP ? playP.then(() => true, e => { R.playRejected = String(e); return false }) : Promise.resolve(false)])
+  R.playing = playing
+  if (playing) { const c0 = el.currentTime; await sleep(1500); R.advanced = +(el.currentTime - c0).toFixed(2) }
+  if (R.duration && R.playing) {
+    for (const frac of [0.6, 0.2]) {
+      const target = R.duration * frac; el.currentTime = target
+      const seeked = await waitFor('seeked', 5000)
+      const c1 = el.currentTime; await sleep(1200)
+      R['seek' + frac] = { seeked, resumedAdvance: +(el.currentTime - c1).toFixed(2), rs: el.readyState }
+    }
+  }
+  R.error = el.error ? { code: el.error.code, message: el.error.message } : null
+  finish(R, el)
+}
+function finish (R, el) { R.readyState = el.readyState; R.networkState = el.networkState; R.width = el.videoWidth || null; R.events = events; R.swlog = swlog; window.__result = R; window.__done = true }
+main().catch(e => { window.__result = { variant, file, fatal: String(e), events, swlog }; window.__done = true })
+</script>

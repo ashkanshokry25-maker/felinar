@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><title>idb persist bench</title><body><pre id="o">running</pre>
+<script type="module">
+const q = new URLSearchParams(location.search); const phase = q.get('phase'); const N = Number(q.get('n') || 50000); const dur = q.get('dur') || 'default';
+const out = { phase, N, dur, ua: navigator.userAgent };
+const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+const b64 = (n) => { const u = new Uint8Array(n); crypto.getRandomValues(u); let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const NAME = 'persist-bench';
+const open = (create) => new Promise((res, rej) => { const r = indexedDB.open(NAME, 1); r.onupgradeneeded = () => { if (!create) return; const s = r.result.createObjectStore('ops', { keyPath: 'id' }); s.createIndex('byAuthorSeq', ['a', 's']); s.createIndex('byCollTypeC', ['coll', 't', 'c']); s.createIndex('byParent', 'p'); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const p = (rq) => new Promise((ok, bad) => { rq.onsuccess = () => ok(rq.result); rq.onerror = () => bad(rq.error); });
+const scan = async (db, reps) => { const ts = []; let last = 0; for (let k = 0; k < reps; k++) { const t = performance.now(); last = (await p(db.transaction('ops', 'readonly').objectStore('ops').getAll())).length; ts.push(+(performance.now() - t).toFixed(1)); } return { allMs: ts, medMs: med(ts), last }; };
+if (phase === 'write') {
+  await new Promise((res) => { const r = indexedDB.deleteDatabase(NAME); r.onsuccess = r.onerror = r.onblocked = () => res(); });
+  const authors = Array.from({ length: 200 }, () => b64(32)); const types = ['post', 'reply', 'react', 'edit', 'del']; const seqs = new Map(); const ops = []; const body = 'x'.repeat(300);
+  for (let i = 0; i < N; i++) { const a = authors[i % 200]; const s = (seqs.get(a) || 0) + 1; seqs.set(a, s); ops.push({ id: b64(32), a, s, t: types[i % 5 === 0 ? 1 : (i % 7 === 0 ? 2 : 0)], c: i + 1, p: i ? ops[Math.floor(Math.random() * i)].id : '', coll: 'guestbook', ts: 1760000000000 + i, body, sig: b64(64) }); }
+  out.recBytes = JSON.stringify(ops[1]).length;
+  const db = await open(true); const t0 = performance.now(); const B = 5000;
+  for (let i = 0; i < N; i += B) await new Promise((ok, bad) => { const tx = db.transaction('ops', 'readwrite', dur === 'default' ? undefined : { durability: dur }); const st = tx.objectStore('ops'); for (const o of ops.slice(i, i + B)) st.put(o); tx.oncomplete = ok; tx.onerror = () => bad(tx.error); });
+  out.insertMs = +(performance.now() - t0).toFixed(1);
+  out.scanAfterWrite = await scan(db, 5);
+  db.close();
+  try { out.storage = await navigator.storage.estimate(); } catch {}
+} else if (phase === 'read') {
+  const t0 = performance.now(); const db = await open(false); out.openMs = +(performance.now() - t0).toFixed(1);
+  out.firstScan = await scan(db, 1); out.nextScans = await scan(db, 4);
+  const t1 = performance.now(); out.count = await p(db.transaction('ops').objectStore('ops').count()); out.countMs = +(performance.now() - t1).toFixed(1);
+  const t2 = performance.now(); const cur = await p(db.transaction('ops').objectStore('ops').index('byCollTypeC').getAll(IDBKeyRange.bound(['guestbook','post',0],['guestbook','post',Infinity]), 50)); out.first50ViaIndexMs = +(performance.now() - t2).toFixed(1);
+  db.close();
+}
+window.__RESULT = out; document.getElementById('o').textContent = JSON.stringify(out, null, 1);
+</script>

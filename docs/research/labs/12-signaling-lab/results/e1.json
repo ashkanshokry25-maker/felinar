@@ -1,0 +1,96 @@
+{
+  "name": "e1 metadata-less rendezvous",
+  "chromium": "156.0.8078.4",
+  "tracker": "ws://127.0.0.1:18282",
+  "rvInfoHash": "fdd10ae4d8e347056ce2cf55e692bd8eec0d031b",
+  "timeToWireMs": {
+    "A": {
+      "ok": true,
+      "ms": 152
+    },
+    "B": {
+      "ok": true,
+      "ms": 151
+    },
+    "wallMs": 155
+  },
+  "pingIdle": {
+    "tag": "rv",
+    "sent": 60,
+    "recv": 60,
+    "lost": 0,
+    "min": 0.4,
+    "p50": 0.6,
+    "p90": 0.7,
+    "p99": 0.8,
+    "max": 0.8,
+    "mean": 0.6,
+    "inBytes": 0,
+    "inMsgs": 0
+  },
+  "wireA": [
+    {
+      "tag": "rv",
+      "type": "webrtc",
+      "destroyed": false,
+      "hsMs": 1,
+      "peerIdPrefix": "2d575730",
+      "mapping": {
+        "lt_donthave": 2,
+        "mw_x": 3,
+        "ut_metadata": 1
+      },
+      "errors": 0,
+      "myMapping": {
+        "1": "ut_metadata",
+        "2": "lt_donthave",
+        "3": "mw_x"
+      }
+    }
+  ],
+  "torrentA": {
+    "infoHash": "fdd10ae4d8e347056ce2cf55e692bd8eec0d031b",
+    "ready": false,
+    "hasMetadata": false,
+    "numPeers": 1,
+    "wires": 1,
+    "done": false,
+    "progress": 0,
+    "downloaded": 0,
+    "received": 4324,
+    "uploaded": 4324,
+    "length": null
+  },
+  "torrentB": {
+    "infoHash": "fdd10ae4d8e347056ce2cf55e692bd8eec0d031b",
+    "ready": false,
+    "hasMetadata": false,
+    "numPeers": 1,
+    "wires": 1,
+    "done": false,
+    "progress": 0,
+    "downloaded": 0,
+    "received": 4324,
+    "uploaded": 4324,
+    "length": null
+  },
+  "announcesFromPageA": [
+    {
+      "t": 210,
+      "url": "ws://127.0.0.1:18282/",
+      "event": "started",
+      "left": null,
+      "uploaded": 0,
+      "downloaded": 0,
+      "numwant": 5,
+      "nOffers": 5,
+      "hasAnswer": false,
+      "ih": "fdd10ae4d8e347056ce2cf55e692bd8eec0d031b"
+    }
+  ],
+  "trackerSideAnnounces": {
+    "start left=0": 2,
+    "update left=null": 1
+  },
+  "logsA": []
+}

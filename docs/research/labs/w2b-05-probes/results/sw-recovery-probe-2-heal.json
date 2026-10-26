@@ -1,0 +1,17 @@
+{
+  "chromium": "156.0.8078.4",
+  "S6c_spacing_400ms": {
+    "afterBug": "navigation failed: page.goto: net::ERR_FAILED at http://localhost:62038/?b=1&noreg=1",
+    "healedAfterMs": null,
+    "navigationAttempts": 14,
+    "firstSwScriptFetchAfterFixMs": null,
+    "swScriptFetches": 0
+  },
+  "S6c_spacing_3000ms": {
+    "afterBug": "navigation failed: page.goto: net::ERR_FAILED at http://localhost:62038/?b=1&noreg=1",
+    "healedAfterMs": 3036,
+    "navigationAttempts": 2,
+    "firstSwScriptFetchAfterFixMs": 1030,
+    "swScriptFetches": 1
+  }
+}

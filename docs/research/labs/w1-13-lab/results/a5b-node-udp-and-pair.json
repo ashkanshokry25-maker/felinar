@@ -1,0 +1,10 @@
+{
+ "udp 127.0.0.1": "ok: hi",
+ "udp 192.168.18.5": "TIMEOUT (no datagram received)",
+ "nodeToNode": {
+  "echoed": "echo:ping",
+  "ms": 103,
+  "aState": "connected",
+  "bState": "connected"
+ }
+}

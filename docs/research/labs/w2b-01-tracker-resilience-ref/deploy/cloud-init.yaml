@@ -1,0 +1,36 @@
+#cloud-config
+# Ubuntu 24.04 host for the reference tracker (UNTESTED as a whole; each component was tested separately on macOS: tracker.mjs tests,
+# Caddy 2.11.7 validate + proxy behaviour). Replace rtc.example.com and the e-mail. DNS A/AAAA must point at the host BEFORE first boot of Caddy.
+package_update: true
+packages: [ufw, curl, ca-certificates, xz-utils, debian-keyring, debian-archive-keyring, apt-transport-https, gnupg, unattended-upgrades]
+write_files:
+  - path: /etc/sysctl.d/90-magnet-tracker.conf
+    content: |
+      net.core.somaxconn = 4096
+      net.ipv4.tcp_max_syn_backlog = 4096
+      net.ipv4.tcp_keepalive_time = 120
+      net.ipv4.tcp_keepalive_intvl = 30
+      net.ipv4.tcp_keepalive_probes = 4
+      net.ipv4.ip_local_port_range = 10240 65535
+      fs.file-max = 2097152
+runcmd:
+  - sysctl --system
+  - ufw default deny incoming && ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw allow 443/udp && ufw --force enable
+  # Node 24.22.0 from the official tarball, SHA-256 verified (Oracle A1 is aarch64, most VPS are x86_64) - this exact sequence was run on Ubuntu 24.04 arm64
+  - |
+    set -e
+    case "$(uname -m)" in aarch64) NA=arm64 ;; x86_64) NA=x64 ;; esac
+    cd /tmp
+    curl -fsSLO https://nodejs.org/dist/v24.22.0/node-v24.22.0-linux-$NA.tar.xz
+    curl -fsSLO https://nodejs.org/dist/v24.22.0/SHASUMS256.txt
+    grep " node-v24.22.0-linux-$NA.tar.xz\$" SHASUMS256.txt | sha256sum -c -
+    tar -xJf node-v24.22.0-linux-$NA.tar.xz -C /usr/local --strip-components=1
+  # Caddy from the official apt repository (https://caddyserver.com/docs/install#debian-ubuntu-raspbian)
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' -o /etc/apt/sources.list.d/caddy-stable.list
+  - apt-get update && apt-get install -y caddy
+  - useradd --system --home /opt/magnet-tracker --shell /usr/sbin/nologin mwtracker
+  - mkdir -p /opt/magnet-tracker /etc/magnet-tracker /var/log/caddy && chown caddy:caddy /var/log/caddy
+  # copy tracker.mjs, package.json, package-lock.json to /opt/magnet-tracker, then: cd /opt/magnet-tracker && npm ci --omit=dev --ignore-scripts
+  # copy Caddyfile to /etc/caddy/Caddyfile, magnet-tracker.service to /etc/systemd/system/, env.example to /etc/magnet-tracker/env
+  # then: systemctl daemon-reload && systemctl enable --now magnet-tracker caddy

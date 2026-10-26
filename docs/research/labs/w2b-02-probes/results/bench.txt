@@ -1,0 +1,18 @@
+# Apple M3, Node v24.22.0, 2026-10-17T21:43:41Z. Sources: bench-entry.mjs, bench2-entry.mjs (bundled with esbuild; NODE_PATH = dir with nostr-tools 2.25.2, @noble/curves 2.4.0, @noble/secp256k1 3.2.0, @noble/hashes 2.4.0)
+{"name":"noble-secp256k1 3.2.0 schnorr.sign (sync)","ops_s":536,"us_op":1865}
+{"name":"noble-secp256k1 3.2.0 schnorr.verify (sync)","ops_s":638,"us_op":1567}
+{"name":"noble-curves 2.4.0 schnorr.sign","ops_s":737,"us_op":1356}
+{"name":"noble-curves 2.4.0 schnorr.verify","ops_s":1174,"us_op":852}
+{"name":"nostr-tools 2.25.2 finalizeEvent (hash+sign, ~1 KB event)","ops_s":651,"us_op":1537}
+{"name":"nostr-tools verifyEvent via nostr-wasm 0.1.0 (~1 KB event)","ops_s":6575,"us_op":152}
+{"name":"WebCrypto ECDSA P-256 verify (Node 24 async)","ops_s":17991,"us_op":56}
+{"name":"WebCrypto ECDSA P-256 sign (Node 24 async)","ops_s":36744,"us_op":27}
+{"name":"WebCrypto Ed25519 verify (Node 24 async)","ops_s":12506,"us_op":80}
+{"name":"noble-hashes 2.4.0 sha256 over 1 KB","ops_s":206087,"us_op":5}
+{"node":"v24.22.0","platform":"darwin/arm64","cpu":"Apple M3"}
+# NOTE: the line 'nostr-tools verifyEvent via nostr-wasm' above reuses an object that carries nostr-tools' verifiedSymbol cache from finalizeEvent; use bench2 numbers below
+{"name":"nostr-tools 2.25.2 verifyEvent JS (fresh objects)","n":3000,"ok":3000,"ops_s":935,"us_op":1069,"event_bytes":1391}
+{"name":"nostr-tools verifyEvent JS (fresh objects, warm)","n":3000,"ok":3000,"ops_s":885,"us_op":1130}
+{"name":"nostr-tools/wasm verifyEvent (nostr-wasm 0.1.0, fresh)","n":3000,"ok":3000,"ops_s":6502,"us_op":154}
+{"name":"nostr-tools/wasm verifyEvent (warm)","n":3000,"ok":3000,"ops_s":6461,"us_op":155}
+{"tamper_detected_js":true,"tamper_detected_wasm":true}

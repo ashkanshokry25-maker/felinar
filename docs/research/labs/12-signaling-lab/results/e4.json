@@ -1,0 +1,85 @@
+{
+  "name": "e4 client-global throttle vs ext frames",
+  "chromium": "156.0.8078.4",
+  "baseline": {
+    "rvc": {
+      "tag": "rvc",
+      "sent": 10,
+      "recv": 10,
+      "lost": 0,
+      "min": 0.6,
+      "p50": 0.8,
+      "p90": 1,
+      "p99": 1,
+      "max": 1,
+      "mean": 0.8,
+      "inBytes": 0,
+      "inMsgs": 0
+    },
+    "rvg": {
+      "tag": "rvg",
+      "sent": 10,
+      "recv": 10,
+      "lost": 0,
+      "min": 0.6,
+      "p50": 0.8,
+      "p90": 1,
+      "p99": 1,
+      "max": 1,
+      "mean": 0.8,
+      "inBytes": 0,
+      "inMsgs": 0
+    }
+  },
+  "whileThrottleUpload0": {
+    "rvc_sameClientAsThrottle": {
+      "tag": "rvc",
+      "sent": 30,
+      "recv": 0,
+      "lost": 30,
+      "min": null,
+      "p50": null,
+      "p90": null,
+      "p99": null,
+      "max": null,
+      "mean": null,
+      "inBytes": 0,
+      "inMsgs": 0
+    },
+    "rvg_secondClient": {
+      "tag": "rvg",
+      "sent": 30,
+      "recv": 30,
+      "lost": 0,
+      "min": 0.5,
+      "p50": 0.8,
+      "p90": 1,
+      "p99": 1.7,
+      "max": 1.7,
+      "mean": 0.8,
+      "inBytes": 0,
+      "inMsgs": 0
+    }
+  },
+  "resumeAfterRestoreMs": {
+    "waitForFirstDelayedPong": {
+      "ok": true,
+      "ms": 623
+    },
+    "wallMs": 625,
+    "rvcAfter": {
+      "tag": "rvc",
+      "sent": 30,
+      "recv": 30,
+      "lost": 0,
+      "min": 1110.7,
+      "p50": 2608.8,
+      "p90": 3807.5,
+      "p99": 4005.9,
+      "max": 4005.9,
+      "mean": 2559,
+      "inBytes": 0,
+      "inMsgs": 0
+    }
+  }
+}

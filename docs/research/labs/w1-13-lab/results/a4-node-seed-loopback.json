@@ -1,0 +1,56 @@
+{
+ "info": {
+  "node": "v24.22.0",
+  "webtorrent": "3.0.21",
+  "infoHashNodeSeeder": "fe44390ce3296a2a8ff46cbaa1814267643576d9",
+  "infoHashLabMemoryObjects": "d0037167fc5786a0b755637e93e5995d23e935a4",
+  "sameInfoHashAcrossNodeDirAndMemoryInput": false,
+  "nodePeerIdPrefix": "-WW0300-",
+  "torrentFiles": 5,
+  "seederUploaded": 270652
+ },
+ "trackerSwarm": 1,
+ "results": {
+  "chromium": {
+   "attempts": [
+    {
+     "wires": [
+      {
+       "type": "webrtc",
+       "peerIdPrefix": "-WW0300-",
+       "remoteAddress": "127.0.0.1",
+       "tMs": 4942
+      }
+     ],
+     "warnings": [],
+     "errors": [],
+     "metadataMs": 4946,
+     "doneMs": 4956,
+     "done": true,
+     "sha": "7a080ac26586ee6a40944a11ff6402fc4be9e9f57c39bdebb8b1ca8e85c2e607",
+     "numPeers": 1,
+     "shaMatches": true
+    },
+    {
+     "wires": [
+      {
+       "type": "webrtc",
+       "peerIdPrefix": "-WW0300-",
+       "remoteAddress": "127.0.0.1",
+       "tMs": 16915
+      }
+     ],
+     "warnings": [],
+     "errors": [],
+     "metadataMs": 16916,
+     "doneMs": 16924,
+     "done": true,
+     "sha": "7a080ac26586ee6a40944a11ff6402fc4be9e9f57c39bdebb8b1ca8e85c2e607",
+     "numPeers": 1,
+     "shaMatches": true
+    }
+   ],
+   "version": "156.0.8078.4"
+  }
+ }
+}

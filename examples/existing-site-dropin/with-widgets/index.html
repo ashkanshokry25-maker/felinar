@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Example Forum</title>
+<link rel="stylesheet" href="/css/app.3f2a1b.css">
+<link rel="icon" href="/img/logo.png">
+<script type="module" src="/_mw/mw.js" async></script>
+<script type="module" src="/_mw/signin.js" integrity="sha384-REPLACE-WITH-THE-HASH-PUBLISH-PRINTS" crossorigin></script>
+<script type="module" src="/_mw/chat-panel.js" integrity="sha384-REPLACE-WITH-THE-HASH-PUBLISH-PRINTS" crossorigin></script>
+</head>
+<body data-page="forum">
+<header class="site"><strong>Example Forum</strong>
+<nav><a href="/">Home</a></nav>
+</header>
+<main>
+<h1>Example Forum</h1>
+<p id="lead">A forum that already exists. Its host serves every page; this page adds a sign-in button whose proof the forum's own server checks, and a chat panel for signed-in visitors. Both widgets are served from this site's own address, each with a hash.</p>
+<p>Pathname: <code id="path">JavaScript is off</code></p>
+<section id="signin" aria-labelledby="signin-title">
+<h2 id="signin-title">Sign in</h2>
+<mw-signin statement="Sign in to Example Forum" challenge-url="/auth/mw/challenge" proof-url="/auth/mw/verify"></mw-signin>
+<p id="signin-status" role="status">Not signed in.</p>
+</section>
+<section id="chat" aria-labelledby="chat-title">
+<h2 id="chat-title">Chat</h2>
+<mw-chat-panel></mw-chat-panel>
+</section>
+<noscript><p id="noscript">JavaScript is off: the text and the stylesheet are exactly what the host serves, and the two widgets do not appear.</p></noscript>
+</main>
+<footer>Example Forum fixture for felinar drop-in mode: the sign-in widget and the chat panel.</footer>
+<script src="/js/app.9c0d2e.js"></script>
+<script src="/js/forum.js"></script>
+</body>
+</html>

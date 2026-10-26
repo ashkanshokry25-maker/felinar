@@ -1,0 +1,25 @@
+{
+  "browser": "156.0.8078.4",
+  "labels": {
+    "abcdefghijklmnopqrstuvwxyz234567": {
+      "isSecureContext": true,
+      "origin": "http://abcdefghijklmnopqrstuvwxyz234567.hub.localhost:60968",
+      "scope": "http://abcdefghijklmnopqrstuvwxyz234567.hub.localhost:60968/",
+      "swAnswer": "sw:abcdefghijklmnopqrstuvwxyz234567.hub.localhost:60968",
+      "cryptoSubtle": true
+    },
+    "765432zyxwvutsrqponmlkjihgfedcba": {
+      "isSecureContext": true,
+      "origin": "http://765432zyxwvutsrqponmlkjihgfedcba.hub.localhost:60968",
+      "scope": "http://765432zyxwvutsrqponmlkjihgfedcba.hub.localhost:60968/",
+      "swAnswer": "sw:765432zyxwvutsrqponmlkjihgfedcba.hub.localhost:60968",
+      "cryptoSubtle": true
+    }
+  },
+  "isolation_seen_from_label2": {
+    "registrations": [
+      "http://765432zyxwvutsrqponmlkjihgfedcba.hub.localhost:60968/"
+    ],
+    "localStorageWho": "765432zyxwvutsrqponmlkjihgfedcba.hub.localhost:60968"
+  }
+}

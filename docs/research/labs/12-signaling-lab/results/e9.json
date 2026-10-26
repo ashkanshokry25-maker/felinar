@@ -1,0 +1,118 @@
+{
+  "name": "e9 live trackers",
+  "chromium": "156.0.8078.4",
+  "results": [
+    {
+      "url": "wss://tracker.webtorrent.dev",
+      "kind": "rv",
+      "mode": "sim",
+      "connected": true,
+      "ms": 1258
+    },
+    {
+      "url": "wss://tracker.webtorrent.dev",
+      "kind": "rv",
+      "mode": "stag",
+      "connected": true,
+      "ms": 1112
+    },
+    {
+      "url": "wss://tracker.webtorrent.dev",
+      "kind": "seed",
+      "mode": "sim",
+      "connected": false,
+      "ms": null
+    },
+    {
+      "url": "wss://tracker.webtorrent.dev",
+      "kind": "seed",
+      "mode": "stag",
+      "connected": true,
+      "ms": 1114
+    },
+    {
+      "url": "wss://tracker.openwebtorrent.com",
+      "kind": "rv",
+      "mode": "sim",
+      "connected": true,
+      "ms": 759
+    },
+    {
+      "url": "wss://tracker.openwebtorrent.com",
+      "kind": "rv",
+      "mode": "stag",
+      "connected": true,
+      "ms": 759
+    },
+    {
+      "url": "wss://tracker.openwebtorrent.com",
+      "kind": "seed",
+      "mode": "sim",
+      "connected": false,
+      "ms": null
+    },
+    {
+      "url": "wss://tracker.openwebtorrent.com",
+      "kind": "seed",
+      "mode": "stag",
+      "connected": false,
+      "ms": null
+    },
+    {
+      "url": "wss://open.ftorrent.com",
+      "kind": "rv",
+      "mode": "sim",
+      "connected": true,
+      "ms": 507
+    },
+    {
+      "url": "wss://open.ftorrent.com",
+      "kind": "rv",
+      "mode": "stag",
+      "connected": true,
+      "ms": 468
+    },
+    {
+      "url": "wss://open.ftorrent.com",
+      "kind": "seed",
+      "mode": "sim",
+      "connected": false,
+      "ms": null
+    },
+    {
+      "url": "wss://open.ftorrent.com",
+      "kind": "seed",
+      "mode": "stag",
+      "connected": true,
+      "ms": 527
+    },
+    {
+      "url": "wss://tracker.novage.com.ua",
+      "kind": "rv",
+      "mode": "sim",
+      "connected": true,
+      "ms": 705
+    },
+    {
+      "url": "wss://tracker.novage.com.ua",
+      "kind": "rv",
+      "mode": "stag",
+      "connected": true,
+      "ms": 715
+    },
+    {
+      "url": "wss://tracker.novage.com.ua",
+      "kind": "seed",
+      "mode": "sim",
+      "connected": false,
+      "ms": null
+    },
+    {
+      "url": "wss://tracker.novage.com.ua",
+      "kind": "seed",
+      "mode": "stag",
+      "connected": true,
+      "ms": 716
+    }
+  ]
+}

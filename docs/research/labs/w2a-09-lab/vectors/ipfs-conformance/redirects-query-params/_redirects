@@ -1,0 +1,8 @@
+# redirect to URL with some static query parameters
+/source1/* /target-file?static-query1=static-val1&static-query2=static-val2 301
+
+# redirect to URL where path segments are converted to query parameters
+/source2/:code/:name /target-file?code=:code&name=:name 301
+
+# catch-all redirect (test should make request with query parameters, and confirm response preserved them in returned Location header)
+/source3/* https://example.net/target3/:splat 301

@@ -1,0 +1,554 @@
+{
+  "engine": "webkit",
+  "runs": [
+    {
+      "scenario": "multipage-links",
+      "mirror": "none",
+      "rows": [
+        {
+          "step": "open /a.html",
+          "topUrl": "/a.html",
+          "frameUrl": "/a.html",
+          "agree": true,
+          "hist": 2,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "shell",
+          "events": [
+            "top-pageshow[persisted=false]",
+            "mounted",
+            "frame-load@/a.html"
+          ]
+        },
+        {
+          "step": "click B",
+          "topUrl": "/a.html",
+          "frameUrl": "/b.html",
+          "agree": false,
+          "hist": 3,
+          "loads": 2,
+          "mirrors": 0,
+          "title": "shell",
+          "events": [
+            "frame-load@/b.html"
+          ]
+        },
+        {
+          "step": "click C",
+          "topUrl": "/a.html",
+          "frameUrl": "/c.html",
+          "agree": false,
+          "hist": 4,
+          "loads": 3,
+          "mirrors": 0,
+          "title": "shell",
+          "events": [
+            "frame-load@/c.html"
+          ]
+        },
+        {
+          "step": "Back #1 (expect frame B)",
+          "topUrl": "/a.html",
+          "frameUrl": "/b.html",
+          "agree": false,
+          "hist": 4,
+          "loads": 4,
+          "mirrors": 0,
+          "title": "shell",
+          "events": [
+            "frame-load@/b.html"
+          ]
+        },
+        {
+          "step": "Back #2 (expect frame A)",
+          "topUrl": "/a.html",
+          "frameUrl": "/a.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 5,
+          "mirrors": 0,
+          "title": "shell",
+          "events": [
+            "frame-load@/a.html"
+          ]
+        },
+        {
+          "step": "Forward #1 (expect frame B)",
+          "topUrl": "/a.html",
+          "frameUrl": "/b.html",
+          "agree": false,
+          "hist": 4,
+          "loads": 6,
+          "mirrors": 0,
+          "title": "shell",
+          "events": [
+            "frame-load@/b.html"
+          ]
+        },
+        {
+          "step": "top reload",
+          "topUrl": "/a.html",
+          "frameUrl": "/a.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "shell",
+          "events": []
+        }
+      ]
+    },
+    {
+      "scenario": "multipage-links",
+      "mirror": "load",
+      "rows": [
+        {
+          "step": "open /a.html",
+          "topUrl": "/a.html",
+          "frameUrl": "/a.html",
+          "agree": true,
+          "hist": 2,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Page A",
+          "events": [
+            "top-pageshow[persisted=false]",
+            "mounted",
+            "frame-load@/a.html"
+          ]
+        },
+        {
+          "step": "click B",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 3,
+          "loads": 2,
+          "mirrors": 1,
+          "title": "Page B",
+          "events": [
+            "frame-load@/b.html",
+            "mirror(load)->/b.html"
+          ]
+        },
+        {
+          "step": "click C",
+          "topUrl": "/c.html",
+          "frameUrl": "/c.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 3,
+          "mirrors": 2,
+          "title": "Page C",
+          "events": [
+            "frame-load@/c.html",
+            "mirror(load)->/c.html"
+          ]
+        },
+        {
+          "step": "Back #1 (expect frame B)",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 4,
+          "mirrors": 3,
+          "title": "Page B",
+          "events": [
+            "frame-load@/b.html",
+            "mirror(load)->/b.html"
+          ]
+        },
+        {
+          "step": "Back #2 (expect frame A)",
+          "topUrl": "/a.html",
+          "frameUrl": "/a.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 5,
+          "mirrors": 4,
+          "title": "Page A",
+          "events": [
+            "frame-load@/a.html",
+            "mirror(load)->/a.html"
+          ]
+        },
+        {
+          "step": "Forward #1 (expect frame B)",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 6,
+          "mirrors": 5,
+          "title": "Page B",
+          "events": [
+            "frame-load@/b.html",
+            "mirror(load)->/b.html"
+          ]
+        },
+        {
+          "step": "top reload",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Page B",
+          "events": []
+        }
+      ]
+    },
+    {
+      "scenario": "multipage-links",
+      "mirror": "full",
+      "rows": [
+        {
+          "step": "open /a.html",
+          "topUrl": "/a.html",
+          "frameUrl": "/a.html",
+          "agree": true,
+          "hist": 2,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Page A",
+          "events": [
+            "top-pageshow[persisted=false]",
+            "mounted",
+            "frame-load@/a.html",
+            "frame-pageshow[persisted=false]@/a.html"
+          ]
+        },
+        {
+          "step": "click B",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 3,
+          "loads": 2,
+          "mirrors": 1,
+          "title": "Page B",
+          "events": [
+            "frame-load@/b.html",
+            "mirror(load)->/b.html",
+            "frame-pageshow[persisted=false]@/b.html"
+          ]
+        },
+        {
+          "step": "click C",
+          "topUrl": "/c.html",
+          "frameUrl": "/c.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 3,
+          "mirrors": 2,
+          "title": "Page C",
+          "events": [
+            "frame-load@/c.html",
+            "mirror(load)->/c.html",
+            "frame-pageshow[persisted=false]@/c.html"
+          ]
+        },
+        {
+          "step": "Back #1 (expect frame B)",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 4,
+          "mirrors": 3,
+          "title": "Page B",
+          "events": [
+            "frame-load@/b.html",
+            "mirror(load)->/b.html",
+            "frame-pageshow[persisted=false]@/b.html"
+          ]
+        },
+        {
+          "step": "Back #2 (expect frame A)",
+          "topUrl": "/a.html",
+          "frameUrl": "/a.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 5,
+          "mirrors": 4,
+          "title": "Page A",
+          "events": [
+            "frame-load@/a.html",
+            "mirror(load)->/a.html",
+            "frame-pageshow[persisted=false]@/a.html"
+          ]
+        },
+        {
+          "step": "Forward #1 (expect frame B)",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 6,
+          "mirrors": 5,
+          "title": "Page B",
+          "events": [
+            "frame-load@/b.html",
+            "mirror(load)->/b.html",
+            "frame-pageshow[persisted=false]@/b.html"
+          ]
+        },
+        {
+          "step": "top reload",
+          "topUrl": "/b.html",
+          "frameUrl": "/b.html",
+          "agree": true,
+          "hist": 4,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Page B",
+          "events": []
+        }
+      ]
+    },
+    {
+      "scenario": "spa-pushState",
+      "mirror": "load",
+      "rows": [
+        {
+          "step": "open /spa/one",
+          "topUrl": "/spa/one",
+          "frameUrl": "/spa/one",
+          "agree": true,
+          "hist": 2,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "SPA /spa/one",
+          "events": [
+            "top-pageshow[persisted=false]",
+            "mounted",
+            "frame-load@/spa/one"
+          ]
+        },
+        {
+          "step": "click SPA route two (pushState in frame)",
+          "topUrl": "/spa/one",
+          "frameUrl": "/spa/two",
+          "agree": false,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "SPA /spa/one",
+          "events": []
+        },
+        {
+          "step": "Back (frame popstate)",
+          "topUrl": "/spa/one",
+          "frameUrl": "/spa/one",
+          "agree": true,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "SPA /spa/one",
+          "events": []
+        },
+        {
+          "step": "Forward",
+          "topUrl": "/spa/one",
+          "frameUrl": "/spa/two",
+          "agree": false,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "SPA /spa/one",
+          "events": []
+        }
+      ]
+    },
+    {
+      "scenario": "spa-pushState",
+      "mirror": "full",
+      "rows": [
+        {
+          "step": "open /spa/one",
+          "topUrl": "/spa/one",
+          "frameUrl": "/spa/one",
+          "agree": true,
+          "hist": 2,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "SPA /spa/one",
+          "events": [
+            "top-pageshow[persisted=false]",
+            "mounted",
+            "frame-load@/spa/one",
+            "frame-pageshow[persisted=false]@/spa/one"
+          ]
+        },
+        {
+          "step": "click SPA route two (pushState in frame)",
+          "topUrl": "/spa/two",
+          "frameUrl": "/spa/two",
+          "agree": true,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 1,
+          "title": "SPA /spa/one",
+          "events": [
+            "frame-currententrychange@/spa/two",
+            "mirror(currententrychange)->/spa/two"
+          ]
+        },
+        {
+          "step": "Back (frame popstate)",
+          "topUrl": "/spa/one",
+          "frameUrl": "/spa/one",
+          "agree": true,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 2,
+          "title": "SPA /spa/one",
+          "events": [
+            "frame-currententrychange@/spa/one",
+            "mirror(currententrychange)->/spa/one",
+            "frame-popstate@/spa/one"
+          ]
+        },
+        {
+          "step": "Forward",
+          "topUrl": "/spa/two",
+          "frameUrl": "/spa/two",
+          "agree": true,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 3,
+          "title": "SPA /spa/two",
+          "events": [
+            "frame-popstate@/spa/two",
+            "mirror(popstate)->/spa/two"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": "hash-router",
+      "mirror": "load",
+      "rows": [
+        {
+          "step": "open /hash.html",
+          "topUrl": "/hash.html",
+          "frameUrl": "/hash.html",
+          "agree": true,
+          "hist": 2,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Hash",
+          "events": [
+            "top-pageshow[persisted=false]",
+            "mounted",
+            "frame-load@/hash.html"
+          ]
+        },
+        {
+          "step": "click #/one",
+          "topUrl": "/hash.html",
+          "frameUrl": "/hash.html#/one",
+          "agree": false,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Hash",
+          "events": []
+        },
+        {
+          "step": "click #/two",
+          "topUrl": "/hash.html",
+          "frameUrl": "/hash.html#/two",
+          "agree": false,
+          "hist": 4,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Hash",
+          "events": []
+        },
+        {
+          "step": "Back",
+          "topUrl": "/hash.html",
+          "frameUrl": "/hash.html#/one",
+          "agree": false,
+          "hist": 4,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Hash",
+          "events": []
+        }
+      ]
+    },
+    {
+      "scenario": "hash-router",
+      "mirror": "full",
+      "rows": [
+        {
+          "step": "open /hash.html",
+          "topUrl": "/hash.html",
+          "frameUrl": "/hash.html",
+          "agree": true,
+          "hist": 2,
+          "loads": 1,
+          "mirrors": 0,
+          "title": "Hash",
+          "events": [
+            "top-pageshow[persisted=false]",
+            "mounted",
+            "frame-load@/hash.html",
+            "frame-pageshow[persisted=false]@/hash.html"
+          ]
+        },
+        {
+          "step": "click #/one",
+          "topUrl": "/hash.html#/one",
+          "frameUrl": "/hash.html#/one",
+          "agree": true,
+          "hist": 3,
+          "loads": 1,
+          "mirrors": 1,
+          "title": "Hash #/one",
+          "events": [
+            "frame-currententrychange@/hash.html#/one",
+            "mirror(currententrychange)->/hash.html#/one",
+            "frame-popstate@/hash.html#/one",
+            "frame-hashchange@/hash.html#/one"
+          ]
+        },
+        {
+          "step": "click #/two",
+          "topUrl": "/hash.html#/two",
+          "frameUrl": "/hash.html#/two",
+          "agree": true,
+          "hist": 4,
+          "loads": 1,
+          "mirrors": 2,
+          "title": "Hash #/two",
+          "events": [
+            "frame-currententrychange@/hash.html#/two",
+            "mirror(currententrychange)->/hash.html#/two",
+            "frame-popstate@/hash.html#/two",
+            "frame-hashchange@/hash.html#/two"
+          ]
+        },
+        {
+          "step": "Back",
+          "topUrl": "/hash.html#/one",
+          "frameUrl": "/hash.html#/one",
+          "agree": true,
+          "hist": 4,
+          "loads": 1,
+          "mirrors": 3,
+          "title": "Hash #/one",
+          "events": [
+            "frame-popstate@/hash.html#/one",
+            "mirror(popstate)->/hash.html#/one",
+            "frame-hashchange@/hash.html#/one"
+          ]
+        }
+      ]
+    }
+  ]
+}

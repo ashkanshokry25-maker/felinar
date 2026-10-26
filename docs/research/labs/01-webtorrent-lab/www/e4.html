@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E4 two clients via local WS tracker: metadata via ut_metadata, pieces, wire extension, message sizes</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { events: [], ext: { A: {}, B: {} }, sizes: {}, errors: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const t00 = performance.now(); const ts = () => Math.round(performance.now() - t00)
+const ev = s => R.events.push(ts() + 'ms ' + s)
+const report = async () => { try { await fetch('/report/e4', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+window.addEventListener('unhandledrejection', e => { R.errors.push('unhandledrejection: ' + (e.reason && e.reason.message || e.reason)) })
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = new Map(); this.length = opts.length }
+  put (i, buf, cb = () => {}) { this.chunks.set(i, new Uint8Array(buf)); queueMicrotask(() => cb(null)) }
+  get (i, o, cb) { if (typeof o === 'function') { cb = o; o = {} } const c = this.chunks.get(i); if (!c) { const e = new Error('Chunk not found'); e.notFound = true; return queueMicrotask(() => cb(e)) } const off = (o && o.offset) || 0; const len = (o && o.length) || (c.length - off); queueMicrotask(() => cb(null, c.slice(off, off + len))) }
+  close (cb = () => {}) { queueMicrotask(() => cb(null)) }
+  destroy (cb = () => {}) { this.chunks.clear(); queueMicrotask(() => cb(null)) }
+}
+// A bittorrent-protocol extension (the contract: class with prototype.name; optional onHandshake/onExtendedHandshake/onMessage)
+const SIZES = [1024, 16 * 1024, 64 * 1024, 128 * 1024, 200 * 1024, 255 * 1024, 262143, 262144, 300 * 1024, 1024 * 1024]
+function makeExt (side) {
+  class Gossip {
+    constructor (wire) { this.wire = wire; R.ext[side].constructed = (R.ext[side].constructed || 0) + 1 }
+    onHandshake (infoHash, peerId, extensions) { R.ext[side].onHandshake = { infoHashLen: infoHash.length, peerIdLen: peerId.length, extensions } }
+    onExtendedHandshake (hs) {
+      R.ext[side].onExtendedHandshake = { keys: Object.keys(hs), m: hs.m, myflag: hs.myflag && String.fromCharCode(...hs.myflag), v: hs.v && String.fromCharCode(...hs.v) }
+      R.ext[side].peerExtendedMapping = { ...this.wire.peerExtendedMapping }
+      if (side === 'A') this.runSweep()
+    }
+    onMessage (buf) {
+      const key = 'recv_' + side
+      R.sizes[key] = R.sizes[key] || []
+      R.sizes[key].push(buf.length)
+      if (side === 'B' && buf.length === 5) this.wire.extended('ashgossip', new Uint8Array([1, 2, 3])) // echo small reply
+    }
+    async runSweep () {
+      await sleep(300)
+      try { this.wire.extended('nonexistent_ext', new Uint8Array(1)) } catch (e) { R.ext.A.sendUnknownThrows = String(e.message) }
+      this.wire.extended('ashgossip', new Uint8Array(5)) // small ping that B echoes
+      await sleep(300)
+      R.sizes.sent = []
+      for (const n of SIZES) {
+        if (this.wire.destroyed) { R.sizes.stoppedBeforeDestroyed = n; break }
+        try { this.wire.extended('ashgossip', new Uint8Array(n)); R.sizes.sent.push(n) } catch (e) { R.sizes['throw_' + n] = String(e.message).slice(0, 160); break }
+        await sleep(400)
+      }
+      await sleep(800)
+      R.sizes.wireDestroyedAfterSweep = this.wire.destroyed
+      R.sweepDone = true
+    }
+  }
+  Gossip.prototype.name = 'ashgossip'
+  return Gossip
+}
+try {
+  R.ua = navigator.userAgent
+  const rtcConfig = { iceServers: [] }
+  const mk = () => new WebTorrent({ dht: false, lsd: false, utPex: false, tracker: { rtcConfig } })
+  const A = mk(); const B = mk()
+  A.on('error', e => R.errors.push('A client: ' + e.message)); B.on('error', e => R.errors.push('B client: ' + e.message))
+  const bytes = new Uint8Array(200000); let x = 987654321
+  for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; bytes[i] = x & 255 }
+  const TR = 'ws://127.0.0.1:18082'
+  const tA = A.seed(new File([bytes], 'data.bin'), { announce: [TR], name: 'data.bin', pieceLength: 16384, store: MemStore })
+  tA.on('wire', (wire, addr) => { ev('A wire type=' + wire.type + ' addr=' + addr); R.ext.A.wireType = wire.type; wire.extendedHandshake.myflag = 'A-hello'; wire.use(makeExt('A')); wire.on('close', () => ev('A wire close')) })
+  tA.on('warning', e => ev('A warning ' + e.message)); tA.on('error', e => R.errors.push('A torrent: ' + e.message))
+  await new Promise(r => tA.once('ready', r)).catch(() => {})
+  R.infoHash = tA.infoHash; R.magnet = tA.magnetURI
+  ev('A seeding, magnet has tr: ' + tA.magnetURI.includes('tr='))
+  const tB = B.add(tA.magnetURI, { store: MemStore })
+  tB.on('wire', (wire, addr) => { ev('B wire type=' + wire.type); R.ext.B.wireType = wire.type; wire.extendedHandshake.myflag = 'B-hello'; wire.use(makeExt('B')); wire.on('close', () => ev('B wire close')) })
+  tB.on('infoHash', () => ev('B infoHash'))
+  tB.on('metadata', () => ev('B metadata (via ut_metadata)'))
+  tB.on('ready', () => ev('B ready'))
+  tB.on('done', () => ev('B done'))
+  tB.on('warning', e => ev('B warning ' + e.message)); tB.on('error', e => R.errors.push('B torrent: ' + e.message))
+  for (let i = 0; i < 300 && !tB.done; i++) await sleep(100)
+  R.bDone = tB.done; R.bProgress = tB.progress
+  if (tB.done) { const ab = new Uint8Array(await tB.files[0].arrayBuffer()); R.bytesMatch = ab.length === bytes.length && ab.every((v, i) => v === bytes[i]) }
+  R.aNumPeers = tA.numPeers; R.bNumPeers = tB.numPeers
+  R.aUploaded = tA.uploaded; R.bDownloaded = tB.downloaded; R.bReceived = tB.received
+  R.wireInfo = tB.wires.map(w => ({ type: w.type, peerIdPrefix: w.peerId.slice(0, 16), peerIdAscii: String.fromCharCode(...w.peerIdBuffer.slice(0, 8)), remoteAddress: w.remoteAddress || null }))
+  for (let i = 0; i < 100 && !R.sweepDone; i++) await sleep(200)
+  // cleanup behaviour
+  const wB = tB.wires[0]; let bWireClosed = false; if (wB) wB.once('close', () => { bWireClosed = true })
+  const t1 = performance.now(); await new Promise(r => A.destroy(r)); R.aDestroyMs = Math.round(performance.now() - t1)
+  await sleep(1500)
+  R.afterADestroy = { bNumPeers: tB.numPeers, bWireClosed }
+  await new Promise(r => B.destroy(r))
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

@@ -1,0 +1,40 @@
+{
+  "name": "e5 maxConns enforcement for WebRTC peers",
+  "chromium": "156.0.8078.4",
+  "maxConnsOption": 2,
+  "wiresPerPage": [
+    {
+      "wires": 4,
+      "torrentNumPeers": 4,
+      "clientMaxConns": 2
+    },
+    {
+      "wires": 4,
+      "torrentNumPeers": 4,
+      "clientMaxConns": 2
+    },
+    {
+      "wires": 4,
+      "torrentNumPeers": 4,
+      "clientMaxConns": 2
+    },
+    {
+      "wires": 4,
+      "torrentNumPeers": 4,
+      "clientMaxConns": 2
+    },
+    {
+      "wires": 4,
+      "torrentNumPeers": 4,
+      "clientMaxConns": 2
+    }
+  ],
+  "announcesPerPage0": [
+    {
+      "event": "started",
+      "numwant": 5,
+      "nOffers": 5,
+      "left": null
+    }
+  ]
+}

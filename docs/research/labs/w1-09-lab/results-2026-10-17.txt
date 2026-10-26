@@ -1,0 +1,62 @@
+# w1-09 lab results, generated 2026-10-17T21:12:54Z on Darwin 27.0.0 arm64; node v24.22.0
+
+################ fragment_decode_test.mjs (real src/loader/render.js detectMode + src/common/magnet.js parseMagnet) ################
+original magnet      : magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My%20Site&tr=wss%3A%2F%2Ftracker.example%3A443%2Fannounce%3Fkey%3Da%26b%3Dc
+parsed original      : {"btih":"0123456789abcdef0123456789abcdef01234567","dn":"My Site","tr":["wss://tracker.example:443/announce?key=a&b=c"],"ws":[],"xs":[]}
+
+(A) handler-built hash: #magnet%3A%3Fxt%3Durn%3Abtih%3A0123456789abcdef0123456789abcdef01234567%26dn%3DMy%2520Site...
+    detectMode -> hub magnet pointerText equals original: true
+    parsed        : {"btih":"0123456789abcdef0123456789abcdef01234567","dn":"My Site","tr":["wss://tracker.example:443/announce?key=a&b=c"],"ws":[],"xs":[]}
+
+(B) literal-magnet hash: #magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My%20Site&tr=wss%3A%2F%2F...
+    detectMode -> hub magnet pointerText equals original: false
+    pointerText   : magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My Site&tr=wss://tracker.example:443/announce?key=a&b=c
+    parsed        : {"btih":"0123456789abcdef0123456789abcdef01234567","dn":"My Site","tr":["wss://tracker.example:443/announce?key=a"],"ws":[],"xs":[]}
+    tracker preserved: false
+
+(C) #btih:<hex> -> hub magnet magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567
+
+(D) hypothetical engine that leaves existing %XX unescaped:
+    pointerText equals original: false | tr: ["wss://tracker.example:443/announce?key=a"]
+
+################ encode_set_check.mjs (URL Standard component percent-encode set vs encodeURIComponent, U+0000..U+007F) ################
+ASCII code points where "component percent-encode set" and encodeURIComponent differ: []
+left unescaped by component set: !'()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~
+
+################ qr_sizes.mjs (Thonky byte-mode capacities v1-25) ################
+string                                                     bytes   L          M          Q          H
+domain mode: https://example.com/                             20   v2 (25x25) v2 (25x25) v2 (25x25) v3 (29x29)
+hub: /#btih:<40 hex>                                          66   v4 (33x33) v5 (37x37) v6 (41x41) v8 (49x49)
+hub: /#btih:<32 base32>                                       58   v4 (33x33) v4 (33x33) v5 (37x37) v6 (41x41)
+hub: /#magnet:?xt=urn:btih:<hex> (no trackers)                81   v5 (37x37) v5 (37x37) v7 (45x45) v8 (49x49)
+hub: /#magnet:?xt&dn&1 wss tracker                           136   v7 (45x45) v8 (49x49) v10 (57x57) v11 (61x61)
+hub: /#magnet:?xt&dn&4 wss trackers (CONFIG defaults)        260   v10 (57x57) v12 (65x65) v15 (77x77) v17 (85x85)
+bare magnet:?xt&dn&1 tracker                                 115   v6 (41x41) v7 (45x45) v9 (53x53) v10 (57x57)
+
+################ exp_brave.mjs (installed Brave Brave Browser 155.1.97.59 , throwaway profile) ################
+{
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "isBrave": true,
+  "hasRegister": "function",
+  "hasUnregister": "function",
+  "isSecureContext": true,
+  "magnet /#%s": "ok",
+  "web+magnetweb": "ok",
+  "bittorrent (not safelisted)": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': The scheme 'bittorrent' doesn't belong to the scheme allowlist. Please prefix non-allowlisted schemes with the string 'web+'.",
+  "magnet no %s": "SyntaxError: Failed to execute 'registerProtocolHandler' on 'Navigator': The url provided ('http://127.0.0.1:56485/') does not contain '%s'.",
+  "magnet cross-origin": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': Can only register custom handler in the document's origin."
+}
+
+################ exp_ff.mjs (Playwright Firefox build 1555) ################
+FIREFOX FAILED: browserType.launchPersistentContext: Failed to launch the browser process.
+Browser logs:
+
+<launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/ffprofile -juggler-pipe about:blank
+<launched> pid=43519
+[pid=43519][err] *** You are running in headless mode.
+[pid=43519][err] Could not find profile folder.
+[pid=43519] <process did exit: exitCode=1, signal=null>
+[pid=43519] starting temporary directories cleanup
+Call log:
+  - <launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/ffprofile -juggler-pipe about:blank
+  - <launched> pid=43519

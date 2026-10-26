@@ -1,0 +1,32 @@
+{
+ "engine": "chromium",
+ "version": "156.0.8078.4",
+ "victimOrigin": "http://localhost:57780",
+ "attackerOrigin": "http://127.0.0.1:57781",
+ "setup": {
+  "privExtractable": false,
+  "pubJwk": {
+   "x": "kege_f_P",
+   "y": "gMQRjwhC"
+  }
+ },
+ "hostile": {
+  "foundKey": true,
+  "posted": true,
+  "attacker": {
+   "origin": "http://127.0.0.1:57781",
+   "from": "http://localhost:57780",
+   "gotType": "private",
+   "extractable": false,
+   "storedInAttackerIDB": true,
+   "signedLen": 64
+  }
+ },
+ "later": {
+  "keyStillThere": true,
+  "keyExtractable": false,
+  "verifiesAsVisitor": true,
+  "exported": false,
+  "exportErr": "InvalidAccessError"
+ }
+}

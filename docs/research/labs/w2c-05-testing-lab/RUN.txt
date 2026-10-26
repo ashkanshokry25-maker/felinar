@@ -1,0 +1,78 @@
+w2c-05 testing lab (2026-10-17) - throwaway experiments behind docs/research/w2c-05-testing-qa-production.md
+=========================================================================================================
+
+Environment of the recorded results
+  MacBook Air M3, macOS 27.0 (Darwin 27.0.0), Node v24.22.0 (official build at ~/.local/share/node/current),
+  npm 11.19.1, Playwright 1.64.1 = chromium-1248 (Chromium 156.0.8078.4, also chromium_headless_shell-1248),
+  webkit-2370 (WebKit 27.2), firefox-1555 (Firefox 157.0, does NOT launch on this macOS, see below).
+  webtorrent 3.0.21, bittorrent-protocol 5.0.9, @thaunknown/simple-peer 10.1.2, node-datachannel 0.32.3 (project),
+  fast-check 4.10.2 (installed in this directory only). LuLu (per-process firewall) was running.
+  Other agents were using the machine at the same time, so wall-clock numbers can be noisy (ratios and counts are the point).
+
+How to run
+  cd docs/research/labs/w2c-05-testing-lab
+  npm install --ignore-scripts          # fast-check only; node_modules is git-ignored
+  ./run-all.sh                          # writes results-<date>.txt, 10-25 minutes depending on machine load
+  node <script>.mjs                     # any single experiment (all are read-only on src/ and node_modules/)
+  node npm-versions.mjs fast-check axe-core ...   # registry version + publish date lookups used for section 3
+
+Prerequisites: the project's node_modules (playwright, ws, webtorrent, bittorrent-protocol, create-torrent,
+node-datachannel) and browsers installed with `node node_modules/playwright/cli.js install chromium webkit firefox`.
+Scripts import via ../../../../node_modules and ../../../../src, so keep this directory at docs/research/labs/w2c-05-testing-lab.
+
+Script -> finding map
+  cdp-webrtc-throttle.mjs, cdp-webrtc-throttle2.mjs   F-C1  CDP Network.emulateNetworkConditionsByRule on RTCDataChannel (latency, bandwidth, loss, reorder, queue); legacy method
+  cdp-webrtc-throttle3.mjs                            F-C2  WebSocket not shaped; packetLoss=100 after connect with no rule armed
+  cdp-webrtc-throttle4.mjs                            F-C2/F-C3  rule must be armed before RTCPeerConnection creation; ICE state with loss=100 before connect
+  cdp-webrtc-throttle5.mjs                            F-C3  blackhole timings (disconnected +5 s, failed +15 s, data channel stays open)
+  setoffline-dc.mjs                                   F-B9  context.setOffline(true) does not cut an established data channel
+  engine-probe.mjs                                    F-B2/F-B3/F-B4  Chromium vs WebKit feature, SW, WebCrypto, IndexedDB, WebRTC probe (Firefox branch fails to launch)
+  webkit-rtc.mjs, webkit-rtc2.mjs, webkit-inpage.mjs  F-B4  WebKit candidate gathering with/without camera+microphone permission and getUserMedia
+  ff-launch.mjs                                       F-B5  Firefox launch failure
+  mem-flags.mjs, mem-flags-newheadless.mjs            F-H1  performance.memory, gc(), measureUserAgentSpecificMemory, CDP heap counters
+  pw-gotchas.mjs                                      F-B6/F-B7/F-B8  page.clock vs workers, routeWebSocket vs workers, ServiceWorker.stopAllWorkers
+  wycheproof-run.mjs, jcs-run.mjs                     F-E5  Wycheproof P1363 (262) and RFC 8785 (6) vectors against project code and browser WebCrypto
+  pbt-parsers.mjs                                     F-E2  11 fast-check properties over existing parsers (seed 20261017, 30,000 runs each)
+  wire-oversize.mjs, wire-debug.mjs                   F-D2  bittorrent-protocol length prefix: signedness, quadratic buffering
+  webseed-chaos.mjs                                   F-D1  webtorrent web seed fault classes (ignores Range, 403, corrupt, truncated)
+  ndc-loopback.mjs, chromium-node-peer.mjs            F-D3  node-datachannel synthetic peers, Node <-> Chromium
+  idb-pow-bench.mjs                                   F-I1  50k-block IndexedDB put/getAll and WebCrypto SHA-256 rate per engine
+
+Observations that are commands, not scripts
+  Firefox direct launch (F-B5):
+    ~/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless \
+      -profile <existing empty dir> -screenshot /tmp/x.png about:blank
+    -> "*** You are running in headless mode." / "Could not find profile folder."  (`... firefox --version` prints Mozilla Firefox 157.0)
+  Unit suite baseline (F-J7), from the project root on Node v24.22.0:
+    node --test test/unit                                  -> Error: Cannot find module '.../test/unit'
+    node --test test/unit/chain-core-canonical.test.mjs test/unit/chain-core-crypto.test.mjs \
+                test/unit/sw-lib.test.mjs test/unit/sw-browser.test.mjs   -> tests 51, pass 50, fail 0, skipped 1, 199 ms
+    node --test --test-timeout=5000 --test-force-exit test/unit/sw-sdk.test.mjs
+                                                           -> 8 pass, 1 cancelled: "embedded: the SDK follows the port the host actually adopted"
+    (without --test-timeout/--test-force-exit that file takes 30.5 s to fail and the runner then never exits)
+  LuLu rule inspection (F-B4): /Library/Objective-See/LuLu/rules.plist is world-readable (NSKeyedArchiver plist); it contains an allow rule for
+    .../ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell and for the system
+    com.apple.WebKit.Networking.xpc, and none for .../ms-playwright/webkit-2370/*. No rule was changed.
+
+Pinned vectors (untrusted third-party data, kept only as test fixtures; sha256 at 2026-10-17)
+  vectors/wycheproof_ecdsa_secp256r1_sha256_p1363_test.json
+    c60de693930e386c3a5472d08081623ef8504decc54b38ac01ec6b2a2575c986
+    source https://raw.githubusercontent.com/C2SP/wycheproof/main/testvectors_v1/ecdsa_secp256r1_sha256_p1363_test.json
+  vectors/jcs/*.json  (source https://github.com/cyberphone/json-canonicalization/tree/master/testdata/{input,output})
+    e503b6d71d1afa595b1c74b1016445c944cd89f90418066b23de1aeda7d17563  arrays.in.json
+    099601b171cafed97c333f8878d68e7f8c8f795412adb34b2fdcf0e7c7beac42  arrays.out.json
+    03676a951cd8753ac62589f72eb2105cc782c33425418cfe1d517c111f6e5d5a  french.in.json
+    d99d0ebdcb0033cb858cfa830ae46bc0fb3309413b271f1da828c89901a27ed5  french.out.json
+    d66893805be1784116af50af3110d08766c70a6b4aad93374723f72346e7aaa6  structures.in.json
+    605f65004ec2db7692522a0852c22f1c989e036d547e88963d1a3143cf3195d5  structures.out.json
+    4621864e014d4a805a563f55b9ea20aba4a2d2dc09c7394f625496998c00702c  unicode.in.json
+    0d99aad92a125196ff887876643fd3206786a84ddce2cee52ba4ad256d2381d3  unicode.out.json
+    c4a041b503d6bc236036ef44db4dac499272f60fc22c40dc3b7a54870ba6f1c3  values.in.json
+    2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb  values.out.json
+    a3a905266bd4a49a969274ea69baa14ee0c4af0ead926d6fa2b7612b4af75387  weird.in.json
+    6af595a9aa80110b964b4de3f82a05fa6ae7423005019bacfa2620dddc4e94d1  weird.out.json
+
+Caveats
+  - Scripts were written for one-off measurement, not as product tests; timeouts are generous and some sleeps are long (blackhole runs wait 45-70 s).
+  - Results come from one machine on one network; no NAT, TURN, cellular or phone hardware was involved.
+  - webkit-*.mjs and engine-probe.mjs fail the WebRTC part on this machine (see F-B4); that is a result, not a script bug.

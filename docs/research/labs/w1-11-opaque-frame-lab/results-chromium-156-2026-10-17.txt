@@ -1,0 +1,41 @@
+# Experiment A (parent-created blob: URLs into sandbox=allow-scripts srcdoc frame) - run 2026-10-17, Playwright Chromium 156.0.8078.4, macOS arm64, headless
+Browser: 156.0.8078.4
+postMessage seen by parent -> origin: "null" | event.source === iframe.contentWindow: true
+Frame-side results: {
+ "parentDoc": "ERR:SecurityError",
+ "localStorage": "ERR:SecurityError",
+ "cookie": "ERR:SecurityError",
+ "indexedDB": "ERR:SecurityError",
+ "origin": "null",
+ "href": "about:srcdoc",
+ "baseURI": "http://127.0.0.1:57416/",
+ "isSecureContext": true,
+ "fetchBlob": "ERR:TypeError",
+ "fetchRelNoCors": "ERR:TypeError:Failed to fetch",
+ "fetchRelCors": "{\"ok\":true,\"from\":\"network-cors\"}",
+ "nav": "ERR:SecurityError",
+ "imgOk": 0,
+ "cssColor": "rgb(0, 0, 0)"
+}
+blobScript ran (kind=blobScript message received): false
+After clicking relative link: frame url = http://127.0.0.1:57416/about.html
+Server saw: GET /about.html origin=- sec-fetch-site=cross-site dest=iframe
+Server log (network requests):
+GET / origin=- sec-fetch-site=none dest=document
+GET /data.json origin=null sec-fetch-site=cross-site dest=empty
+GET /data-cors.json origin=null sec-fetch-site=cross-site dest=empty
+GET /about.html origin=- sec-fetch-site=cross-site dest=iframe
+
+# Experiment B (frame builds own blob: URLs from postMessage bytes)
+Browser 156.0.8078.4 
+Variant B (frame builds own blob URLs from postMessage bytes):
+ {
+ "moduleX": 42,
+ "relImport": "ERR:TypeError",
+ "fetchOwnBlob": "ok:16",
+ "cssColor": "rgb(1, 2, 3)",
+ "imgW": 1,
+ "scriptRan": true,
+ "origin": "null",
+ "ls": "ERR:SecurityError"
+}

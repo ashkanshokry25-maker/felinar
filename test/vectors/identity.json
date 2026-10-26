@@ -1,0 +1,565 @@
+{
+  "format": "magnet-web identity derivation, v0.3 (R 2.2)",
+  "about": "Golden vectors for src/identity/derive.js (docs/review/V03-DESIGN-REVIEW.md 2.2.1 to 2.2.3). APPEND ONLY: never edit or remove a vector; add new ones with new ids and append their hashes to LOCK.json. hex fields are lowercase hex; public keys are p256: tagged; signatures are base64url raw r||s.",
+  "vectors": [
+    {
+      "id": "id-001-phrase-zero",
+      "kind": "phrase",
+      "description": "root <-> 12 BIP-39 English words (published BIP-39 test vector)",
+      "root": "00000000000000000000000000000000",
+      "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    },
+    {
+      "id": "id-002-phrase-7f",
+      "kind": "phrase",
+      "description": "root <-> 12 BIP-39 English words (published BIP-39 test vector)",
+      "root": "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
+      "phrase": "legal winner thank year wave sausage worth useful legal winner thank yellow"
+    },
+    {
+      "id": "id-003-phrase-80",
+      "kind": "phrase",
+      "description": "root <-> 12 BIP-39 English words (published BIP-39 test vector)",
+      "root": "80808080808080808080808080808080",
+      "phrase": "letter advice cage absurd amount doctor acoustic avoid letter advice cage above"
+    },
+    {
+      "id": "id-004-phrase-ff",
+      "kind": "phrase",
+      "description": "root <-> 12 BIP-39 English words (published BIP-39 test vector)",
+      "root": "ffffffffffffffffffffffffffffffff",
+      "phrase": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong"
+    },
+    {
+      "id": "id-005-phrase-root1",
+      "kind": "phrase",
+      "description": "root <-> 12 BIP-39 English words",
+      "root": "000102030405060708090a0b0c0d0e0f",
+      "phrase": "abandon amount liar amount expire adjust cage candy arch gather drum buyer"
+    },
+    {
+      "id": "id-006-phrase-root2",
+      "kind": "phrase",
+      "description": "root <-> 12 BIP-39 English words",
+      "root": "f0e1d2c3b4a5968778695a4b3c2d1e0f",
+      "phrase": "valley attend rail harsh floor dry ticket clip enroll thumb elegant burst"
+    },
+    {
+      "id": "id-007-phrase-bad-checksum",
+      "kind": "phrase-error",
+      "description": "last word changed: the 4-bit checksum fails",
+      "phrase": "abandon amount liar amount expire adjust cage candy arch gather drum ability",
+      "expect": {
+        "code": "E_PHRASE_CHECKSUM"
+      }
+    },
+    {
+      "id": "id-008-phrase-unknown-word",
+      "kind": "phrase-error",
+      "description": "a word outside the list",
+      "phrase": "abandon amount liar amount expire magnetweb cage candy arch gather drum buyer",
+      "expect": {
+        "code": "E_PHRASE_WORD"
+      }
+    },
+    {
+      "id": "id-009-phrase-eleven-words",
+      "kind": "phrase-error",
+      "description": "11 words",
+      "phrase": "abandon amount liar amount expire adjust cage candy arch gather drum",
+      "expect": {
+        "code": "E_PHRASE_LENGTH"
+      }
+    },
+    {
+      "id": "id-009b-phrase-mistyped-passes-checksum",
+      "kind": "phrase-mistyped",
+      "description": "a mistyped last word that still passes the 4-bit checksum (about 1 in 16) decodes to another root: the check code differs (MF-11, E-ID-3b)",
+      "phrase": "abandon amount liar amount expire adjust cage candy arch gather drum abandon",
+      "root": "000102030405060708090a0b0c0d0e00",
+      "intendedCheckCode": "3yhth7xy",
+      "checkCode": "zw2x7bs3"
+    },
+    {
+      "id": "id-010-root-star",
+      "kind": "root-star",
+      "description": "root* = HKDF-SHA-256(root, salt \"mw/id/v2\", info \"\", 32); check code; K_vaultHash",
+      "root": "000102030405060708090a0b0c0d0e0f",
+      "extra": null,
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "checkCode": "3yhth7xy",
+      "kVaultHash": "5582a35d350de1e27ac82550c0c72eee4d5c327dbc2ca7687da3640131e9a029"
+    },
+    {
+      "id": "id-011-root-star-2",
+      "kind": "root-star",
+      "description": "second root",
+      "root": "f0e1d2c3b4a5968778695a4b3c2d1e0f",
+      "extra": null,
+      "rootStar": "9dd5336d37db1114783ba884f27e155362349a9ae5a4856f1231014b1740589c",
+      "checkCode": "qo3u2ael",
+      "kVaultHash": "fee52f3ae29b218bf2256ae7c8bb6923eaeab26ba792293d3528796a18239a9a"
+    },
+    {
+      "id": "id-012-root-star-extra-word",
+      "kind": "root-star",
+      "description": "extra word through Argon2id m = 65536 KiB, t = 3, p = 1, salt SHA-256(\"mw/extra/v1\" || root), 32 bytes; ikm = root || that output",
+      "root": "000102030405060708090a0b0c0d0e0f",
+      "extra": "blue lantern 7",
+      "argon2": {
+        "m": 65536,
+        "t": 3,
+        "p": 1
+      },
+      "extraSalt": "1ec589cf3446def3742a0fe3301f737d0500eed6611e535b935c36f2787624f1",
+      "rootStar": "24118a322bfb80033de732c5dafb69d2384747c5a300d09a2e656bac945ac9b2",
+      "checkCode": "rcmswkrf",
+      "kVaultHash": "dd46bf0634f310384dcbb02e64ce93fceff248b21f5ecb0993b00828a6ba2fe8"
+    },
+    {
+      "id": "id-013-label-origin-1",
+      "kind": "label",
+      "description": "origin label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "o|https://forum.example",
+      "seed": "c1833b2b8896bb2e35282153e207e5710b40afae476061cdb86b5e1779e548f9",
+      "signScalar1": "cb1ffd46ae45d61f52ecf9e9865c545e2602d96dd2ff8beea52f8ad8050d8f27",
+      "pub1": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+      "signScalar2": "d5cecaa0965b67d7ef9f2ddadcd3b781ee7179e3c5f65ebee0f27af714520287",
+      "pub2": "p256:BBZgI_jq4pbRIRWNns4bV5yn3q7ZwCGH27QqsbGQQu1NQiNVj5WuBtN31MEeKqfIc8XEb-XtYQ37hy4zEo7yg4s",
+      "recoverPub": "p256:BJXOn_q5FzkKUCqzdvypGcU1in3HEpUHS7SbfnwsygPYk-mHmeB1nOa-GktzEle-C41GxvCXLRo_-L4BAMSmhVE",
+      "kName": "5aa4d4aba5a07890e08b823e4ee542a1e2d438a29587de69a881f5ac903425c5"
+    },
+    {
+      "id": "id-014-label-origin-2",
+      "kind": "label",
+      "description": "origin label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "o|https://shop.example",
+      "seed": "a7d9daf14bf0e425e4cb1ae2a229b0126682deabfe3510994f10ba58e2310cf6",
+      "signScalar1": "1ec895f3dc44f75528ccb1f384baf8d1967a0b071c28beda51f28d81724ea61d",
+      "pub1": "p256:BDvqskN2XWiTs7ag0AZiz6yo1j1ezN2SBCsAu1z4DIltDzsRypqnYVNmBS9W1w9kzh7kAyGiOnuXC2Qik2I0jCA",
+      "signScalar2": "de1a2a0e0bcef3d60e97a1d20da81cb8b678e84616071b419c420dbe17176cfd",
+      "pub2": "p256:BPWl1jJj4oCHoRzFCT9f0wVx_6zgcHl57OjHk0cPhKj2moUy6CbdZDNMW6EBP3V6dXzBfMAL4rOXL8tcZBul_jc",
+      "recoverPub": "p256:BHsvnIo93EoNf1aUkGFLLaN4EKpwN9qgnY4DEcWAq-7q9benIxmF49LNdm_-8oNaGY-I8ez5HOFUcF6amCQRL_o",
+      "kName": "ca6b83175dc13014c69f55e0c213c66729695cc92c1143768335a97c24c5b1f1"
+    },
+    {
+      "id": "id-015-label-origin-3",
+      "kind": "label",
+      "description": "origin label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "o|http://127.0.0.1:8080",
+      "seed": "3e711908d75a0c65afcfb138935a767bc84e4bd9de93bdaa2cd1af5d2700541e",
+      "signScalar1": "aa225af757a5b5a6931a2d2ea1a724fc89b9b79724c1c85a5095d55d1d9b826d",
+      "pub1": "p256:BPw0s-AF1rzF1r595WEO0fJHkXNApaXgu_5uTntZ0Dz2kBDO0VaASMDDLa3Mnpc1fuRKKx5HTKddtTL661jPl4M",
+      "signScalar2": "004075e075533746b6a7010da2862c6e98e5b46c83b7a9b78b0111b9eb909983",
+      "pub2": "p256:BM1297J6x5J7syVIx3J5v_1hwCNuYT4J7NTjjejiuYSGE14DGAK6LZT8whKZlvjwvnzMDmzT90p2zuco4IM7fJY",
+      "recoverPub": "p256:BJdm9HkFeBxURd56J8C4IRgVj0Fply_bflvNpAigVcgo8SzEQORB6IoHONbk84lzgv2NfbIApgzXe5cwB9JK9NE",
+      "kName": "4377a5a6c72d8794b218cb84f6419f204901b20f188b41b6de93941680aa9ef4"
+    },
+    {
+      "id": "id-016-label-ledger-1",
+      "kind": "label",
+      "description": "ledger label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "l|mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+      "seed": "b91de10d9b3a5825a8416fae62cc3f451c24b7fc9d4a3cbf584d67db4121f370",
+      "signScalar1": "1b89c24f330ccd5e939bfbd57bb650c9780b9b7090bb4fc7dc27d04a3fafa373",
+      "pub1": "p256:BOpsWcRwvUm9K026uKRK_I6uThCfW-qr8aplkBzZaJY9wafowrFqh6flYhPBITtdEu5cozWtZy8gdXu1ieRTPeU",
+      "signScalar2": "757b5d927aad66ce1757e3439a3c8767bcf1d783776485927daed4190a24391a",
+      "pub2": "p256:BCy3w1lx1WlXChfz6TyGMn5QIpU5R_juhYX51IdtBLjn9SAwhjupf56ztB65pU8YwQIOrgn2tTJsP5F3A5x1Vjw",
+      "recoverPub": "p256:BL3FSMCNJF4HnARErgE2kqhGCeOl0L__-x6rktIN0sVr6_1IAc0yLMqvLHDXPn9-SZGXYDtsO9p_yTrfohQdgbg",
+      "kName": "c391d028f8dfa735bb6edb363797ee656a684e55afacd2b95eedb6dcf0f7083e"
+    },
+    {
+      "id": "id-017-label-ledger-2",
+      "kind": "label",
+      "description": "ledger label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "l|mw1:cFXgYqBSMryioohxEdR-vcPlOVV",
+      "seed": "691c914302a3952f39e8ed1f123bc0960bb0db86273cfb1fce4331c0f9941d89",
+      "signScalar1": "258311158fc26ae8d7aa84bb49efd1271256e604da06d5ab658f1480e8cb308e",
+      "pub1": "p256:BKaBkua-wPfkpbyrS5VM4l1U74nqfI5SaJmiO8uq0teRyaTptJshxlZk_QqVAmLtXx3CH-UpEnLAEoL7J0nl9Zc",
+      "signScalar2": "161bf8070b41a8eaa3017f56be0dea0b002e17acb51313b702018d423d784266",
+      "pub2": "p256:BK-Ch5J-oU0SfH5L2c93Bn5-0gbmubRie7W8c_iRwA-Y_O7CydDwHX38Kqs92H-97jr9ZnCO3KtViWJlz0AJrnY",
+      "recoverPub": "p256:BMy944gGaOUgsmrWc8ZG8IlkvQwVbUNeQtTFlkQJfdVl0N9Ox80QRvZIr_hkanK0AbCLIPJDUCktSdyji_lFDNU",
+      "kName": "4a6607e171f2fa2d0fe0cdc4b0e7a008937cb76f90797eaf14257b3d9cd70c05"
+    },
+    {
+      "id": "id-018-label-ledger-3",
+      "kind": "label",
+      "description": "ledger label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "l|mw1:2UgseQ0b3VGoDfNWlV2oV22HPQy",
+      "seed": "a403f073c2a7e336dbc95fca6a469272a0f11f5a46ef59b787801d85266c467c",
+      "signScalar1": "d90c2c48731964f86b1eaa3d61297a065dbf6d3279fce24a3711635f28d455ff",
+      "pub1": "p256:BN3kF1eeTR4gOQN8gHTOAXhkeyBF5CemxtTITcHeFEWhMJFglMT3apYq2Ahu1lshWBiGwA5L4lmjzW4wjIbz1Wc",
+      "signScalar2": "cdc8380dcfc1250dc2c951ea56cc4bca7759fd78270cce984637643d56b8b51a",
+      "pub2": "p256:BGedRFuYkzagxwfeNTkCdHJoyxGgcIkPB2wlZo3cG9x1Z-VzfqvdPHVqosjNJfakpdeTjqbUvht9Hg3KFzXNvS8",
+      "recoverPub": "p256:BO5p-vdtCcft9PgpnZ7sj7eoFj6uNJB4ZEQhnZYbxMxTYpwFFPiLMt0zb4R9qTn0GkvOFn5B5ZV4WydndF292l0",
+      "kName": "592f61b5792d1fc8a37e964874103b996e9fbc7d2dc56a09338001ef5d562a4f"
+    },
+    {
+      "id": "id-019-label-hub-1",
+      "kind": "label",
+      "description": "hub label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "h|hub.example",
+      "seed": "37e5040129670eb5643aea7dd049aef519cd287284c203d3ade08c7568656a61",
+      "signScalar1": "b130c60044ec6821bbdb056c0ccc551689b5553d5e7b05db9a2e2271c8aaaca7",
+      "pub1": "p256:BNgTbkdKeVbxzoSXVpS4LIgd_DLNf5ht75usntDQWXhk8fRJeLrQtGM47ReM16YjlwOv7uCVBqYmmijJ10LSUzE",
+      "signScalar2": "e009b321d93861d20853bcd7da6f3d6321d72f888a3032bd3d03a620f9bab84d",
+      "pub2": "p256:BImwPEQshPL0Vc_ZbVPoUGxsiBy5SvTfj59U2ypdm-61FZ1dhFNkl6AY6gSjn-Se9k2Uc9-9ueLTvFJ_EezBOMc",
+      "recoverPub": "p256:BMJzcmzEzzDYq-dS4tqGp3OL2HlmPSQONXE1VUUtoGcCwkF3iK242TBY3ZrkszK-XccxbL2hbupCuxoqdKmnF7Q",
+      "kName": "14ae2ffa3f6a2249ee9405a91d256bf0530745705ee061866341cce764327153"
+    },
+    {
+      "id": "id-020-label-hub-2",
+      "kind": "label",
+      "description": "hub label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "h|sites.example.net",
+      "seed": "8433a8c5f1e19f06b741975da2e55b2df8965704b4818dfdd8e1942f2b187535",
+      "signScalar1": "6cc56c8ebecba5e141c9c2586b6b5e12b63f9426f58072e84e85e4f70284629c",
+      "pub1": "p256:BA5OClV6ZXYjtPGKUC24VPJV4QSV9WziJNKovoBHCy194jbIkgG4kOz6AUK1ncMOW09HF1taR_U4pDVs7wdKE9g",
+      "signScalar2": "7319da9dc847a6c4b0ebba3793f893e678e5472f79f39c1db7b85701d12d6845",
+      "pub2": "p256:BLIBc5MpcAjgEw-KLNZ4xkdl1T-1FMWB5PP5AZi6FVXUQRutzq3IRLjyJl9Pyu7eJyziAhjOXPu5icbDgHiaF9E",
+      "recoverPub": "p256:BHg-74E9e10tOrjZ-JjCUGQu49XE8-QTURD107-7NKsJ0gBS8wrOLw9-alODBXw-a4_0WO_l4mvH2OmWVJlIcyo",
+      "kName": "547ed8c354a924e74e9a3768e98e5d256e7486117f368f1360bf563658aaf753"
+    },
+    {
+      "id": "id-021-label-hub-3",
+      "kind": "label",
+      "description": "hub label: seed, sign key i = 1 and 2, recover key, K_name",
+      "rootStar": "b4f299ed8136d05022a377ba1d493f120331177a86897a92a41bc0953aae5087",
+      "label": "h|pages.example.org",
+      "seed": "ddffae10371cef0dd02ce1cf07889581800a16b6b8fad4feedebc1974718615e",
+      "signScalar1": "5a023e5263f3f2ee064e57b997ca728e70d7d28aba31afd7d56780a225d7b141",
+      "pub1": "p256:BPB9DweA8CBTrognKPFZaGxZknIadAvrKiohOHIlUXh6KWTq6CdUETcYdmoDXouewwwKEdLVs-ijzhMcipZNpbQ",
+      "signScalar2": "7d022fe0484c09113f095783f35a3e3d48e7748638dc08b64d067598875ad2a3",
+      "pub2": "p256:BIqResAmUPlpE1wNkCpfx6c8ImVHzE2iv0twOAfmaaVVMZqjpRxCexnOSaCEj8PbRbSgFflUAOoR-_sjZkWIm9Q",
+      "recoverPub": "p256:BKpGbVqYP9EzzeZ18Vg0TC7duCY2V4Sdr3wDJgz3wFSatsd1twI0IrcEyj5Jq5uYaf2JwBHRN6FmuZzukdamsUE",
+      "kName": "f5027062f6c25f709d30ba00f6b595b464098a0b1a95d594c2335272bb006674"
+    },
+    {
+      "id": "id-022-signature",
+      "kind": "signature",
+      "description": "ECDSA P-256 SHA-256, raw r||s (P1363), by the i = 1 key of o|https://forum.example; any valid signature verifies (ECDSA is randomised)",
+      "label": "o|https://forum.example",
+      "pub": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+      "message": "mw-test-v1\nhello from the identity vectors",
+      "sig": "skNlvK5E3pABDPC7gNIGy33yijk4_RL_fedC0jAA1gUb9YJZOqe-Dqtt0G1PlzwD07eKdKvJms5CLpXUOg1r1Q"
+    },
+    {
+      "id": "id-lc-001-origin-default",
+      "kind": "label-choice",
+      "description": "no pointer, no hub, no link: the origin label",
+      "input": {
+        "origin": "https://shop.example"
+      },
+      "verifyResult": null,
+      "publicSuffix": null,
+      "expect": {
+        "label": "o|https://shop.example",
+        "keyMode": "pairwise"
+      }
+    },
+    {
+      "id": "id-lc-002-ledger-own-host",
+      "kind": "label-choice",
+      "description": "verified pointer, genesis owner, origin is the pointer host",
+      "input": {
+        "origin": "https://shop.example",
+        "pointer": "v=mw1; ..."
+      },
+      "verifyResult": {
+        "ok": true,
+        "ledgerId": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "owner": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "lo": null,
+        "rotVerified": false,
+        "host": "shop.example",
+        "org": []
+      },
+      "publicSuffix": null,
+      "expect": {
+        "label": "l|mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "keyMode": "ledger",
+        "ledger": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh"
+      }
+    },
+    {
+      "id": "id-lc-003-ledger-org-listed",
+      "kind": "label-choice",
+      "description": "mirror listed in org=",
+      "input": {
+        "origin": "https://mirror.example",
+        "pointer": "v=mw1; ..."
+      },
+      "verifyResult": {
+        "ok": true,
+        "ledgerId": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "owner": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "lo": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "rotVerified": false,
+        "host": "shop.example",
+        "org": [
+          "https://mirror.example"
+        ]
+      },
+      "publicSuffix": null,
+      "expect": {
+        "label": "l|mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "keyMode": "ledger",
+        "ledger": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh"
+      }
+    },
+    {
+      "id": "id-lc-004-ledger-squat-other-owner",
+      "kind": "label-choice",
+      "description": "pointer claims the victim ledger (lo = victim) but is signed by another owner with no rot chain: origin label",
+      "input": {
+        "origin": "https://shop.example",
+        "pointer": "v=mw1; ..."
+      },
+      "verifyResult": {
+        "ok": true,
+        "ledgerId": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "owner": "p256:BDvqskN2XWiTs7ag0AZiz6yo1j1ezN2SBCsAu1z4DIltDzsRypqnYVNmBS9W1w9kzh7kAyGiOnuXC2Qik2I0jCA",
+        "lo": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "rotVerified": false,
+        "host": "shop.example",
+        "org": []
+      },
+      "publicSuffix": null,
+      "expect": {
+        "label": "o|https://shop.example",
+        "keyMode": "pairwise",
+        "reason": "lineage"
+      }
+    },
+    {
+      "id": "id-lc-005-ledger-rot-chain",
+      "kind": "label-choice",
+      "description": "owner rotated from lo through a verified rot= chain",
+      "input": {
+        "origin": "https://shop.example",
+        "pointer": "v=mw1; ..."
+      },
+      "verifyResult": {
+        "ok": true,
+        "ledgerId": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "owner": "p256:BDvqskN2XWiTs7ag0AZiz6yo1j1ezN2SBCsAu1z4DIltDzsRypqnYVNmBS9W1w9kzh7kAyGiOnuXC2Qik2I0jCA",
+        "lo": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "rotVerified": true,
+        "host": "shop.example",
+        "org": []
+      },
+      "publicSuffix": null,
+      "expect": {
+        "label": "l|mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "keyMode": "ledger",
+        "ledger": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh"
+      }
+    },
+    {
+      "id": "id-lc-006-ledger-look-alike",
+      "kind": "label-choice",
+      "description": "valid pointer of another site carried by a look-alike origin: not listed",
+      "input": {
+        "origin": "https://shop-example.evil",
+        "pointer": "v=mw1; ..."
+      },
+      "verifyResult": {
+        "ok": true,
+        "ledgerId": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "owner": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "lo": null,
+        "rotVerified": false,
+        "host": "shop.example",
+        "org": [
+          "https://mirror.example"
+        ]
+      },
+      "publicSuffix": null,
+      "expect": {
+        "label": "o|https://shop-example.evil",
+        "keyMode": "pairwise",
+        "reason": "not-listed"
+      }
+    },
+    {
+      "id": "id-lc-007-ledger-org-too-long",
+      "kind": "label-choice",
+      "description": "org= with five origins is refused",
+      "input": {
+        "origin": "https://m5.example",
+        "pointer": "v=mw1; ..."
+      },
+      "verifyResult": {
+        "ok": true,
+        "ledgerId": "mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "owner": "p256:BEpLocUs22V38anNOkWS-3JwZ6Z8YA44095Gu3ttUzDIT-GKf-E2YoHNXyvWgS9Zovt2sEllv_rci4IMmurYVfs",
+        "lo": null,
+        "rotVerified": false,
+        "host": "shop.example",
+        "org": [
+          "https://m1.example",
+          "https://m2.example",
+          "https://m3.example",
+          "https://m4.example",
+          "https://m5.example"
+        ]
+      },
+      "publicSuffix": null,
+      "expect": {
+        "label": "o|https://m5.example",
+        "keyMode": "pairwise",
+        "reason": "org-too-long"
+      }
+    },
+    {
+      "id": "id-lc-008-ledger-unverified",
+      "kind": "label-choice",
+      "description": "pointer signature fails",
+      "input": {
+        "origin": "https://shop.example",
+        "pointer": "v=mw1; ..."
+      },
+      "verifyResult": {
+        "ok": false
+      },
+      "publicSuffix": null,
+      "expect": {
+        "label": "o|https://shop.example",
+        "keyMode": "pairwise",
+        "reason": "unverified"
+      }
+    },
+    {
+      "id": "id-lc-009-hub-opt-in-psl",
+      "kind": "label-choice",
+      "description": "hub opt-in, suffix on the PSL snapshot, host is <32 base32>.<suffix>",
+      "input": {
+        "origin": "https://abcdefghijklmnopqrstuvwxyz234567.hub.example",
+        "hubScope": {
+          "suffix": "hub.example",
+          "optIn": true
+        }
+      },
+      "verifyResult": null,
+      "publicSuffix": true,
+      "expect": {
+        "label": "h|hub.example",
+        "keyMode": "hub"
+      }
+    },
+    {
+      "id": "id-lc-010-hub-not-psl",
+      "kind": "label-choice",
+      "description": "hub opt-in but the suffix is not on the PSL snapshot",
+      "input": {
+        "origin": "https://abcdefghijklmnopqrstuvwxyz234567.hub.example",
+        "hubScope": {
+          "suffix": "hub.example",
+          "optIn": true
+        }
+      },
+      "verifyResult": null,
+      "publicSuffix": false,
+      "expect": {
+        "label": "o|https://abcdefghijklmnopqrstuvwxyz234567.hub.example",
+        "keyMode": "pairwise"
+      }
+    },
+    {
+      "id": "id-lc-011-hub-no-opt-in",
+      "kind": "label-choice",
+      "description": "hub without the opt-in",
+      "input": {
+        "origin": "https://abcdefghijklmnopqrstuvwxyz234567.hub.example",
+        "hubScope": {
+          "suffix": "hub.example",
+          "optIn": false
+        }
+      },
+      "verifyResult": null,
+      "publicSuffix": true,
+      "expect": {
+        "label": "o|https://abcdefghijklmnopqrstuvwxyz234567.hub.example",
+        "keyMode": "pairwise"
+      }
+    },
+    {
+      "id": "id-lc-012-hub-shared-origin",
+      "kind": "label-choice",
+      "description": "shared-origin hub: this visit only",
+      "input": {
+        "origin": "https://hub.example",
+        "hubScope": {
+          "suffix": "hub.example",
+          "optIn": true,
+          "shared": true
+        }
+      },
+      "verifyResult": null,
+      "publicSuffix": true,
+      "expect": {
+        "label": null,
+        "keyMode": "visit-only"
+      }
+    },
+    {
+      "id": "id-lc-013-linked-origin",
+      "kind": "label-choice",
+      "description": "same identity as on forum.example",
+      "input": {
+        "origin": "https://shop.example",
+        "links": {
+          "https://shop.example": "o|https://forum.example"
+        }
+      },
+      "verifyResult": null,
+      "publicSuffix": null,
+      "expect": {
+        "label": "o|https://forum.example",
+        "keyMode": "linked"
+      }
+    },
+    {
+      "id": "id-lc-014-linked-ledger",
+      "kind": "label-choice",
+      "description": "same identity as on a ledger-labelled site",
+      "input": {
+        "origin": "https://blog.example",
+        "links": {
+          "https://blog.example": "l|mw1:nVGogcS2OGGkiSuvcAgt2jRveEh"
+        }
+      },
+      "verifyResult": null,
+      "publicSuffix": null,
+      "expect": {
+        "label": "l|mw1:nVGogcS2OGGkiSuvcAgt2jRveEh",
+        "keyMode": "linked"
+      }
+    },
+    {
+      "id": "id-lc-015-linked-hub",
+      "kind": "label-choice",
+      "description": "same identity as on a hub",
+      "input": {
+        "origin": "https://news.example",
+        "links": {
+          "https://news.example": "h|hub.example"
+        }
+      },
+      "verifyResult": null,
+      "publicSuffix": null,
+      "expect": {
+        "label": "h|hub.example",
+        "keyMode": "linked"
+      }
+    }
+  ]
+}

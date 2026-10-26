@@ -1,0 +1,352 @@
+{
+ "chromium": {
+  "version": "156.0.8078.4",
+  "ice": [
+   {
+    "label": "no-servers",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      132,
+      "complete"
+     ]
+    ],
+    "tNull": 132,
+    "gatherState": "complete",
+    "tComplete": 132,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      117,
+      "complete"
+     ]
+    ],
+    "tNull": 117,
+    "gatherState": "complete",
+    "tComplete": 117,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A+C (same mapping)",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      119,
+      "complete"
+     ]
+    ],
+    "tNull": 119,
+    "gatherState": "complete",
+    "tComplete": 119,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A+B (mapping varies by dest)",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      127,
+      "complete"
+     ]
+    ],
+    "tNull": 127,
+    "gatherState": "complete",
+    "tComplete": 127,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn udp OK",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      118,
+      "complete"
+     ]
+    ],
+    "tNull": 118,
+    "gatherState": "complete",
+    "tComplete": 118,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn tcp OK",
+    "cands": [
+     {
+      "t": 67,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40045,
+      "rel": "203.0.113.7:62710",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "relayProto": "tcp"
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      124,
+      "complete"
+     ]
+    ],
+    "tNull": 124,
+    "gatherState": "complete",
+    "tComplete": 124,
+    "sdpBytes": 595,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "tcp",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "turn udp+tcp OK (one entry, 2 urls)",
+    "cands": [
+     {
+      "t": 68,
+      "type": "relay",
+      "proto": "udp",
+      "addr": "203.0.113.50",
+      "port": 40046,
+      "rel": "203.0.113.7:62861",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "relayProto": "tcp"
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      128,
+      "complete"
+     ]
+    ],
+    "tNull": 128,
+    "gatherState": "complete",
+    "tComplete": 128,
+    "sdpBytes": 595,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "relay",
+      "protocol": "udp",
+      "relayProtocol": "tcp",
+      "url": "turn:127.0.0.1:34790?transport=tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A + turn udp OK",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      119,
+      "complete"
+     ]
+    ],
+    "tNull": 119,
+    "gatherState": "complete",
+    "tComplete": 119,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "stun A + turn udp OK + BLACKHOLE udp",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      125,
+      "complete"
+     ]
+    ],
+    "tNull": 125,
+    "gatherState": "complete",
+    "tComplete": 125,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   },
+   {
+    "label": "policy=relay, turn udp OK",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      1,
+      "gathering"
+     ],
+     [
+      117,
+      "complete"
+     ]
+    ],
+    "tNull": 117,
+    "gatherState": "complete",
+    "tComplete": 117,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": []
+   }
+  ]
+ }
+}

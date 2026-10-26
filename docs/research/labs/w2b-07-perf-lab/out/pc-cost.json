@@ -1,0 +1,71 @@
+{
+ "chromium": "156.0.8078.4",
+ "runs": [
+  {
+   "kind": "pairs",
+   "n": 5,
+   "peerConnections": 10,
+   "createMsTotal": 27,
+   "createMsPerPC": 2.7,
+   "rssDeltaMB": 17.7,
+   "rssPerPC_MB": 1.77,
+   "idleCpuPct": 0.16,
+   "idleCpuPctPerPC": 0.016
+  },
+  {
+   "kind": "pairs",
+   "n": 15,
+   "peerConnections": 30,
+   "createMsTotal": 82,
+   "createMsPerPC": 2.7,
+   "rssDeltaMB": 23,
+   "rssPerPC_MB": 0.77,
+   "idleCpuPct": 0.42,
+   "idleCpuPctPerPC": 0.014
+  },
+  {
+   "kind": "pairs",
+   "n": 30,
+   "peerConnections": 60,
+   "createMsTotal": 153,
+   "createMsPerPC": 2.6,
+   "rssDeltaMB": 29.6,
+   "rssPerPC_MB": 0.49,
+   "idleCpuPct": 1.12,
+   "idleCpuPctPerPC": 0.019
+  },
+  {
+   "kind": "offers",
+   "n": 5,
+   "peerConnections": 5,
+   "createMsTotal": 621,
+   "createMsPerPC": 124.1,
+   "rssDeltaMB": 11.5,
+   "rssPerPC_MB": 2.3,
+   "idleCpuPct": 0.03,
+   "idleCpuPctPerPC": 0.006
+  },
+  {
+   "kind": "offers",
+   "n": 15,
+   "peerConnections": 15,
+   "createMsTotal": 1869,
+   "createMsPerPC": 124.6,
+   "rssDeltaMB": 13.1,
+   "rssPerPC_MB": 0.88,
+   "idleCpuPct": 0.05,
+   "idleCpuPctPerPC": 0.003
+  },
+  {
+   "kind": "offers",
+   "n": 30,
+   "peerConnections": 30,
+   "createMsTotal": 3748,
+   "createMsPerPC": 124.9,
+   "rssDeltaMB": 19.5,
+   "rssPerPC_MB": 0.65,
+   "idleCpuPct": 0.02,
+   "idleCpuPctPerPC": 0.001
+  }
+ ]
+}

@@ -1,0 +1,315 @@
+{
+  "engine": "chromium",
+  "rows": [
+    {
+      "guard": "none",
+      "case": "cross-origin link click",
+      "topUrl": "/behaviors.html",
+      "frameUrl": "/page",
+      "frameText": "external page",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-load",
+        "mirror-unreadable(load)",
+        "attach-error"
+      ],
+      "console": []
+    },
+    {
+      "guard": "none",
+      "case": "location.href = external (in click handler)",
+      "topUrl": "/behaviors.html",
+      "frameUrl": "/page",
+      "frameText": "external page",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-load",
+        "mirror-unreadable(load)",
+        "attach-error"
+      ],
+      "console": []
+    },
+    {
+      "guard": "none",
+      "case": "cross-origin form POST -> 303 back to site",
+      "topUrl": "/thanks.html?from=ext",
+      "frameUrl": "/thanks.html?from=ext",
+      "frameText": "Thanks Home",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-load",
+        "mirror(load)",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "none",
+      "case": "cross-origin form POST -> X-Frame-Options DENY page",
+      "topUrl": "/behaviors.html",
+      "frameUrl": "chrome-error://chromewebdata/",
+      "frameText": "",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-load",
+        "mirror-unreadable(load)",
+        "attach-error"
+      ],
+      "console": [
+        "Refused to display 'http://127.0.0.1:49211/' in a frame because it set 'X-Frame-Options' to 'deny'."
+      ]
+    },
+    {
+      "guard": "none",
+      "case": "same-origin form POST (static host => 405)",
+      "topUrl": "/submit",
+      "frameUrl": "/submit",
+      "frameText": "405 Method Not Allowed (static host)",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-load",
+        "mirror(load)",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "none",
+      "case": "GET form to /search.html",
+      "topUrl": "/search.html?q=hello",
+      "frameUrl": "/search.html?q=hello",
+      "frameText": "Search results q=hello",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-load",
+        "mirror(load)",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "none",
+      "case": "target=_top link to external",
+      "topUrl": "/page",
+      "frameUrl": "null",
+      "frameText": "n/a:TypeError: Cannot read properties of nul",
+      "popups": 0,
+      "console": []
+    },
+    {
+      "guard": "none",
+      "case": "target=_top same-origin link",
+      "topUrl": "/b.html",
+      "frameUrl": "/b.html",
+      "frameText": "Page B Home | A | B | C jump to section 2 Section 2 of b",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "none",
+      "case": "target=_parent same-origin link",
+      "topUrl": "/c.html",
+      "frameUrl": "/c.html",
+      "frameText": "Page C Home | A | B | C jump to section 2 Section 2 of c",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "cross-origin link click",
+      "topUrl": "/behaviors.html",
+      "frameUrl": "/behaviors.html",
+      "frameText": "Behaviors plain internal link alert confirm prompt print window.open s",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-navigate(/page)[push,cancelable,ext]",
+        "blocked-external(http://127.0.0.1:49211/page)"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "location.href = external (in click handler)",
+      "topUrl": "/behaviors.html",
+      "frameUrl": "/behaviors.html",
+      "frameText": "Behaviors plain internal link alert confirm prompt print window.open s",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-navigate(/page)[push,cancelable,ext]",
+        "blocked-external(http://127.0.0.1:49211/page)"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "cross-origin form POST -> 303 back to site",
+      "topUrl": "/behaviors.html",
+      "frameUrl": "/behaviors.html",
+      "frameText": "Behaviors plain internal link alert confirm prompt print window.open s",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-navigate(/post-redirect)[push,cancelable,ext]",
+        "blocked-external(http://127.0.0.1:49211/post-redirect)"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "cross-origin form POST -> X-Frame-Options DENY page",
+      "topUrl": "/behaviors.html",
+      "frameUrl": "/behaviors.html",
+      "frameText": "Behaviors plain internal link alert confirm prompt print window.open s",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-navigate(/post-deny)[push,cancelable,ext]",
+        "blocked-external(http://127.0.0.1:49211/post-deny)"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "same-origin form POST (static host => 405)",
+      "topUrl": "/submit",
+      "frameUrl": "/submit",
+      "frameText": "405 Method Not Allowed (static host)",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-navigate(/submit)[push,cancelable]",
+        "frame-load",
+        "mirror(load)",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "GET form to /search.html",
+      "topUrl": "/search.html?q=hello",
+      "frameUrl": "/search.html?q=hello",
+      "frameText": "Search results q=hello",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow",
+        "frame-navigate(/search.html?q=hello)[push,cancelable]",
+        "frame-load",
+        "mirror(load)",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "target=_top link to external",
+      "topUrl": "/page",
+      "frameUrl": "null",
+      "frameText": "n/a:TypeError: Cannot read properties of nul",
+      "popups": 0,
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "target=_top same-origin link",
+      "topUrl": "/b.html",
+      "frameUrl": "/b.html",
+      "frameText": "Page B Home | A | B | C jump to section 2 Section 2 of b",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow"
+      ],
+      "console": []
+    },
+    {
+      "guard": "navapi-cancel",
+      "case": "target=_parent same-origin link",
+      "topUrl": "/c.html",
+      "frameUrl": "/c.html",
+      "frameText": "Page C Home | A | B | C jump to section 2 Section 2 of c",
+      "popups": 0,
+      "topReloaded": true,
+      "shellLog": [
+        "top-pageshow",
+        "mounted",
+        "frame-load",
+        "frame-pageshow"
+      ],
+      "console": []
+    }
+  ]
+}

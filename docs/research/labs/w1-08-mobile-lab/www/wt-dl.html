@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8"><title>downloader</title>
+<script type="module">
+const q = new URLSearchParams(location.search); const MAGNET = q.get('magnet'); const TR = q.get('tr'); const STORE = q.get('store') || 'mem';
+const out = { errors: [], marks: [] };
+window.addEventListener('error', e => out.errors.push('onerror: ' + e.message));
+class MemStore {
+  constructor(chunkLength, opts) { this.chunkLength = chunkLength; this.length = opts.length; this.chunks = []; }
+  put(i, buf, cb) { this.chunks[i] = buf; queueMicrotask(() => cb(null)); }
+  get(i, o, cb) { const b = this.chunks[i]; if (!b) return queueMicrotask(() => cb(new Error('Chunk not found'))); const off = (o && o.offset) || 0; const len = (o && o.length != null) ? o.length : b.length - off; queueMicrotask(() => cb(null, off === 0 && len === b.length ? b : b.slice(off, off + len))); }
+  close(cb) { queueMicrotask(() => cb && cb(null)); }
+  destroy(cb) { this.chunks = []; queueMicrotask(() => cb && cb(null)); }
+}
+const mark = async (label) => { if (window.gc) window.gc(); const r = await window.__mark(label); out.marks.push(r); };
+try {
+  const { default: WebTorrent } = await import('/webtorrent.min.js');
+  await mark('baseline');
+  const c = new WebTorrent({ dht: false, lsd: false, webSeeds: false, tracker: { rtcConfig: { iceServers: [] } } });
+  c.on('error', e => out.errors.push('client error: ' + (e && e.message || e)));
+  const opts = { announce: [TR] }; if (STORE === 'mem') { opts.store = MemStore; opts.storeCacheSlots = 0; }
+  const t0 = performance.now();
+  const t = c.add(MAGNET, opts);
+  t.on('error', e => out.errors.push('torrent error: ' + (e && e.message || e)));
+  await new Promise((res, rej) => { const to = setTimeout(() => rej(new Error('timeout 120s progress=' + t.progress)), 120000); t.on('done', () => { clearTimeout(to); res(); }); });
+  out.downloadMs = Math.round(performance.now() - t0); out.length = t.length;
+  await mark('downloaded (all pieces held by chunk store)');
+  const f = t.files[0];
+  const blob = await f.blob();
+  out.blobSize = blob.size;
+  await mark('after file.blob()');
+  const db = await new Promise((res, rej) => { const r = indexedDB.open('memtest', 1); r.onupgradeneeded = () => r.result.createObjectStore('files'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  await new Promise((res, rej) => { const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').put(blob, 'site.bin'); tx.oncomplete = res; tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error); });
+  await mark('after IndexedDB put(Blob)');
+  c.destroy();
+  await new Promise(r => setTimeout(r, 500));
+  await mark('after client.destroy() + gc');
+  out.est = await navigator.storage.estimate();
+} catch (e) { out.thrown = String(e && e.stack || e).slice(0, 500); }
+window.__result = out;
+</script>

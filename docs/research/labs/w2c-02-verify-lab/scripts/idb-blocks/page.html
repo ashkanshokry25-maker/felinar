@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>blocks idb</title><body><pre id="o">running</pre>
+<script type="module">
+const q = new URLSearchParams(location.search); const phase = q.get('phase'); const file = q.get('file');
+const out = { phase, file, ua: navigator.userAgent };
+const NAME = 'blocks-bench-' + file; const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+const open = (create) => new Promise((res, rej) => { const r = indexedDB.open(NAME, 1); r.onupgradeneeded = () => { if (create) { r.result.createObjectStore('blocks', { keyPath: 'h' }); r.result.createObjectStore('meta'); } }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const p = (rq) => new Promise((ok, bad) => { rq.onsuccess = () => ok(rq.result); rq.onerror = () => bad(rq.error); });
+const scan = async (db, reps) => { const ts = []; let last = 0; for (let k = 0; k < reps; k++) { const t = performance.now(); last = (await p(db.transaction('blocks').objectStore('blocks').getAll())).length; ts.push(+(performance.now() - t).toFixed(1)); } return { allMs: ts, medMs: med(ts), last }; };
+if (phase === 'write') {
+  const blocks = await (await fetch('/data/' + file)).json(); out.n = blocks.length;
+  await new Promise((res) => { const r = indexedDB.deleteDatabase(NAME); r.onsuccess = r.onerror = r.onblocked = () => res(); });
+  const db = await open(true); const t0 = performance.now(); const B = 5000;
+  for (let i = 0; i < blocks.length; i += B) await new Promise((ok, bad) => { const tx = db.transaction('blocks', 'readwrite'); const st = tx.objectStore('blocks'); for (const b of blocks.slice(i, i + B)) st.put(b); tx.oncomplete = ok; tx.onerror = () => bad(tx.error); });
+  out.insertMs = +(performance.now() - t0).toFixed(1); out.scanAfterWrite = await scan(db, 5); db.close();
+} else {
+  const t0 = performance.now(); const db = await open(false); out.openMs = +(performance.now() - t0).toFixed(1);
+  out.firstScan = await scan(db, 1); out.nextScans = await scan(db, 4); db.close();
+}
+window.__RESULT = out; document.getElementById('o').textContent = JSON.stringify(out);
+</script>

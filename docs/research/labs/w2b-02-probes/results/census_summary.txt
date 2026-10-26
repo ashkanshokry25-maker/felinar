@@ -1,0 +1,6 @@
+events=7929 monitors=14 relay_urls=1199 clearnet=1176 newest_age_min=52.5 oldest_age_h=4.1
+(auth,payment,pow,writes) combos: [((False, False, False, False), 1083), ((False, True, False, False), 47), ((True, False, False, False), 24), ((True, True, False, False), 17), ((False, False, True, False), 3), ((True, False, True, False), 1), ((False, False, False, True), 1)]
+software: [('strfry', 324), ('nostr-rs-relay', 206), ('other', 170), ('haven', 164), ('unknown', 87), ('pyramid', 57), ('khatru-based', 55), ('nostream', 34), ('wot-relay', 29), ('zooid', 14), ('rnostr', 12), ('NFDB', 9), ('ditto', 7), ('chronicle', 5), ('memlay', 3)]
+NIP counts (of 1176 clearnet; count, percent): {11: (1056, 89.8), 40: (934, 79.4), 42: (541, 46.0), 45: (545, 46.3), 50: (102, 8.7), 62: (39, 3.3), 65: (57, 4.8), 66: (9, 0.8), 67: (5, 0.4), 70: (652, 55.4), 77: (375, 31.9), 78: (17, 1.4), 86: (391, 33.2)}
+host.as top: [('AS13335 Cloudflare, Inc.', 323), ('AS24940 Hetzner Online GmbH', 111), ('AS14061 DigitalOcean, LLC', 62), ('AS197540 netcup GmbH', 52), ('AS40021 Contabo Inc.', 45), ('AS51167 Contabo GmbH', 44), ('AS63949 Akamai Connected Cloud', 43), ('AS16276 OVH SAS', 38)]
+rtt-open (freshest event per relay, n=1176) median=610.5 p90=1383; relays with rtt-write tag: 0; note: ages above are relative to run time

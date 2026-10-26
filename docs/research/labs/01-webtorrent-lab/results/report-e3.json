@@ -1,0 +1,130 @@
+{
+  "tests": {
+    "torrentFile+urlList_none": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": true,
+      "done": false,
+      "ms": 9168,
+      "progress": 0,
+      "numPeers": 1,
+      "wireTypes": [
+        "webSeed"
+      ]
+    },
+    "torrentFile+urlList_acao": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": true,
+      "done": false,
+      "ms": 9164,
+      "progress": 0,
+      "numPeers": 1,
+      "wireTypes": [
+        "webSeed"
+      ]
+    },
+    "torrentFile+urlList_full": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": true,
+      "done": true,
+      "ms": 204,
+      "progress": 1,
+      "numPeers": 1,
+      "wireTypes": [
+        "webSeed"
+      ],
+      "bytesMatch": true
+    },
+    "magnet_ws_only_full": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": false,
+      "done": false,
+      "ms": 6102,
+      "progress": 0,
+      "numPeers": 0,
+      "wireTypes": []
+    },
+    "magnet_ws_plus_xs_full": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": true,
+      "done": true,
+      "ms": 205,
+      "progress": 1,
+      "numPeers": 1,
+      "wireTypes": [
+        "webSeed"
+      ],
+      "bytesMatch": true
+    },
+    "magnet_ws_plus_xs_acao": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": true,
+      "done": false,
+      "ms": 6112,
+      "progress": 0,
+      "numPeers": 1,
+      "wireTypes": [
+        "webSeed"
+      ]
+    },
+    "magnet_xs_only_full": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": true,
+      "done": false,
+      "ms": 6113,
+      "progress": 0,
+      "numPeers": 0,
+      "wireTypes": []
+    },
+    "magnet_btmh_only": {
+      "warnings": [],
+      "errors": [
+        "Invalid torrent identifier"
+      ],
+      "gotMetadata": false,
+      "done": false,
+      "ms": 103,
+      "progress": 0,
+      "numPeers": 0,
+      "wireTypes": []
+    },
+    "magnet_hybrid_btih_btmh_ws_xs": {
+      "warnings": [],
+      "errors": [],
+      "gotMetadata": true,
+      "done": true,
+      "ms": 206,
+      "progress": 1,
+      "numPeers": 1,
+      "wireTypes": [
+        "webSeed"
+      ],
+      "bytesMatch": true
+    }
+  },
+  "errors": [],
+  "seed": {
+    "infoHash": "4bf57017dd3242b9057b948329e1aea6864a9648",
+    "length": 300000,
+    "pieces": 19,
+    "pieceLength": 16384,
+    "magnet": "magnet:?xt=urn:btih:4bf57017dd3242b9057b948329e1aea6864a9648&dn=blob.bin",
+    "storeOptsKeys": [
+      "addUID",
+      "files",
+      "length",
+      "max",
+      "name",
+      "path",
+      "rootDir",
+      "torrent"
+    ],
+    "storeName": "blob.bin - 4bf57017"
+  }
+}

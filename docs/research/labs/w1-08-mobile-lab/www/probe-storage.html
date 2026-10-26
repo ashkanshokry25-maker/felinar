@@ -1,0 +1,44 @@
+<!doctype html><meta charset="utf-8"><title>storage-probe</title>
+<script type="module">
+const out = { env: { ua: navigator.userAgent, secure: isSecureContext, standalone: navigator.standalone === true }, tests: {} };
+const t = async (name, fn) => { try { out.tests[name] = { ok: true, v: await fn() }; } catch (e) { out.tests[name] = { ok: false, err: (e && e.name) + ': ' + (e && e.message) }; } };
+await t('storage.persisted()', () => navigator.storage.persisted());
+await t('storage.persist()', () => navigator.storage.persist());
+await t('storage.persisted() after persist', () => navigator.storage.persisted());
+await t('storage.estimate()', async () => { const e = await navigator.storage.estimate(); return { quotaMB: Math.round(e.quota / 1048576), usageMB: Math.round(e.usage / 1048576) }; });
+await t('OPFS getDirectory()', async () => { const d = await navigator.storage.getDirectory(); return typeof d; });
+await t('OPFS write+read via createWritable', async () => {
+  const d = await navigator.storage.getDirectory(); const fh = await d.getFileHandle('probe.bin', { create: true });
+  if (typeof fh.createWritable !== 'function') return 'createWritable missing';
+  const w = await fh.createWritable(); await w.write(new Uint8Array([1, 2, 3])); await w.close();
+  return (await (await fh.getFile()).arrayBuffer()).byteLength;
+});
+const openDb = () => new Promise((res, rej) => { const r = indexedDB.open('probe', 1); r.onupgradeneeded = () => { r.result.createObjectStore('s'); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const put = (db, k, v) => new Promise((res, rej) => { let tx; try { tx = db.transaction('s', 'readwrite'); const rq = tx.objectStore('s').put(v, k); rq.onerror = () => rej(rq.error || new Error('request error (null)')); } catch (e) { return rej(e); } tx.oncomplete = res; tx.onerror = () => rej(tx.error || new Error('tx error (null)')); tx.onabort = () => rej(tx.error || new Error('transaction aborted, tx.error is null')); });
+const get = (db, k) => new Promise((res, rej) => { const tx = db.transaction('s'); const r = tx.objectStore('s').get(k); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+let db = null;
+await t('IndexedDB open', async () => { db = await openDb(); return db.name; });
+await t('IndexedDB ArrayBuffer(300 KB) put/get', async () => { await put(db, 'ab', new Uint8Array(300000).buffer); const b = await get(db, 'ab'); return b && b.byteLength; });
+await t('IndexedDB Blob(1 KB) put/get', async () => { await put(db, 'blob1', new Blob([new Uint8Array(1000)])); const b = await get(db, 'blob1'); return b instanceof Blob ? b.size : typeof b; });
+await t('IndexedDB Blob(300 KB) put/get', async () => { await put(db, 'blob', new Blob([new Uint8Array(300000)])); const b = await get(db, 'blob'); return b instanceof Blob ? b.size : typeof b; });
+await t('IndexedDB Blob(10 MB) put/get', async () => { await put(db, 'blob10', new Blob([new Uint8Array(10 * 1048576)])); const b = await get(db, 'blob10'); return b instanceof Blob ? b.size : typeof b; });
+const keyRt = (name, gen, usages) => t('CryptoKey nonextractable in IDB: ' + name, async () => {
+  const k = await crypto.subtle.generateKey(gen, false, usages); const key = k.privateKey || k;
+  await put(db, 'k-' + name, key); const back = await get(db, 'k-' + name);
+  if (!back) return 'READ BACK ' + String(back);
+  let usable = null;
+  if (gen.name === 'ECDSA') { const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, back, new Uint8Array([1])); usable = 'sign ok, sig bytes ' + sig.byteLength; }
+  else if (gen.name === 'Ed25519') { const sig = await crypto.subtle.sign('Ed25519', back, new Uint8Array([1])); usable = 'sign ok, sig bytes ' + sig.byteLength; }
+  else if (gen.name === 'AES-GCM') { const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: new Uint8Array(12) }, back, new Uint8Array([1])); usable = 'encrypt ok ' + ct.byteLength; }
+  else usable = 'object ' + Object.prototype.toString.call(back);
+  return { extractable: back.extractable, type: back.type, usable };
+});
+await keyRt('ECDSA P-256', { name: 'ECDSA', namedCurve: 'P-256' }, ['sign', 'verify']);
+await keyRt('Ed25519', { name: 'Ed25519' }, ['sign', 'verify']);
+await keyRt('X25519', { name: 'X25519' }, ['deriveBits']);
+await keyRt('AES-GCM', { name: 'AES-GCM', length: 256 }, ['encrypt', 'decrypt']);
+await t('Service Worker registration (needs secure ctx)', async () => { if (!('serviceWorker' in navigator)) return 'serviceWorker not in navigator'; return 'serviceWorker present'; });
+await t('navigator.connection / deviceMemory / getBattery', async () => ({ connection: typeof navigator.connection, deviceMemory: typeof navigator.deviceMemory, getBattery: typeof navigator.getBattery, hardwareConcurrency: navigator.hardwareConcurrency }));
+await t('RTCPeerConnection + data channel object', async () => { const pc = new RTCPeerConnection({ iceServers: [] }); const dc = pc.createDataChannel('x'); const r = dc.readyState + '/' + pc.sctp; pc.close(); return r; });
+window.__result = out;
+</script>

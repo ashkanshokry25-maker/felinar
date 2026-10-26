@@ -1,0 +1,33 @@
+{
+  "runs": {
+    "uploadLimit_default(-1)": {
+      "done": true,
+      "ms": 302,
+      "progress": 1,
+      "gotMetadata": true,
+      "numPeers": 1
+    },
+    "uploadLimit_0": {
+      "done": false,
+      "ms": 10352,
+      "progress": 0,
+      "gotMetadata": false,
+      "numPeers": 1
+    },
+    "uploadLimit_512": {
+      "done": true,
+      "ms": 732,
+      "progress": 1,
+      "gotMetadata": true,
+      "numPeers": 1
+    },
+    "uploadLimit_4096": {
+      "done": true,
+      "ms": 206,
+      "progress": 1,
+      "gotMetadata": true,
+      "numPeers": 1
+    }
+  },
+  "errors": []
+}

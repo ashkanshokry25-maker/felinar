@@ -1,0 +1,131 @@
+# w2a-07 P2P offload model (assumptions in PARAMS; this is a model, not a measurement)
+# PARAMS: {'p_cold': 0.3, 'p_consent': 0.6, 'f_desk': 0.55, 't_consent_med': 4.0, 'c_med': 2.2, 'c_sigma': 0.5, 'q': 0.75, 'u': 1048576.0, 'k_max': 30, 'ws_latency': 0.4, 'announce_delay': 3.0, 'sigma_dwell': 1.0, 'shell_cold_bytes': 110000.0, 'meta_bytes': 4000.0}
+
+## A. Race policy (web seed at once), mean dwell 60 s, web seed 2.5 MB/s (about 20 Mbit/s), by visits/day and payload size
+### payload S = 0.5 MB
+V=   100/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  0.0%  mean_T=  0.60s (ws-only   0.60s)  host_saving=  0.0%  host_GB/day 0.018 -> 0.018
+V=   300/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  2.5%  mean_T=  0.60s (ws-only   0.60s)  host_saving=  0.0%  host_GB/day 0.050 -> 0.050
+V=  1000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  8.8%  mean_T=  0.60s (ws-only   0.60s)  host_saving=  0.0%  host_GB/day 0.182 -> 0.182
+V=  3000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder= 22.6%  mean_T=  0.60s (ws-only   0.60s)  host_saving=  0.0%  host_GB/day 0.562 -> 0.562
+V= 10000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder= 48.5%  mean_T=  0.60s (ws-only   0.60s)  host_saving=  0.0%  host_GB/day 1.866 -> 1.866
+V= 30000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder= 59.2%  mean_T=  0.60s (ws-only   0.60s)  host_saving=  0.0%  host_GB/day 5.527 -> 5.527
+V=100000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder= 59.8%  mean_T=  0.60s (ws-only   0.60s)  host_saving=  0.0%  host_GB/day 18.385 -> 18.385
+### payload S = 5 MB
+V=   100/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  0.0%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 0.152 -> 0.152
+V=   300/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  2.5%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 0.414 -> 0.414
+V=  1000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.1%  cold_with_connected_seeder=  8.8%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 1.515 -> 1.515
+V=  3000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.2%  cold_with_connected_seeder= 22.5%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 4.684 -> 4.684
+V= 10000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 48.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+V= 30000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 59.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 46.031 -> 46.016
+V=100000/day  p2p_payload=  0.1%  cold_with_any_peer_byte=  0.5%  cold_with_connected_seeder= 59.8%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.1%  host_GB/day 153.130 -> 153.043
+### payload S = 25 MB
+V=   100/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  0.0%  mean_T= 10.40s (ws-only  10.40s)  host_saving=  0.0%  host_GB/day 0.745 -> 0.745
+V=   300/day  p2p_payload=  0.2%  cold_with_any_peer_byte=  2.1%  cold_with_connected_seeder=  2.5%  mean_T= 10.38s (ws-only  10.40s)  host_saving=  0.2%  host_GB/day 2.034 -> 2.030
+V=  1000/day  p2p_payload=  1.0%  cold_with_any_peer_byte=  7.0%  cold_with_connected_seeder=  8.4%  mean_T= 10.30s (ws-only  10.40s)  host_saving=  1.0%  host_GB/day 7.442 -> 7.370
+V=  3000/day  p2p_payload=  2.6%  cold_with_any_peer_byte= 19.2%  cold_with_connected_seeder= 22.6%  mean_T= 10.14s (ws-only  10.40s)  host_saving=  2.6%  host_GB/day 23.004 -> 22.406
+V= 10000/day  p2p_payload=  7.1%  cold_with_any_peer_byte= 40.4%  cold_with_connected_seeder= 47.9%  mean_T=  9.69s (ws-only  10.40s)  host_saving=  7.1%  host_GB/day 76.321 -> 70.903
+V= 30000/day  p2p_payload= 13.1%  cold_with_any_peer_byte= 50.1%  cold_with_connected_seeder= 59.2%  mean_T=  9.09s (ws-only  10.40s)  host_saving= 13.0%  host_GB/day 226.051 -> 196.629
+V=100000/day  p2p_payload= 18.3%  cold_with_any_peer_byte= 50.9%  cold_with_connected_seeder= 59.8%  mean_T=  8.57s (ws-only  10.40s)  host_saving= 18.2%  host_GB/day 751.997 -> 614.954
+### payload S = 100 MB
+V=   100/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  0.0%  mean_T= 40.40s (ws-only  40.40s)  host_saving=  0.0%  host_GB/day 2.970 -> 2.970
+V=   300/day  p2p_payload=  0.3%  cold_with_any_peer_byte=  1.7%  cold_with_connected_seeder=  1.7%  mean_T= 40.28s (ws-only  40.40s)  host_saving=  0.3%  host_GB/day 8.109 -> 8.085
+V=  1000/day  p2p_payload=  1.8%  cold_with_any_peer_byte=  7.9%  cold_with_connected_seeder=  7.9%  mean_T= 39.68s (ws-only  40.40s)  host_saving=  1.8%  host_GB/day 29.667 -> 29.133
+V=  3000/day  p2p_payload=  4.7%  cold_with_any_peer_byte= 20.7%  cold_with_connected_seeder= 20.7%  mean_T= 38.51s (ws-only  40.40s)  host_saving=  4.7%  host_GB/day 91.704 -> 87.396
+V= 10000/day  p2p_payload= 13.8%  cold_with_any_peer_byte= 45.9%  cold_with_connected_seeder= 45.9%  mean_T= 34.89s (ws-only  40.40s)  host_saving= 13.7%  host_GB/day 304.246 -> 262.411
+V= 30000/day  p2p_payload= 27.8%  cold_with_any_peer_byte= 58.9%  cold_with_connected_seeder= 58.9%  mean_T= 29.29s (ws-only  40.40s)  host_saving= 27.7%  host_GB/day 901.126 -> 651.119
+V=100000/day  p2p_payload= 41.4%  cold_with_any_peer_byte= 59.8%  cold_with_connected_seeder= 59.8%  mean_T= 23.84s (ws-only  40.40s)  host_saving= 41.3%  host_GB/day 2997.747 -> 1758.333
+
+## B. Same, web seed 8 MB/s (about 64 Mbit/s)
+### payload S = 5 MB
+V=  1000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder=  8.8%  mean_T=  1.02s (ws-only   1.02s)  host_saving=  0.0%  host_GB/day 1.515 -> 1.515
+V= 10000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder= 48.5%  mean_T=  1.03s (ws-only   1.03s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.541
+V=100000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder= 59.8%  mean_T=  1.03s (ws-only   1.03s)  host_saving=  0.0%  host_GB/day 153.130 -> 153.130
+### payload S = 25 MB
+V=  1000/day  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.6%  cold_with_connected_seeder=  8.8%  mean_T=  3.52s (ws-only   3.52s)  host_saving=  0.0%  host_GB/day 7.442 -> 7.441
+V= 10000/day  p2p_payload=  0.1%  cold_with_any_peer_byte=  3.4%  cold_with_connected_seeder= 48.3%  mean_T=  3.52s (ws-only   3.52s)  host_saving=  0.1%  host_GB/day 76.321 -> 76.229
+V=100000/day  p2p_payload=  0.5%  cold_with_any_peer_byte=  3.9%  cold_with_connected_seeder= 59.8%  mean_T=  3.51s (ws-only   3.52s)  host_saving=  0.5%  host_GB/day 751.997 -> 748.561
+### payload S = 100 MB
+V=  1000/day  p2p_payload=  0.5%  cold_with_any_peer_byte=  7.7%  cold_with_connected_seeder=  8.4%  mean_T= 12.84s (ws-only  12.90s)  host_saving=  0.5%  host_GB/day 29.667 -> 29.521
+V= 10000/day  p2p_payload=  4.2%  cold_with_any_peer_byte= 44.5%  cold_with_connected_seeder= 47.6%  mean_T= 12.38s (ws-only  12.90s)  host_saving=  4.2%  host_GB/day 304.246 -> 291.523
+V=100000/day  p2p_payload= 18.1%  cold_with_any_peer_byte= 55.9%  cold_with_connected_seeder= 59.8%  mean_T= 10.64s (ws-only  12.90s)  host_saving= 18.1%  host_GB/day 2997.747 -> 2456.198
+
+## C. Sensitivity of a 5 MB site at 10,000 visits/day (race, W=2.5 MB/s)
+dwell 30 s                p2p_payload=  0.0%  cold_with_any_peer_byte=  0.3%  cold_with_connected_seeder= 32.5%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.539
+dwell 60 s (base)         p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 48.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+dwell 120 s               p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 58.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.536
+dwell 300 s               p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 60.3%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.534
+consent 30 %              p2p_payload=  0.0%  cold_with_any_peer_byte=  0.1%  cold_with_connected_seeder= 16.4%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.541
+consent 60 % (base)       p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 48.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+consent 90 %              p2p_payload=  0.0%  cold_with_any_peer_byte=  0.5%  cold_with_connected_seeder= 81.8%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.536
+consent 100 %             p2p_payload=  0.0%  cold_with_any_peer_byte=  0.7%  cold_with_connected_seeder= 93.1%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.534
+desktop 25 %              p2p_payload=  0.0%  cold_with_any_peer_byte=  0.3%  cold_with_connected_seeder= 31.9%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.540
+desktop 55 % (base)       p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 48.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+desktop 90 %              p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 56.4%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.537
+pair success 50 %         p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 39.4%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.539
+pair success 75 % (base)  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 48.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+pair success 95 %         p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 52.3%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+diurnal (peak x1.7)       p2p_payload=  0.0%  cold_with_any_peer_byte=  0.2%  cold_with_connected_seeder= 49.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.448 -> 15.446
+
+## D. Peer-first policy (web seed starts after Td), 5 MB and 25 MB, mean dwell 60 s, W=2.5 MB/s
+S=  5 MB V=  1000/day Td= 0.0s  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.1%  cold_with_connected_seeder=  8.8%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 1.515 -> 1.515
+S=  5 MB V=  1000/day Td= 3.0s  p2p_payload=  0.4%  cold_with_any_peer_byte=  2.9%  cold_with_connected_seeder=  8.8%  mean_T=  4.99s (ws-only   5.00s)  host_saving=  0.4%  host_GB/day 1.515 -> 1.510
+S=  5 MB V=  1000/day Td= 8.0s  p2p_payload=  4.2%  cold_with_any_peer_byte=  7.1%  cold_with_connected_seeder=  8.8%  mean_T=  9.91s (ws-only  10.00s)  host_saving=  4.1%  host_GB/day 1.515 -> 1.453
+S=  5 MB V=  1000/day Td=15.0s  p2p_payload=  7.9%  cold_with_any_peer_byte=  8.7%  cold_with_connected_seeder=  8.8%  mean_T= 16.53s (ws-only  17.00s)  host_saving=  7.7%  host_GB/day 1.515 -> 1.399
+S=  5 MB V= 10000/day Td= 0.0s  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 48.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+S=  5 MB V= 10000/day Td= 3.0s  p2p_payload=  2.8%  cold_with_any_peer_byte= 12.6%  cold_with_connected_seeder= 48.2%  mean_T=  4.94s (ws-only   5.00s)  host_saving=  2.8%  host_GB/day 15.541 -> 15.111
+S=  5 MB V= 10000/day Td= 8.0s  p2p_payload= 27.8%  cold_with_any_peer_byte= 39.5%  cold_with_connected_seeder= 48.2%  mean_T=  9.25s (ws-only  10.00s)  host_saving= 27.2%  host_GB/day 15.541 -> 11.317
+S=  5 MB V= 10000/day Td=15.0s  p2p_payload= 45.1%  cold_with_any_peer_byte= 47.4%  cold_with_connected_seeder= 48.2%  mean_T= 13.78s (ws-only  17.00s)  host_saving= 44.1%  host_GB/day 15.541 -> 8.685
+S=  5 MB V=100000/day Td= 0.0s  p2p_payload=  0.1%  cold_with_any_peer_byte=  0.5%  cold_with_connected_seeder= 59.8%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.1%  host_GB/day 153.130 -> 153.043
+S=  5 MB V=100000/day Td= 3.0s  p2p_payload=  6.6%  cold_with_any_peer_byte= 15.4%  cold_with_connected_seeder= 59.8%  mean_T=  4.87s (ws-only   5.00s)  host_saving=  6.4%  host_GB/day 153.130 -> 143.271
+S=  5 MB V=100000/day Td= 8.0s  p2p_payload= 44.7%  cold_with_any_peer_byte= 49.7%  cold_with_connected_seeder= 59.8%  mean_T=  8.21s (ws-only  10.00s)  host_saving= 43.7%  host_GB/day 153.130 -> 86.146
+S=  5 MB V=100000/day Td=15.0s  p2p_payload= 58.2%  cold_with_any_peer_byte= 58.6%  cold_with_connected_seeder= 59.8%  mean_T= 11.35s (ws-only  17.00s)  host_saving= 56.9%  host_GB/day 153.130 -> 66.054
+S= 25 MB V=  1000/day Td= 0.0s  p2p_payload=  1.0%  cold_with_any_peer_byte=  7.0%  cold_with_connected_seeder=  8.4%  mean_T= 10.30s (ws-only  10.40s)  host_saving=  1.0%  host_GB/day 7.442 -> 7.370
+S= 25 MB V=  1000/day Td= 3.0s  p2p_payload=  1.6%  cold_with_any_peer_byte=  7.7%  cold_with_connected_seeder=  8.4%  mean_T= 12.84s (ws-only  13.00s)  host_saving=  1.6%  host_GB/day 7.442 -> 7.327
+S= 25 MB V=  1000/day Td= 8.0s  p2p_payload=  2.8%  cold_with_any_peer_byte=  8.4%  cold_with_connected_seeder=  8.4%  mean_T= 17.72s (ws-only  18.00s)  host_saving=  2.8%  host_GB/day 7.442 -> 7.235
+S= 25 MB V=  1000/day Td=15.0s  p2p_payload=  4.5%  cold_with_any_peer_byte=  8.4%  cold_with_connected_seeder=  8.4%  mean_T= 24.55s (ws-only  25.00s)  host_saving=  4.5%  host_GB/day 7.442 -> 7.105
+S= 25 MB V= 10000/day Td= 0.0s  p2p_payload=  7.1%  cold_with_any_peer_byte= 40.4%  cold_with_connected_seeder= 47.9%  mean_T=  9.69s (ws-only  10.40s)  host_saving=  7.1%  host_GB/day 76.321 -> 70.903
+S= 25 MB V= 10000/day Td= 3.0s  p2p_payload= 11.7%  cold_with_any_peer_byte= 44.8%  cold_with_connected_seeder= 47.9%  mean_T= 11.83s (ws-only  13.00s)  host_saving= 11.7%  host_GB/day 76.321 -> 67.415
+S= 25 MB V= 10000/day Td= 8.0s  p2p_payload= 21.0%  cold_with_any_peer_byte= 47.3%  cold_with_connected_seeder= 47.9%  mean_T= 15.90s (ws-only  18.00s)  host_saving= 20.9%  host_GB/day 76.321 -> 60.358
+S= 25 MB V= 10000/day Td=15.0s  p2p_payload= 32.7%  cold_with_any_peer_byte= 47.8%  cold_with_connected_seeder= 47.9%  mean_T= 21.55s (ws-only  25.00s)  host_saving= 32.6%  host_GB/day 76.321 -> 51.460
+S= 25 MB V=100000/day Td= 0.0s  p2p_payload= 18.3%  cold_with_any_peer_byte= 50.9%  cold_with_connected_seeder= 59.8%  mean_T=  8.57s (ws-only  10.40s)  host_saving= 18.2%  host_GB/day 751.997 -> 614.954
+S= 25 MB V=100000/day Td= 3.0s  p2p_payload= 30.3%  cold_with_any_peer_byte= 56.0%  cold_with_connected_seeder= 59.8%  mean_T=  9.97s (ws-only  13.00s)  host_saving= 30.1%  host_GB/day 751.997 -> 525.291
+S= 25 MB V=100000/day Td= 8.0s  p2p_payload= 51.1%  cold_with_any_peer_byte= 58.9%  cold_with_connected_seeder= 59.8%  mean_T= 12.44s (ws-only  18.00s)  host_saving= 50.9%  host_GB/day 751.997 -> 369.113
+S= 25 MB V=100000/day Td=15.0s  p2p_payload= 58.8%  cold_with_any_peer_byte= 59.6%  cold_with_connected_seeder= 59.8%  mean_T= 15.42s (ws-only  25.00s)  host_saving= 58.5%  host_GB/day 751.997 -> 311.972
+
+## E. Best case: everyone consents, everyone is desktop, all pairs connect, dwell 300 s, peer-first Td=8 s (upper bound for this design)
+S=  5 MB V=   100/day  p2p_payload= 24.4%  cold_with_any_peer_byte= 28.4%  cold_with_connected_seeder= 28.4%  mean_T=  9.28s (ws-only  10.00s)  host_saving= 23.9%  host_GB/day 0.152 -> 0.116
+S=  5 MB V=  1000/day  p2p_payload= 95.2%  cold_with_any_peer_byte= 96.6%  cold_with_connected_seeder= 96.8%  mean_T=  5.03s (ws-only  10.00s)  host_saving= 93.1%  host_GB/day 1.515 -> 0.105
+S=  5 MB V= 10000/day  p2p_payload= 99.6%  cold_with_any_peer_byte= 99.8%  cold_with_connected_seeder=100.0%  mean_T=  3.27s (ws-only  10.00s)  host_saving= 97.4%  host_GB/day 15.541 -> 0.409
+S=  5 MB V=100000/day  p2p_payload= 99.5%  cold_with_any_peer_byte= 99.8%  cold_with_connected_seeder=100.0%  mean_T=  3.25s (ws-only  10.00s)  host_saving= 97.3%  host_GB/day 153.130 -> 4.148
+S= 25 MB V=   100/day  p2p_payload= 13.0%  cold_with_any_peer_byte= 28.4%  cold_with_connected_seeder= 28.4%  mean_T= 16.70s (ws-only  18.00s)  host_saving= 13.0%  host_GB/day 0.745 -> 0.649
+S= 25 MB V=  1000/day  p2p_payload= 76.9%  cold_with_any_peer_byte= 96.8%  cold_with_connected_seeder= 96.8%  mean_T= 10.05s (ws-only  18.00s)  host_saving= 76.5%  host_GB/day 7.442 -> 1.748
+S= 25 MB V= 10000/day  p2p_payload= 99.8%  cold_with_any_peer_byte=100.0%  cold_with_connected_seeder=100.0%  mean_T=  3.94s (ws-only  18.00s)  host_saving= 99.4%  host_GB/day 76.321 -> 0.495
+S= 25 MB V=100000/day  p2p_payload= 99.8%  cold_with_any_peer_byte=100.0%  cold_with_connected_seeder=100.0%  mean_T=  3.90s (ws-only  18.00s)  host_saving= 99.3%  host_GB/day 751.997 -> 4.987
+
+## F. Visitor link speed (web seed throughput W) for a 5 MB and a 25 MB site at 10,000 visits/day, race policy, dwell 60 s
+S=  5 MB W= 0.25 MB/s (  2.0 Mbit/s)  p2p_payload= 26.4%  cold_with_any_peer_byte= 46.7%  cold_with_connected_seeder= 47.0%  mean_T= 15.12s (ws-only  20.40s)  host_saving= 25.8%  host_GB/day 15.541 -> 11.532
+S=  5 MB W= 0.50 MB/s (  4.0 Mbit/s)  p2p_payload= 13.1%  cold_with_any_peer_byte= 40.4%  cold_with_connected_seeder= 47.9%  mean_T=  9.09s (ws-only  10.40s)  host_saving= 12.8%  host_GB/day 15.541 -> 13.553
+S=  5 MB W= 1.00 MB/s (  8.0 Mbit/s)  p2p_payload=  2.4%  cold_with_any_peer_byte= 15.9%  cold_with_connected_seeder= 48.4%  mean_T=  5.28s (ws-only   5.40s)  host_saving=  2.4%  host_GB/day 15.541 -> 15.174
+S=  5 MB W= 2.50 MB/s ( 20.0 Mbit/s)  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.4%  cold_with_connected_seeder= 48.2%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.538
+S=  5 MB W= 8.00 MB/s ( 64.0 Mbit/s)  p2p_payload=  0.0%  cold_with_any_peer_byte=  0.0%  cold_with_connected_seeder= 48.5%  mean_T=  1.03s (ws-only   1.03s)  host_saving=  0.0%  host_GB/day 15.541 -> 15.541
+S= 25 MB W= 0.25 MB/s (  2.0 Mbit/s)  p2p_payload= 32.2%  cold_with_any_peer_byte= 43.8%  cold_with_connected_seeder= 43.8%  mean_T= 68.21s (ws-only 100.40s)  host_saving= 32.0%  host_GB/day 76.321 -> 51.863
+S= 25 MB W= 0.50 MB/s (  4.0 Mbit/s)  p2p_payload= 27.8%  cold_with_any_peer_byte= 45.1%  cold_with_connected_seeder= 45.1%  mean_T= 36.50s (ws-only  50.40s)  host_saving= 27.7%  host_GB/day 76.321 -> 55.203
+S= 25 MB W= 1.00 MB/s (  8.0 Mbit/s)  p2p_payload= 20.6%  cold_with_any_peer_byte= 47.0%  cold_with_connected_seeder= 47.1%  mean_T= 20.26s (ws-only  25.40s)  host_saving= 20.5%  host_GB/day 76.321 -> 60.694
+S= 25 MB W= 2.50 MB/s ( 20.0 Mbit/s)  p2p_payload=  7.1%  cold_with_any_peer_byte= 40.4%  cold_with_connected_seeder= 47.9%  mean_T=  9.69s (ws-only  10.40s)  host_saving=  7.1%  host_GB/day 76.321 -> 70.903
+S= 25 MB W= 8.00 MB/s ( 64.0 Mbit/s)  p2p_payload=  0.1%  cold_with_any_peer_byte=  3.4%  cold_with_connected_seeder= 48.3%  mean_T=  3.52s (ws-only   3.52s)  host_saving=  0.1%  host_GB/day 76.321 -> 76.229
+
+## G. Break-even payload: smallest S (MB) at which peers carry at least 25 % of first-visit bytes, race policy, W=2.5 MB/s, V=100000/day, dwell 120 s, everyone consents and is desktop
+S=   5 MB  p2p_payload=  0.1%  cold_with_any_peer_byte=  0.7%  cold_with_connected_seeder=100.0%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.1%  host_GB/day 153.130 -> 153.002
+S=  10 MB  p2p_payload=  3.1%  cold_with_any_peer_byte= 16.8%  cold_with_connected_seeder=100.0%  mean_T=  4.27s (ws-only   4.40s)  host_saving=  3.1%  host_GB/day 302.847 -> 293.415
+S=  20 MB  p2p_payload= 23.0%  cold_with_any_peer_byte= 71.6%  cold_with_connected_seeder=100.0%  mean_T=  6.56s (ws-only   8.40s)  host_saving= 22.9%  host_GB/day 602.280 -> 464.370
+S=  40 MB  p2p_payload= 53.1%  cold_with_any_peer_byte= 97.7%  cold_with_connected_seeder=100.0%  mean_T=  7.90s (ws-only  16.40s)  host_saving= 53.0%  host_GB/day 1201.147 -> 565.101
+S=  80 MB  p2p_payload= 72.5%  cold_with_any_peer_byte= 99.9%  cold_with_connected_seeder=100.0%  mean_T=  9.20s (ws-only  32.40s)  host_saving= 72.4%  host_GB/day 2398.880 -> 662.308
+S= 120 MB  p2p_payload= 79.0%  cold_with_any_peer_byte=100.0%  cold_with_connected_seeder=100.0%  mean_T= 10.46s (ws-only  48.40s)  host_saving= 79.0%  host_GB/day 3596.614 -> 756.440
+
+## H. Traffic spike: 50,000 visits inside ONE hour (front-page day), 90 % cold (first-time visitors), dwell 60 s, W=2.5 MB/s
+S=  5 MB race       Td=0.0s  p2p_payload=  0.1%  cold_with_any_peer_byte=  0.5%  cold_with_connected_seeder= 60.0%  mean_T=  2.40s (ws-only   2.40s)  host_saving=  0.1%  host_GB/day 230.173 -> 230.041
+S=  5 MB peer-first Td=8.0s  p2p_payload= 45.2%  cold_with_any_peer_byte= 49.8%  cold_with_connected_seeder= 60.0%  mean_T=  8.14s (ws-only  10.00s)  host_saving= 44.2%  host_GB/day 230.173 -> 128.449
+S= 25 MB race       Td=0.0s  p2p_payload= 19.8%  cold_with_any_peer_byte= 51.1%  cold_with_connected_seeder= 60.0%  mean_T=  8.42s (ws-only  10.40s)  host_saving= 19.7%  host_GB/day 1130.339 -> 908.066
+S= 25 MB peer-first Td=8.0s  p2p_payload= 53.0%  cold_with_any_peer_byte= 59.2%  cold_with_connected_seeder= 60.0%  mean_T= 11.99s (ws-only  18.00s)  host_saving= 52.7%  host_GB/day 1130.339 -> 534.358
+S=100 MB race       Td=0.0s  p2p_payload= 45.6%  cold_with_any_peer_byte= 60.0%  cold_with_connected_seeder= 60.0%  mean_T= 22.15s (ws-only  40.40s)  host_saving= 45.6%  host_GB/day 4505.964 -> 2452.922
+S=100 MB peer-first Td=8.0s  p2p_payload= 55.8%  cold_with_any_peer_byte= 60.0%  cold_with_connected_seeder= 60.0%  mean_T= 25.59s (ws-only  48.00s)  host_saving= 55.7%  host_GB/day 4505.964 -> 1994.719

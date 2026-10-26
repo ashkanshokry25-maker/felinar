@@ -1,0 +1,89 @@
+{
+  "when": "2026-10-17T21:52:18.720Z",
+  "engine": "chromium",
+  "base": "http://127.0.0.1:60718",
+  "cases": {
+    "A magnet \"/#%s\" scope \"/\"": {
+      "errors": []
+    },
+    "B magnet \"/?m=%s\"": {
+      "errors": []
+    },
+    "C magnet \"/open#%s\"": {
+      "errors": []
+    },
+    "D magnet \"./#%s\" (relative to manifest URL)": {
+      "errors": []
+    },
+    "E magnet \"#%s\" (fragment only)": {
+      "errors": []
+    },
+    "F magnet \"%s\" (bare)": {
+      "errors": []
+    },
+    "G web+magnetweb \"/#%s\"": {
+      "errors": []
+    },
+    "H MAGNET \"/#%s\"": {
+      "errors": []
+    },
+    "I bittorrent \"/#%s\"": {
+      "errors": [
+        "The scheme 'bittorrent' doesn't belong to the scheme allowlist. Please prefix non-allowlisted schemes with the string 'web+'.",
+        "protocol_handlers entry ignored, required property 'protocol' is invalid."
+      ]
+    },
+    "J magnet \"/\" (no %s)": {
+      "errors": [
+        "The url provided ('http://127.0.0.1:60718/') does not contain '%s'.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ]
+    },
+    "K magnet cross-origin https://other.example/#%s": {
+      "errors": [
+        "property 'url' ignored, should be within scope of the manifest.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ]
+    },
+    "L scope \"/app/\" start \"/app/\" url \"/#%s\" (outside scope)": {
+      "errors": [
+        "property 'url' ignored, should be within scope of the manifest.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ]
+    },
+    "M scope \"/app/\" start \"/app/\" url \"/app/#%s\" (inside scope)": {
+      "errors": []
+    },
+    "N two entries: good magnet + bad scheme": {
+      "errors": [
+        "The scheme 'nope' doesn't belong to the scheme allowlist. Please prefix non-allowlisted schemes with the string 'web+'.",
+        "protocol_handlers entry ignored, required property 'protocol' is invalid."
+      ]
+    },
+    "O magnet: (trailing colon)": {
+      "errors": [
+        "The scheme name 'magnet:' is not allowed by URI syntax (RFC3986).",
+        "protocol_handlers entry ignored, required property 'protocol' is invalid."
+      ]
+    },
+    "P magnet \"/#%s\" duplicate x2": {
+      "errors": []
+    },
+    "Q ipfs \"/#%s\" (Chromium extra)": {
+      "errors": []
+    },
+    "R magnet \"http://127.0.0.1:1/#%s\" other port": {
+      "errors": [
+        "property 'url' ignored, should be within scope of the manifest.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ]
+    },
+    "S magnet \"/#%s\" with %s in host form": {
+      "errors": [
+        "property 'url' ignored, URL is invalid.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ]
+    }
+  },
+  "version": "156.0.8078.4"
+}

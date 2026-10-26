@@ -1,0 +1,8 @@
+# Changes to these paths need the approval of a code owner once branch protection requires it
+# ("require_code_owner_reviews", docs/PUBLISH-CHECKLIST.md, sections 13 and 16.7; build.lock.json, "review").
+# With one maintainer the only code owner is the person who writes the change, so the two-person rule cannot be met:
+# list a second maintainer here before you rely on it (GOVERNANCE.md).
+/build.lock.json @ashkanshokry25-maker
+/package-lock.json @ashkanshokry25-maker
+/npm-shrinkwrap.json @ashkanshokry25-maker
+/.github/ @ashkanshokry25-maker

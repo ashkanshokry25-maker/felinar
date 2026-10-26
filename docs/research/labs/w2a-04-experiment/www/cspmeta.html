@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>cspmeta</title></head><body><script>
+(async () => {
+  const q = new URLSearchParams(location.search); const out = { case: q.get('case') }; window.__out = out
+  const tryFetch = async () => { try { const r = await fetch('/blank.html'); return r.ok ? 'allowed' : 'http' + r.status } catch (e) { return 'BLOCKED' } }
+  out.before = await tryFetch()
+  const m = document.createElement('meta'); m.httpEquiv = 'Content-Security-Policy'; m.content = q.get('meta'); document.head.appendChild(m)
+  out.afterMetaInserted = await tryFetch()
+  out.done = true
+})()
+</script></body></html>

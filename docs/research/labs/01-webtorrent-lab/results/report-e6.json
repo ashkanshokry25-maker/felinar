@@ -1,0 +1,62 @@
+{
+  "steps": [],
+  "errors": [],
+  "beforeImport": [
+    "mydata/",
+    "mydata/keep.txt",
+    "chunks/",
+    "chunks/keep.txt"
+  ],
+  "afterImport": [
+    "mydata/",
+    "mydata/keep.txt"
+  ],
+  "chunksDirSurvivedImport": false,
+  "mydataSurvivedImport": true,
+  "infoHash": "46ec6fc78497eac43b7bff9cdb445e4fd7f34c09",
+  "afterSeed": [
+    "site - 46ec6fc7/",
+    "site - 46ec6fc7/3",
+    "site - 46ec6fc7/2",
+    "site - 46ec6fc7/1",
+    "site - 46ec6fc7/0",
+    "mydata/",
+    "mydata/keep.txt"
+  ],
+  "afterDestroyKeepStore": [
+    "site - 46ec6fc7/",
+    "site - 46ec6fc7/3",
+    "site - 46ec6fc7/2",
+    "site - 46ec6fc7/1",
+    "site - 46ec6fc7/0",
+    "mydata/",
+    "mydata/keep.txt"
+  ],
+  "reAdd": {
+    "doneFromOPFS": true,
+    "ms": 53,
+    "progress": 1
+  },
+  "afterDestroyStore": [
+    "mydata/",
+    "mydata/keep.txt"
+  ],
+  "afterSeed3": [
+    "site - 46ec6fc7/",
+    "site - 46ec6fc7/3",
+    "site - 46ec6fc7/2",
+    "site - 46ec6fc7/1",
+    "site - 46ec6fc7/0",
+    "mydata/",
+    "mydata/keep.txt"
+  ],
+  "afterClientDestroyWithDestroyStoreOnDestroy": [
+    "mydata/",
+    "mydata/keep.txt"
+  ],
+  "estimate": {
+    "quota": 2147483648,
+    "usage": 321
+  },
+  "persisted": false
+}

@@ -1,0 +1,106 @@
+{
+ "ifaces": [
+  "lo0: 127.0.0.1(lo),::1(lo),fe80::1(lo)",
+  "utun0: fe80::8fa9:7684:10b:d329",
+  "utun1: fe80::8fe9:475b:4d2a:fd40",
+  "utun2: fe80::b492:84d0:48bd:22b1",
+  "utun3: fe80::ce81:b1c:bd2c:69e",
+  "llw0: fe80::6048:f1ff:feb5:3743",
+  "en5: 192.168.18.5",
+  "bridge100: 192.168.139.3,fe80::9c58:84ff:fed3:6564,fd07:b51a:cc66:0:a617:db5e:ab7:e9f1"
+ ],
+ "res": [
+  {
+   "label": "chromium mdns-off, no STUN",
+   "iceServers": "[]",
+   "browserVersion": "156.0.8078.4",
+   "nodeOfferCandidates": [
+    "udp fd07:b51a:cc66:0:a617:db5e:ab7:e9f1:56994 host",
+    "udp 192.168.18.5:56994 host",
+    "udp 192.168.139.3:56994 host"
+   ],
+   "browserAnswerCandidates": [
+    "udp 192.168.18.5:60795 host"
+   ],
+   "nodeConnectionState": "connecting",
+   "nodeIceState": "checking",
+   "channelOpened": false,
+   "echo": null,
+   "msToEcho": null,
+   "browserLog": {
+    "log": [],
+    "ice": "checking",
+    "conn": "connecting"
+   }
+  },
+  {
+   "label": "chromium mdns-off, google STUN",
+   "iceServers": "[{\"urls\":\"stun:stun.l.google.com:19302\"}]",
+   "browserVersion": "156.0.8078.4",
+   "nodeOfferCandidates": [
+    "udp fd07:b51a:cc66:0:a617:db5e:ab7:e9f1:49673 host",
+    "udp 192.168.18.5:49673 host",
+    "udp 192.168.139.3:49673 host",
+    "udp 167.254.134.86:49673 srflx"
+   ],
+   "browserAnswerCandidates": [
+    "udp 192.168.18.5:52454 host",
+    "udp 167.254.134.86:52454 srflx"
+   ],
+   "nodeConnectionState": "connecting",
+   "nodeIceState": "checking",
+   "channelOpened": false,
+   "echo": null,
+   "msToEcho": null,
+   "browserLog": {
+    "log": [],
+    "ice": "checking",
+    "conn": "connecting"
+   }
+  },
+  {
+   "label": "chromium default (mDNS candidates), no STUN",
+   "iceServers": "[]",
+   "browserVersion": "156.0.8078.4",
+   "nodeOfferCandidates": [
+    "udp fd07:b51a:cc66:0:a617:db5e:ab7:e9f1:49639 host",
+    "udp 192.168.18.5:49639 host",
+    "udp 192.168.139.3:49639 host"
+   ],
+   "browserAnswerCandidates": [
+    "udp d4db3c70-fbb8-4de7-9028-a73335f21dd0.local:56156 host"
+   ],
+   "nodeConnectionState": "connecting",
+   "nodeIceState": "checking",
+   "channelOpened": false,
+   "echo": null,
+   "msToEcho": null,
+   "browserLog": {
+    "log": [],
+    "ice": "disconnected",
+    "conn": "failed"
+   }
+  },
+  {
+   "label": "webkit default, no STUN",
+   "iceServers": "[]",
+   "browserVersion": "27.2",
+   "nodeOfferCandidates": [
+    "udp fd07:b51a:cc66:0:a617:db5e:ab7:e9f1:56532 host",
+    "udp 192.168.18.5:56532 host",
+    "udp 192.168.139.3:56532 host"
+   ],
+   "browserAnswerCandidates": [],
+   "nodeConnectionState": "connecting",
+   "nodeIceState": "checking",
+   "channelOpened": false,
+   "echo": null,
+   "msToEcho": null,
+   "browserLog": {
+    "log": [],
+    "ice": "failed",
+    "conn": "failed"
+   }
+  }
+ ]
+}

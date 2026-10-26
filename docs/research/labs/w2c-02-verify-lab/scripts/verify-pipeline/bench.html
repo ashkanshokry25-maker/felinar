@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8"><title>verify bench</title><body><pre id="o">running</pre>
+<script type="module">
+import { verifyBlock, verifySigOnly } from '/verify-core.js';
+const q = new URLSearchParams(location.search);
+const file = q.get('file'); const reps = Number(q.get('reps') || 3);
+const out = { ua: navigator.userAgent, hc: navigator.hardwareConcurrency, file, runs: {} };
+const t0 = performance.now();
+const text = await (await fetch('/data/' + file)).text();
+out.fetchMs = +(performance.now() - t0).toFixed(1); out.bytes = text.length;
+const t1 = performance.now(); const blocks = JSON.parse(text); out.parseMs = +(performance.now() - t1).toFixed(1); out.n = blocks.length;
+const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+async function mainThread(fn, conc) {
+  let ok = 0; const t = performance.now();
+  for (let i = 0; i < blocks.length; i += conc) { const r = await Promise.all(blocks.slice(i, i + conc).map(fn)); for (const x of r) if (x === 'ok') ok++; }
+  return { ms: performance.now() - t, ok };
+}
+async function pool(size, mode, conc) {
+  const ws = Array.from({ length: size }, () => new Worker('/worker.js', { type: 'module' }));
+  const per = Math.ceil(blocks.length / size); const t = performance.now(); let ok = 0;
+  await Promise.all(ws.map((w, k) => new Promise((res) => { w.onmessage = (e) => { ok += e.data.ok; res(); }; w.postMessage({ id: k, blocks: blocks.slice(k * per, (k + 1) * per), mode, conc }); })));
+  const ms = performance.now() - t; ws.forEach(w => w.terminate()); return { ms, ok };
+}
+async function run(name, f) {
+  const ms = []; let ok = 0; for (let r = 0; r < reps; r++) { const x = await f(); ms.push(+x.ms.toFixed(1)); ok = x.ok; }
+  out.runs[name] = { medMs: med(ms), allMs: ms, ok, perSec: Math.round(blocks.length / (med(ms) / 1000)) };
+  document.getElementById('o').textContent = JSON.stringify(out, null, 1);
+}
+await run('main sig-only seq(conc=1)', () => mainThread(verifySigOnly, 1));
+await run('main sig-only conc=64', () => mainThread(verifySigOnly, 64));
+await run('main sig-only conc=256', () => mainThread(verifySigOnly, 256));
+await run('main full conc=1', () => mainThread(verifyBlock, 1));
+await run('main full conc=64', () => mainThread(verifyBlock, 64));
+await run('main full conc=256', () => mainThread(verifyBlock, 256));
+await run('workers=1 full conc=64', () => pool(1, 'full', 64));
+await run('workers=2 full conc=64', () => pool(2, 'full', 64));
+await run('workers=4 full conc=64', () => pool(4, 'full', 64));
+await run('workers=2 sig-only conc=64', () => pool(2, 'sig', 64));
+window.__RESULT = out;
+</script>

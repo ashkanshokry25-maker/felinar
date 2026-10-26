@@ -1,0 +1,447 @@
+{
+ "infoHash": "d0037167fc5786a0b755637e93e5995d23e935a4",
+ "results": {
+  "webkit": {
+   "version": "27.2",
+   "scenarios": {
+    "none / xs_only": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [
+      "http error from xs param: http://127.0.0.1:51317/m/none/r0lqnzhq/t/site.torrent"
+     ],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / xs_plus_ws": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [
+      "http error from xs param: http://127.0.0.1:51317/m/none/rmk239eo/t/site.torrent"
+     ],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / torrent_url_as_id": {
+     "status": "error",
+     "ms": 4,
+     "warnings": [],
+     "errors": [
+      "torrent:Error downloading torrent: Load failed"
+     ],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / torrent_url_as_id_plus_urlList": {
+     "status": "error",
+     "ms": 4,
+     "warnings": [],
+     "errors": [
+      "torrent:Error downloading torrent: Load failed"
+     ],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control,user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / SAME-ORIGIN webseed (ws on the page origin, no CORS headers)": {
+     "status": "done",
+     "ms": 16,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 13,
+     "getStatuses": "206",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": null
+    },
+    "acao / xs_only": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [
+      "http error from xs param: http://127.0.0.1:51317/m/acao/rd116cni/t/site.torrent"
+     ],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / xs_plus_ws": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [
+      "http error from xs param: http://127.0.0.1:51317/m/acao/rsggb1kh/t/site.torrent"
+     ],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / torrent_url_as_id": {
+     "status": "error",
+     "ms": 3,
+     "warnings": [],
+     "errors": [
+      "torrent:Error downloading torrent: Load failed"
+     ],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / torrent_url_as_id_plus_urlList": {
+     "status": "error",
+     "ms": 4,
+     "warnings": [],
+     "errors": [
+      "torrent:Error downloading torrent: Load failed"
+     ],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control,user-agent"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full / xs_only": {
+     "status": "metadata",
+     "ms": 6,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent/3.0.21 (https://webtorrent.io)",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full / xs_plus_ws": {
+     "status": "done",
+     "ms": 25,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 10,
+     "preflightRequestedHeaders": [
+      "user-agent",
+      "cache-control,user-agent"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent/3.0.21 (https://webtorrent.io)",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full / torrent_url_as_id": {
+     "status": "metadata",
+     "ms": 6,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent (https://webtorrent.io)",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full / torrent_url_as_id_plus_urlList": {
+     "status": "done",
+     "ms": 25,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 10,
+     "preflightRequestedHeaders": [
+      "user-agent",
+      "cache-control,user-agent"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent (https://webtorrent.io)",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "done",
+     "ms": 22,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 9,
+     "preflightRequestedHeaders": [
+      "cache-control,user-agent"
+     ],
+     "getCount": 13,
+     "getStatuses": "206",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent/3.0.21 (https://webtorrent.io)",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full-star / xs_only": {
+     "status": "metadata",
+     "ms": 7,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent/3.0.21 (https://webtorrent.io)",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full-star / xs_plus_ws": {
+     "status": "done",
+     "ms": 25,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 10,
+     "preflightRequestedHeaders": [
+      "user-agent",
+      "cache-control,user-agent"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent/3.0.21 (https://webtorrent.io)",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full-star / torrent_url_as_id": {
+     "status": "metadata",
+     "ms": 6,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 1,
+     "preflightRequestedHeaders": [
+      "user-agent"
+     ],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent (https://webtorrent.io)",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full-star / torrent_url_as_id_plus_urlList": {
+     "status": "done",
+     "ms": 31,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 10,
+     "preflightRequestedHeaders": [
+      "user-agent",
+      "cache-control,user-agent"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent (https://webtorrent.io)",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full-star / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "done",
+     "ms": 26,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [
+      "Unhandled Promise Rejection: UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+     ],
+     "preflights": 9,
+     "preflightRequestedHeaders": [
+      "cache-control,user-agent"
+     ],
+     "getCount": 13,
+     "getStatuses": "206",
+     "getHadUserAgentHeader": true,
+     "uaSample": "WebTorrent/3.0.21 (https://webtorrent.io)",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    }
+   },
+   "features": {
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+    "secure": true,
+    "toHex": "function",
+    "fromHex": "function",
+    "toBase64": "function",
+    "abortTimeout": "function",
+    "rtc": "function",
+    "subtle": "function",
+    "opfs": "function",
+    "sw": true,
+    "bigint": "function"
+   }
+  }
+ }
+}

@@ -1,0 +1,87 @@
+{
+  "engine": "webkit",
+  "rows": [
+    {
+      "test": "viewport: control, site loaded top-level (its own width=1024 applies)",
+      "device": "iPhone 15",
+      "innerWidth": 1024,
+      "vvWidth": 1024,
+      "dpr": 1.1513671875,
+      "small": false
+    },
+    {
+      "test": "viewport: shell viewport = device-width (site page has width=1024)",
+      "top": {
+        "innerWidth": 393,
+        "vvWidth": 393
+      },
+      "frame": {
+        "innerWidth": 393,
+        "vvWidth": 393,
+        "dpr": 3,
+        "small": true
+      }
+    },
+    {
+      "test": "viewport: shell has NO viewport meta (site page has width=1024)",
+      "top": {
+        "innerWidth": 980,
+        "vvWidth": 980
+      },
+      "frame": {
+        "innerWidth": 980,
+        "vvWidth": 980,
+        "dpr": 3,
+        "small": false
+      }
+    },
+    {
+      "test": "vh: full-viewport fixed iframe (viewport 700 px, site has .hero{min-height:100vh}, default 8px body margin)",
+      "t2_5s": {
+        "iframeH": 700,
+        "resizes": 0
+      },
+      "heroH_at_2_5s": 700,
+      "t5s": {
+        "iframeH": 700,
+        "resizes": 0
+      }
+    },
+    {
+      "test": "vh: auto-height iframe (grow to content, top document scrolls) (viewport 700 px, site has .hero{min-height:100vh}, default 8px body margin)",
+      "t2_5s": {
+        "iframeH": 8916,
+        "resizes": 152
+      },
+      "heroH_at_2_5s": 8916,
+      "t5s": {
+        "iframeH": 17616,
+        "resizes": 302
+      }
+    },
+    {
+      "test": "position:fixed in frame: full-viewport fixed iframe",
+      "topViewportH": 700,
+      "footerTop": 660,
+      "headerTop": 0,
+      "innerHeight": 700,
+      "heroH": 700
+    },
+    {
+      "test": "position:fixed in frame: auto-height iframe",
+      "topViewportH": 700,
+      "footerTop": 276060,
+      "headerTop": 0,
+      "innerHeight": 276100,
+      "heroH": 276100
+    },
+    {
+      "test": "CSP: shell form-action none vs SW-served frame and srcdoc (degraded-mode) frame",
+      "swServedFrameAfterSubmit": {
+        "frameUrl": "/search.html?q=hello"
+      },
+      "degradedFrame": "no srcdoc frame",
+      "cspViolations": []
+    }
+  ]
+}

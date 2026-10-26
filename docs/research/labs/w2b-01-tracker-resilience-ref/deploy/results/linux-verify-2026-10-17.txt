@@ -1,0 +1,104 @@
+
+=== os
+Ubuntu 24.04.5 LTS  kernel 7.2.9-orbstack-00391-g2b298d05fbd4  arch aarch64  systemd systemd 255 (255.4-1ubuntu8.18)
+
+=== node 24.22.0 (sha256 verified)
+node-v24.22.0-linux-arm64.tar.xz: OK
+v24.22.0
+
+=== caddy 2.11.7 (sha512 verified)
+caddy_2.11.7_linux_arm64.tar.gz: OK
+v2.11.7 h1:yj0Y4fYZGPkSvibBJ1sTWE33xC0fxztVyXEW5iIdUT4=
+
+=== install tracker + unit
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+
+=== systemd-analyze verify
+verify exit: 0
+
+=== status
+● magnet-tracker.service - magnet-web WebSocket tracker (bittorrent-tracker 11.2.3, hardened wrapper)
+     Loaded: loaded (/etc/systemd/system/magnet-tracker.service; disabled; preset: enabled)
+    Drop-In: /run/systemd/system/service.d
+             └─zzz-lxc-service.conf
+     Active: active (running) since Sat 2026-10-17 17:51:10 EDT; 3s ago
+   Main PID: 2272 (MainThread)
+      Tasks: 7 (limit: 128)
+     Memory: 22.6M (high: 1.1G max: 1.5G available: 1.1G peak: 23.1M)
+        CPU: 97ms
+     CGroup: /system.slice/magnet-tracker.service
+             └─2272 /usr/local/bin/node --max-old-space-size=1024 /opt/magnet-tracker/tracker.mjs
+
+Oct 17 17:51:10 mwtest systemd[1]: Started magnet-tracker.service - magnet-web WebSocket tracker (bittorrent-tracker 11.2.3, hardened wrapper).
+Oct 17 17:51:10 mwtest node[2272]: {"t":"2026-10-17T21:51:10.494Z","level":"info","msg":"listening","host":"127.0.0.1","port":8000,"metricsPort":9464,"mode":"open","cfg":{"host":"127.0.0.1","port":8000,"metricsPort":9464,"announceIntervalS":120,"maxPayload":65536,"maxOffers":10,"maxSdp":16384,"maxConnections":20000,"maxConnPerIp":200,"connRatePerIpPerMin":120,"maxSwarmsPerSocket":16,"maxSwarmsTotal":100000,"rateBurst":40,"ratePerSec":5,"bufferLimit":262144,"pingIntervalS":30,"idleTimeoutS":330,"peersPerSwarm":1000,"peerTtlS":1200,"gcIntervalS":60,"allowFile":"","open":true,"allowOrigins":0,"allowScrape":false,"trustProxy":true,"trustAnyProxy":false,"clientIpHeader":"x-forwarded-for","shutdownSpreadMs":5000,"logLevel":"info"}}
+
+=== limits as seen by the process
+Max processes             48186                48186                processes 
+Max open files            1048576              1048576              files     
+CapEff:	0000000000000000
+NoNewPrivs:	1
+Seccomp:	2
+Seccomp_filters:	15
+
+=== journal
+Oct 17 17:51:10 mwtest systemd[1]: Started magnet-tracker.service - magnet-web WebSocket tracker (bittorrent-tracker 11.2.3, hardened wrapper).
+Oct 17 17:51:10 mwtest node[2272]: {"t":"2026-10-17T21:51:10.494Z","level":"info","msg":"listening","host":"127.0.0.1","port":8000,"metricsPort":9464,"mode":"open","cfg":{"host":"127.0.0.1","port":8000,"metricsPort":9464,"announceIntervalS":120,"maxPayload":65536,"maxOffers":10,"maxSdp":16384,"maxCo
+
+=== systemd-analyze security (exposure level)
+✓ RestrictSUIDSGID=                                           SUID/SGID file creation by service is restricted                               
+✓ UMask=                                                      Files created by service are accessible only by service's own user by default  
+
+→ Overall exposure level for magnet-tracker.service: 3.3 OK :-)
+
+=== health + metrics (loopback)
+{"ok":true,"connections":0,"uptime_s":3}
+mwt_connections 0
+mwt_connections_opened_total 0
+mwt_swarms 0
+mwt_build_info{tracker="bittorrent-tracker@11.2.3",node="v24.22.0",interval_s="120",mode="open"} 1
+
+=== caddy with tls internal in front (rtc.test)
+root CA: /tmp/caddy-data/caddy/pki/authorities/local/root.crt
+{"ok":true,"connections":0,"uptime_s":7}
+WebRTC signalling endpoint (WebSocket only).\n
+=== end-to-end probe over TLS: DNS+TLS+upgrade+announce+offer relay (probes/check_trackers.py)
+{"ts": "2026-10-17T21:51:17Z", "ok": 1, "total": 1, "need": 1, "pass": true, "results": [{"url": "wss://rtc.test", "ok": true, "tcp_ms": 1, "tls_ms": 5, "upgrade_ms": 45, "cert_notAfter": "Oct 18 09:51:13 2026 GMT", "announce_ms": 2, "interval": 120, "failure": null, "relay_ok": true, "total_ms": 193}]}
+check_trackers exit: 0
+
+=== tracker unit tests inside the VM (node --test)
+Run `npm audit` for details.
+✔ relays offer and answer between two peers; replies to announce with interval (115.612821ms)
+✔ malformed announces are rejected and the process survives (stock server dies on offers:[null]) (255.173462ms)
+✔ scrape is disabled by default and cannot enumerate swarms (169.652906ms)
+✔ oversize message closes the socket with 1009 (59.539365ms)
+✔ swarms per socket are capped (107.412256ms)
+✔ per-socket message rate limit; persistent flooding is cut with 1008 (361.692054ms)
+✔ per-IP connection cap (X-Forwarded-For honoured only from loopback proxy) (266.072729ms)
+✔ CLIENT_IP_HEADER selects the header that carries the client IP (e.g. Fly-Client-IP / X-Real-IP) (57.620203ms)
+✔ info-hash allow-list with SIGHUP reload (430.458856ms)
+✔ refuses to start without ALLOW_FILE or OPEN=1 (87.715342ms)
+✔ Origin allow-list (109.125961ms)
+✔ ping/pong: a client that never answers pings is dropped; idle clients are closed (5141.261414ms)
+✔ metrics endpoint and /healthz (122.785388ms)
+✔ empty swarms are garbage-collected (2666.038158ms)
+✔ slow reader is cut when its backlog exceeds BUFFER_LIMIT (1739.265052ms)
+✔ SIGTERM drains: 503 on /healthz is not required, but sockets get 1001 and the process exits 0 (2482.92524ms)
+ℹ tests 16
+ℹ pass 16
+ℹ fail 0
+
+=== caddy metrics (admin)
+caddy_http_request_duration_seconds_count{code="101",handler="subroute",method="GET",server="srv0"} 4
+caddy_http_request_duration_seconds_count{code="200",handler="subroute",method="GET",server="srv0"} 2
+caddy_http_requests_total{handler="subroute",server="srv0"} 6
+
+=== restart drain: systemctl restart (SIGTERM -> 1001 closes spread, exit 0)
+Oct 17 17:51:35 mwtest systemd[1]: Stopping magnet-tracker.service - magnet-web WebSocket tracker (bittorrent-tracker 11.2.3, hardened wrapper)...
+Oct 17 17:51:35 mwtest node[2272]: {"t":"2026-10-17T21:51:35.286Z","level":"info","msg":"draining","signal":"SIGTERM","connections":0,"spread_ms":5000}
+Oct 17 17:51:42 mwtest systemd[1]: magnet-tracker.service: Deactivated successfully.
+Oct 17 17:51:42 mwtest systemd[1]: Stopped magnet-tracker.service - magnet-web WebSocket tracker (bittorrent-tracker 11.2.3, hardened wrapper).
+Oct 17 17:51:42 mwtest systemd[1]: Started magnet-tracker.service - magnet-web WebSocket tracker (bittorrent-tracker 11.2.3, hardened wrapper).
+Oct 17 17:51:42 mwtest node[3422]: {"t":"2026-10-17T21:51:42.348Z","level":"info","msg":"listening","host":"127.0.0.1","port":8000,"metricsPort":9464,"mode":"open","cfg":{"host":"127.0.0.1","port":800
+
+DONE

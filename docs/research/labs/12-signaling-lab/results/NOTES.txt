@@ -1,0 +1,20 @@
+Notes on result files (topic 12, 2026-10-17). Some experiments were run several times and later runs overwrote earlier files;
+the numbers below are copied from the console output of the overwritten runs so nothing is lost.
+
+e3 (head-of-line), content-wire ext RTT in ms, p50 / p90 / p99 / max:
+  first "off" run (256 MiB content, 15.2 MiB/s): 657.5 / 2806.6 / 4303.0 / 4454.9    (rv wire 17.3 / 25.7 / 51.9 / 56.2)
+  first "off:r16" run (128 MiB, 16 MiB/s):        6.3 / 9.9 / 10.4 / 15.3             (rv wire 1.1 / 9.7 / 10.1 / 14.3)
+  the files e3-off.json / e3-off-r16.json hold the LAST repeat of each setting (559/3183/4109 and 8.1/14.5/19.2).
+  the first run's idle "ctl" baseline (p50 664.7 ms) was a harness artefact (pages created while the previous pair was still being
+  torn down); every later idle baseline is 0.5-0.8 ms.
+  the first 1MiB:r16 attempt never formed a content wire (crossed offers, see e1x); lab.mjs now waits 700 ms after seeding and retries.
+
+e9 (live trackers) first full run (2026-10-17, console output), seconds to first rendezvous wire; "none" = no wire in 15 s:
+  tracker.webtorrent.dev     rv sim 1206 | rv stag 1113 | seed sim none | seed stag 1116
+  tracker.openwebtorrent.com rv sim  757 | rv stag  758 | seed sim none | seed stag none
+  open.ftorrent.com          rv sim  455 | rv stag  458 | seed sim none | seed stag none (flake; connected 464 ms on rerun)
+  tracker.novage.com.ua      rv sim none | rv stag none | seed sim none | seed stag none (transient outage; all OK on rerun/run2 except seed sim)
+  reruns: ftorrent only: rv sim 506, rv stag 464, seed sim none, seed stag 464; novage only: rv sim 720, rv stag 710, seed sim none, seed stag 716.
+  e9.json and e9-run2.json both hold the clean second full run.
+
+Python probes must be run with /usr/bin/python3 -I on the author's Mac (the Homebrew python3 is blocked by the application firewall).

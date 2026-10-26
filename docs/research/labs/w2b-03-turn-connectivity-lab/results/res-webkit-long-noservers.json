@@ -1,0 +1,32 @@
+{
+ "webkit": {
+  "version": "27.2",
+  "ice": [
+   {
+    "label": "no-servers",
+    "cands": [],
+    "errors": [],
+    "states": [
+     [
+      55,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 458,
+    "sdpCandLines": 0,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     }
+    ]
+   }
+  ]
+ }
+}

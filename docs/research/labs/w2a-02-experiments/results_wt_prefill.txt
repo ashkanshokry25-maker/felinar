@@ -1,0 +1,14 @@
+{
+ "webtorrent": "3.0.21",
+ "pieces": 231,
+ "piecesAlreadyVerified": 227,
+ "pct": 98.3,
+ "progress": 0.9831,
+ "done": false,
+ "downloadedBytesCounter": 14876672,
+ "unchangedFileBytes": 14999912,
+ "totalBytes": 15131736,
+ "missingPieces": 4,
+ "missingMiB": 0.25,
+ "fileLevelDeltaKiB": 129
+}

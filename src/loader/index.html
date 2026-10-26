@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <!-- No static Content-Security-Policy here: /_mw/boot.js inserts the normal policy, or the degraded
+       one when this browser has no Service Worker (ARCHITECTURE §13, §7.4; DESIGN-REVIEW item 17). -->
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101318" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="This site is loaded peer-to-peer from other visitors and from its static host.">
+  <!-- Deploy-time tags go here (never edit them by hand): the signed pointer as a meta tag named
+       mw-pointer (tools/publish.mjs meta.html, or tools/dev-server.mjs --pointer), a meta tag named
+       mw-hub with content "subdomain" (wildcard hub root) or "shared" (one-origin demo hub) on hub
+       deployments, and a meta tag named mw-dev with content "1" from dev-server --dev. -->
+  <title>Loading site</title>
+  <link rel="manifest" href="/_mw/manifest.webmanifest">
+  <link rel="icon" href="/_mw/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/_mw/ui.css">
+  <!-- build.mjs adds integrity and crossorigin to this preload and to the boot.js tag (SRI on the
+       two static script tags; boot.js copies the preload's integrity to its module fallback). -->
+  <link rel="modulepreload" href="/_mw/loader.js">
+</head>
+<body>
+  <div id="mw-root" class="mw-root">
+    <div id="mw-site" class="mw-site"></div>
+    <div id="mw-bar" class="mw-bar" data-nosnippet>
+      <!-- boot.js replaces this line at once. When it never runs (a deploy under a sub-path such as
+           /repo/: /_mw/boot.js and /_mw/ui.css are fetched from the origin root and 404), the hint is
+           visible; with ui.css loaded it appears only after 6 s (code review round 1, item 22). -->
+      <p id="mw-boot" class="mw-boot-msg" role="status" aria-live="polite">Starting... <span class="mw-boot-hint">If this stays, the loader did not start. It must be served from the root of its domain (https://example.com/, not a sub-path such as https://example.com/site/).</span></p>
+    </div>
+  </div>
+  <noscript>
+    <div class="mw-boot-error" data-nosnippet>
+      <h1>JavaScript is required</h1>
+      <p>This site loads from other visitors' browsers and needs JavaScript.</p>
+      <p>It is delivered peer-to-peer by a small loader that runs in the browser. Turn on JavaScript for this site and reload.</p>
+    </div>
+  </noscript>
+  <script src="/_mw/boot.js"></script>
+</body>
+</html>

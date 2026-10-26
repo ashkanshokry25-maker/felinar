@@ -1,0 +1,118 @@
+{
+ "browser": "chromium chromium persistent profile",
+ "n_fetches": 5,
+ "rows": [
+  {
+   "header": "no-cache+etag",
+   "sizeMB": 1,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 26
+  },
+  {
+   "header": "no-cache+etag",
+   "sizeMB": 10,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 87
+  },
+  {
+   "header": "no-cache+etag",
+   "sizeMB": 50,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 216
+  },
+  {
+   "header": "no-cache+etag",
+   "sizeMB": 120,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 419
+  },
+  {
+   "header": "max-age=600 (GitHub Pages style)",
+   "sizeMB": 1,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 33
+  },
+  {
+   "header": "max-age=600 (GitHub Pages style)",
+   "sizeMB": 10,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 94
+  },
+  {
+   "header": "max-age=600 (GitHub Pages style)",
+   "sizeMB": 50,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 212
+  },
+  {
+   "header": "max-age=600 (GitHub Pages style)",
+   "sizeMB": 120,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 446
+  },
+  {
+   "header": "no-store",
+   "sizeMB": 1,
+   "serverGETs": 5,
+   "ok": true,
+   "ms": 31
+  },
+  {
+   "header": "no-store",
+   "sizeMB": 10,
+   "serverGETs": 5,
+   "ok": true,
+   "ms": 86
+  },
+  {
+   "header": "no-store",
+   "sizeMB": 50,
+   "serverGETs": 5,
+   "ok": true,
+   "ms": 166
+  },
+  {
+   "header": "no-store",
+   "sizeMB": 120,
+   "serverGETs": 5,
+   "ok": true,
+   "ms": 374
+  },
+  {
+   "header": "immutable 1y",
+   "sizeMB": 1,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 24
+  },
+  {
+   "header": "immutable 1y",
+   "sizeMB": 10,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 83
+  },
+  {
+   "header": "immutable 1y",
+   "sizeMB": 50,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 235
+  },
+  {
+   "header": "immutable 1y",
+   "sizeMB": 120,
+   "serverGETs": 1,
+   "ok": true,
+   "ms": 459
+  }
+ ]
+}

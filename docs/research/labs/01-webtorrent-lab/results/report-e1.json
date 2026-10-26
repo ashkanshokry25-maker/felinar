@@ -1,0 +1,120 @@
+{
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "secure": true,
+  "errors": [],
+  "webtorrentVersion": "3.0.21",
+  "webrtcSupport": true,
+  "hasOPFS": true,
+  "hasCreateWritable": true,
+  "swState": "activating",
+  "swScope": "http://127.0.0.1:18080/",
+  "serverPathname": "/webtorrent",
+  "infoHash": "037ebdebc1d5717d1900550524f350b43156be13",
+  "magnetURI": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site",
+  "torrentName": "site",
+  "filePaths": [
+    "site/index.html",
+    "site/style.css",
+    "site/app.js",
+    "site/img/logo.svg"
+  ],
+  "streamURLs": [
+    "/webtorrent/037ebdebc1d5717d1900550524f350b43156be13/site/index.html",
+    "/webtorrent/037ebdebc1d5717d1900550524f350b43156be13/site/style.css",
+    "/webtorrent/037ebdebc1d5717d1900550524f350b43156be13/site/app.js",
+    "/webtorrent/037ebdebc1d5717d1900550524f350b43156be13/site/img/logo.svg"
+  ],
+  "torrentFileIsUint8Array": true,
+  "torrentFileBlobType": "application/x-bittorrent",
+  "api": {
+    "file.blob": "function",
+    "file.arrayBuffer": "function",
+    "file.stream": "function",
+    "file.createReadStream": "function",
+    "file.streamURL": "string",
+    "file.streamTo": "function",
+    "file.getBlob": "undefined",
+    "file.getBlobURL": "undefined",
+    "file.getBuffer": "undefined",
+    "file.appendTo": "undefined",
+    "file.renderTo": "undefined",
+    "file.select": "function",
+    "file.deselect": "function",
+    "file.includes": "function",
+    "file[Symbol.asyncIterator]": "function",
+    "client.get returns promise": true,
+    "client.download": "undefined"
+  },
+  "blobType": "text/html",
+  "blobSize": 172,
+  "abLen": 172,
+  "streamFirstChunkLen": 172,
+  "fetch": {
+    "status": 200,
+    "type": "text/html",
+    "csp": "base-uri 'none'; frame-ancestors 'none'; form-action 'none';",
+    "cd": "inline; filename*=UTF-8''index.html",
+    "nosniff": "nosniff",
+    "cors": "*",
+    "cache": "no-cache, no-store, must-revalidate, max-age=0",
+    "body": "<!doctype html><meta charset=utf-8><title>site</title><link rel=stylesheet href="
+  },
+  "fetchRange": {
+    "status": 206,
+    "contentRange": "bytes 0-9/172",
+    "len": 10
+  },
+  "fetch404": 404,
+  "fetchIndex": {
+    "status": 200,
+    "type": "text/html"
+  },
+  "iframe": {
+    "loadEvent": true,
+    "docReadable": false,
+    "title": null,
+    "h1": null,
+    "bg": null,
+    "accessError": "SecurityError: Failed to read a named property '__ran' from 'Window': Blocked a frame with origin \"http://127.0.0.1:18080\" from accessing a cross-origin frame."
+  },
+  "det": {
+    "a_baseline": {
+      "h": "037ebdebc1d5717d1900550524f350b43156be13",
+      "m": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site"
+    },
+    "b_sameAgain": {
+      "h": "037ebdebc1d5717d1900550524f350b43156be13",
+      "m": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site"
+    },
+    "c_differentCreationDateAndCreatedBy": {
+      "h": "037ebdebc1d5717d1900550524f350b43156be13",
+      "m": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site"
+    },
+    "d_reversedFileOrder": {
+      "h": "83cac8aaf927c3fbd56a939662db55b507b8c727",
+      "m": "magnet:?xt=urn:btih:83cac8aaf927c3fbd56a939662db55b507b8c727&dn=site"
+    },
+    "e_noPieceLengthGiven": {
+      "h": "037ebdebc1d5717d1900550524f350b43156be13",
+      "m": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site"
+    },
+    "f_defaultAnnounceList": {
+      "h": "037ebdebc1d5717d1900550524f350b43156be13",
+      "m": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&tr=wss%3A%2F%2Ftracker.webtorrent.dev"
+    },
+    "g_noNameGiven": {
+      "h": "037ebdebc1d5717d1900550524f350b43156be13",
+      "m": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site"
+    },
+    "h_privateTrue": {
+      "h": "9f3131da06bf7e130a24cc27717f371554d42624",
+      "m": "magnet:?xt=urn:btih:9f3131da06bf7e130a24cc27717f371554d42624&dn=site"
+    },
+    "i_differentLastModified": {
+      "h": "037ebdebc1d5717d1900550524f350b43156be13",
+      "m": "magnet:?xt=urn:btih:037ebdebc1d5717d1900550524f350b43156be13&dn=site"
+    }
+  },
+  "destroyMs": 0,
+  "clientDestroyed": true
+}

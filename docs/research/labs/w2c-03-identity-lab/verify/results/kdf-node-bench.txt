@@ -1,0 +1,23 @@
+{
+ "wasm argon2id m=19MiB t=2": {
+  "min": 19,
+  "med": 21
+ },
+ "noble argon2id m=19MiB t=2": {
+  "min": 106,
+  "med": 115
+ },
+ "wasm argon2id m=64MiB t=3": {
+  "min": 109,
+  "med": 110
+ },
+ "noble argon2id m=64MiB t=3": {
+  "min": 539,
+  "med": 541
+ },
+ "noble scrypt N=2^16 r=8 p=1": {
+  "min": 118,
+  "med": 120
+ }
+}
+noble/wasm ratio 19MiB t=2: 5.5  64MiB t=3: 4.9

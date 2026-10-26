@@ -1,0 +1,77 @@
+{
+ "chromium": {
+  "version": "156.0.8078.4",
+  "ice": [
+   {
+    "label": "turn udp REFUSED (closed port)",
+    "cands": [
+     {
+      "t": 2,
+      "type": "host",
+      "proto": "udp",
+      "addr": "192.168.x.y",
+      "port": 56390,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     }
+    ],
+    "errors": [
+     {
+      "t": 39886,
+      "code": 701,
+      "text": "STUN binding request timed out.",
+      "url": "stun:127.0.0.1:34792",
+      "addr": "0.0.0.x",
+      "port": 56390
+     },
+     {
+      "t": 39948,
+      "code": 701,
+      "text": "TURN allocate request timed out.",
+      "url": "turn:127.0.0.1:34792?transport=udp",
+      "addr": "0.0.0.x",
+      "port": 56390
+     }
+    ],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      39948,
+      "complete"
+     ]
+    ],
+    "tNull": 39948,
+    "gatherState": "complete",
+    "tComplete": 39948,
+    "sdpBytes": 566,
+    "sdpCandLines": 1,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   }
+  ]
+ }
+}

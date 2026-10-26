@@ -1,0 +1,38 @@
+--- index.orig.js	2026-10-17 17:18:41
++++ index.js	2026-10-17 17:18:56
+@@ -13,6 +13,9 @@
+ const BITFIELD_GROW = 400000
+ const KEEP_ALIVE_TIMEOUT = 55000
+ const ALLOWED_FAST_SET_MAX_LENGTH = 100
++// Upper bound for a single peer message (length prefix excluded). The largest legitimate messages are a 16 KiB block (+9),
++// ut_metadata data (16 KiB + dict) and a bitfield (1 + ceil(pieces / 8)). For comparison libtorrent caps a peer receive buffer at 2 MiB.
++const DEFAULT_MAX_MESSAGE_LENGTH = 2 * 1024 * 1024
+ 
+ const MESSAGE_PROTOCOL = text2arr('\u0013BitTorrent protocol')
+ const MESSAGE_KEEP_ALIVE = new Uint8Array([0x00, 0x00, 0x00, 0x00])
+@@ -86,8 +89,10 @@
+ 
+ class Wire extends Duplex {
+   static nativeRC4 = nativeRC4 // true if Node's crypto supports RC4 (avoids slower JS fallback) Node 17+ (requires `--openssl-legacy-provider`)
+-  constructor (type = '', peEnabled = 0) {
++  constructor (type = '', peEnabled = 0, { maxMessageLength = DEFAULT_MAX_MESSAGE_LENGTH } = {}) {
+     super()
++
++    this.maxMessageLength = maxMessageLength // bytes; a peer announcing a longer message is disconnected
+ 
+     this._debugId = arr2hex(randomBytes(4))
+     this._debug('new wire')
+@@ -943,7 +948,12 @@
+    * @param  {Uint8Array} buffer
+    */
+   _onMessageLength (buffer) {
+-    const length = getUint32(buffer)
++    const length = getUint32(buffer) >>> 0 // getUint32 is signed: without >>> 0 a length >= 2^31 would be read as a negative keep-alive
++    if (length > this.maxMessageLength) {
++      this._debug('Error: message length %d exceeds maxMessageLength %d', length, this.maxMessageLength)
++      this.destroy(new Error('message too large'))
++      return
++    }
+     if (length > 0) {
+       this._parse(length, this._onMessage)
+     } else {

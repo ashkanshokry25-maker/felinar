@@ -1,0 +1,17 @@
+{
+  "errors": [],
+  "store": {},
+  "infoHash": "50d8330bee2e90bf5049295cc105264ac056fed9",
+  "dbsAfterSeed": [
+    "wt-chunks:idb.bin - 50d8330b"
+  ],
+  "dbsAfterClientDestroy": [
+    "wt-chunks:idb.bin - 50d8330b"
+  ],
+  "reAdd": {
+    "doneFromIDB": true,
+    "ms": 52,
+    "bytesMatch": true
+  },
+  "dbsAfterDestroyStore": []
+}

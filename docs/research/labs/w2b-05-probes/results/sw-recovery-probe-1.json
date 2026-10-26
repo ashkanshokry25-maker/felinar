@@ -1,0 +1,148 @@
+{
+  "chromium": "156.0.8078.4",
+  "S0": [
+    {
+      "nav": 0,
+      "swScriptFetchedMsAfterGoto": 1973,
+      "headers": [
+        {
+          "serviceWorkerHeader": "script",
+          "secFetchDest": "serviceworker"
+        }
+      ]
+    },
+    {
+      "nav": 1,
+      "swScriptFetchedMsAfterGoto": 2008,
+      "headers": [
+        {
+          "serviceWorkerHeader": "script",
+          "secFetchDest": "serviceworker"
+        }
+      ]
+    },
+    {
+      "nav": 2,
+      "swScriptFetchedMsAfterGoto": 2007,
+      "headers": [
+        {
+          "serviceWorkerHeader": "script",
+          "secFetchDest": "serviceworker"
+        }
+      ]
+    }
+  ],
+  "S0_rapid_3_navigations_600ms_apart_swFetches": 0,
+  "S0_rapid_followup_after_4s_total_swFetches": 1,
+  "S2_CSD_on_sw_js: \"storage\"": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 0,
+    "controlled": false,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S2_CSD_on_sw_js: \"cache\" only": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 1,
+    "controlled": true,
+    "ls": "ls-planted",
+    "caches": [
+      "mw-shell-v1",
+      "user-data-cache"
+    ],
+    "idb": "idb-planted"
+  },
+  "S2_CSD_on_sw_js: \"cookies\" only": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 1,
+    "controlled": true,
+    "ls": "ls-planted",
+    "caches": [
+      "mw-shell-v1",
+      "user-data-cache"
+    ],
+    "idb": "idb-planted"
+  },
+  "S2_CSD_on_sw_js: no header (control)": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 1,
+    "controlled": true,
+    "ls": "ls-planted",
+    "caches": [
+      "mw-shell-v1",
+      "user-data-cache"
+    ],
+    "idb": "idb-planted"
+  },
+  "S3_CSD_on_navigation: control: SW passthru, NO header": {
+    "text": "HEALTHY-NETWORK-PAGE",
+    "regs": 1,
+    "controlled": true,
+    "ls": "ls-planted",
+    "caches": [
+      "user-data-cache"
+    ],
+    "idb": "idb-planted"
+  },
+  "S3_CSD_on_navigation: SW respondWith(fetch(request)) + header": {
+    "text": "HEALTHY-NETWORK-PAGE",
+    "regs": 0,
+    "controlled": false,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S3_CSD_on_navigation: SW without fetch handler + header": {
+    "text": "HEALTHY-NETWORK-PAGE",
+    "regs": 0,
+    "controlled": false,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S3_CSD_on_navigation: SW synthesizes the response incl. header": {
+    "text": "SYNTHESIZED-BY-SW",
+    "regs": 1,
+    "controlled": true,
+    "ls": "ls-planted",
+    "caches": [
+      "user-data-cache"
+    ],
+    "idb": "idb-planted"
+  },
+  "S6_syntaxerr": {
+    "updateResult": "update() rejected: TypeError",
+    "afterNav": {
+      "text": "BROKEN-SW-SHELL",
+      "regs": 1,
+      "controlled": true,
+      "ls": "ls-planted",
+      "caches": [
+        "mw-shell-v1",
+        "user-data-cache"
+      ],
+      "idb": "idb-planted"
+    }
+  },
+  "S6_installfail": {
+    "updateResult": "update() resolved; installing=true waiting=false active=activated",
+    "afterNav": {
+      "text": "BROKEN-SW-SHELL",
+      "regs": 1,
+      "controlled": true,
+      "ls": "ls-planted",
+      "caches": [
+        "mw-shell-v1",
+        "user-data-cache"
+      ],
+      "idb": "idb-planted"
+    }
+  },
+  "S6_fetchthrow_afterBugDeployed": "navigation failed: page.goto: net::ERR_FAILED at http://localhost:61658/?s6b2=1&noreg=1",
+  "S6_fetchthrow_healed": {
+    "afterMs": null,
+    "navigationAttempts": 30,
+    "swScriptFetches": 0
+  }
+}

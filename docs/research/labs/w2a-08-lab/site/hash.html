@@ -1,0 +1,4 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Hash router</title></head>
+<body><h1>Hash router</h1><nav><a id="h1" href="#/one">one</a> <a id="h2" href="#/two">two</a></nav><div id="view"></div>
+<script>function render(){ document.getElementById('view').textContent='hash-route:'+location.hash; document.title='Hash '+location.hash }
+window.addEventListener('hashchange', render); render()</script></body></html>

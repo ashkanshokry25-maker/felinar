@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>seed</title>
+<script type="module">
+const q = new URLSearchParams(location.search); const PL = +q.get('pl'); const TR = q.get('tr'); const NAME = q.get('name') || 'site'; const WS = q.get('ws') === '1';
+const out = { errors: [] };
+addEventListener('error', e => out.errors.push(String(e.message)));
+try {
+  const { default: WebTorrent } = await import('/wt.js');
+  const manifest = await (await fetch('/site/manifest.json')).json();
+  const files = await Promise.all(manifest.map(async m => { const b = await (await fetch('/site/' + m.path)).arrayBuffer(); const f = new File([b], m.path.split('/').pop()); Object.defineProperty(f, 'fullPath', { value: NAME + '/' + m.path }); return f; }));
+  const c = new WebTorrent({ dht: false, lsd: false, webSeeds: false, tracker: { rtcConfig: { iceServers: [] } } });
+  window.__client = c;
+  c.on('error', e => out.errors.push('client: ' + (e && e.message || e)));
+  const t = await new Promise((res, rej) => { const tt = c.seed(files, { name: NAME, pieceLength: PL, announce: TR ? [TR] : [], ...(WS ? {} : {}) }, res); tt.on('error', rej); });
+  let tf = ''; const u8 = t.torrentFile; for (let i = 0; i < u8.length; i += 8192) tf += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
+  out.infoHash = t.infoHash; out.magnet = t.magnetURI; out.pieces = t.pieces.length; out.pieceLength = t.pieceLength; out.torrentFileB64 = btoa(tf); out.torrentFileBytes = u8.length;
+} catch (e) { out.thrown = String(e && e.stack || e).slice(0, 500); }
+window.__result = out;
+</script>

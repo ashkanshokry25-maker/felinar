@@ -1,0 +1,12 @@
+######## webkit : browser.newContext() (Playwright default)
+{"engine":"webkit","mode":"new","phase":"write","version":"27.2","res":{"ecdsa_write":"ok","ed25519_write":"ok","persisted":false,"persistGranted":false}}
+{"engine":"webkit","mode":"new","phase":"read","version":"27.2","res":{"marker":null,"ecdsa_read":"no record","ed25519_read":"no record"}}
+######## webkit : launchPersistentContext
+{"engine":"webkit","mode":"persistent","phase":"write","version":"27.2","res":{"ecdsa_write":"ok","ed25519_write":"ok","persisted":false,"persistGranted":false}}
+{"engine":"webkit","mode":"persistent","phase":"read","version":"27.2","res":{"marker":"written-1792274467825","ecdsa_read":{"signs":64,"verifies":true,"privExtractable":false},"ed25519_read":{"signs":64,"verifies":true,"privExtractable":false}}}
+######## chromium : browser.newContext() (Playwright default)
+{"engine":"chromium","mode":"new","phase":"write","version":"156.0.8078.4","res":{"ecdsa_write":"ok","ed25519_write":"ok","persisted":false,"persistGranted":false}}
+{"engine":"chromium","mode":"new","phase":"read","version":"156.0.8078.4","res":{"marker":null,"ecdsa_read":"no record","ed25519_read":"no record"}}
+######## chromium : launchPersistentContext
+{"engine":"chromium","mode":"persistent","phase":"write","version":"156.0.8078.4","res":{"ecdsa_write":"ok","ed25519_write":"ok","persisted":false,"persistGranted":false}}
+{"engine":"chromium","mode":"persistent","phase":"read","version":"156.0.8078.4","res":{"marker":"written-1792274470624","ecdsa_read":{"signs":64,"verifies":true,"privExtractable":false},"ed25519_read":{"signs":64,"verifies":true,"privExtractable":false}}}

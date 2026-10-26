@@ -1,0 +1,63 @@
+{
+ "browser": "chromium 156.0.8078.4",
+ "results": [
+  {
+   "target": "loopback 127.0.0.1",
+   "csp": "none",
+   "stunBindingRequestsSeenByServer": 5,
+   "gathering": "gathering",
+   "candidateCount": 1,
+   "violations": [],
+   "consoleHints": []
+  },
+  {
+   "target": "loopback 127.0.0.1",
+   "csp": "connect-none",
+   "stunBindingRequestsSeenByServer": 5,
+   "gathering": "gathering",
+   "candidateCount": 1,
+   "violations": [],
+   "consoleHints": []
+  },
+  {
+   "target": "loopback 127.0.0.1",
+   "csp": "webrtc-block",
+   "stunBindingRequestsSeenByServer": 5,
+   "gathering": "gathering",
+   "candidateCount": 1,
+   "violations": [],
+   "consoleHints": [
+    "Unrecognized Content-Security-Policy directive 'webrtc'."
+   ]
+  },
+  {
+   "target": "LAN x.x.x.x",
+   "csp": "none",
+   "stunBindingRequestsSeenByServer": 0,
+   "gathering": "gathering",
+   "candidateCount": 1,
+   "violations": [],
+   "consoleHints": []
+  },
+  {
+   "target": "LAN x.x.x.x",
+   "csp": "connect-none",
+   "stunBindingRequestsSeenByServer": 0,
+   "gathering": "gathering",
+   "candidateCount": 1,
+   "violations": [],
+   "consoleHints": []
+  },
+  {
+   "target": "LAN x.x.x.x",
+   "csp": "webrtc-block",
+   "stunBindingRequestsSeenByServer": 0,
+   "gathering": "gathering",
+   "candidateCount": 1,
+   "violations": [],
+   "consoleHints": [
+    "Unrecognized Content-Security-Policy directive 'webrtc'."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,64 @@
+# probe-storage.mjs, run 2026-10-17 on macOS (arm64). WebKit = Playwright WebKit 27.2 build (JavaScriptCore); ephemeral = the session type Safari uses for Private Browsing (WebKit tracking-prevention page).
+
+# engine: webkit 27.2 (ephemeral context)
+# ua: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15 | isSecureContext: true
+OK   storage.persisted()                                        false
+OK   storage.persist()                                          false
+OK   storage.persisted() after persist                          false
+OK   storage.estimate()                                         {"quotaMB":1000,"usageMB":0}
+FAIL OPFS getDirectory()                                        "UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+FAIL OPFS write+read via createWritable                         "UnknownError: The operation failed for an unknown transient reason (e.g. out of memory)."
+OK   IndexedDB open                                             "probe"
+OK   IndexedDB ArrayBuffer(300 KB) put/get                      300000
+FAIL IndexedDB Blob(1 KB) put/get                               "UnknownError: Error preparing Blob/File data to be stored in object store"
+FAIL IndexedDB Blob(300 KB) put/get                             "UnknownError: Error preparing Blob/File data to be stored in object store"
+FAIL IndexedDB Blob(10 MB) put/get                              "UnknownError: Error preparing Blob/File data to be stored in object store"
+OK   CryptoKey nonextractable in IDB: ECDSA P-256               {"extractable":false,"type":"private","usable":"sign ok, sig bytes 64"}
+OK   CryptoKey nonextractable in IDB: Ed25519                   {"extractable":false,"type":"private","usable":"sign ok, sig bytes 64"}
+OK   CryptoKey nonextractable in IDB: X25519                    "READ BACK null"
+OK   CryptoKey nonextractable in IDB: AES-GCM                   {"extractable":false,"type":"secret","usable":"encrypt ok 17"}
+OK   Service Worker registration (needs secure ctx)             "serviceWorker present"
+OK   navigator.connection / deviceMemory / getBattery           {"connection":"undefined","deviceMemory":"undefined","getBattery":"undefined","hardwareConcurrency":8}
+OK   RTCPeerConnection + data channel object                    "connecting/null"
+
+# engine: webkit  (persistent context)
+# ua: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15 | isSecureContext: true
+OK   storage.persisted()                                        false
+OK   storage.persist()                                          false
+OK   storage.persisted() after persist                          false
+OK   storage.estimate()                                         {"quotaMB":19661,"usageMB":0}
+OK   OPFS getDirectory()                                        "object"
+OK   OPFS write+read via createWritable                         3
+OK   IndexedDB open                                             "probe"
+OK   IndexedDB ArrayBuffer(300 KB) put/get                      300000
+OK   IndexedDB Blob(1 KB) put/get                               1000
+OK   IndexedDB Blob(300 KB) put/get                             300000
+OK   IndexedDB Blob(10 MB) put/get                              10485760
+OK   CryptoKey nonextractable in IDB: ECDSA P-256               {"extractable":false,"type":"private","usable":"sign ok, sig bytes 64"}
+OK   CryptoKey nonextractable in IDB: Ed25519                   {"extractable":false,"type":"private","usable":"sign ok, sig bytes 64"}
+OK   CryptoKey nonextractable in IDB: X25519                    "READ BACK null"
+OK   CryptoKey nonextractable in IDB: AES-GCM                   {"extractable":false,"type":"secret","usable":"encrypt ok 17"}
+OK   Service Worker registration (needs secure ctx)             "serviceWorker present"
+OK   navigator.connection / deviceMemory / getBattery           {"connection":"undefined","deviceMemory":"undefined","getBattery":"undefined","hardwareConcurrency":8}
+OK   RTCPeerConnection + data channel object                    "connecting/null"
+
+# engine: chromium 156.0.8078.4 (ephemeral context)
+# ua: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36 | isSecureContext: true
+OK   storage.persisted()                                        false
+OK   storage.persist()                                          false
+OK   storage.persisted() after persist                          false
+OK   storage.estimate()                                         {"quotaMB":10240,"usageMB":0}
+OK   OPFS getDirectory()                                        "object"
+OK   OPFS write+read via createWritable                         3
+OK   IndexedDB open                                             "probe"
+OK   IndexedDB ArrayBuffer(300 KB) put/get                      300000
+OK   IndexedDB Blob(1 KB) put/get                               1000
+OK   IndexedDB Blob(300 KB) put/get                             300000
+OK   IndexedDB Blob(10 MB) put/get                              10485760
+OK   CryptoKey nonextractable in IDB: ECDSA P-256               {"extractable":false,"type":"private","usable":"sign ok, sig bytes 64"}
+OK   CryptoKey nonextractable in IDB: Ed25519                   {"extractable":false,"type":"private","usable":"sign ok, sig bytes 64"}
+OK   CryptoKey nonextractable in IDB: X25519                    {"extractable":false,"type":"private","usable":"object [object CryptoKey]"}
+OK   CryptoKey nonextractable in IDB: AES-GCM                   {"extractable":false,"type":"secret","usable":"encrypt ok 17"}
+OK   Service Worker registration (needs secure ctx)             "serviceWorker present"
+OK   navigator.connection / deviceMemory / getBattery           {"connection":"object","deviceMemory":"number","getBattery":"function","hardwareConcurrency":8}
+OK   RTCPeerConnection + data channel object                    "connecting/null"

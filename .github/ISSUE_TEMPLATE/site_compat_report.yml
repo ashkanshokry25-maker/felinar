@@ -1,0 +1,23 @@
+name: Site compatibility report
+description: A site, framework export or host that does not migrate cleanly (drop-in or shell)
+labels: [compatibility]
+body:
+  - type: input
+    id: generator
+    attributes: { label: Framework or generator, placeholder: "Hugo 0.150 / Next.js 15 static export / WordPress + Simply Static" }
+    validations: { required: true }
+  - type: input
+    id: host
+    attributes: { label: Static host, placeholder: "GitHub Pages / Cloudflare Pages / S3+CloudFront / Netlify" }
+    validations: { required: true }
+  - type: dropdown
+    id: mode
+    attributes: { label: Mode tried, options: [Drop-in, Shell, Both] }
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes: { label: What broke, description: "URLs, console output, the publish command used, the site's own Service Worker if any" }
+    validations: { required: true }
+  - type: textarea
+    id: lint
+    attributes: { label: Output of `npx felinar check-site <url>` and of `publish --dropin` }

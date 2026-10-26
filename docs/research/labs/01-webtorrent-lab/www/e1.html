@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E1 webtorrent SW server + iframe + API surface + determinism</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { ua: navigator.userAgent, secure: isSecureContext, errors: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e1', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+window.addEventListener('error', e => { R.errors.push('window.error: ' + e.message) })
+window.addEventListener('unhandledrejection', e => { R.errors.push('unhandledrejection: ' + (e.reason && e.reason.message || e.reason)) })
+try {
+  R.webtorrentVersion = WebTorrent.VERSION
+  R.webrtcSupport = WebTorrent.WEBRTC_SUPPORT
+  R.hasOPFS = !!(navigator.storage && navigator.storage.getDirectory)
+  R.hasCreateWritable = !!(globalThis.FileSystemFileHandle && FileSystemFileHandle.prototype.createWritable)
+
+  const reg = await navigator.serviceWorker.register('./sw.min.js', { scope: './' })
+  await navigator.serviceWorker.ready
+  R.swState = reg.active && reg.active.state
+  R.swScope = reg.scope
+
+  const mk = (path, text, type) => {
+    const f = new File([text], path.split('/').pop(), { type })
+    Object.defineProperty(f, 'fullPath', { value: path })
+    return f
+  }
+  const siteFiles = () => [
+    mk('site/index.html', '<!doctype html><meta charset=utf-8><title>site</title><link rel=stylesheet href="style.css"><h1 id=x>hello</h1><img id=img src="img/logo.svg"><script src="app.js"><\/script>', 'text/html'),
+    mk('site/style.css', 'body{background:rgb(1,2,3)}', 'text/css'),
+    mk('site/app.js', 'document.title="js-ran"; window.__ran=1', 'text/javascript'),
+    mk('site/img/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>', 'image/svg+xml')
+  ]
+  const client = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  client.on('error', e => R.errors.push('client error: ' + e.message))
+  const server = client.createServer({ controller: reg })
+  R.serverPathname = server.pathname
+  const seed = (c, files, opts) => new Promise((resolve, reject) => { const t = c.seed(files, opts, resolve); t.on('error', reject) })
+  const torrent = await seed(client, siteFiles(), { announce: [], name: 'site', pieceLength: 16384 })
+  R.infoHash = torrent.infoHash
+  R.magnetURI = torrent.magnetURI
+  R.torrentName = torrent.name
+  R.filePaths = torrent.files.map(f => f.path)
+  R.streamURLs = torrent.files.map(f => f.streamURL)
+  R.torrentFileIsUint8Array = torrent.torrentFile instanceof Uint8Array
+  R.torrentFileBlobType = torrent.torrentFileBlob && torrent.torrentFileBlob.type
+
+  // API surface
+  const f0 = torrent.files[0]
+  R.api = {}
+  for (const k of ['blob', 'arrayBuffer', 'stream', 'createReadStream', 'streamURL', 'streamTo', 'getBlob', 'getBlobURL', 'getBuffer', 'appendTo', 'renderTo', 'select', 'deselect', 'includes']) R.api['file.' + k] = typeof f0[k]
+  R.api['file[Symbol.asyncIterator]'] = typeof f0[Symbol.asyncIterator]
+  R.api['client.get returns promise'] = (client.get(torrent.infoHash) instanceof Promise)
+  R.api['client.download'] = typeof client.download
+  const blob = await f0.blob()
+  R.blobType = blob.type; R.blobSize = blob.size
+  const ab = await f0.arrayBuffer(); R.abLen = ab.byteLength
+  const rs = f0.stream(); const rd = rs.getReader(); const first = await rd.read(); R.streamFirstChunkLen = first.value && first.value.length; await rd.cancel()
+
+  // fetch through the SW
+  const fr = await fetch(R.streamURLs[0])
+  R.fetch = { status: fr.status, type: fr.headers.get('content-type'), csp: fr.headers.get('content-security-policy'), cd: fr.headers.get('content-disposition'), nosniff: fr.headers.get('x-content-type-options'), cors: fr.headers.get('access-control-allow-origin'), cache: fr.headers.get('cache-control'), body: (await fr.text()).slice(0, 80) }
+  const fr2 = await fetch(R.streamURLs[0], { headers: { Range: 'bytes=0-9' } })
+  R.fetchRange = { status: fr2.status, contentRange: fr2.headers.get('content-range'), len: (await fr2.arrayBuffer()).byteLength }
+  const fr3 = await fetch(server.pathname + '/' + torrent.infoHash + '/site/nope.txt')
+  R.fetch404 = fr3.status
+  const fr4 = await fetch(server.pathname + '/')
+  R.fetchIndex = { status: fr4.status, type: fr4.headers.get('content-type') }
+
+  // iframe render
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'width:400px;height:200px'
+  let loaded = false
+  iframe.addEventListener('load', () => { loaded = true })
+  iframe.src = R.streamURLs[0]
+  document.body.appendChild(iframe)
+  for (let i = 0; i < 100 && !loaded; i++) await sleep(100)
+  await sleep(1500)
+  R.iframe = { loadEvent: loaded }
+  try {
+    const d = iframe.contentDocument
+    R.iframe.docReadable = !!d
+    R.iframe.title = d && d.title
+    R.iframe.h1 = d && d.getElementById('x') && d.getElementById('x').textContent
+    R.iframe.bg = d && d.body && getComputedStyle(d.body).backgroundColor
+    R.iframe.jsRan = iframe.contentWindow.__ran
+    R.iframe.imgW = d && d.getElementById('img') && d.getElementById('img').naturalWidth
+    R.iframe.location = String(iframe.contentWindow.location.href)
+  } catch (e) { R.iframe.accessError = String(e) }
+
+  // determinism of client.seed
+  const infoHashOf = async (files, opts) => {
+    const c = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+    try { const t = await seed(c, files, opts); const h = t.infoHash; const m = t.magnetURI; await new Promise(r => c.destroy(r)); return { h, m } } catch (e) { try { c.destroy() } catch (_) {} return { err: String(e) } }
+  }
+  const base = { announce: [], name: 'site', pieceLength: 16384 }
+  R.det = {}
+  R.det.a_baseline = await infoHashOf(siteFiles(), base)
+  R.det.b_sameAgain = await infoHashOf(siteFiles(), base)
+  R.det.c_differentCreationDateAndCreatedBy = await infoHashOf(siteFiles(), { ...base, creationDate: new Date(1700000000000), createdBy: 'other/1.0' })
+  const shuffled = siteFiles().reverse()
+  R.det.d_reversedFileOrder = await infoHashOf(shuffled, base)
+  R.det.e_noPieceLengthGiven = await infoHashOf(siteFiles(), { announce: [], name: 'site' })
+  R.det.f_defaultAnnounceList = await infoHashOf(siteFiles(), { name: 'site', pieceLength: 16384 })
+  R.det.g_noNameGiven = await infoHashOf(siteFiles(), { announce: [], pieceLength: 16384 })
+  R.det.h_privateTrue = await infoHashOf(siteFiles(), { ...base, private: true })
+  const touched = siteFiles().map(f => new File([f], f.name, { type: f.type, lastModified: 12345 })); touched.forEach((f, i) => Object.defineProperty(f, 'fullPath', { value: siteFiles()[i].fullPath }))
+  R.det.i_differentLastModified = await infoHashOf(touched, base)
+
+  // cleanup / destroy timing
+  const t0 = performance.now()
+  await new Promise(r => client.destroy(r))
+  R.destroyMs = Math.round(performance.now() - t0)
+  R.clientDestroyed = client.destroyed
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

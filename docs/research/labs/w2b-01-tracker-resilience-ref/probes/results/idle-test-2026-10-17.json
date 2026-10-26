@@ -1,0 +1,26 @@
+[
+ {
+  "url": "wss://tracker.openwebtorrent.com",
+  "first_reply_interval": 120,
+  "events": [],
+  "closed_by_peer_after_s": 125
+ },
+ {
+  "url": "wss://tracker.webtorrent.dev",
+  "first_reply_interval": 120,
+  "events": [],
+  "closed_by_peer_after_s": 131
+ },
+ {
+  "url": "wss://open.ftorrent.com",
+  "first_reply_interval": 120,
+  "events": [],
+  "closed_by_peer_after_s": 188
+ },
+ {
+  "url": "wss://tracker.novage.com.ua",
+  "first_reply_interval": 180,
+  "events": [],
+  "still_open_after_s": 245
+ }
+]

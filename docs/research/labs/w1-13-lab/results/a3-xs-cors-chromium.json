@@ -1,0 +1,373 @@
+{
+ "infoHash": "d0037167fc5786a0b755637e93e5995d23e935a4",
+ "results": {
+  "chromium": {
+   "version": "156.0.8078.4",
+   "scenarios": {
+    "none / xs_only": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [
+      "http error from xs param: http://127.0.0.1:64945/m/none/rkzy1vfd/t/site.torrent"
+     ],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / xs_plus_ws": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [
+      "http error from xs param: http://127.0.0.1:64945/m/none/r9ru98it/t/site.torrent"
+     ],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / torrent_url_as_id": {
+     "status": "error",
+     "ms": 2,
+     "warnings": [],
+     "errors": [
+      "torrent:Error downloading torrent: Failed to fetch"
+     ],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / torrent_url_as_id_plus_urlList": {
+     "status": "error",
+     "ms": 2,
+     "warnings": [],
+     "errors": [
+      "torrent:Error downloading torrent: Failed to fetch"
+     ],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "none / SAME-ORIGIN webseed (ws on the page origin, no CORS headers)": {
+     "status": "done",
+     "ms": 11,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 13,
+     "getStatuses": "206",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": null
+    },
+    "acao / xs_only": {
+     "status": "metadata",
+     "ms": 3,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / xs_plus_ws": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / torrent_url_as_id": {
+     "status": "metadata",
+     "ms": 5,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / torrent_url_as_id_plus_urlList": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "acao / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "timeout",
+     "ms": null,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 0,
+     "getStatuses": "",
+     "getHadUserAgentHeader": false,
+     "uaSample": null,
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full / xs_only": {
+     "status": "metadata",
+     "ms": 5,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full / xs_plus_ws": {
+     "status": "done",
+     "ms": 26,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full / torrent_url_as_id": {
+     "status": "metadata",
+     "ms": 4,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full / torrent_url_as_id_plus_urlList": {
+     "status": "done",
+     "ms": 24,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "done",
+     "ms": 25,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 13,
+     "getStatuses": "206",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full-star / xs_only": {
+     "status": "metadata",
+     "ms": 4,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full-star / xs_plus_ws": {
+     "status": "done",
+     "ms": 21,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full-star / torrent_url_as_id": {
+     "status": "metadata",
+     "ms": 6,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 0,
+     "preflightRequestedHeaders": [],
+     "getCount": 1,
+     "getStatuses": "200",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": null,
+     "cacheControlSample": null
+    },
+    "full-star / torrent_url_as_id_plus_urlList": {
+     "status": "done",
+     "ms": 70,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 14,
+     "getStatuses": "200,206",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    },
+    "full-star / torrent_bytes_plus_urlList (webseed only)": {
+     "status": "done",
+     "ms": 66,
+     "sha256Match": true,
+     "warnings": [],
+     "errors": [],
+     "pageErrors": [],
+     "preflights": 13,
+     "preflightRequestedHeaders": [
+      "cache-control"
+     ],
+     "getCount": 13,
+     "getStatuses": "206",
+     "getHadUserAgentHeader": false,
+     "uaSample": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+     "rangeSample": "bytes=36507-39999",
+     "cacheControlSample": "no-store"
+    }
+   },
+   "features": {
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "secure": true,
+    "toHex": "function",
+    "fromHex": "function",
+    "toBase64": "function",
+    "abortTimeout": "function",
+    "rtc": "function",
+    "subtle": "function",
+    "opfs": "function",
+    "sw": true,
+    "bigint": "function"
+   }
+  }
+ }
+}

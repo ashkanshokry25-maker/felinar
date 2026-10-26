@@ -1,0 +1,38 @@
+{
+ "chromium": "156.0.8078.4",
+ "virtualAuthenticatorOptions": "protocol,ctap2Version,transport,hasResidentKey,hasUserVerification,isUserVerified,automaticPresenceSimulation,hasPrf",
+ "result": {
+  "createExt": {
+   "prf": {
+    "enabled": true
+   }
+  },
+  "pubKeyAlg": -7,
+  "spkiBytes": 91,
+  "rawPubBytes": 65,
+  "sizes": {
+   "authenticatorData": 37,
+   "clientDataJSON": 244,
+   "signatureDER": 71
+  },
+  "clientDataJSON": "{\"type\":\"webauthn.get\",\"challenge\":\"el56THg8FOrwf9kHReJELFozmQEliBUTFUAmUT2-RGs\",\"origin\":\"http://localhost:49783\",\"crossOrigin\":false,\"other_keys_can_be_added_here\":\"do not compare clientDataJSON against a template. See https://goo.gl/yabPex\"}",
+  "verifyWithWebCrypto": true,
+  "challengeMatches": true,
+  "rpIdHashMatches": true,
+  "flags": "0x5 (UP=true, UV=true)",
+  "tamperedChallengeMatches": false,
+  "compactBytes": {
+   "authData_b64url": 50,
+   "clientDataJSON_b64url": 326,
+   "sig_p1363_b64url": 86,
+   "rawPub_b64url": 87,
+   "plainEcdsaSig_b64url": 86
+  },
+  "prf": {
+   "available": true,
+   "sameSaltEqual": true,
+   "differentSaltDiffer": true,
+   "outputBytes": 32
+  }
+ }
+}

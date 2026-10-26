@@ -1,0 +1,8 @@
+chromium 156.0.8078.4 | Range only                                     | fetch resolved 206   | server saw: GET range=bytes=0-3 acrh=- cache-control=- pragma=-
+chromium 156.0.8078.4 | cache:no-store + Range                         | fetch resolved 206   | server saw: GET range=bytes=0-3 acrh=- cache-control=no-cache pragma=no-cache
+chromium 156.0.8078.4 | cache:no-store + Range + AbortSignal.timeout   | fetch resolved 206   | server saw: GET range=bytes=0-3 acrh=- cache-control=no-cache pragma=no-cache
+chromium 156.0.8078.4 | stock (Cache-Control + user-agent + Range)     | fetch rejected TypeError | server saw: OPTIONS range=- acrh=cache-control cache-control=no-cache pragma=no-cache
+webkit 27.2 | Range only                                     | fetch resolved 206   | server saw: GET range=bytes=0-3 acrh=- cache-control=- pragma=-
+webkit 27.2 | cache:no-store + Range                         | fetch resolved 206   | server saw: GET range=bytes=0-3 acrh=- cache-control=no-cache pragma=no-cache
+webkit 27.2 | cache:no-store + Range + AbortSignal.timeout   | fetch resolved 206   | server saw: GET range=bytes=0-3 acrh=- cache-control=no-cache pragma=no-cache
+webkit 27.2 | stock (Cache-Control + user-agent + Range)     | fetch rejected TypeError | server saw: OPTIONS range=- acrh=cache-control,user-agent cache-control=- pragma=-

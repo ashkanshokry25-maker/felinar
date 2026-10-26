@@ -1,0 +1,96 @@
+# deploy/tracker/docker-compose.yml: your own WebSocket tracker for felinar sites.
+#   tracker  tools/tracker.mjs (bittorrent-tracker, WebSocket only), built from this repository, serving only
+#            the infohashes listed in ./allow/allow.txt
+#   caddy    HTTPS with an automatic certificate for TRACKER_DOMAIN, and the WebSocket proxy (Caddyfile)
+#
+# Read README.md in this directory first. In short, from this directory:
+#   mkdir -p allow && jq -r '.btih, .rendezvousBtih' /path/to/dist-publish/summary.json > allow/allow.txt
+#   echo 'TRACKER_DOMAIN=rtc.example.com' > .env
+#   docker compose up -d --build
+# Then publish with --tr wss://rtc.example.com first in the tracker list.
+#
+# Only Caddy is reachable from outside (ports 80 and 443); the tracker listens on the internal network.
+
+name: felinar-tracker
+
+services:
+  tracker:
+    build:
+      # The repository root: the image needs package.json, the lockfile, src/ and tools/.
+      context: ../..
+      # LW_NODE_IMAGE in .env pins the base image by digest (node:24-bookworm-slim@sha256:<digest>; README, "Upgrades").
+      args:
+        NODE_IMAGE: ${LW_NODE_IMAGE:-node:24-bookworm-slim}
+      dockerfile_inline: |
+        ARG NODE_IMAGE=node:24-bookworm-slim
+        FROM $${NODE_IMAGE}
+        WORKDIR /opt/felinar
+        COPY package.json package-lock.json .npmrc ./
+        # The runtime dependencies from the lockfile; .npmrc turns install scripts off.
+        RUN npm ci --ignore-scripts --omit=dev --no-audit --no-fund && npm cache clean --force
+        COPY src ./src
+        COPY tools ./tools
+        ENV NODE_ENV=production
+        USER node
+        EXPOSE 8000
+        ENTRYPOINT ["node", "tools/tracker.mjs"]
+    image: felinar-tracker:local
+    # --host 0.0.0.0 inside the container only: the port is not published, so only Caddy reaches it.
+    # The allow file is re-read when it changes (README: "The allow list").
+    command: ["--host", "0.0.0.0", "--port", "8000", "--allow", "/etc/magnet-tracker/allow.txt"]
+    volumes:
+      # The directory, not the file: an update that writes a new file and renames it over the old one
+      # (atomic) is seen inside the container; a bind-mounted single file would keep the old copy.
+      - ./allow:/etc/magnet-tracker:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    # About 25 KiB per open WebSocket plus about 70 MB (docs/research/PRODUCTION-DIGEST.md, 7.1): 1 GiB is
+    # room for roughly 35,000 sockets. Small sites see 10 to 1,400.
+    mem_limit: 1g
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8000/healthz').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+    networks: [internal]
+
+  caddy:
+    image: caddy:2.11
+    depends_on:
+      tracker:
+        condition: service_healthy
+    environment:
+      TRACKER_DOMAIN: ${TRACKER_DOMAIN:?set TRACKER_DOMAIN to the tracker's hostname, for example rtc.example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates, the ACME account and the masked access log (/data/tracker-access.log).
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+    networks: [internal]
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:

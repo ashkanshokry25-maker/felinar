@@ -1,0 +1,130 @@
+{
+  "name": "e3 head-of-line blocking",
+  "mode": "off",
+  "reqq": 32,
+  "uploadLimitBps": -1,
+  "contentBytes": 134217728,
+  "chromium": "156.0.8078.4",
+  "idleReady": [
+    {
+      "ok": true,
+      "ms": 201
+    },
+    {
+      "ok": true,
+      "ms": 201
+    }
+  ],
+  "idleBaseline": [
+    {
+      "tag": "rv",
+      "sent": 150,
+      "recv": 150,
+      "lost": 0,
+      "min": 0.4,
+      "p50": 0.7,
+      "p90": 0.8,
+      "p99": 1.6,
+      "max": 1.8,
+      "mean": 0.7,
+      "inBytes": 0,
+      "inMsgs": 0
+    },
+    {
+      "tag": "ctl",
+      "sent": 150,
+      "recv": 150,
+      "lost": 0,
+      "min": 0.4,
+      "p50": 0.6,
+      "p90": 0.7,
+      "p99": 0.9,
+      "max": 1.5,
+      "mean": 0.6,
+      "inBytes": 0,
+      "inMsgs": 0
+    }
+  ],
+  "runReady": [
+    {
+      "ok": true,
+      "ms": 203
+    },
+    {
+      "ok": true,
+      "ms": 203
+    }
+  ],
+  "contentInfoHash": "28b54235caf3b8dcac4b68b3568d567ef4e871c8",
+  "contentWireReady": {
+    "ok": true,
+    "ms": 151
+  },
+  "transfer": {
+    "finished": true,
+    "windowMs": 6403,
+    "receivedBytes": 134349741,
+    "MiBps": 20
+  },
+  "rtt": [
+    {
+      "tag": "content",
+      "sent": 214,
+      "recv": 214,
+      "lost": 0,
+      "min": 0.2,
+      "p50": 14.2,
+      "p90": 19,
+      "p99": 20.2,
+      "max": 21.1,
+      "mean": 10.1,
+      "inBytes": 0,
+      "inMsgs": 0
+    },
+    {
+      "tag": "rv",
+      "sent": 213,
+      "recv": 213,
+      "lost": 0,
+      "min": 0.2,
+      "p50": 12.2,
+      "p90": 18.7,
+      "p99": 19.6,
+      "max": 20.1,
+      "mean": 10.7,
+      "inBytes": 0,
+      "inMsgs": 0
+    },
+    {
+      "tag": "ctl",
+      "sent": 213,
+      "recv": 213,
+      "lost": 0,
+      "min": 0.2,
+      "p50": 8.7,
+      "p90": 18.7,
+      "p99": 19.7,
+      "max": 21.1,
+      "mean": 9.3,
+      "inBytes": 0,
+      "inMsgs": 0
+    }
+  ],
+  "wireInfoA": [
+    {
+      "tag": "rv",
+      "type": "webrtc",
+      "errors": 0
+    },
+    {
+      "tag": "ctl",
+      "type": "webrtc",
+      "errors": 0
+    },
+    {
+      "tag": "content",
+      "type": "webrtc",
+      "errors": 0
+    }
+  ]
+}

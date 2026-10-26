@@ -1,0 +1,24 @@
+# wt-exp.mjs on WebKit 27.2 (JavaScriptCore) with WT_STORE=mem (the default OPFS store cannot be used in WebKit's ephemeral context, see out/results-storage-probe.txt), run 2026-10-17
+engine: webkit 27.2
+expected infoHash (Node create-torrent + parse-torrent): 0d728bec15bd1f0ea2beabc959a1d2bd84e07f97
+
+== A native (Chromium 156 as shipped)
+   natives present -> toHex:y toBase64:y setFromHex:y setFromBase64:y fromHex:y fromBase64:y
+   {"imported":true,"clientCreated":true,"seed":{"infoHash":"0d728bec15bd1f0ea2beabc959a1d2bd84e07f97","magnetURI":"magnet:?xt=urn:btih:0d728bec15bd1f0ea2beabc959a1d2bd84e07f97&dn=a.bin","pieceLength":16384,"pieces":37,"length":600000,"torrentFileBytes":902},"errors":["unhandledrejection: The operation failed for an unknown transient reason (e.g. out of memory)."]}
+   seed infoHash equals Node value: true
+
+== B natives stripped, NO polyfill (simulates Safari/iOS <=18.1, Chromium <140, Firefox <133)
+   natives present -> toHex:n toBase64:n setFromHex:n setFromBase64:n fromHex:n fromBase64:n
+   {"imported":true,"thrown":"y@http://127.0.0.1:57038/webtorrent.min.js:1:76035 | Wn@http://127.0.0.1:57038/webtorrent.min.js:1:212478 | module code@http://127.0.0.1:57038/wt.html:21:32","errors":["unhandledrejection: The operation failed for an unknown transient reason (e.g. out of memory)."]}
+   seed infoHash equals Node value: n/a (no seed)
+
+== C natives stripped + polyfill
+   natives present -> toHex:y toBase64:y setFromHex:n setFromBase64:n fromHex:y fromBase64:y
+   {"imported":true,"clientCreated":true,"seed":{"infoHash":"0d728bec15bd1f0ea2beabc959a1d2bd84e07f97","magnetURI":"magnet:?xt=urn:btih:0d728bec15bd1f0ea2beabc959a1d2bd84e07f97&dn=a.bin","pieceLength":16384,"pieces":37,"length":600000,"torrentFileBytes":902},"errors":["unhandledrejection: The operation failed for an unknown transient reason (e.g. out of memory)."]}
+   seed infoHash equals Node value: true
+
+== TRANSFER 3 MiB, two clients over WebRTC via local ws tracker: A native (Chromium 156 as shipped)
+   {"errors":["unhandledrejection: The operation failed for an unknown transient reason (e.g. out of memory)."],"log":[],"store":"mem","infoHash":"1cd85037827221fcdfdf17367ef63022771f3ba3","seedPieceLength":16384,"thrown":"@http://127.0.0.1:57038/wt2.html:30:78"}
+
+== TRANSFER 3 MiB, two clients over WebRTC via local ws tracker: C natives stripped + polyfill
+   {"errors":["unhandledrejection: The operation failed for an unknown transient reason (e.g. out of memory)."],"log":[],"store":"mem","infoHash":"1cd85037827221fcdfdf17367ef63022771f3ba3","seedPieceLength":16384,"thrown":"@http://127.0.0.1:57038/wt2.html:30:78"}

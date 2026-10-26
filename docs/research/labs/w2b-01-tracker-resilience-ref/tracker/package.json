@@ -1,0 +1,18 @@
+{
+  "name": "magnet-web-reference-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hardened reference WebSocket tracker for magnet-web: bittorrent-tracker 11.2.3 behind input validation, quotas, ping/pong, swarm GC and Prometheus metrics. Research artefact (wave 2b), not production-audited.",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node tracker.mjs",
+    "test": "node test/run.mjs"
+  },
+  "dependencies": {
+    "bittorrent-tracker": "11.2.3",
+    "prom-client": "15.1.3",
+    "ws": "8.22.0"
+  }
+}

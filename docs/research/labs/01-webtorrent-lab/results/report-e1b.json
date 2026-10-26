@@ -1,0 +1,190 @@
+{
+  "errors": [],
+  "requests": [
+    {
+      "url": "/webtorrent/<hash>/site/index.html?v=stock_plain",
+      "dest": "iframe",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/index.html?v=csp_stripped_plain",
+      "dest": "iframe",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/style.css",
+      "dest": "style",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/img/logo.svg",
+      "dest": "image",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/app.js",
+      "dest": "script",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/index.html?v=csp_self_plain",
+      "dest": "iframe",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/style.css",
+      "dest": "style",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/img/logo.svg",
+      "dest": "image",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/app.js",
+      "dest": "script",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/index.html?v=csp_stripped_sandbox_scripts_same_origin",
+      "dest": "iframe",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/style.css",
+      "dest": "style",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/img/logo.svg",
+      "dest": "image",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/app.js",
+      "dest": "script",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/index.html?v=popup_stock",
+      "dest": "document",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/index.html?v=popup_patched",
+      "dest": "document",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/style.css",
+      "dest": "style",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/img/logo.svg",
+      "dest": "image",
+      "method": "GET"
+    },
+    {
+      "url": "/webtorrent/<hash>/site/app.js",
+      "dest": "script",
+      "method": "GET"
+    }
+  ],
+  "msgs": [
+    {
+      "origin": "http://127.0.0.1:18080",
+      "v": "V",
+      "href": "http://127.0.0.1:18080/webtorrent/1da66a7be0975e504e949c0b6137ab9621173a72/site/index.html?v=csp_stripped_sandbox_scripts_same_origin",
+      "ran": 1,
+      "bg": "rgb(1, 2, 3)",
+      "imgW": 10,
+      "hasSW": true
+    }
+  ],
+  "variants": {
+    "stock_plain": {
+      "loadEvent": true,
+      "docReadable": false,
+      "title": null,
+      "bg": null,
+      "accessError": "SecurityError: Failed to read a named property '__ran' from 'Window': Blocked a frame with origin \"http://127.0.0.1:18080\" from accessing a cross-origin frame."
+    },
+    "csp_stripped_plain": {
+      "loadEvent": true,
+      "docReadable": true,
+      "title": "site",
+      "bg": "rgb(1, 2, 3)",
+      "imgW": 10
+    },
+    "csp_self_plain": {
+      "loadEvent": true,
+      "docReadable": true,
+      "title": "site",
+      "bg": "rgb(1, 2, 3)",
+      "imgW": 10
+    },
+    "csp_stripped_sandbox_allow_scripts": {
+      "loadEvent": true,
+      "docReadable": false,
+      "title": null,
+      "bg": null,
+      "accessError": "SecurityError: Failed to read a named property '__ran' from 'Window': Blocked a frame with origin \"http://127.0.0.1:18080\" from accessing a cross-origin frame."
+    },
+    "csp_stripped_sandbox_scripts_same_origin": {
+      "loadEvent": true,
+      "docReadable": true,
+      "title": "site",
+      "bg": "rgb(1, 2, 3)",
+      "imgW": 10
+    }
+  },
+  "infoHash": "1da66a7be0975e504e949c0b6137ab9621173a72",
+  "msgsAfterStripped": [
+    {
+      "origin": "http://127.0.0.1:18080",
+      "v": "V",
+      "href": "http://127.0.0.1:18080/webtorrent/1da66a7be0975e504e949c0b6137ab9621173a72/site/index.html?v=csp_stripped_plain",
+      "ran": 1,
+      "bg": "rgb(1, 2, 3)",
+      "imgW": 10,
+      "hasSW": true
+    }
+  ],
+  "msgsAfterSelf": [
+    {
+      "origin": "http://127.0.0.1:18080",
+      "v": "V",
+      "href": "http://127.0.0.1:18080/webtorrent/1da66a7be0975e504e949c0b6137ab9621173a72/site/index.html?v=csp_self_plain",
+      "ran": 1,
+      "bg": "rgb(1, 2, 3)",
+      "imgW": 10,
+      "hasSW": true
+    }
+  ],
+  "msgsAfterSandbox": [],
+  "msgsAfterSandboxSameOrigin": [
+    {
+      "origin": "http://127.0.0.1:18080",
+      "v": "V",
+      "href": "http://127.0.0.1:18080/webtorrent/1da66a7be0975e504e949c0b6137ab9621173a72/site/index.html?v=csp_stripped_sandbox_scripts_same_origin",
+      "ran": 1,
+      "bg": "rgb(1, 2, 3)",
+      "imgW": 10,
+      "hasSW": true
+    }
+  ],
+  "popupStock": {
+    "opened": true,
+    "href": "about:blank",
+    "html": "<html><head></head><body></body></html>",
+    "closed": true
+  },
+  "popupPatched": {
+    "opened": true,
+    "href": "http://127.0.0.1:18080/webtorrent/1da66a7be0975e504e949c0b6137ab9621173a72/site/index.html?v=popup_patched",
+    "title": "site",
+    "bg": "rgb(1, 2, 3)"
+  }
+}

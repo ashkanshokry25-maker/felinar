@@ -1,0 +1,71 @@
+<!doctype html><meta charset="utf-8"><title>boundary wrappers poc</title>
+<script type="module">
+// w2b-04 PoC: observe tracker + ICE activity of a REAL webtorrent 3.0.21 transfer by subclassing WebSocket and RTCPeerConnection.
+// ?mode=before  -> wrappers installed BEFORE import('/webtorrent.min.js')   (works)
+// ?mode=after   -> wrappers installed AFTER  the import                      (sees nothing: the bundle captured the globals at module-init)
+// Privacy rule used here: never record SDP/offer/answer bodies (they contain IPs, ufrags, fingerprints); only actions, counts and numeric tracker fields.
+const MODE = new URLSearchParams(location.search).get('mode') || 'before'
+const TR = 'ws://127.0.0.1:8010'
+const diag = { ws: [], pc: [], t0: performance.now() }
+const T = () => Math.round(performance.now() - diag.t0)
+
+function install () {
+  const NativeWS = window.WebSocket
+  window.WebSocket = class extends NativeWS {
+    constructor (u, p) {
+      super(u, p)
+      const rec = { host: new URL(u).host, createdAt: T(), in: {}, out: {}, tracker: [] }
+      diag.ws.push(rec)
+      this.addEventListener('open', () => { rec.openAt = T() })
+      this.addEventListener('close', (e) => { rec.closeAt = T(); rec.code = e.code }) // 1006 = reason hidden by the browser
+      this.addEventListener('error', () => { rec.error = true })
+      this.addEventListener('message', (ev) => {
+        try {
+          const j = JSON.parse(typeof ev.data === 'string' ? ev.data : new TextDecoder().decode(ev.data))
+          const a = j.action || '?'; rec.in[a] = (rec.in[a] || 0) + 1
+          if (j.action === 'announce' && j.complete != null) rec.tracker.push({ at: T(), complete: j.complete, incomplete: j.incomplete, interval: j.interval })
+          if (j['failure reason']) rec.tracker.push({ at: T(), failure: String(j['failure reason']).slice(0, 80) })
+          if (j.offer) rec.in.offer = (rec.in.offer || 0) + 1
+          if (j.answer) rec.in.answer = (rec.in.answer || 0) + 1
+        } catch (_) { rec.in.unparsed = (rec.in.unparsed || 0) + 1 }
+      })
+      const send = this.send.bind(this)
+      this.send = (d) => { try { const j = JSON.parse(d); rec.out[j.action || '?'] = (rec.out[j.action || '?'] || 0) + 1; if (Array.isArray(j.offers)) rec.out.offersSent = (rec.out.offersSent || 0) + j.offers.length } catch (_) {} return send(d) }
+    }
+  }
+  const NativePC = window.RTCPeerConnection
+  window.RTCPeerConnection = class extends NativePC {
+    constructor (cfg) {
+      super(cfg)
+      const rec = { createdAt: T(), ice: [], conn: [], gather: [], errors: [], cand: {} }
+      diag.pc.push(rec)
+      this.addEventListener('iceconnectionstatechange', () => rec.ice.push([this.iceConnectionState, T()]))
+      this.addEventListener('connectionstatechange', () => rec.conn.push([this.connectionState, T()]))
+      this.addEventListener('icegatheringstatechange', () => rec.gather.push([this.iceGatheringState, T()]))
+      this.addEventListener('icecandidate', (e) => { if (e.candidate) { const m = / typ (\w+)/.exec(e.candidate.candidate); const t = m ? m[1] : '?'; rec.cand[t] = (rec.cand[t] || 0) + 1 } })
+      this.addEventListener('icecandidateerror', (e) => rec.errors.push({ code: e.errorCode, text: (e.errorText || '').slice(0, 50), at: T() }))
+    }
+  }
+}
+
+if (MODE === 'before') install()
+const { default: WebTorrent } = await import('/webtorrent.min.js')
+if (MODE === 'after') install()
+
+const opts = { dht: false, lsd: false, utPex: false, tracker: { announce: [TR], rtcConfig: { iceServers: [] } } }
+const A = new WebTorrent(opts); const B = new WebTorrent(opts)
+const file = new File([new Uint8Array(400000).map((_, i) => (i * 7) % 251)], 'a.bin')
+const seeded = await new Promise((res) => A.seed(file, { announce: [TR], name: 'poc' }, res))
+const t1 = T()
+const tB = B.add(seeded.magnetURI, { announce: [TR] })
+const wires = []
+tB.on('wire', (w) => wires.push({ type: w.type, at: T() }))
+const done = await Promise.race([new Promise((r) => tB.on('done', () => r(true))), new Promise((r) => setTimeout(() => r(false), 20000))])
+await new Promise((r) => setTimeout(r, 800))
+window.__result = {
+  mode: MODE, done, seedReadyAtMs: t1, doneAtMs: T(), wires,
+  wsCount: diag.ws.length, pcCount: diag.pc.length,
+  ws: diag.ws.map((w) => ({ host: w.host, openMs: w.openAt - w.createdAt, in: w.in, out: w.out, tracker: w.tracker.slice(0, 3) })),
+  pc: diag.pc.map((p) => ({ ice: p.ice.map((x) => x[0]).join('>'), conn: p.conn.map((x) => x[0]).join('>'), cand: p.cand, errors: p.errors.length }))
+}
+</script>

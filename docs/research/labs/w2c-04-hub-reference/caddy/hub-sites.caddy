@@ -1,0 +1,94 @@
+# Shared site body for the magnet-web sites domain on Caddy (VPS variant).
+# Labels are read from the Host header: <label>.hub-sites.example -> {http.request.host.labels.2}
+# (labels are numbered from the right: 0=example 1=hub-sites 2=<label>). Adjust the index if the domain has more labels.
+
+(hub_security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: wss:; img-src 'self' blob: data:; frame-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		Permissions-Policy "accelerometer=(), autoplay=(), bluetooth=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), payment=(), serial=(), usb=(), xr-spatial-tracking=()"
+		Origin-Agent-Cluster "?1"
+		Cross-Origin-Opener-Policy "same-origin-allow-popups"
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+}
+
+(hub_sites_body) {
+	import hub_security_headers
+	encode zstd gzip
+
+	# 1. Address grammar (ARCHITECTURE.md v0.2 section 3.2): only 32-char RFC 4648 base32 labels resolve (160 bits, one canonical spelling).
+	map {http.request.host.labels.2} {label_ok} {
+		~^[a-z2-7]{32}$ 1
+		default 0
+	}
+	@bad_label expression `{label_ok} != "1"`
+	handle @bad_label {
+		header Cache-Control "no-store"
+		respond "Not a content address" 404
+	}
+
+	# 2. Denylist: generated file defining {denied}. Reload with `caddy reload` (graceful, no dropped connections).
+	import denylist.caddy
+	@denied expression `{denied} == "1"`
+	handle @denied {
+		header Cache-Control "no-store"
+		header Clear-Site-Data `"storage"`
+		header Link `<https://hub.example/policy/takedown>; rel="blocked-by"`
+		respond "This site is unavailable. Policy and appeals: https://hub.example/policy/takedown" 451
+	}
+
+	# 3. Network-only status ping used by the loader of returning (offline-first) visitors.
+	handle /_mw/hub/status {
+		header Cache-Control "no-store"
+		header Content-Type "application/json"
+		respond `{"v":1,"status":"ok"}` 200
+	}
+
+	# 4. Any other /_mw/hub/* path does not exist.
+	handle /_mw/hub/* {
+		respond "Not found" 404
+	}
+
+	root * {$MW_SHELL_ROOT:/srv/shell}
+
+	# 5. Physical shell files (ARCHITECTURE.md v0.2 sections 3.1 and 10): a miss stays a real 404, never the shell.
+	#    /_mw/* = loader assets (same bytes for every label; ARCHITECTURE section 7.1: purge the CDN on every deploy, so a short TTL).
+	handle /_mw/* {
+		header Cache-Control "public, max-age=300"
+		file_server
+	}
+	@sw path /mw-sw.js /mw-sw-kill.js
+	handle @sw {
+		header Cache-Control "no-cache"
+		file_server
+	}
+	@reserved path /build.json /robots.txt /favicon.ico /.well-known/*
+	handle @reserved {
+		header Cache-Control "public, max-age=300"
+		file_server
+	}
+
+	# 6. Everything else: only document navigations get the shell. Subresource-looking misses are real 404s.
+	@subresource header_regexp dest Sec-Fetch-Dest ^(script|style|image|font|worker|sharedworker|serviceworker|manifest|audio|video|track|object|embed|json|text)$
+	@has_extension_not_html {
+		path_regexp ext \.[A-Za-z0-9]+$
+		not path_regexp html \.html?$
+		not header Sec-Fetch-Dest document
+	}
+	handle @subresource {
+		respond "Not found" 404
+	}
+	handle @has_extension_not_html {
+		respond "Not found" 404
+	}
+	handle {
+		header Cache-Control "no-cache"
+		rewrite * /index.html
+		file_server
+	}
+}

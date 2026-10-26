@@ -1,0 +1,116 @@
+listening on 51625
+00:22:04 REPORT env {"ua":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36","secure":true}
+00:22:04 REPORT A0-controlled {"controller":true}
+NETWORK HIT /site/sandbox-scripts sec-fetch-dest=iframe
+00:22:05 REPORT A-iframes {"got":{"/site/normal":{"type":"frame-report","from":"sw","swDest":"iframe","path":"/site/normal","ctrl":true,"origin":"http://127.0.0.1:51625","who":"sw"},"/site/sandbox-scripts-same-origin":{"type":"frame-report","from":"sw","swDest":"iframe","path":"/site/sandbox-scripts-same-origin","ctrl":true,"origin":"http://127.0.0.1:51625","who":"sw"},"/site/sandbox-scripts":{"type":"frame-report","from":
+00:23:30 REPORT B-idle {"boot0":1792023724805,"boot_after_20s_same":true,"boot_after_20s_plus_65s_same":false,"bootDelta2":85220}
+00:25:30 REPORT C-stream {"bootBefore":1792023810025,"bootHeader":1792023810025,"bootAfter":1792023810025,"sameBoot":true,"totalBytes":3072,"expectedBytes":3072,"err":null,"elapsedMs":120013}
+00:25:30 REPORT D-shell-dispatch {"shell":"document-served-by-sw","iframeReport":{"type":"frame-report","from":"sw","swDest":"iframe","path":"/app/page1?x=1","ctrl":true,"origin":"http://127.0.0.1:51625","who":"sw"}}
+00:25:30 REPORT ready-for-reload-tests {}
+--- HARD RELOAD (ignoreCache:true) @25:30.074
+NETHIT dest=document /app/page1?x=1 @25:30.076
+00:25:30 REPORT E-network-shell-1792023930079 {"ctrl":false}
+--- NORMAL RELOAD @25:36.079
+00:25:36 REPORT D-shell-dispatch {"shell":"document-served-by-sw","iframeReport":{"type":"frame-report","from":"sw","swDest":"iframe","path":"/app/page1?x=1","ctrl":true,"origin":"http://127.0.0.1:51625","who":"sw"}}
+00:25:36 REPORT ready-for-reload-tests {}
+--- END
+
+===== RESULTS (reload-tests-done) =====
+{
+  "env": {
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "secure": true
+  },
+  "A0-controlled": {
+    "controller": true
+  },
+  "NETWORK-HIT /site/sandbox-scripts": 1,
+  "A-iframes": {
+    "got": {
+      "/site/normal": {
+        "type": "frame-report",
+        "from": "sw",
+        "swDest": "iframe",
+        "path": "/site/normal",
+        "ctrl": true,
+        "origin": "http://127.0.0.1:51625",
+        "who": "sw"
+      },
+      "/site/sandbox-scripts-same-origin": {
+        "type": "frame-report",
+        "from": "sw",
+        "swDest": "iframe",
+        "path": "/site/sandbox-scripts-same-origin",
+        "ctrl": true,
+        "origin": "http://127.0.0.1:51625",
+        "who": "sw"
+      },
+      "/site/sandbox-scripts": {
+        "type": "frame-report",
+        "from": "network",
+        "path": "/site/sandbox-scripts",
+        "ctrl": "ERR:SecurityError",
+        "who": "network"
+      }
+    },
+    "swSeen": [
+      {
+        "p": "/site/normal",
+        "mode": "navigate",
+        "dest": "iframe",
+        "t": 1792023724910
+      },
+      {
+        "p": "/site/sandbox-scripts-same-origin",
+        "mode": "navigate",
+        "dest": "iframe",
+        "t": 1792023724911
+      },
+      {
+        "p": "/__who",
+        "mode": "cors",
+        "dest": "",
+        "t": 1792023724919
+      },
+      {
+        "p": "/__who",
+        "mode": "cors",
+        "dest": "",
+        "t": 1792023724920
+      }
+    ]
+  },
+  "B-idle": {
+    "boot0": 1792023724805,
+    "boot_after_20s_same": true,
+    "boot_after_20s_plus_65s_same": false,
+    "bootDelta2": 85220
+  },
+  "C-stream": {
+    "bootBefore": 1792023810025,
+    "bootHeader": 1792023810025,
+    "bootAfter": 1792023810025,
+    "sameBoot": true,
+    "totalBytes": 3072,
+    "expectedBytes": 3072,
+    "err": null,
+    "elapsedMs": 120013
+  },
+  "D-shell-dispatch": {
+    "shell": "document-served-by-sw",
+    "iframeReport": {
+      "type": "frame-report",
+      "from": "sw",
+      "swDest": "iframe",
+      "path": "/app/page1?x=1",
+      "ctrl": true,
+      "origin": "http://127.0.0.1:51625",
+      "who": "sw"
+    }
+  },
+  "ready-for-reload-tests": {},
+  "NETHIT dest=document /app/page1?x=1 @25:30.076": 1,
+  "E-network-shell-1792023930079": {
+    "ctrl": false
+  }
+}

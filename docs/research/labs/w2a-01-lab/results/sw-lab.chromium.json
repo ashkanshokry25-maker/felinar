@@ -1,0 +1,142 @@
+{
+ "E1_same_scope_replace_and_flipflop": [
+  [
+   "page A registers /sw-a.js",
+   {
+    "scope": "/",
+    "script": "/sw-a.js",
+    "state": "activated",
+    "installing": false,
+    "waiting": false
+   }
+  ],
+  [
+   "whoami",
+   "A"
+  ],
+  [
+   "page B registers /sw-b.js (same scope /)",
+   {
+    "scope": "/",
+    "script": "/sw-b.js",
+    "state": "activating",
+    "installing": false,
+    "waiting": false
+   }
+  ],
+  [
+   "whoami (still same tab, after claim)",
+   "B"
+  ],
+  [
+   "getRegistrations",
+   [
+    "/ -> /sw-b.js"
+   ]
+  ],
+  [
+   "page A again registers /sw-a.js",
+   {
+    "scope": "/",
+    "script": "/sw-a.js",
+    "state": "activating",
+    "installing": false,
+    "waiting": false
+   }
+  ],
+  [
+   "whoami",
+   "A"
+  ],
+  [
+   "page B again",
+   {
+    "scope": "/",
+    "script": "/sw-b.js",
+    "state": "activating",
+    "installing": false,
+    "waiting": false
+   }
+  ],
+  [
+   "whoami",
+   "B"
+  ],
+  [
+   "getRegistrations",
+   [
+    "/ -> /sw-b.js"
+   ]
+  ]
+ ],
+ "E2_same_script_url_noop": {
+  "first": {
+   "scope": "/",
+   "script": "/sw-a.js",
+   "state": "activated",
+   "installing": false,
+   "waiting": false
+  },
+  "second": {
+   "scope": "/",
+   "script": "/sw-a.js",
+   "state": "activated",
+   "installing": false,
+   "waiting": false
+  }
+ },
+ "E3_scope_separation": {
+  "regA": {
+   "scope": "/",
+   "script": "/sw-a.js",
+   "state": "activated",
+   "installing": false,
+   "waiting": false
+  },
+  "regC": {
+   "scope": "/app/",
+   "script": "/sw-c.js",
+   "state": "activated",
+   "installing": false,
+   "waiting": false
+  },
+  "page_root_whoami": "A",
+  "page_root_controller": "/sw-a.js",
+  "page_app_controller": "/sw-c.js",
+  "page_app_whoami_outside_scope_url": "C",
+  "worker_from_app_page_with_script_outside_app_scope": "A"
+ },
+ "E4_importScripts_compose": {
+  "reg": {
+   "scope": "/",
+   "script": "/sw-x.js",
+   "state": "activated",
+   "installing": false,
+   "waiting": false
+  },
+  "whoami_from_site_listener": "X",
+  "mw_core_from_imported_listener": "CORE",
+  "both_first_registered_wins": "CORE"
+ },
+ "E5_migration: same-URL loader SW, skipWaiting+claim": [
+  "visit with old SW installed: OLD SITE",
+  "visit after deploy #1: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #2: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #3: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #4: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]"
+ ],
+ "E5_migration: same-URL loader SW, NO skipWaiting": [
+  "visit with old SW installed: OLD SITE",
+  "visit after deploy #1: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #2: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #3: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #4: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]"
+ ],
+ "E5_migration: loader SW at a NEW URL, old /sw.js left untouched": [
+  "visit with old SW installed: OLD SITE",
+  "visit after deploy #1: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #2: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #3: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]",
+  "visit after deploy #4: title=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] registrations=[\"/ -> /sw.js\"]"
+ ]
+}

@@ -1,0 +1,9 @@
+# hardened-test.mjs (HardenedWebConn, loopback) 2026-10-17T21:40:21Z [after Illegal-invocation fix]
+{"scenario":"good only","done":true,"verified":true,"ms":54,"downloaded":2097152,"servers":["good:req=32,MB=2.0"],"dropped":0,"failEvents":0}
+{"scenario":"404 + good","done":true,"verified":true,"ms":21,"downloaded":2097152,"servers":["e404:req=9,MB=0.0","good:req=32,MB=2.0"],"dropped":0,"failEvents":9,"firstFail":"HTTP 404"}
+{"scenario":"corrupt206 + good","done":true,"verified":true,"ms":18,"downloaded":2097152,"servers":["corrupt206:req=5,MB=0.3","good:req=32,MB=2.0"],"dropped":1,"failEvents":5,"firstFail":"piece hash mismatch"}
+{"scenario":"corrupt206 only (10s)","done":false,"verified":false,"ms":10002,"downloaded":0,"servers":["corrupt206:req=5,MB=0.3"],"dropped":1,"failEvents":5,"firstFail":"piece hash mismatch"}
+{"scenario":"ignorerange + good","done":true,"verified":true,"ms":36,"downloaded":2097152,"servers":["ignorerange:req=5,MB=10.0","good:req=32,MB=2.0"],"dropped":1,"failEvents":5,"firstFail":"status 200 (server ignored Range)"}
+{"scenario":"ignorerange only (10s)","done":false,"verified":false,"ms":10002,"downloaded":0,"servers":["ignorerange:req=5,MB=10.0"],"dropped":1,"failEvents":5,"firstFail":"status 200 (server ignored Range)"}
+{"scenario":"gzip206 + good","done":true,"verified":true,"ms":43,"downloaded":2097152,"servers":["gzip206:req=5,MB=0.3","good:req=32,MB=2.0"],"dropped":1,"failEvents":5,"firstFail":"Content-Encoding gzip"}
+{"scenario":"corrupt206 + ignorerange + good","done":true,"verified":true,"ms":23,"downloaded":2097152,"servers":["corrupt206:req=5,MB=0.3","ignorerange:req=5,MB=10.0","good:req=32,MB=2.0"],"dropped":2,"failEvents":10,"firstFail":"piece hash mismatch"}

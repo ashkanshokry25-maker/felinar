@@ -1,0 +1,37 @@
+--- Access-Control-Request-Headers seen per variant (all engines):
+star          cache-control | user-agent
+band_like     cache-control | user-agent | cache-control,user-agent
+jumble_like   cache-control | user-agent | cache-control,user-agent
+star_plus_ct  cache-control | user-agent
+echo          cache-control | user-agent | cache-control,user-agent
+--- results:
+{"engine":"chromium 156.0.8078.4","variant":"star","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"chromium 156.0.8078.4","variant":"star","mode":"webtorrent3 (cache-control+user-agent+range)","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"star","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"band_like","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"chromium 156.0.8078.4","variant":"band_like","mode":"webtorrent3 (cache-control+user-agent+range)","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"band_like","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"jumble_like","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"chromium 156.0.8078.4","variant":"jumble_like","mode":"webtorrent3 (cache-control+user-agent+range)","result":"FAIL TypeError: Failed to fetch"}
+{"engine":"chromium 156.0.8078.4","variant":"jumble_like","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"star_plus_ct","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"chromium 156.0.8078.4","variant":"star_plus_ct","mode":"webtorrent3 (cache-control+user-agent+range)","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"star_plus_ct","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"echo","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"chromium 156.0.8078.4","variant":"echo","mode":"webtorrent3 (cache-control+user-agent+range)","result":"ok status=206 bytes=10"}
+{"engine":"chromium 156.0.8078.4","variant":"echo","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"star","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"webkit 27.2","variant":"star","mode":"webtorrent3 (cache-control+user-agent+range)","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"star","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"band_like","mode":"ua only (xs fetch)","result":"FAIL TypeError: Load failed"}
+{"engine":"webkit 27.2","variant":"band_like","mode":"webtorrent3 (cache-control+user-agent+range)","result":"FAIL TypeError: Load failed"}
+{"engine":"webkit 27.2","variant":"band_like","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"jumble_like","mode":"ua only (xs fetch)","result":"FAIL TypeError: Load failed"}
+{"engine":"webkit 27.2","variant":"jumble_like","mode":"webtorrent3 (cache-control+user-agent+range)","result":"FAIL TypeError: Load failed"}
+{"engine":"webkit 27.2","variant":"jumble_like","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"star_plus_ct","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"webkit 27.2","variant":"star_plus_ct","mode":"webtorrent3 (cache-control+user-agent+range)","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"star_plus_ct","mode":"range only","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"echo","mode":"ua only (xs fetch)","result":"ok status=200 bytes=100"}
+{"engine":"webkit 27.2","variant":"echo","mode":"webtorrent3 (cache-control+user-agent+range)","result":"ok status=206 bytes=10"}
+{"engine":"webkit 27.2","variant":"echo","mode":"range only","result":"ok status=206 bytes=10"}

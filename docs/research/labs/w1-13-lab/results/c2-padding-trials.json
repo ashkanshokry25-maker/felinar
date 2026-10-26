@@ -1,0 +1,83 @@
+[
+ {
+  "pieceLength": 16384,
+  "strategy": "none",
+  "sizeOverheadPctMedian": 0,
+  "reusePctMedian": 6.1,
+  "reusePctMin": 0,
+  "reusePctMax": 26.6,
+  "kbToFetchMedian": 2720
+ },
+ {
+  "pieceLength": 16384,
+  "strategy": "big",
+  "sizeOverheadPctMedian": 8.9,
+  "reusePctMedian": 83.1,
+  "reusePctMin": 80.1,
+  "reusePctMax": 86.9,
+  "kbToFetchMedian": 528
+ },
+ {
+  "pieceLength": 16384,
+  "strategy": "all",
+  "sizeOverheadPctMedian": 73.4,
+  "reusePctMedian": 96.8,
+  "reusePctMin": 96.6,
+  "reusePctMax": 97.1,
+  "kbToFetchMedian": 160
+ },
+ {
+  "pieceLength": 65536,
+  "strategy": "none",
+  "sizeOverheadPctMedian": 0,
+  "reusePctMedian": 4.3,
+  "reusePctMin": 0,
+  "reusePctMax": 25,
+  "kbToFetchMedian": 2752
+ },
+ {
+  "pieceLength": 65536,
+  "strategy": "big",
+  "sizeOverheadPctMedian": 3.6,
+  "reusePctMedian": 48.9,
+  "reusePctMin": 38.1,
+  "reusePctMax": 60.9,
+  "kbToFetchMedian": 1536
+ },
+ {
+  "pieceLength": 65536,
+  "strategy": "all",
+  "sizeOverheadPctMedian": 381.3,
+  "reusePctMedian": 95.4,
+  "reusePctMin": 95.3,
+  "reusePctMax": 95.9,
+  "kbToFetchMedian": 640
+ },
+ {
+  "pieceLength": 262144,
+  "strategy": "none",
+  "sizeOverheadPctMedian": 0,
+  "reusePctMedian": 0,
+  "reusePctMin": 0,
+  "reusePctMax": 18.2,
+  "kbToFetchMedian": 3072
+ },
+ {
+  "pieceLength": 262144,
+  "strategy": "big",
+  "sizeOverheadPctMedian": 12.4,
+  "reusePctMedian": 30.8,
+  "reusePctMin": 0,
+  "reusePctMax": 41.7,
+  "kbToFetchMedian": 2304
+ },
+ {
+  "pieceLength": 262144,
+  "strategy": "all",
+  "sizeOverheadPctMedian": 1692.4,
+  "reusePctMedian": 95.1,
+  "reusePctMin": 95.1,
+  "reusePctMax": 95.6,
+  "kbToFetchMedian": 2560
+ }
+]

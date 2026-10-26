@@ -1,0 +1,14 @@
+### chromium 156.0.8078.4
+--- same-origin iframe
+  TOP frame observer  : {"lcp":[{"t":32,"size":2384,"el":"P#shellp"}],"ls":[],"ev":[{"name":"pointerover","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"mouseover","dur":168}]}
+  IFRAME own observer : {"lcp":[{"t":24,"size":51060,"el":"DIV#hero"}],"ls":[{"v":0.1641,"hadInput":false}],"ev":[{"name":"pointerover","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"mouseover","dur":168},{"name":"pointerdown","dur":168},{"name":"mousedown","dur":168},{"name":"pointerup","dur":168},{"name":"mouseup","dur":168},{"name":"click","dur":168}]}
+--- cross-origin iframe (localhost vs 127.0.0.1)
+  TOP frame observer  : {"lcp":[{"t":12,"size":2384,"el":"P#shellp"}],"ls":[],"ev":[{"name":"pointerover","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"mouseover","dur":168}]}
+  IFRAME own observer : {"lcp":[{"t":20,"size":51060,"el":"DIV#hero"}],"ls":[{"v":0.1641,"hadInput":false}],"ev":[{"name":"pointerover","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"pointerenter","dur":168},{"name":"mouseover","dur":168},{"name":"pointerdown","dur":168},{"name":"mousedown","dur":168},{"name":"pointerup","dur":168},{"name":"mouseup","dur":168},{"name":"click","dur":168}]}
+### webkit 27.2
+--- same-origin iframe
+  TOP frame observer  : {"lcp":[{"t":106,"size":2378,"el":"P#shellp"}],"ls":[],"ev":[]}
+  IFRAME own observer : {"lcp":[{"t":90,"size":51051,"el":"DIV#hero"}],"ls":[],"ev":[{"name":"mousedown","dur":152},{"name":"pointerdown","dur":152},{"name":"pointerup","dur":152},{"name":"mouseup","dur":152},{"name":"click","dur":152}]}
+--- cross-origin iframe (localhost vs 127.0.0.1)
+  TOP frame observer  : {"lcp":[{"t":17,"size":2378,"el":"P#shellp"}],"ls":[],"ev":[]}
+  IFRAME own observer : {"lcp":[],"ls":[],"ev":[{"name":"mousedown","dur":152},{"name":"pointerdown","dur":152},{"name":"pointerup","dur":152},{"name":"mouseup","dur":152},{"name":"click","dur":152}]}

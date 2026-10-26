@@ -1,0 +1,72 @@
+<!doctype html><meta charset="utf-8"><title>w2c-02 bench</title><body><pre id="o">running</pre>
+<script type="module">
+const N = Number(new URLSearchParams(location.search).get('n') || 50000);
+const out = { n: N, ua: navigator.userAgent, hc: navigator.hardwareConcurrency };
+const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+const b64 = (n) => { const u = new Uint8Array(n); crypto.getRandomValues(u); let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+// ---- synthetic ops (~650 B each) ----
+const authors = Array.from({ length: 200 }, () => b64(32));
+const types = ['post', 'reply', 'react', 'edit', 'del'];
+const seqs = new Map(); const ops = []; const body = 'x'.repeat(300);
+for (let i = 0; i < N; i++) {
+  const a = authors[i % 200]; const s = (seqs.get(a) || 0) + 1; seqs.set(a, s);
+  ops.push({ id: b64(32), a, s, t: types[i % 5 === 0 ? 1 : (i % 7 === 0 ? 2 : 0)], c: i + 1, p: i ? ops[Math.floor(Math.random() * i)].id : '', coll: 'guestbook', ts: 1760000000000 + i, body, sig: b64(64) });
+}
+out.recBytes = JSON.stringify(ops[1]).length;
+const probeAuthors = authors.slice(0, 20); const probeParents = Array.from({ length: 50 }, (_, i) => ops[Math.floor(Math.random() * N)].id);
+// ---- IndexedDB ----
+async function idbBench(withIdx) {
+  const name = 'bench-' + withIdx + '-' + Math.random();
+  const db = await new Promise((res, rej) => { const r = indexedDB.open(name, 1); r.onupgradeneeded = () => { const s = r.result.createObjectStore('ops', { keyPath: 'id' }); if (withIdx) { s.createIndex('byAuthorSeq', ['a', 's']); s.createIndex('byCollTypeC', ['coll', 't', 'c']); s.createIndex('byParent', 'p'); } }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const res = {};
+  let t0 = performance.now();
+  const B = 5000;
+  for (let i = 0; i < N; i += B) { await new Promise((ok, bad) => { const tx = db.transaction('ops', 'readwrite'); const st = tx.objectStore('ops'); for (const o of ops.slice(i, i + B)) st.put(o); tx.oncomplete = ok; tx.onerror = () => bad(tx.error); }); }
+  res.insertMs = performance.now() - t0;
+  const run = (fn, reps = 100) => new Promise(async (ok) => { const ts = []; let last; for (let k = 0; k < reps; k++) { const t = performance.now(); last = await fn(k); ts.push(performance.now() - t); } ok({ medMs: +med(ts).toFixed(3), last }); });
+  const store = (mode = 'readonly') => db.transaction('ops', mode).objectStore('ops');
+  const p = (rq) => new Promise((ok, bad) => { rq.onsuccess = () => ok(rq.result); rq.onerror = () => bad(rq.error); });
+  res.fullScan = await run(async () => (await p(store().getAll())).length, 5);
+  if (withIdx) {
+    res.latest50 = await run(() => new Promise((ok) => { const out = []; const rq = store().index('byCollTypeC').openCursor(IDBKeyRange.bound(['guestbook', 'post', 0], ['guestbook', 'post', Infinity]), 'prev'); rq.onsuccess = () => { const c = rq.result; if (c && out.length < 50) { out.push(c.value); c.continue(); } else ok(out.length); }; }));
+    res.byAuthor = await run((k) => p(store().index('byAuthorSeq').getAll(IDBKeyRange.bound([probeAuthors[k % 20], 0], [probeAuthors[k % 20], Infinity]))).then(r => r.length));
+    res.children = await run((k) => p(store().index('byParent').getAll(probeParents[k % 50])).then(r => r.length));
+    res.countPosts = await run(() => p(store().index('byCollTypeC').count(IDBKeyRange.bound(['guestbook', 'post', 0], ['guestbook', 'post', Infinity]))));
+    res.getById = await run((k) => p(store().get(ops[(k * 997) % N].id)).then(r => !!r));
+    res.getAllRecords = typeof IDBObjectStore.prototype.getAllRecords === 'function' ? await run(async () => (await p(store().index('byCollTypeC').getAllRecords({ query: IDBKeyRange.bound(['guestbook', 'post', 0], ['guestbook', 'post', Infinity]), count: 50, direction: 'prev' }))).length) : 'unsupported';
+  } else {
+    res.getById = await run((k) => p(store().get(ops[(k * 997) % N].id)).then(r => !!r));
+  }
+  db.close(); indexedDB.deleteDatabase(name);
+  return res;
+}
+try { out.idbIndexed = await idbBench(true); out.idbNoIndex = await idbBench(false); } catch (e) { out.idbErr = String(e); }
+// ---- SQLite WASM (in-memory) ----
+try {
+  const t0 = performance.now();
+  const { default: init } = await import('/sqlite/index.mjs');
+  const sqlite3 = await init({ print() {}, printErr() {} });
+  out.sqlite = { version: sqlite3.version.libVersion, initMs: +(performance.now() - t0).toFixed(1) };
+  const db = new sqlite3.oo1.DB(':memory:', 'c');
+  db.exec('CREATE TABLE ops(id TEXT PRIMARY KEY, a TEXT, s INT, t TEXT, c INT, p TEXT, coll TEXT, ts INT, body TEXT, sig TEXT); CREATE INDEX i_as ON ops(a,s); CREATE INDEX i_ctc ON ops(coll,t,c); CREATE INDEX i_p ON ops(p);');
+  let t1 = performance.now();
+  db.exec('BEGIN'); const st = db.prepare('INSERT INTO ops VALUES(?,?,?,?,?,?,?,?,?,?)');
+  for (const o of ops) { st.bind([o.id, o.a, o.s, o.t, o.c, o.p, o.coll, o.ts, o.body, o.sig]).stepReset(); }
+  st.finalize(); db.exec('COMMIT'); out.sqlite.insertMs = +(performance.now() - t1).toFixed(1);
+  const runS = (fn, reps = 100) => { const ts = []; let last; for (let k = 0; k < reps; k++) { const t = performance.now(); last = fn(k); ts.push(performance.now() - t); } return { medMs: +med(ts).toFixed(3), last }; };
+  out.sqlite.fullScan = runS(() => db.selectArrays('SELECT * FROM ops').length, 5);
+  out.sqlite.latest50 = runS(() => db.selectArrays("SELECT * FROM ops WHERE coll='guestbook' AND t='post' ORDER BY c DESC LIMIT 50").length);
+  out.sqlite.byAuthor = runS((k) => db.selectArrays('SELECT * FROM ops WHERE a=? ORDER BY s', [probeAuthors[k % 20]]).length);
+  out.sqlite.children = runS((k) => db.selectArrays('SELECT * FROM ops WHERE p=?', [probeParents[k % 50]]).length);
+  out.sqlite.countPosts = runS(() => db.selectValue("SELECT count(*) FROM ops WHERE coll='guestbook' AND t='post'"));
+  out.sqlite.getById = runS((k) => db.selectArrays('SELECT * FROM ops WHERE id=?', [ops[(k * 997) % N].id]).length);
+  db.close();
+} catch (e) { out.sqliteErr = String(e && e.stack || e); }
+// ---- Argon2id (noble, pure JS, main thread) ----
+try {
+  const { argon2id } = await import('/out/argon2.min.js');
+  out.argon2 = {};
+  for (const [m, t] of [[4096, 1], [16384, 1], [19456, 2]]) { const ts = []; for (let k = 0; k < 5; k++) { const t0 = performance.now(); argon2id(new Uint8Array(32).fill(k), new Uint8Array(16), { t, m, p: 1, dkLen: 32 }); ts.push(performance.now() - t0); } out.argon2[`m${m}KiB_t${t}`] = { medMs: +med(ts).toFixed(1), allMs: ts.map(x => +x.toFixed(1)) }; }
+} catch (e) { out.argonErr = String(e && e.stack || e); }
+window.__RESULT = out; document.getElementById('o').textContent = JSON.stringify(out, null, 1);
+</script>

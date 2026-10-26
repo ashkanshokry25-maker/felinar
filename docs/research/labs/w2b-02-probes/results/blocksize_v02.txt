@@ -1,0 +1,7 @@
+{"label":"typical post (140 B text, 2 heads)","canonical_block_bytes":799,"wrapper_event_bytes":1523,"deflated_event_bytes":1118,"overhead_vs_block":1.91}
+{"label":"guestbook max-ish (1 KiB text, 3 heads)","canonical_block_bytes":1752,"wrapper_event_bytes":2793,"deflated_event_bytes":1585,"overhead_vs_block":1.59}
+{"label":"value at default maxValueBytes (~2 KiB text, 8 heads)","canonical_block_bytes":3052,"wrapper_event_bytes":4527,"deflated_event_bytes":2195,"overhead_vs_block":1.48}
+{"label":"v-less skeleton (tombstoned, 2 heads)","canonical_block_bytes":626,"wrapper_event_bytes":1292,"deflated_event_bytes":971,"overhead_vs_block":2.06}
+{"events":2000,"raw_bytes":3103887,"avg_raw":1552,"per_message_deflate_bytes":2270510,"avg_per_message":1135,"ratio_per_message":0.73,"one_stream_bytes":1291094,"ratio_one_stream":0.42}
+{"worst_case_note":"v0.2 maxBlockBytes 4096 (canonical(e)+canonical(v))","canon_e_plus_v":2878,"wrapper_bytes":4528}
+{"snapshot_blocks":2000,"json_bytes":1639152,"avg_block_bytes":820,"gzip9_bytes":603431,"gzip_ratio":0.37,"brotli_bytes":489857,"brotli_ratio":0.3,"extrapolated_13_6k_blocks_gz_MiB":3.9}

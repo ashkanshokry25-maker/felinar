@@ -1,0 +1,14 @@
+hosts=92 parsed=81 errors=10 nonjson=1 acao_star=80
+max_message_length: [('(absent)', 37), (131072, 25), (524288, 8), (1000000, 2), (65535, 2), (4000000, 2), (262200, 1), (1310720, 1), (262144, 1), (20000, 1), (10000, 1)]
+max_limit: [('(absent)', 38), (500, 28), (5000, 8), (1000, 4), (10000, 1), (501, 1), (3000, 1)]
+max_subscriptions: [('(absent)', 36), (20, 17), (200, 11), (50, 6), (10, 4), (300, 1), (40, 1), (80, 1), (210, 1), (0, 1), (1000, 1), (600, 1)]
+max_content_length: [('(absent)', 73), (102400, 3), (131072, 2), (65536, 2), (262140, 1)]
+max_event_tags: [('(absent)', 66), (2500, 5), (2000, 3), (14, 2), (5000, 2), (4000, 1), (10000, 1), (64, 1)]
+created_at_upper_limit: [('(absent)', 65), (0, 7), (900, 7), (300, 2)]
+created_at_lower_limit: [('(absent)', 67), (0, 12), (94608000, 2)]
+min_pow_difficulty: [('(absent)', 72), (0, 9)]
+payment_required true: 9
+restricted_writes true: 18
+auth_required true: 2
+NIP counts of 81: {9: 76, 40: 66, 42: 31, 45: 39, 62: 2, 70: 52, 77: 34, 86: 22}
+retention field present: 0

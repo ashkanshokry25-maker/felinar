@@ -1,0 +1,1 @@
+{ "name": "g-next", "private": true, "dependencies": { "next": "16.4.2", "react": "^19", "react-dom": "^19" } }

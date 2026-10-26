@@ -1,0 +1,301 @@
+# .github/workflows/ci.yml: the test suites on every push to main and every pull request.
+#
+#   test    Node 22 and 24: npm ci --ignore-scripts; npm test (the browser-floor lint and the unit tests); the parser
+#           fuzzers with a short budget (test/fuzz, a seed per run, printed so a failure replays); the build (strict:
+#           the optional widgets must build) and its lock check, which pins every bundled package; Playwright
+#           Chromium and WebKit; the browser unit tests; the example's checks; the end-to-end
+#           run (test/e2e/run.mjs), plus the WebKit cold start (W7) on Node 24. Every browser the suites start
+#           stays on 127.0.0.1 (test/e2e/browser-args.mjs, docs/DEV-NETWORK.md) and the end-to-end run fails
+#           if any request leaves it. When a step fails, the logs and the end-to-end run directory are
+#           uploaded as an artifact (test keys excluded).
+#   pack    reproducible packing (docs/review/DIGEST-AMENDMENTS.md, E4): each example is published with
+#           --double-pack and again from a copy at another path, and both must give the same infohash and the
+#           same .torrent bytes; then the npm package list is checked.
+#   deploy  the files in deploy/: the tracker image builds and answers announces through Caddy (Caddy's
+#           internal certificate authority on localhost; the allow list is honoured and reloaded); the
+#           Caddyfile validates; the pin image builds and keeps the local demo open.
+#   one-box the files in deploy/one-box/ (a site on a rented server named by its IP address, v0.3 C2): docker compose
+#           config, with and without the pin profile, and caddy validate in a Caddy 2.11.7 image. The job prints the
+#           image digest to the step summary; the workflow pins the image by tag until that digest is copied in
+#           (the lane that wrote it could not look the digest up: docs/DEV-NETWORK.md).
+#
+# Security baseline (docs/DEPLOY.md, CI/CD): no permissions at the workflow level and read-only contents per
+# job, no secrets, every action pinned to a full commit SHA (Dependabot updates the pins), checkout without
+# persisted credentials, and npm ci with install scripts off (.npmrc).
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install from the lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Lint and unit tests
+        run: |
+          mkdir -p ci-logs
+          npm test 2>&1 | tee ci-logs/unit.log
+      # A short, seeded fuzz of every parser a peer or a page reaches (V03-DESIGN-REVIEW 2.19, MF-43). The seed is the run
+      # number, printed first: node test/fuzz/run.mjs --seed <n> replays the same inputs. Not part of npm test.
+      - name: Fuzz the parsers (short budget)
+        run: |
+          mkdir -p ci-logs
+          npm run test:fuzz -- --iterations 3000 --seconds 90 --seed "$GITHUB_RUN_NUMBER" 2>&1 | tee ci-logs/fuzz.log
+      - name: Build the loader (strict) and check the lock of the vendored bundle and every bundled package
+        run: |
+          node build.mjs --strict 2>&1 | tee ci-logs/build.log
+          node build.mjs --check-lock 2>&1 | tee -a ci-logs/build.log
+      # Chromium for most suites; WebKit too, because end-to-end scenario 14 and the browser unit tests
+      # load the site in WebKit (127.0.0.1 only).
+      - name: Install Playwright Chromium, WebKit and Firefox
+        run: npx playwright install --with-deps chromium webkit firefox
+      - name: Browser unit tests
+        run: npm run test:browser 2>&1 | tee ci-logs/browser.log
+      - name: Example site checks
+        run: npm run test:example 2>&1 | tee ci-logs/example.log
+      - name: End-to-end
+        run: npm run test:e2e -- --keep 2>&1 | tee ci-logs/e2e.log
+      - name: End-to-end, WebKit cold start (W7)
+        if: matrix.node == 24
+        run: node test/e2e/run.mjs --webkit --only W7 2>&1 | tee ci-logs/e2e-webkit.log
+      - name: End-to-end, Firefox cold start (F7)
+        if: matrix.node == 24
+        run: node test/e2e/run.mjs --firefox --only F7 2>&1 | tee ci-logs/e2e-firefox.log
+      - name: Upload logs and the end-to-end run directory
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-output-node-${{ matrix.node }}
+          path: |
+            ci-logs/
+            .tools/e2e/
+            !**/*.jwk
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
+
+  pack:
+    name: reproducible pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from the lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build the loader (drop-in publishing copies it)
+        run: npm run build
+      - name: Publish every example twice and compare
+        run: |
+          set -euo pipefail
+          # The commit time is the torrent's creation date for both packs, so the .torrent bytes can match.
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          work="$RUNNER_TEMP/pack"
+          mkdir -p "$work"
+          node tools/keygen.mjs --out "$work/ci-owner.jwk"
+          pack() { # pack <site dir> <name> <out dir> [publish flags...]
+            local dir="$1" name="$2" out="$3"
+            shift 3
+            node tools/publish.mjs "$dir" --name "$name" --scope demo.example.com --key "$work/ci-owner.jwk" \
+              --ws https://demo.example.com/ws/ --tr wss://rtc.example.com --out "$out" --quiet "$@"
+          }
+          check() { # check <site dir> <name> [publish flags...]
+            local dir="$1" name="$2"
+            shift 2
+            pack "$dir" "$name" "$work/$name-a" --double-pack "$@"
+            mkdir -p "$work/copy-$name"
+            cp -R "$dir" "$work/copy-$name/$name"
+            pack "$work/copy-$name/$name" "$name" "$work/$name-b" "$@"
+            a="$(node -p "require('$work/$name-a/summary.json').btih")"
+            b="$(node -p "require('$work/$name-b/summary.json').btih")"
+            if [ "$a" != "$b" ]; then echo "::error::$name: $a here, $b from a copy at another path"; exit 1; fi
+            cmp "$work/$name-a/site.torrent" "$work/$name-b/site.torrent"
+            echo "$name: btih $a from both paths, identical .torrent bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          }
+          check examples/peer-guestbook peer-guestbook
+          check examples/existing-site-dropin existing-site --dropin
+          if [ -f examples/landing/index.html ]; then check examples/landing landing; fi
+      - name: The npm package holds only bin, src, tools, the build and its shrinkwrap, which equals the lockfile
+        run: |
+          # The published tarball installs exactly what package-lock.json pins (V03-DESIGN-REVIEW 2.19, SC-3).
+          cmp package-lock.json npm-shrinkwrap.json
+          npm pack --dry-run --json > "$RUNNER_TEMP/pack.json"
+          node -e '
+            const [p] = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            const allowed = /^(bin\/felinar\.mjs|src\/.+|tools\/.+|build\.mjs|build\.lock\.json|npm-shrinkwrap\.json|test\/e2e\/browser-args\.mjs|package\.json|README\.md|LICENSE)$/;
+            const bad = p.files.map((f) => f.path).filter((f) => !allowed.test(f) || /\.(jwk|pem|key)$/.test(f));
+            console.log(p.name + "@" + p.version + ": " + p.entryCount + " files, " + p.size + " bytes packed");
+            if (bad.length) { console.error("unexpected files in the package:\n" + bad.join("\n")); process.exit(1); }
+            if (!p.files.some((f) => f.path === "npm-shrinkwrap.json")) { console.error("npm-shrinkwrap.json is missing from the package"); process.exit(1); }
+          ' "$RUNNER_TEMP/pack.json"
+
+  deploy:
+    name: deploy files
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from the lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Compose file and Caddyfile are valid
+        env:
+          TRACKER_DOMAIN: rtc.example.com
+        run: |
+          docker compose -f deploy/tracker/docker-compose.yml config --quiet
+          docker run --rm -e TRACKER_DOMAIN -v "$PWD/deploy/tracker/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.11 \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Tracker behind Caddy answers announces and honours the allow list
+        env:
+          # Caddy serves localhost from its internal certificate authority, so no ACME and no DNS are needed.
+          TRACKER_DOMAIN: localhost
+        run: |
+          set -euo pipefail
+          compose() { docker compose -f deploy/tracker/docker-compose.yml "$@"; }
+          site="$(printf 'mw-ci-site' | sha1sum | cut -c1-40)"
+          other="$(printf 'mw-ci-other' | sha1sum | cut -c1-40)"
+          mkdir -p deploy/tracker/allow .tools/ci
+          printf '%s  # a site\n' "$site" > deploy/tracker/allow/allow.txt
+          cat > .tools/ci/probe-tracker.mjs <<'PROBE'
+          // node .tools/ci/probe-tracker.mjs <wss URL> <CA file> <infohash>: one numwant-0 announce, the answer as JSON.
+          import { readFileSync } from 'node:fs';
+          import { createRequire } from 'node:module';
+          import { join } from 'node:path';
+          const WebSocket = createRequire(join(process.cwd(), 'package.json'))('ws');
+          const [url, caFile, btih] = process.argv.slice(2);
+          const bin = (hex) => Buffer.from(hex, 'hex').toString('latin1');
+          const ws = new WebSocket(url, { ca: readFileSync(caFile) });
+          const timer = setTimeout(() => { console.error('no answer in 10 s'); process.exit(1); }, 10000);
+          ws.on('open', () => ws.send(JSON.stringify({ action: 'announce', info_hash: bin(btih),
+            peer_id: bin('2d4d57303030312d' + '00'.repeat(12)), numwant: 0, uploaded: 0, downloaded: 0, left: 0, event: 'started' })));
+          ws.on('message', (data) => { clearTimeout(timer); const m = JSON.parse(String(data)); console.log(JSON.stringify({ btih, refused: m['failure reason'] || null })); ws.close(); });
+          ws.on('error', (err) => { console.error(String(err)); process.exit(1); });
+          PROBE
+          compose up -d --build --wait --wait-timeout 180
+          ca="$RUNNER_TEMP/caddy-root.crt"
+          for i in $(seq 1 30); do
+            compose cp caddy:/data/caddy/pki/authorities/local/root.crt "$ca" 2>/dev/null && curl -fsS --cacert "$ca" https://localhost/healthz && break
+            sleep 1
+          done
+          test "$(curl -fsS --cacert "$ca" https://localhost/healthz)" = "ok"
+          # Only WebSocket upgrades reach the tracker: /stats.json gets the static answer.
+          curl -fsS --cacert "$ca" https://localhost/stats.json | grep -q '^WebRTC signalling endpoint'
+          node .tools/ci/probe-tracker.mjs wss://localhost/ "$ca" "$site" | tee "$RUNNER_TEMP/a.json"
+          grep -q '"refused":null' "$RUNNER_TEMP/a.json"
+          node .tools/ci/probe-tracker.mjs wss://localhost/ "$ca" "$other" | tee "$RUNNER_TEMP/b.json"
+          grep -q 'not allowed' "$RUNNER_TEMP/b.json"
+          # An atomic update of the allow file (write, then rename) applies within seconds.
+          printf '%s  # a site\n%s  # its ledger\n' "$site" "$other" > deploy/tracker/allow/allow.txt.new
+          mv deploy/tracker/allow/allow.txt.new deploy/tracker/allow/allow.txt
+          ok=""
+          for i in $(seq 1 20); do
+            sleep 0.5
+            if node .tools/ci/probe-tracker.mjs wss://localhost/ "$ca" "$other" | grep -q '"refused":null'; then ok=1; break; fi
+          done
+          test -n "$ok"
+          echo "tracker through Caddy: announce accepted, unlisted infohash refused, allow file reloaded" >> "$GITHUB_STEP_SUMMARY"
+      - name: Tracker logs
+        if: always()
+        env:
+          TRACKER_DOMAIN: localhost
+        run: |
+          docker compose -f deploy/tracker/docker-compose.yml logs --no-color || true
+          docker compose -f deploy/tracker/docker-compose.yml down -v || true
+      - name: Pin image builds and refuses to start without PIN_URL
+        run: |
+          docker build -f deploy/pin/Dockerfile -t felinar-pin:ci .
+          set +e
+          docker run --rm felinar-pin:ci
+          code=$?
+          set -e
+          test "$code" -eq 2
+      - name: The pin keeps the local demo open
+        run: |
+          set -euo pipefail
+          npm run demo -- --seeder none > "$RUNNER_TEMP/demo.log" 2>&1 &
+          demo=$!
+          for i in $(seq 1 90); do curl -fs -o /dev/null http://localhost:8080/ && break; sleep 1; done
+          # Host networking: the container's browser reaches the demo on localhost and stays local-only.
+          timeout --signal=TERM 60 docker run --rm --init --network host \
+            -e PIN_URL=http://localhost:8080/ -e PIN_INTERVAL=5 felinar-pin:ci | tee "$RUNNER_TEMP/pin.log" || true
+          kill "$demo" || true
+          grep -q '^consent given' "$RUNNER_TEMP/pin.log"
+          grep -q '^render: ok' "$RUNNER_TEMP/pin.log"
+          echo "pin image: consent given and the site rendered" >> "$GITHUB_STEP_SUMMARY"
+      - name: Demo log
+        if: failure()
+        run: cat "$RUNNER_TEMP/demo.log" || true
+
+  one-box:
+    name: one-box files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # Caddy 2.11.7 validated the Caddyfile in the research (docs/research/v03/S2-zero-setup-hosting.md, F17). To pin the image by
+      # digest, copy the digest this job prints to its step summary into the line below, as caddy:2.11.7@sha256:<digest>.
+      CADDY_IMAGE: caddy:2.11.7
+      LW_SITE: 203-0-113-7.nip.io
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compose file is valid, with and without the pin profile
+        run: |
+          docker compose -f deploy/one-box/docker-compose.yml config --quiet
+          docker compose -f deploy/one-box/docker-compose.yml --profile pin config --quiet
+      - name: Caddyfile validates
+        run: |
+          docker pull --quiet "$CADDY_IMAGE"
+          docker run --rm -e LW_SITE -v "$PWD/deploy/one-box/Caddyfile:/etc/caddy/Caddyfile:ro" "$CADDY_IMAGE" \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Image digest, for pinning
+        run: |
+          digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$CADDY_IMAGE")"
+          echo "one-box: $CADDY_IMAGE is $digest" >> "$GITHUB_STEP_SUMMARY"

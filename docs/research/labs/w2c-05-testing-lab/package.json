@@ -1,0 +1,7 @@
+{
+  "name": "w2c-05-testing-lab",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway experiments backing docs/research/w2c-05-testing-qa-production.md (2026-10-17). Not part of the product.",
+  "devDependencies": { "fast-check": "4.10.2" }
+}

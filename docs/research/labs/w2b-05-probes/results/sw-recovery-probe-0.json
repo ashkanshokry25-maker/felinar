@@ -1,0 +1,107 @@
+{
+  "chromium": "156.0.8078.4",
+  "S0": {
+    "afterSetup": {
+      "text": "BROKEN-SW-SHELL",
+      "regs": 1,
+      "controlled": true,
+      "ls": "ls-planted",
+      "caches": [
+        "mw-shell-v1",
+        "user-data-cache"
+      ],
+      "idb": "idb-planted"
+    },
+    "swScriptFetchesDuring3Navigations": 0,
+    "swScriptRequestHeaders": [],
+    "navigationsServedBySw": "BROKEN-SW-SHELL"
+  },
+  "S1_tombstone": {
+    "firstNavigationShows": "BROKEN-SW-SHELL",
+    "recoveredAfterMs": 2797,
+    "final": {
+      "text": "HEALTHY-NETWORK-PAGE",
+      "regs": 0,
+      "controlled": false,
+      "ls": "ls-planted",
+      "caches": [],
+      "idb": "idb-planted"
+    }
+  },
+  "S2_CSD_on_sw_js: storage, same bytes": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 0,
+    "controlled": false,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S2_CSD_on_sw_js: storage, new bytes": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 0,
+    "controlled": false,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S2_CSD_on_sw_js: cache+storage, new bytes": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 0,
+    "controlled": false,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S2_CSD_on_sw_js: wildcard, new bytes": {
+    "text": "BROKEN-SW-SHELL",
+    "regs": 0,
+    "controlled": false,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S3_CSD_on_navigation: SW respondWith(fetch(request))": {
+    "text": "HEALTHY-NETWORK-PAGE",
+    "regs": 1,
+    "controlled": true,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S3_CSD_on_navigation: SW without fetch handler (network direct)": {
+    "text": "HEALTHY-NETWORK-PAGE",
+    "regs": 1,
+    "controlled": true,
+    "ls": null,
+    "caches": [],
+    "idb": "empty-db"
+  },
+  "S4_redirect": {
+    "updateResult": "update() rejected: TypeError: Failed to update a ServiceWorker for scope ('http://localhost:56296/') with script ('http://localhost:56296/sw.js'): The",
+    "afterNav": {
+      "text": "BROKEN-SW-SHELL",
+      "regs": 1,
+      "controlled": true,
+      "ls": "ls-planted",
+      "caches": [
+        "mw-shell-v1",
+        "user-data-cache"
+      ],
+      "idb": "idb-planted"
+    }
+  },
+  "S4_html404": {
+    "updateResult": "update() rejected: SecurityError: Failed to update a ServiceWorker for scope ('http://localhost:56296/') with script ('http://localhost:56296/sw.js'): The",
+    "afterNav": {
+      "text": "BROKEN-SW-SHELL",
+      "regs": 1,
+      "controlled": true,
+      "ls": "ls-planted",
+      "caches": [
+        "mw-shell-v1",
+        "user-data-cache"
+      ],
+      "idb": "idb-planted"
+    }
+  }
+}

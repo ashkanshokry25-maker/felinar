@@ -1,0 +1,57 @@
+{
+ "engine": "webkit",
+ "version": "27.2",
+ "res": {
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+  "jwkImportNonExtractable": {
+   "extractable": false,
+   "verifies": true
+  },
+  "pkcs8NoPublicKeyImport": {
+   "error": "DataError: Data provided to an operation does not meet requirements"
+  },
+  "idb_ecdsa_p256_nonextractable": {
+   "asValue": {
+    "restored": true,
+    "privExtractable": false,
+    "signs": 64,
+    "verifies": true
+   },
+   "asIndexedProperty": {
+    "found": true,
+    "keyType": "private"
+   }
+  },
+  "idb_ed25519_nonextractable": {
+   "asValue": {
+    "restored": true,
+    "privExtractable": false,
+    "signs": 64,
+    "verifies": true
+   },
+   "asIndexedProperty": {
+    "found": true,
+    "keyType": "private"
+   }
+  },
+  "clientCapabilities": {
+   "prf": true,
+   "relatedOrigins": true,
+   "hybridTransport": true,
+   "conditionalCreate": true,
+   "passkeyPlatformAuthenticator": true,
+   "keys": 12
+  },
+  "storage": {
+   "persistApi": "function",
+   "persisted": false,
+   "persistGranted": false
+  },
+  "argon2idWasm_64MiB_t3": {
+   "ms": 121
+  },
+  "argon2idWasm_256MiB_t1": {
+   "ms": 162
+  }
+ }
+}

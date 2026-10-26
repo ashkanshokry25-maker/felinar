@@ -1,0 +1,41 @@
+{
+ "browser": "webkit 27.2",
+ "trials": [
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "e44b859a-b7e6-432b-a827-a9eeed60b97e",
+   "source": "e44b859a-b7e6-432b-a827-a9eeed60b97e",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  },
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "50b7ba81-64c2-4c83-8eaf-af60ac08a8bc",
+   "source": "50b7ba81-64c2-4c83-8eaf-af60ac08a8bc",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  },
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "c5dfeb20-b9d0-4db3-b04b-747d19cb2350",
+   "source": "c5dfeb20-b9d0-4db3-b04b-747d19cb2350",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  },
+  {
+   "rc": true,
+   "controlled": true,
+   "resulting": "23a3254f-4863-4d96-9ed0-02c866de1745",
+   "source": "23a3254f-4863-4d96-9ed0-02c866de1745",
+   "idsMatch": true,
+   "clientsGetFoundIt": true,
+   "hasResultingProp": true
+  }
+ ]
+}

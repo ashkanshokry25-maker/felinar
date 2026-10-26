@@ -1,0 +1,7 @@
+good           accept-encoding=identity   -> PASS  pieces=5 bad=0  
+no-preflight   accept-encoding=identity   -> FAIL  pieces=5 bad=0  preflight: HTTP 405 (cross-origin seed needs a 2xx OPTIONS answer) | preflight: Access-Control-Allow-Origin=null (need * or https://example.com)
+acao-only      accept-encoding=identity   -> FAIL  pieces=5 bad=0  preflight: Access-Control-Allow-Headers="" lacks cache-control/range (and user-agent for Firefox/Safari)
+range-ignored  accept-encoding=identity   -> FAIL  pieces=5 bad=5  piece 0 site/.well-known/security.txt: HTTP 200 (need 206; 200 means Range ignored) | piece 1 site/img/peer.png: HTTP 200 (need 206; 200 means Range ignored)
+gzip-range     accept-encoding=identity   -> PASS  pieces=5 bad=0  
+gzip-range     accept-encoding=gzip, br   -> FAIL  pieces=5 bad=5  piece 0 site/.well-known/security.txt: Content-Range "bytes 0-10/31" != "bytes 0-10/11" (compressed representation or wrong size?) | fetch failed
+same-origin    (405 preflight ignored)           -> PASS  

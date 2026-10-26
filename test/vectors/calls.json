@@ -1,0 +1,767 @@
+{
+  "format": "SIG payloads of calls (the JSON body inside a mw_chat1 SIG frame 0x0B, plaintext kind sig = 5), candidate rules, ICE configuration, media targets and in-call control messages (v0.3 C2, SEEDING-AND-ZERO-SETUP-DESIGN.md 3.5)",
+  "about": "Golden vectors for src/calls (signal.js, ice.js, adapt.js). The body is sealed with K_pair by src/chat/service.js (vectors of the sealed box: chat.json). Keys and fingerprints here are made up for the vectors. APPEND ONLY once locked: see LOCK.json.",
+  "vectors": [
+    {
+      "id": "calls-sig-001-ring",
+      "description": "A ring: no SDP and no candidate (a declined or ignored call shows nobody's address). media.v asks for video; roster names the other invitees (empty in a call of two). The body is JSON with the keys in the order v, c, k, s, t, sdp, cand, media, roster, g; bucket = the smallest sealed bucket holding 32 + bytes.",
+      "input": {
+        "v": 1,
+        "c": "AAECAwQFBgcICQoLDA0ODw",
+        "k": "ring",
+        "s": 0,
+        "t": 1760961600000,
+        "media": {
+          "a": true,
+          "v": true
+        },
+        "roster": []
+      },
+      "expect": {
+        "json": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"ring\",\"s\":0,\"t\":1760961600000,\"media\":{\"a\":true,\"v\":true},\"roster\":[]}",
+        "bytes": 111,
+        "bucket": 256
+      }
+    },
+    {
+      "id": "calls-sig-002-accept-audio",
+      "description": "Accept with audio only, in a group call (g names the chat group both hold).",
+      "input": {
+        "g": "Gx7k2QpZ9vB3nL0aT5mE1w",
+        "k": "accept",
+        "v": 1,
+        "c": "AAECAwQFBgcICQoLDA0ODw",
+        "s": 0,
+        "t": 1760961601500,
+        "media": {
+          "a": true,
+          "v": false
+        }
+      },
+      "expect": {
+        "json": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"accept\",\"s\":0,\"t\":1760961601500,\"media\":{\"a\":true,\"v\":false},\"g\":\"Gx7k2QpZ9vB3nL0aT5mE1w\"}",
+        "bytes": 131,
+        "bucket": 256
+      }
+    },
+    {
+      "id": "calls-sig-003-offer",
+      "description": "An offer: the SDP carries a=fingerprint:sha-256 in every section (one fingerprint), the roster names who joined so far. Offers and answers of real calls are 5,440 to 7,135 bytes (measured, the c2-calls-lab) and land in the 16,000-byte bucket; this short SDP lands in a smaller one.",
+      "input": {
+        "v": 1,
+        "c": "AAECAwQFBgcICQoLDA0ODw",
+        "k": "offer",
+        "s": 1,
+        "t": 1760961602000,
+        "sdp": "v=0\r\no=- 4611731400430051336 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0 1 2 3\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:Q9xk\r\na=ice-pwd:7pqK2Lw9bVt3Rz8eYs0uNc1f\r\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\r\na=setup:actpass\r\na=mid:0\r\na=sendrecv\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\nc=IN IP4 0.0.0.0\r\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\r\na=setup:actpass\r\na=mid:1\r\na=sendrecv\r\na=rtpmap:96 VP8/90000\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\nc=IN IP4 0.0.0.0\r\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\r\na=setup:actpass\r\na=mid:2\r\na=sendrecv\r\na=rtpmap:96 VP8/90000\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\r\na=setup:actpass\r\na=mid:3\r\na=sctp-port:5000\r\n",
+        "media": {
+          "a": true,
+          "v": true,
+          "s": false
+        },
+        "roster": [
+          "p256:BIkbzP1jcm8lTHXKP1tCDa8xpRx6Q-XAzMPGDtVaAJZ9gvW4pSVlEh8ToN4ig3SDEtqQ5ipBTmRCrfgoARpgW6Q"
+        ]
+      },
+      "expect": {
+        "json": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"offer\",\"s\":1,\"t\":1760961602000,\"sdp\":\"v=0\\r\\no=- 4611731400430051336 2 IN IP4 127.0.0.1\\r\\ns=-\\r\\nt=0 0\\r\\na=group:BUNDLE 0 1 2 3\\r\\nm=audio 9 UDP/TLS/RTP/SAVPF 111\\r\\nc=IN IP4 0.0.0.0\\r\\na=ice-ufrag:Q9xk\\r\\na=ice-pwd:7pqK2Lw9bVt3Rz8eYs0uNc1f\\r\\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\\r\\na=setup:actpass\\r\\na=mid:0\\r\\na=sendrecv\\r\\na=rtcp-mux\\r\\na=rtpmap:111 opus/48000/2\\r\\nm=video 9 UDP/TLS/RTP/SAVPF 96\\r\\nc=IN IP4 0.0.0.0\\r\\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\\r\\na=setup:actpass\\r\\na=mid:1\\r\\na=sendrecv\\r\\na=rtpmap:96 VP8/90000\\r\\nm=video 9 UDP/TLS/RTP/SAVPF 96\\r\\nc=IN IP4 0.0.0.0\\r\\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\\r\\na=setup:actpass\\r\\na=mid:2\\r\\na=sendrecv\\r\\na=rtpmap:96 VP8/90000\\r\\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\\r\\nc=IN IP4 0.0.0.0\\r\\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\\r\\na=setup:actpass\\r\\na=mid:3\\r\\na=sctp-port:5000\\r\\n\",\"media\":{\"a\":true,\"v\":true,\"s\":false},\"roster\":[\"p256:BIkbzP1jcm8lTHXKP1tCDa8xpRx6Q-XAzMPGDtVaAJZ9gvW4pSVlEh8ToN4ig3SDEtqQ5ipBTmRCrfgoARpgW6Q\"]}",
+        "bytes": 1372,
+        "bucket": 4096
+      }
+    },
+    {
+      "id": "calls-sig-004-ice",
+      "description": "Trickled candidates: 1 to 16 strings starting candidate:, at most 512 bytes each, no line break. A public server-reflexive candidate whose private related address was masked as 0.0.0.0 before sending.",
+      "input": {
+        "v": 1,
+        "c": "AAECAwQFBgcICQoLDA0ODw",
+        "k": "ice",
+        "s": 2,
+        "t": 1760961602100,
+        "cand": [
+          "candidate:3 1 udp 1686052607 198.51.100.24 50001 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag Q9xk network-id 2"
+        ]
+      },
+      "expect": {
+        "json": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"ice\",\"s\":2,\"t\":1760961602100,\"cand\":[\"candidate:3 1 udp 1686052607 198.51.100.24 50001 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag Q9xk network-id 2\"]}",
+        "bytes": 199,
+        "bucket": 256
+      }
+    },
+    {
+      "id": "calls-sig-005-hangup",
+      "description": "Hang up: nothing but the header fields.",
+      "input": {
+        "v": 1,
+        "c": "AAECAwQFBgcICQoLDA0ODw",
+        "k": "hangup",
+        "s": 7,
+        "t": 1760961660000
+      },
+      "expect": {
+        "json": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"hangup\",\"s\":7,\"t\":1760961660000}",
+        "bytes": 73,
+        "bucket": 256
+      }
+    },
+    {
+      "id": "calls-sig-006-leave-group",
+      "description": "A participant leaves a mesh started from a chat group.",
+      "input": {
+        "v": 1,
+        "c": "AAECAwQFBgcICQoLDA0ODw",
+        "k": "leave",
+        "s": 9,
+        "t": 1760961661000,
+        "g": "Gx7k2QpZ9vB3nL0aT5mE1w"
+      },
+      "expect": {
+        "json": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"leave\",\"s\":9,\"t\":1760961661000,\"g\":\"Gx7k2QpZ9vB3nL0aT5mE1w\"}",
+        "bytes": 101,
+        "bucket": 256
+      }
+    },
+    {
+      "id": "calls-sig-neg-001-unknown-key",
+      "description": "An unknown key is malformed.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"ring\",\"s\":0,\"t\":1760961600000,\"media\":{\"a\":true},\"x\":1}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "key:x"
+      }
+    },
+    {
+      "id": "calls-sig-neg-002-sdp-on-ring",
+      "description": "A ring never carries SDP.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"ring\",\"s\":0,\"t\":1760961600000,\"media\":{\"a\":true},\"sdp\":\"v=0\"}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "field:sdp"
+      }
+    },
+    {
+      "id": "calls-sig-neg-003-offer-without-sdp",
+      "description": "An offer needs its SDP.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"offer\",\"s\":1,\"t\":1760961600000}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "missing:sdp"
+      }
+    },
+    {
+      "id": "calls-sig-neg-004-sha1-fingerprint",
+      "description": "Every fingerprint line must be sha-256 (the binding of SZ 3.5).",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"answer\",\"s\":1,\"t\":1760961600000,\"sdp\":\"v=0\\r\\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\\r\\na=fingerprint:sha-1 AA:BB\\r\\n\"}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "sdp-fingerprint"
+      }
+    },
+    {
+      "id": "calls-sig-neg-005-two-fingerprints",
+      "description": "All fingerprint lines of one SDP must be equal.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"answer\",\"s\":1,\"t\":1760961600000,\"sdp\":\"v=0\\r\\na=fingerprint:sha-256 D2:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\\r\\na=fingerprint:sha-256 D3:3A:9C:41:7E:05:B8:6F:10:C4:2D:93:E7:58:AA:01:6B:F2:3C:84:19:D0:5E:A7:42:BB:0C:91:E6:73:28:5F\\r\\n\"}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "sdp-fingerprints-differ"
+      }
+    },
+    {
+      "id": "calls-sig-neg-006-candidate-newline",
+      "description": "A candidate with a line break could smuggle SDP lines.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"ice\",\"s\":2,\"t\":1760961600000,\"cand\":[\"candidate:1 1 udp 1 198.51.100.24 1 typ host\\r\\na=x\"]}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "cand"
+      }
+    },
+    {
+      "id": "calls-sig-neg-007-roster-duplicate",
+      "description": "A roster names each key once.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"ring\",\"s\":0,\"t\":1760961600000,\"media\":{\"a\":true},\"roster\":[\"p256:BKUXsDvTyBHPTkN2Fs-DKT3NiN3Z2w5-hqbN1tA4uagr5mWRBEK8gn5SgcbSKh5dpXQKy9Hsbkj0yqzMW5ue4Ug\",\"p256:BKUXsDvTyBHPTkN2Fs-DKT3NiN3Z2w5-hqbN1tA4uagr5mWRBEK8gn5SgcbSKh5dpXQKy9Hsbkj0yqzMW5ue4Ug\"]}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "roster"
+      }
+    },
+    {
+      "id": "calls-sig-neg-008-short-call-id",
+      "description": "The call id is 16 bytes.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0O\",\"k\":\"hangup\",\"s\":0,\"t\":1760961600000}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "call-id"
+      }
+    },
+    {
+      "id": "calls-sig-neg-009-version",
+      "description": "Version 1 only.",
+      "input": {
+        "text": "{\"v\":2,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"hangup\",\"s\":0,\"t\":1760961600000}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "version"
+      }
+    },
+    {
+      "id": "calls-sig-neg-010-media-type",
+      "description": "media holds booleans a, v, s only.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"accept\",\"s\":0,\"t\":1760961600000,\"media\":{\"a\":1}}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "media"
+      }
+    },
+    {
+      "id": "calls-sig-neg-011-kind",
+      "description": "An unknown kind is malformed.",
+      "input": {
+        "text": "{\"v\":1,\"c\":\"AAECAwQFBgcICQoLDA0ODw\",\"k\":\"transfer\",\"s\":0,\"t\":1760961600000}"
+      },
+      "expect": {
+        "ok": false,
+        "reason": "kind"
+      }
+    },
+    {
+      "id": "calls-bucket-001",
+      "description": "The sealed bucket of a body of n bytes: the smallest of 256, 1,024, 4,096 and 16,000 that holds 32 + n (the plaintext header of R 2.7.4); offers and answers of real calls (5,440 to 7,135 bytes, measured) take 16,000; 15,000 is the cap.",
+      "input": {
+        "bytes": [
+          0,
+          224,
+          225,
+          992,
+          4064,
+          5440,
+          7135,
+          15000,
+          15968,
+          15969
+        ]
+      },
+      "expect": {
+        "buckets": [
+          256,
+          256,
+          1024,
+          1024,
+          4096,
+          16000,
+          16000,
+          16000,
+          16000,
+          null
+        ]
+      }
+    },
+    {
+      "id": "calls-ice-001-filter",
+      "description": "filterCandidate (received) and sanitizeLocal (ours, before sending). Private, loopback, link-local, shared (CGNAT 100.64.0.0/10) and unspecified addresses only when both chose \"same local network\"; mDNS .local names pass; other host names never; a private related address of ours is masked as 0.0.0.0 with rport 0.",
+      "input": [
+        {
+          "candidate": "candidate:1 1 udp 2122260223 127.0.0.1 50001 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:2 1 udp 2122194687 192.168.1.20 50001 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:2 1 udp 2122194687 192.168.1.20 50001 typ host generation 0",
+          "sameLan": true
+        },
+        {
+          "candidate": "candidate:4 1 udp 2122129151 169.254.10.3 50002 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:5 1 udp 2122063615 100.72.4.9 50003 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:6 1 udp 2121998079 fd00:1234::7 50004 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:7 1 udp 2121932543 fe80::1c2b:3cff:fe4d:5e6f 50005 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:8 1 udp 2121867007 2001:db8::5 50006 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:9 1 udp 2113937151 4a8e1f2c-61b3-4d5e-9f70-0a1b2c3d4e5f.local 50007 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:3 1 udp 1686052607 198.51.100.24 50001 typ srflx raddr 192.168.1.20 rport 50001 generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:10 1 udp 41885439 203.0.113.80 3478 typ relay raddr 198.51.100.24 rport 50001 generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:11 1 udp 2113937151 turn.example.org 50008 typ host generation 0",
+          "sameLan": false
+        },
+        {
+          "candidate": "candidate:12 1 udp 2113937151 0.0.0.0 9 typ host generation 0",
+          "sameLan": false
+        }
+      ],
+      "expect": [
+        {
+          "keep": false,
+          "send": null
+        },
+        {
+          "keep": false,
+          "send": null
+        },
+        {
+          "keep": true,
+          "send": "candidate:2 1 udp 2122194687 192.168.1.20 50001 typ host generation 0"
+        },
+        {
+          "keep": false,
+          "send": null
+        },
+        {
+          "keep": false,
+          "send": null
+        },
+        {
+          "keep": false,
+          "send": null
+        },
+        {
+          "keep": false,
+          "send": null
+        },
+        {
+          "keep": true,
+          "send": "candidate:8 1 udp 2121867007 2001:db8::5 50006 typ host generation 0"
+        },
+        {
+          "keep": true,
+          "send": "candidate:9 1 udp 2113937151 4a8e1f2c-61b3-4d5e-9f70-0a1b2c3d4e5f.local 50007 typ host generation 0"
+        },
+        {
+          "keep": true,
+          "send": "candidate:3 1 udp 1686052607 198.51.100.24 50001 typ srflx raddr 0.0.0.0 rport 0 generation 0"
+        },
+        {
+          "keep": true,
+          "send": "candidate:10 1 udp 41885439 203.0.113.80 3478 typ relay raddr 198.51.100.24 rport 50001 generation 0"
+        },
+        {
+          "keep": false,
+          "send": null
+        },
+        {
+          "keep": false,
+          "send": null
+        }
+      ]
+    },
+    {
+      "id": "calls-ice-002-config",
+      "description": "iceConfig: the site's own STUN list (at most 4 valid stun:/stuns: URLs; anything else dropped) and _mw.cfg.turn option (a); iceTransportPolicy relay only when a relay exists and the person chose \"Hide my IP from people I call\".",
+      "input": {
+        "stun": [
+          "stun:stun.example.org:3478",
+          "https://stun.example.org",
+          "stuns:stun.example.org:5349"
+        ],
+        "turn": {
+          "urls": [
+            "turn:relay.example.org:3478?transport=udp",
+            "ftp://x"
+          ],
+          "username": "call-2026-10",
+          "credential": "static-secret",
+          "operator": "Example Hub"
+        },
+        "relayOnly": true
+      },
+      "expect": {
+        "config": {
+          "iceServers": [
+            {
+              "urls": [
+                "stun:stun.example.org:3478",
+                "stuns:stun.example.org:5349"
+              ]
+            },
+            {
+              "urls": [
+                "turn:relay.example.org:3478?transport=udp"
+              ],
+              "username": "call-2026-10",
+              "credential": "static-secret"
+            }
+          ],
+          "iceTransportPolicy": "relay",
+          "bundlePolicy": "max-bundle",
+          "rtcpMuxPolicy": "require"
+        },
+        "relay": true,
+        "relayOnly": true,
+        "operator": "Example Hub",
+        "stun": true
+      }
+    },
+    {
+      "id": "calls-media-001-profiles",
+      "description": "Per-stream targets (bit/s) by policy class and mode (one = a call of two, mesh = three or more), and the ladder: halve the camera to 100 kbit/s, scale by 2 then 4, then pause the camera (audio and the screen keep their rates). Metered starts audio only; SZ-4 (pending) also defaults an unknown phone network to audio.",
+      "input": [
+        {
+          "cls": "desktop",
+          "mesh": false
+        },
+        {
+          "cls": "desktop",
+          "mesh": true
+        },
+        {
+          "cls": "mobileUnmetered",
+          "mesh": false
+        },
+        {
+          "cls": "mobileUnmetered",
+          "mesh": true
+        },
+        {
+          "cls": "mobileUnknown",
+          "mesh": false
+        },
+        {
+          "cls": "mobileMetered",
+          "mesh": false
+        },
+        {
+          "cls": "mobileMetered",
+          "mesh": true
+        }
+      ],
+      "expect": [
+        {
+          "audio": 32000,
+          "video": 800000,
+          "scale": 1,
+          "screen": 1200000,
+          "screenFps": 15,
+          "hint": "detail",
+          "audioOnly": false,
+          "audioDefault": false,
+          "ladder": [
+            [
+              800000,
+              1
+            ],
+            [
+              400000,
+              1
+            ],
+            [
+              200000,
+              1
+            ],
+            [
+              100000,
+              1
+            ],
+            [
+              100000,
+              2
+            ],
+            [
+              100000,
+              4
+            ],
+            "pause"
+          ]
+        },
+        {
+          "audio": 32000,
+          "video": 400000,
+          "scale": 1,
+          "screen": 600000,
+          "screenFps": 15,
+          "hint": "detail",
+          "audioOnly": false,
+          "audioDefault": false,
+          "ladder": [
+            [
+              400000,
+              1
+            ],
+            [
+              200000,
+              1
+            ],
+            [
+              100000,
+              1
+            ],
+            [
+              100000,
+              2
+            ],
+            [
+              100000,
+              4
+            ],
+            "pause"
+          ]
+        },
+        {
+          "audio": 32000,
+          "video": 500000,
+          "scale": 1,
+          "screen": 1200000,
+          "screenFps": 15,
+          "hint": "detail",
+          "audioOnly": false,
+          "audioDefault": false,
+          "ladder": [
+            [
+              500000,
+              1
+            ],
+            [
+              250000,
+              1
+            ],
+            [
+              125000,
+              1
+            ],
+            [
+              100000,
+              1
+            ],
+            [
+              100000,
+              2
+            ],
+            [
+              100000,
+              4
+            ],
+            "pause"
+          ]
+        },
+        {
+          "audio": 32000,
+          "video": 300000,
+          "scale": 1,
+          "screen": 600000,
+          "screenFps": 15,
+          "hint": "detail",
+          "audioOnly": false,
+          "audioDefault": false,
+          "ladder": [
+            [
+              300000,
+              1
+            ],
+            [
+              150000,
+              1
+            ],
+            [
+              100000,
+              1
+            ],
+            [
+              100000,
+              2
+            ],
+            [
+              100000,
+              4
+            ],
+            "pause"
+          ]
+        },
+        {
+          "audio": 32000,
+          "video": 500000,
+          "scale": 1,
+          "screen": 1200000,
+          "screenFps": 15,
+          "hint": "detail",
+          "audioOnly": false,
+          "audioDefault": true,
+          "ladder": [
+            [
+              500000,
+              1
+            ],
+            [
+              250000,
+              1
+            ],
+            [
+              125000,
+              1
+            ],
+            [
+              100000,
+              1
+            ],
+            [
+              100000,
+              2
+            ],
+            [
+              100000,
+              4
+            ],
+            "pause"
+          ]
+        },
+        {
+          "audio": 24000,
+          "video": 300000,
+          "scale": 2,
+          "screen": 1200000,
+          "screenFps": 15,
+          "hint": "detail",
+          "audioOnly": true,
+          "audioDefault": true,
+          "ladder": [
+            [
+              300000,
+              2
+            ],
+            [
+              150000,
+              2
+            ],
+            [
+              100000,
+              2
+            ],
+            [
+              100000,
+              4
+            ],
+            "pause"
+          ]
+        },
+        {
+          "audio": 24000,
+          "video": 300000,
+          "scale": 2,
+          "screen": 600000,
+          "screenFps": 15,
+          "hint": "detail",
+          "audioOnly": true,
+          "audioDefault": true,
+          "ladder": [
+            [
+              300000,
+              2
+            ],
+            [
+              150000,
+              2
+            ],
+            [
+              100000,
+              2
+            ],
+            [
+              100000,
+              4
+            ],
+            "pause"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calls-control-001",
+      "description": "Messages on the negotiated data channel mw-call (id 0), JSON, at most 16 KiB: state, roster (the caller's; optional cks), leave, desc (renegotiation), cand. The invalid ones: an unknown type, a state flag that is not a boolean, a roster with a non-key.",
+      "input": {
+        "valid": [
+          {
+            "t": "state",
+            "mute": true,
+            "camera": false,
+            "screen": false
+          },
+          {
+            "t": "roster",
+            "pubs": [
+              "p256:BKUXsDvTyBHPTkN2Fs-DKT3NiN3Z2w5-hqbN1tA4uagr5mWRBEK8gn5SgcbSKh5dpXQKy9Hsbkj0yqzMW5ue4Ug",
+              "p256:BIkbzP1jcm8lTHXKP1tCDa8xpRx6Q-XAzMPGDtVaAJZ9gvW4pSVlEh8ToN4ig3SDEtqQ5ipBTmRCrfgoARpgW6Q"
+            ]
+          },
+          {
+            "t": "leave"
+          },
+          {
+            "t": "cand",
+            "cand": [
+              "candidate:3 1 udp 1686052607 198.51.100.24 50001 typ srflx raddr 0.0.0.0 rport 0 generation 0"
+            ]
+          }
+        ],
+        "invalid": [
+          {
+            "t": "chat",
+            "text": "x"
+          },
+          {
+            "t": "state",
+            "mute": "yes"
+          },
+          {
+            "t": "roster",
+            "pubs": [
+              "p256:nope"
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "valid": [
+          "{\"t\":\"state\",\"mute\":true,\"camera\":false,\"screen\":false}",
+          "{\"t\":\"roster\",\"pubs\":[\"p256:BKUXsDvTyBHPTkN2Fs-DKT3NiN3Z2w5-hqbN1tA4uagr5mWRBEK8gn5SgcbSKh5dpXQKy9Hsbkj0yqzMW5ue4Ug\",\"p256:BIkbzP1jcm8lTHXKP1tCDa8xpRx6Q-XAzMPGDtVaAJZ9gvW4pSVlEh8ToN4ig3SDEtqQ5ipBTmRCrfgoARpgW6Q\"]}",
+          "{\"t\":\"leave\"}",
+          "{\"t\":\"cand\",\"cand\":[\"candidate:3 1 udp 1686052607 198.51.100.24 50001 typ srflx raddr 0.0.0.0 rport 0 generation 0\"]}"
+        ],
+        "invalid": [
+          "type",
+          "state",
+          "roster"
+        ]
+      }
+    }
+  ]
+}

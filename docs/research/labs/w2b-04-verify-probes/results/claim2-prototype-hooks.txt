@@ -1,0 +1,4 @@
+Chromium 156.0.8078.4
+ctor-after    {"mode":"ctor-after","done":true,"wsCount":0,"pcCount":0,"ws":[],"pcConnected":0,"pcWithCandidates":0}
+proto-after   {"mode":"proto-after","done":true,"wsCount":1,"pcCount":11,"ws":[{"url":"ws://127.0.0.1:18420/","readyStateWhenFirstSeen":1,"in":{"announce":6},"out":{"announce":5},"tracker":[{"complete":2,"incomplete":0,"interval":120},{"complete":2,"incomplete":0,"interval":120}]}],"pcConnected":2,"pcWithCandidates":11}
+proto-before  {"mode":"proto-before","done":true,"wsCount":1,"pcCount":11,"ws":[{"url":"ws://127.0.0.1:18420/","readyStateWhenFirstSeen":1,"in":{"announce":6},"out":{"announce":5},"tracker":[{"complete":3,"incomplete":0,"interval":120},{"complete":3,"incomplete":0,"interval":120}]}],"pcConnected":2,"pcWithCandidates":11}

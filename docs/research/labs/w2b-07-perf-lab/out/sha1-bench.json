@@ -1,0 +1,205 @@
+{
+ "date": "2026-10-17T21:45:47.958Z",
+ "engines": {
+  "chromium 156.0.8078.4 cpu x1": [
+   {
+    "size": 16384,
+    "wcSeqMBps": 1990,
+    "wcSeqUsPerCall": 7.9,
+    "wcPar16MBps": 1990,
+    "jsMBps": 89,
+    "jsMsPerPiece": 0.175
+   },
+   {
+    "size": 65536,
+    "wcSeqMBps": 2392,
+    "wcSeqUsPerCall": 26.1,
+    "wcPar16MBps": 2358,
+    "jsMBps": 90,
+    "jsMsPerPiece": 0.692
+   },
+   {
+    "size": 262144,
+    "wcSeqMBps": 2492,
+    "wcSeqUsPerCall": 100.3,
+    "wcPar16MBps": 2568,
+    "jsMBps": 91,
+    "jsMsPerPiece": 2.76
+   },
+   {
+    "size": 1048576,
+    "wcSeqMBps": 2312,
+    "wcSeqUsPerCall": 432.5,
+    "wcPar16MBps": 2339,
+    "jsMBps": 91,
+    "jsMsPerPiece": 10.985
+   },
+   {
+    "size": 4194304,
+    "wcSeqMBps": 2291,
+    "wcSeqUsPerCall": 1745.8,
+    "wcPar16MBps": 2291,
+    "jsMBps": 90,
+    "jsMsPerPiece": 44.217
+   },
+   {
+    "size": 16777216,
+    "wcSeqMBps": 2330,
+    "wcSeqUsPerCall": 6866.7,
+    "wcPar16MBps": 2308,
+    "jsMBps": 90,
+    "jsMsPerPiece": 177.35
+   }
+  ],
+  "chromium 156.0.8078.4 cpu x4": [
+   {
+    "size": 16384,
+    "wcSeqMBps": 502,
+    "wcSeqUsPerCall": 31.1,
+    "wcPar16MBps": 491,
+    "jsMBps": 22,
+    "jsMsPerPiece": 0.72
+   },
+   {
+    "size": 65536,
+    "wcSeqMBps": 564,
+    "wcSeqUsPerCall": 110.7,
+    "wcPar16MBps": 559,
+    "jsMBps": 22,
+    "jsMsPerPiece": 2.88
+   },
+   {
+    "size": 262144,
+    "wcSeqMBps": 653,
+    "wcSeqUsPerCall": 382.7,
+    "wcPar16MBps": 615,
+    "jsMBps": 22,
+    "jsMsPerPiece": 11.381
+   },
+   {
+    "size": 1048576,
+    "wcSeqMBps": 555,
+    "wcSeqUsPerCall": 1801.3,
+    "wcPar16MBps": 563,
+    "jsMBps": 22,
+    "jsMsPerPiece": 45.065
+   },
+   {
+    "size": 4194304,
+    "wcSeqMBps": 557,
+    "wcSeqUsPerCall": 7179.2,
+    "wcPar16MBps": 553,
+    "jsMBps": 22,
+    "jsMsPerPiece": 180.617
+   },
+   {
+    "size": 16777216,
+    "wcSeqMBps": 546,
+    "wcSeqUsPerCall": 29316.7,
+    "wcPar16MBps": 543,
+    "jsMBps": 22,
+    "jsMsPerPiece": 724.925
+   }
+  ],
+  "chromium 156.0.8078.4 cpu x6": [
+   {
+    "size": 16384,
+    "wcSeqMBps": 326,
+    "wcSeqUsPerCall": 47.9,
+    "wcPar16MBps": 312,
+    "jsMBps": 15,
+    "jsMsPerPiece": 1.035
+   },
+   {
+    "size": 65536,
+    "wcSeqMBps": 375,
+    "wcSeqUsPerCall": 166.6,
+    "wcPar16MBps": 374,
+    "jsMBps": 15,
+    "jsMsPerPiece": 4.299
+   },
+   {
+    "size": 262144,
+    "wcSeqMBps": 414,
+    "wcSeqUsPerCall": 603.3,
+    "wcPar16MBps": 407,
+    "jsMBps": 15,
+    "jsMsPerPiece": 17.072
+   },
+   {
+    "size": 1048576,
+    "wcSeqMBps": 362,
+    "wcSeqUsPerCall": 2766.2,
+    "wcPar16MBps": 371,
+    "jsMBps": 15,
+    "jsMsPerPiece": 67.845
+   },
+   {
+    "size": 4194304,
+    "wcSeqMBps": 360,
+    "wcSeqUsPerCall": 11125,
+    "wcPar16MBps": 359,
+    "jsMBps": 15,
+    "jsMsPerPiece": 272.467
+   },
+   {
+    "size": 16777216,
+    "wcSeqMBps": 349,
+    "wcSeqUsPerCall": 45833.3,
+    "wcPar16MBps": 365,
+    "jsMBps": 15,
+    "jsMsPerPiece": 1088.025
+   }
+  ],
+  "webkit 27.2 cpu x1": [
+   {
+    "size": 16384,
+    "wcSeqMBps": 473,
+    "wcSeqUsPerCall": 33,
+    "wcPar16MBps": 1202,
+    "jsMBps": 230,
+    "jsMsPerPiece": 0.068
+   },
+   {
+    "size": 65536,
+    "wcSeqMBps": 1471,
+    "wcSeqUsPerCall": 42.5,
+    "wcPar16MBps": 2083,
+    "jsMBps": 255,
+    "jsMsPerPiece": 0.245
+   },
+   {
+    "size": 262144,
+    "wcSeqMBps": 2206,
+    "wcSeqUsPerCall": 113.3,
+    "wcPar16MBps": 2586,
+    "jsMBps": 257,
+    "jsMsPerPiece": 0.973
+   },
+   {
+    "size": 1048576,
+    "wcSeqMBps": 2500,
+    "wcSeqUsPerCall": 400,
+    "wcPar16MBps": 2667,
+    "jsMBps": 256,
+    "jsMsPerPiece": 3.9
+   },
+   {
+    "size": 4194304,
+    "wcSeqMBps": 2526,
+    "wcSeqUsPerCall": 1583.3,
+    "wcPar16MBps": 2667,
+    "jsMBps": 250,
+    "jsMsPerPiece": 16
+   },
+   {
+    "size": 16777216,
+    "wcSeqMBps": 2462,
+    "wcSeqUsPerCall": 6500,
+    "wcPar16MBps": 2595,
+    "jsMBps": 251,
+    "jsMsPerPiece": 63.75
+   }
+  ]
+ }
+}

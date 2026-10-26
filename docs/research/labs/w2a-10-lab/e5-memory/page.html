@@ -1,0 +1,73 @@
+<!doctype html><meta charset="utf-8"><title>e5</title>
+<script type="module">
+const q = new URLSearchParams(location.search)
+const store = q.get('store'); const id = q.get('id'); const mwc = +q.get('mwc') || 16
+const R = { store, id }
+const idbOpen = (name) => new Promise((res, rej) => { const r = indexedDB.open(name, 1); r.onupgradeneeded = () => { r.result.createObjectStore('p'); r.result.createObjectStore('f') }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error) })
+const dbname = 'e5-' + id + '-' + Math.random().toString(36).slice(2)
+let dbp = null
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = [] }
+  put (i, buf, opts, cb) { if (typeof opts === 'function') cb = opts; this.chunks[i] = buf; queueMicrotask(() => cb(null)) }
+  get (i, opts, cb) { if (typeof opts === 'function') { cb = opts; opts = {} } const b = this.chunks[i]; if (!b) return queueMicrotask(() => cb(new Error('nf'))); const off = (opts && opts.offset) || 0; const len = (opts && opts.length) != null ? opts.length : b.length - off; queueMicrotask(() => cb(null, b.subarray(off, off + len))) }
+  close (cb) { queueMicrotask(() => cb && cb(null)) }
+  destroy (cb) { this.chunks = []; queueMicrotask(() => cb && cb(null)) }
+}
+class NullStore { // floor: verify and drop (cannot be read back)
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength }
+  put (i, buf, opts, cb) { if (typeof opts === 'function') cb = opts; queueMicrotask(() => cb(null)) }
+  get (i, opts, cb) { if (typeof opts === 'function') cb = opts; queueMicrotask(() => cb(new Error('null store'))) }
+  close (cb) { queueMicrotask(() => cb && cb(null)) }
+  destroy (cb) { queueMicrotask(() => cb && cb(null)) }
+}
+class IdbStore { // write-through: every verified piece goes to IndexedDB immediately and is not retained in JS
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.ready = dbp }
+  async _db () { return this.ready }
+  put (i, buf, opts, cb) { if (typeof opts === 'function') cb = opts; this._db().then(db => { const tx = db.transaction('p', 'readwrite'); tx.objectStore('p').put(buf, i); tx.oncomplete = () => cb(null); tx.onerror = () => cb(tx.error) }, cb) }
+  get (i, opts, cb) { if (typeof opts === 'function') { cb = opts; opts = {} } this._db().then(db => { const r = db.transaction('p').objectStore('p').get(i); r.onsuccess = () => { const b = r.result; if (!b) return cb(new Error('nf')); const off = (opts && opts.offset) || 0; const len = (opts && opts.length) != null ? opts.length : b.length - off; cb(null, b.subarray(off, off + len)) }; r.onerror = () => cb(r.error) }, cb) }
+  close (cb) { queueMicrotask(() => cb && cb(null)) }
+  destroy (cb) { queueMicrotask(() => cb && cb(null)) }
+}
+try {
+  dbp = idbOpen(dbname)
+  const { default: WebTorrent } = await import('/wt.js')
+  const tb = new Uint8Array(await (await fetch(`/t/${id}.torrent`)).arrayBuffer())
+  await __mark('0 baseline (page loaded, WebTorrent imported)')
+  const client = new WebTorrent({ tracker: false })
+  const Store = store === 'mem' ? MemStore : store === 'null' ? NullStore : store === 'opfs' ? undefined : IdbStore
+  const t0 = performance.now()
+  const addOpts = { announce: [], maxWebConns: mwc, urlList: [`${location.origin}/ws/`] }
+  if (Store) { addOpts.store = Store; addOpts.storeCacheSlots = store === 'mem' ? 0 : 20 }
+  const torrent = client.add(tb, addOpts)
+  let half = false
+  torrent.on('download', async () => { if (!half && torrent.progress > 0.5) { half = true; R.half = await __mark('1 download 50%') } })
+  await new Promise((res, rej) => { torrent.on('done', res); torrent.on('error', rej); setTimeout(() => rej(new Error('timeout')), 170000) })
+  R.downloadMs = Math.round(performance.now() - t0); R.pieces = torrent.pieces.length; R.pieceLength = torrent.pieceLength; R.length = torrent.length
+  if (window.gc) window.gc(); await new Promise(r => setTimeout(r, 300)); if (window.gc) window.gc()
+  await __mark('2 download complete (gc)')
+  if (store === 'mem') {
+    // the v0.2 design: build a Blob per file when it is done, then write manifest + Blobs to IndexedDB
+    const db = await dbp; const blobs = []
+    for (const f of torrent.files) blobs.push(await f.blob())
+    await __mark('3 all file Blobs built (still holding pieces)')
+    await new Promise((res, rej) => { const tx = db.transaction('f', 'readwrite'); blobs.forEach((b, i) => tx.objectStore('f').put(b, i)); tx.oncomplete = res; tx.onerror = () => rej(tx.error) })
+    if (window.gc) window.gc(); await new Promise(r => setTimeout(r, 300)); if (window.gc) window.gc()
+    await __mark('4 Blobs written to IndexedDB (gc)')
+    blobs.length = 0
+    client.destroy(); if (window.gc) window.gc(); await new Promise(r => setTimeout(r, 500)); if (window.gc) window.gc()
+    await __mark('5 client destroyed (gc)')
+  } else if (store === 'null') {
+    await __mark('3 (null store: nothing to read back)')
+  } else {
+    // serve path: read every file through the store in 1 MiB ranges, as a Range-honouring SW would, dropping each slice
+    const t1 = performance.now(); let bytes = 0
+    for (const f of torrent.files) { for await (const chunk of f[Symbol.asyncIterator]({ start: 0, end: f.length - 1 })) { bytes += chunk.length } }
+    R.serveMs = Math.round(performance.now() - t1); R.serveBytes = bytes
+    if (window.gc) window.gc(); await new Promise(r => setTimeout(r, 300)); if (window.gc) window.gc()
+    await __mark('3 all files streamed back out of the store (gc)')
+    client.destroy(); if (window.gc) window.gc(); await new Promise(r => setTimeout(r, 500)); if (window.gc) window.gc()
+    await __mark('4 client destroyed (gc)')
+  }
+} catch (e) { R.error = String(e && e.stack || e) }
+window.__result = R
+</script>

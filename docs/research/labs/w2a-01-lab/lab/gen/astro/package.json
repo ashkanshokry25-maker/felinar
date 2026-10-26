@@ -1,0 +1,1 @@
+{ "name": "g-astro", "private": true, "type": "module", "dependencies": { "astro": "7.4.0" } }

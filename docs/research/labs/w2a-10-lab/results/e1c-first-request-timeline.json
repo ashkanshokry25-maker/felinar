@@ -1,0 +1,49 @@
+{
+ "pieceLength": 65536,
+ "serverDelayMs": 100,
+ "out": [
+  {
+   "label": "default (selected whole torrent), maxWebConns=4",
+   "timeline": [
+    "+32ms site/img2.png[383040-399999] piece 15",
+    "+139ms site/index.html[0-29999] piece 0",
+    "+140ms site/app.css[0-19999] piece 0",
+    "+140ms site/app.js[0-15535] piece 0",
+    "+140ms site/app.js[15536-81071] piece 1",
+    "+246ms site/app.js[81072-146607] piece 2",
+    "+246ms site/app.js[146608-149999] piece 3",
+    "+246ms site/img1.png[0-62143] piece 3",
+    "+246ms site/img1.png[62144-127679] piece 4",
+    "+246ms site/img1.png[127680-193215] piece 5",
+    "+351ms site/img1.png[193216-258751] piece 6",
+    "+351ms site/img1.png[258752-324287] piece 7"
+   ],
+   "done": {
+    "index.html": 243,
+    "app.css": 243,
+    "app.js": 349,
+    "img1.png": 454,
+    "img2.png": 661
+   },
+   "requests": 20
+  },
+  {
+   "label": "deselect:true + select(index.html..app.js), maxWebConns=4",
+   "timeline": [
+    "+4ms site/app.js[146608-149999] piece 3",
+    "+5ms site/img1.png[0-62143] piece 3",
+    "+110ms site/index.html[0-29999] piece 0",
+    "+110ms site/app.css[0-19999] piece 0",
+    "+110ms site/app.js[0-15535] piece 0",
+    "+111ms site/app.js[15536-81071] piece 1",
+    "+214ms site/app.js[81072-146607] piece 2"
+   ],
+   "done": {
+    "index.html": 213,
+    "app.css": 213,
+    "app.js": 317
+   },
+   "requests": 7
+  }
+ ]
+}

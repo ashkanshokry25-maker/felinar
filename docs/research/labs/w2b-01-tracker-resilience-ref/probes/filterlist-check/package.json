@@ -1,0 +1,7 @@
+{
+  "name": "filterlist-check",
+  "private": true,
+  "type": "module",
+  "description": "Checks whether tracker / relay / broker hostnames are blocked by browser ad-block lists (Ghostery engine) and DNS-level blocklists. Research 2026-10-17.",
+  "dependencies": { "@ghostery/adblocker": "2.20.1" }
+}

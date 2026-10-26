@@ -1,0 +1,130 @@
+{
+  "events": [
+    "8ms A seeding, magnet has tr: true",
+    "9ms B infoHash",
+    "225ms A wire type=webrtc addr=192.168.18.5:54998",
+    "225ms B wire type=webrtc",
+    "227ms B metadata (via ut_metadata)",
+    "227ms B ready",
+    "243ms B done",
+    "3679ms A wire close",
+    "3680ms B wire close"
+  ],
+  "ext": {
+    "A": {
+      "wireType": "webrtc",
+      "constructed": 1,
+      "onHandshake": {
+        "infoHashLen": 40,
+        "peerIdLen": 40,
+        "extensions": {
+          "dht": false,
+          "fast": true,
+          "extended": true
+        }
+      },
+      "onExtendedHandshake": {
+        "keys": [
+          "m",
+          "myflag"
+        ],
+        "m": {
+          "ashgossip": 3,
+          "lt_donthave": 2,
+          "ut_metadata": 1
+        },
+        "myflag": "B-hello"
+      },
+      "peerExtendedMapping": {
+        "ashgossip": 3,
+        "lt_donthave": 2,
+        "ut_metadata": 1
+      },
+      "sendUnknownThrows": "Unrecognized extension: nonexistent_ext"
+    },
+    "B": {
+      "wireType": "webrtc",
+      "constructed": 1,
+      "onHandshake": {
+        "infoHashLen": 40,
+        "peerIdLen": 40,
+        "extensions": {
+          "dht": false,
+          "fast": true,
+          "extended": true
+        }
+      },
+      "onExtendedHandshake": {
+        "keys": [
+          "m",
+          "metadata_size",
+          "myflag"
+        ],
+        "m": {
+          "ashgossip": 3,
+          "lt_donthave": 2,
+          "ut_metadata": 1
+        },
+        "myflag": "A-hello"
+      },
+      "peerExtendedMapping": {
+        "ashgossip": 3,
+        "lt_donthave": 2,
+        "ut_metadata": 1
+      }
+    }
+  },
+  "sizes": {
+    "recv_B": [
+      5,
+      1024,
+      16384,
+      65536,
+      131072,
+      204800,
+      261120,
+      262143
+    ],
+    "recv_A": [
+      3
+    ],
+    "sent": [
+      1024,
+      16384,
+      65536,
+      131072,
+      204800,
+      261120,
+      262143,
+      262144
+    ],
+    "stoppedBeforeDestroyed": 307200,
+    "wireDestroyedAfterSweep": true
+  },
+  "errors": [],
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "infoHash": "91fc352e04a0d3d128148618fa0ab0b0fc06ec45",
+  "magnet": "magnet:?xt=urn:btih:91fc352e04a0d3d128148618fa0ab0b0fc06ec45&dn=data.bin&tr=ws%3A%2F%2F127.0.0.1%3A18082",
+  "bDone": true,
+  "bProgress": 1,
+  "bytesMatch": true,
+  "aNumPeers": 1,
+  "bNumPeers": 1,
+  "aUploaded": 200728,
+  "bDownloaded": 200000,
+  "bReceived": 200728,
+  "wireInfo": [
+    {
+      "type": "webrtc",
+      "peerIdPrefix": "2d5757303330302d",
+      "peerIdAscii": "-WW0300-",
+      "remoteAddress": "192.168.18.5"
+    }
+  ],
+  "sweepDone": true,
+  "aDestroyMs": 2,
+  "afterADestroy": {
+    "bNumPeers": 0,
+    "bWireClosed": false
+  }
+}

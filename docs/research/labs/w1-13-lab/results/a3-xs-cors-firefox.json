@@ -1,0 +1,8 @@
+{
+ "infoHash": "d0037167fc5786a0b755637e93e5995d23e935a4",
+ "results": {
+  "firefox": {
+   "fatal": "browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-iVNmwb -juggler-pipe -silent\n<launched> pid=76885\n[pid=76885][err] *** You are running in headless mode.\n[pid=76885][err] Could not find profile folder.\n[pid=76885] <process did exit: exitCode=1, signal=null>\n[pid=76885] starting temporary directories cleanup\nCall log:\n  - <launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-iVNmwb -juggler-pipe -silent\n  - <launched> pid=76885\n  - [pid=76885][err] *** You are running in headless mode.\n  - [pid=76885][err] Could not find profile folder.\n  - [pid=76885] <process did exit: exitCode=1, signal=null>\n  - [pid=76885] starting temporary directories cleanup\n  - [pid=76885] <gracefully close start>\n  - [pid=76885] <kill>\n  - [pid=76885] <skipped force kill spawnedProcess.killed=false processClosed=true>\n  - [pid=76885] finished temporary directories cleanup\n  - [pid=76885] <gracefully close end>\n\n    at runEngine ($HOME/Documents/Projects/magnet-web/docs/research/w1-13-lab/a3-xs-cors.mjs:66:41)\n    at $HOME/Documents/Projects/magnet-web/docs/research/w1-13-lab/a3-xs-cors.mjs:108:31"
+  }
+ }
+}

@@ -1,0 +1,16 @@
+webkit 27.2 {
+ "ua": "it/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+ "hasSupportsStatic": "undefined",
+ "results": {
+  "ML-KEM-768 generateKey": "TypeError: Type error",
+  "ML-KEM-1024 generateKey": "TypeError: Type error",
+  "ML-DSA-65 generateKey": "NotSupportedError: The operation is not supported.",
+  "ChaCha20-Poly1305 generateKey": "NotSupportedError: The operation is not supported.",
+  "X-Wing (MLKEM768-X25519) generateKey": "TypeError: Type error",
+  "Ed25519 generateKey": "supported",
+  "Argon2id importKey+deriveBits": "TypeError: Argument 1 ('format') to SubtleCrypto.importKey must be one ",
+  "Argon2id importKey (raw)": "NotSupportedError: The operation is not supported.",
+  "scrypt importKey": "NotSupportedError: The operation is not supported.",
+  "SHA3-256 digest": "NotSupportedError: The operation is not supported."
+ }
+}

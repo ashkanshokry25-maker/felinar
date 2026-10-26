@@ -1,0 +1,1290 @@
+{
+  "prefix": {
+    "mode": "prefix",
+    "checks": {
+      "static-import-rel": {
+        "ok": true,
+        "v": "dep-ok"
+      },
+      "dynamic-import-rel": {
+        "ok": true,
+        "v": "chunk-ok"
+      },
+      "dynamic-import-abs": {
+        "ok": false,
+        "e": "TypeError: Importing a module script failed."
+      },
+      "fetch-import-meta-url": {
+        "ok": true,
+        "v": "asset-text-ok"
+      },
+      "fetch-abs-json": {
+        "ok": false,
+        "e": "SyntaxError: The string did not match the expected pattern."
+      },
+      "fetch-rel-json": {
+        "ok": true,
+        "v": "rel.json"
+      },
+      "worker-classic-root-abs": {
+        "ok": false,
+        "e": "Error: worker error: load failed"
+      },
+      "worker-module-import-meta-url": {
+        "ok": true,
+        "v": {
+          "loc": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs",
+          "dep": "dep-ok",
+          "fetchAbs": "ERR The string did not match the expected pattern."
+        }
+      },
+      "css-root.css-@import-applied": {
+        "ok": true,
+        "v": false
+      },
+      "css-rel.css-applied": {
+        "ok": true,
+        "v": true
+      },
+      "css-bg-abs-url(/img)": {
+        "ok": false,
+        "e": "EncodingError: Loading error."
+      },
+      "css-bg-rel-url(../img)": {
+        "ok": true,
+        "v": true
+      },
+      "img-root-abs": {
+        "ok": true,
+        "v": 0
+      },
+      "img-rel": {
+        "ok": true,
+        "v": 1
+      },
+      "img-srcset-root-abs": {
+        "ok": true,
+        "v": 0
+      },
+      "font-root-abs-request": {
+        "ok": true,
+        "v": "requested"
+      },
+      "sw-register-root-abs(/sw.js)": {
+        "ok": true,
+        "v": {
+          "scope": "http://127.0.0.1:61324/",
+          "script": "http://127.0.0.1:61324/sw.js"
+        }
+      },
+      "sw-register-site-own(sw-site.js)": {
+        "ok": false,
+        "e": "TypeError: Script http://127.0.0.1:61324/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js load failed"
+      },
+      "sw-getRegistrations": {
+        "ok": true,
+        "v": [
+          "http://127.0.0.1:61324/ -> http://127.0.0.1:61324/sw.js"
+        ]
+      },
+      "doc-location": {
+        "ok": true,
+        "v": {
+          "pathname": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html",
+          "baseURI": "http://127.0.0.1:61324/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html"
+        }
+      },
+      "pushState(/pushed)": {
+        "ok": true,
+        "v": "/pushed"
+      }
+    },
+    "interactions": {
+      "click root-abs link /about.html": {
+        "top": "/about.html",
+        "frame": "/about.html",
+        "h": "",
+        "title": "shell",
+        "bodyText": "",
+        "newNet": [
+          "empty:/js/chunk2.mjs->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/img/abs2.png->host:404",
+          "empty:/css/imported.css->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/fonts/f.woff2->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/worker.js->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/img/abs.png->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/about.html->host:SPA-fallback-shell(200)",
+          "empty:/css/imported.css->host:404",
+          "empty:/fonts/f.woff2->host:404"
+        ]
+      },
+      "click relative link about.html": {
+        "top": "/about.html",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html",
+        "h": "about",
+        "title": "about",
+        "bodyText": "about\nhome",
+        "newNet": [
+          "empty:/js/chunk2.mjs->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/img/abs2.png->host:404",
+          "empty:/css/imported.css->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/fonts/f.woff2->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/worker.js->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/img/abs.png->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/css/imported.css->host:404",
+          "empty:/fonts/f.woff2->host:404"
+        ]
+      },
+      "click #frag link": {
+        "top": "/",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html#frag",
+        "h": "kitchen",
+        "title": "kitchen",
+        "bodyText": "kitchen\n  abs rel frag top\ngo",
+        "newNet": [
+          "empty:/js/chunk2.mjs->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/img/abs2.png->host:404",
+          "empty:/css/imported.css->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/fonts/f.woff2->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/worker.js->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/img/abs.png->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "submit GET form action=/search": {
+        "top": "/search?q=1",
+        "frame": "/search?q=1",
+        "h": "",
+        "title": "shell",
+        "bodyText": "",
+        "newNet": [
+          "empty:/js/chunk2.mjs->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/img/abs2.png->host:404",
+          "empty:/css/imported.css->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/fonts/f.woff2->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/worker.js->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/img/abs.png->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/search?q=1->host:SPA-fallback-shell(200)"
+        ]
+      },
+      "click target=_top root-abs link": {
+        "top": "/about.html",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html",
+        "h": "about",
+        "title": "about",
+        "bodyText": "about\nhome",
+        "newNet": [
+          "empty:/js/chunk2.mjs->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/img/abs2.png->host:404",
+          "empty:/css/imported.css->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/fonts/f.woff2->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/worker.js->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/img/abs.png->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/about.html->host:SPA-fallback-shell(200)",
+          "empty:/css/imported.css->host:404",
+          "empty:/fonts/f.woff2->host:404"
+        ]
+      },
+      "pushState(/pushed) then reload shell": {
+        "top": "/",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html",
+        "h": "kitchen",
+        "title": "kitchen",
+        "bodyText": "kitchen\n  abs rel frag top\ngo",
+        "newNet": [
+          "empty:/js/chunk2.mjs->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/img/abs2.png->host:404",
+          "empty:/css/imported.css->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/fonts/f.woff2->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/worker.js->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/img/abs.png->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/img/abs.png->host:404",
+          "empty:/img/abs2.png->host:404",
+          "empty:/css/imported.css->host:404",
+          "empty:/img/abs.png->host:404",
+          "empty:/fonts/f.woff2->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/worker.js->host:404",
+          "empty:/data/abs.json->host:404",
+          "empty:/img/abs.png->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404"
+        ]
+      }
+    },
+    "leaksAfterLoad": [
+      "empty:/js/chunk2.mjs -> host:404",
+      "empty:/img/abs.png -> host:404",
+      "empty:/img/abs2.png -> host:404",
+      "empty:/css/imported.css -> host:404",
+      "empty:/data/abs.json -> host:404",
+      "empty:/img/abs.png -> host:404",
+      "empty:/fonts/f.woff2 -> host:404",
+      "empty:/js/worker.js -> host:404",
+      "empty:/data/abs.json -> host:404",
+      "empty:/img/abs.png -> host:404",
+      "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js -> host:404"
+    ],
+    "console": [
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "afterLoad": {
+      "top": "/",
+      "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html",
+      "h": "kitchen",
+      "title": "kitchen",
+      "bodyText": "kitchen\n  abs rel frag top\ngo"
+    },
+    "swDecisions": [
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "iframe(nav) /about.html client=- => network",
+      "script /shell.js client=nested:/about.html => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html client=- => site:about.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => network",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => network",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html client=- => site:about.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => network",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => network",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "iframe(nav) /search?q=1 client=- => network",
+      "script /shell.js client=nested:/search => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/search?q=1 client=- => site:404.html",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "document(nav) /about.html client=- => network",
+      "script /shell.js client=top-level:/about.html => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html client=- => site:about.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => network",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => network",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => network",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => network"
+    ],
+    "site": "kitchen-rel"
+  },
+  "remap": {
+    "mode": "remap",
+    "checks": {
+      "static-import-rel": {
+        "ok": true,
+        "v": "dep-ok"
+      },
+      "dynamic-import-rel": {
+        "ok": true,
+        "v": "chunk-ok"
+      },
+      "dynamic-import-abs": {
+        "ok": true,
+        "v": "chunk2-abs-ok"
+      },
+      "fetch-import-meta-url": {
+        "ok": true,
+        "v": "asset-text-ok"
+      },
+      "fetch-abs-json": {
+        "ok": true,
+        "v": "abs.json"
+      },
+      "fetch-rel-json": {
+        "ok": true,
+        "v": "rel.json"
+      },
+      "worker-classic-root-abs": {
+        "ok": true,
+        "v": {
+          "loc": "/js/worker.js",
+          "fetchAbs": "ERR The string did not match the expected pattern.",
+          "importScripts": "ERR Load failed"
+        }
+      },
+      "worker-module-import-meta-url": {
+        "ok": true,
+        "v": {
+          "loc": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs",
+          "dep": "dep-ok",
+          "fetchAbs": {
+            "where": "abs.json"
+          }
+        }
+      },
+      "css-root.css-@import-applied": {
+        "ok": true,
+        "v": true
+      },
+      "css-rel.css-applied": {
+        "ok": true,
+        "v": true
+      },
+      "css-bg-abs-url(/img)": {
+        "ok": true,
+        "v": true
+      },
+      "css-bg-rel-url(../img)": {
+        "ok": true,
+        "v": true
+      },
+      "img-root-abs": {
+        "ok": true,
+        "v": 1
+      },
+      "img-rel": {
+        "ok": true,
+        "v": 1
+      },
+      "img-srcset-root-abs": {
+        "ok": true,
+        "v": 1
+      },
+      "font-root-abs-request": {
+        "ok": true,
+        "v": "requested"
+      },
+      "sw-register-root-abs(/sw.js)": {
+        "ok": true,
+        "v": {
+          "scope": "http://127.0.0.1:49161/",
+          "script": "http://127.0.0.1:49161/sw.js"
+        }
+      },
+      "sw-register-site-own(sw-site.js)": {
+        "ok": false,
+        "e": "TypeError: Script http://127.0.0.1:49161/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js load failed"
+      },
+      "sw-getRegistrations": {
+        "ok": true,
+        "v": [
+          "http://127.0.0.1:49161/ -> http://127.0.0.1:49161/sw.js"
+        ]
+      },
+      "doc-location": {
+        "ok": true,
+        "v": {
+          "pathname": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html",
+          "baseURI": "http://127.0.0.1:49161/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html"
+        }
+      },
+      "pushState(/pushed)": {
+        "ok": true,
+        "v": "/pushed"
+      }
+    },
+    "interactions": {
+      "click root-abs link /about.html": {
+        "top": "/about.html",
+        "frame": "/about.html",
+        "h": "",
+        "title": "shell",
+        "bodyText": "",
+        "newNet": [
+          "empty:/data/abs.json->host:404",
+          "empty:/js/imp.js->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/about.html->host:SPA-fallback-shell(200)"
+        ]
+      },
+      "click relative link about.html": {
+        "top": "/about.html",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html",
+        "h": "about",
+        "title": "about",
+        "bodyText": "about\nhome",
+        "newNet": [
+          "empty:/data/abs.json->host:404",
+          "empty:/js/imp.js->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "click #frag link": {
+        "top": "/",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html#frag",
+        "h": "kitchen",
+        "title": "kitchen",
+        "bodyText": "kitchen\n  abs rel frag top\ngo",
+        "newNet": [
+          "empty:/data/abs.json->host:404",
+          "empty:/js/imp.js->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "submit GET form action=/search": {
+        "top": "/search?q=1",
+        "frame": "/search?q=1",
+        "h": "",
+        "title": "shell",
+        "bodyText": "",
+        "newNet": [
+          "empty:/data/abs.json->host:404",
+          "empty:/js/imp.js->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/search?q=1->host:SPA-fallback-shell(200)"
+        ]
+      },
+      "click target=_top root-abs link": {
+        "top": "/about.html",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html",
+        "h": "about",
+        "title": "about",
+        "bodyText": "about\nhome",
+        "newNet": [
+          "empty:/data/abs.json->host:404",
+          "empty:/js/imp.js->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/about.html->host:SPA-fallback-shell(200)"
+        ]
+      },
+      "pushState(/pushed) then reload shell": {
+        "top": "/",
+        "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html",
+        "h": "kitchen",
+        "title": "kitchen",
+        "bodyText": "kitchen\n  abs rel frag top\ngo",
+        "newNet": [
+          "empty:/data/abs.json->host:404",
+          "empty:/js/imp.js->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "empty:/data/abs.json->host:404",
+          "empty:/js/imp.js->host:404",
+          "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js->host:404"
+        ]
+      }
+    },
+    "leaksAfterLoad": [
+      "iframe:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html -> host:SPA-fallback-shell(200)",
+      "empty:/data/abs.json -> host:404",
+      "empty:/js/imp.js -> host:404",
+      "serviceworker:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sw-site.js -> host:404"
+    ],
+    "console": [
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "afterLoad": {
+      "top": "/",
+      "frame": "/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html",
+      "h": "kitchen",
+      "title": "kitchen",
+      "bodyText": "kitchen\n  abs rel frag top\ngo"
+    },
+    "swDecisions": [
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/chunk2.mjs",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json",
+      "iframe(nav) /about.html client=- => network",
+      "script /shell.js client=nested:/about.html => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html client=- => site:about.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => remap:css/imported.css",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => remap:fonts/f.woff2",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html client=- => site:about.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => remap:css/imported.css",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => remap:fonts/f.woff2",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/chunk2.mjs",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json",
+      "iframe(nav) /search?q=1 client=- => network",
+      "script /shell.js client=nested:/search => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/search?q=1 client=- => site:404.html",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json",
+      "document(nav) /about.html client=- => network",
+      "script /shell.js client=top-level:/about.html => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html client=- => site:about.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => remap:css/imported.css",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/about.html => remap:fonts/f.woff2",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json",
+      "document(nav) / client=- => network",
+      "script /shell.js client=top-level:/ => network",
+      "iframe(nav) /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html client=- => site:index.html",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/root.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/root.css",
+      "style /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/css/rel.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:css/rel.css",
+      "image /img/abs.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs.png",
+      "image /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/img/rel.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:img/rel.png",
+      "image /img/abs2.png client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:img/abs2.png",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/main.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/main.mjs",
+      "style /css/imported.css client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:css/imported.css",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:fonts/f.woff2",
+      "script /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/chunk.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/chunk.mjs",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/asset.txt client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/asset.txt",
+      "- /data/abs.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:data/abs.json",
+      "- /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/data/rel.json client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:data/rel.json",
+      "worker /js/worker.js client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => remap:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => network",
+      "script /js/imp.js client=none:/js/worker.js => network",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs client=nested:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/index.html => site:js/worker2.mjs",
+      "worker /_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/dep.mjs client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/_mw/s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/js/worker2.mjs => remap:data/abs.json"
+    ],
+    "site": "kitchen-rel"
+  },
+  "true": {
+    "mode": "true",
+    "checks": {
+      "static-import-rel": {
+        "ok": true,
+        "v": "dep-ok"
+      },
+      "dynamic-import-rel": {
+        "ok": true,
+        "v": "chunk-ok"
+      },
+      "dynamic-import-abs": {
+        "ok": true,
+        "v": "chunk2-abs-ok"
+      },
+      "fetch-import-meta-url": {
+        "ok": true,
+        "v": "asset-text-ok"
+      },
+      "fetch-abs-json": {
+        "ok": true,
+        "v": "abs.json"
+      },
+      "fetch-rel-json": {
+        "ok": true,
+        "v": "rel.json"
+      },
+      "worker-classic-root-abs": {
+        "ok": true,
+        "v": {
+          "loc": "/js/worker.js",
+          "fetchAbs": {
+            "where": "abs.json"
+          },
+          "importScripts": "imp-ok"
+        }
+      },
+      "worker-module-import-meta-url": {
+        "ok": true,
+        "v": {
+          "loc": "/js/worker2.mjs",
+          "dep": "dep-ok",
+          "fetchAbs": {
+            "where": "abs.json"
+          }
+        }
+      },
+      "css-root.css-@import-applied": {
+        "ok": true,
+        "v": true
+      },
+      "css-rel.css-applied": {
+        "ok": true,
+        "v": true
+      },
+      "css-bg-abs-url(/img)": {
+        "ok": true,
+        "v": true
+      },
+      "css-bg-rel-url(../img)": {
+        "ok": true,
+        "v": true
+      },
+      "img-root-abs": {
+        "ok": true,
+        "v": 1
+      },
+      "img-rel": {
+        "ok": true,
+        "v": 1
+      },
+      "img-srcset-root-abs": {
+        "ok": true,
+        "v": 1
+      },
+      "font-root-abs-request": {
+        "ok": true,
+        "v": "requested"
+      },
+      "sw-register-root-abs(/sw.js)": {
+        "ok": true,
+        "v": {
+          "scope": "http://127.0.0.1:49354/",
+          "script": "http://127.0.0.1:49354/sw.js"
+        }
+      },
+      "sw-register-site-own(sw-site.js)": {
+        "ok": false,
+        "e": "TypeError: Script http://127.0.0.1:49354/sw-site.js load failed"
+      },
+      "sw-getRegistrations": {
+        "ok": true,
+        "v": [
+          "http://127.0.0.1:49354/ -> http://127.0.0.1:49354/sw.js"
+        ]
+      },
+      "doc-location": {
+        "ok": true,
+        "v": {
+          "pathname": "/",
+          "baseURI": "http://127.0.0.1:49354/"
+        }
+      },
+      "pushState(/pushed)": {
+        "ok": true,
+        "v": "/pushed"
+      }
+    },
+    "interactions": {
+      "click root-abs link /about.html": {
+        "top": "/about.html",
+        "frame": "/about.html",
+        "h": "about",
+        "title": "about",
+        "bodyText": "about\nhome",
+        "newNet": [
+          "serviceworker:/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "click relative link about.html": {
+        "top": "/about.html",
+        "frame": "/about.html",
+        "h": "about",
+        "title": "about",
+        "bodyText": "about\nhome",
+        "newNet": [
+          "serviceworker:/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "click #frag link": {
+        "top": "/",
+        "frame": "/#frag",
+        "h": "kitchen",
+        "title": "kitchen",
+        "bodyText": "kitchen\n  abs rel frag top\ngo",
+        "newNet": [
+          "serviceworker:/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "submit GET form action=/search": {
+        "top": "/search?q=1",
+        "frame": "/search?q=1",
+        "h": "SITE 404 PAGE",
+        "title": "404",
+        "bodyText": "SITE 404 PAGE",
+        "newNet": [
+          "serviceworker:/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "click target=_top root-abs link": {
+        "top": "/about.html",
+        "frame": "/about.html",
+        "h": "about",
+        "title": "about",
+        "bodyText": "about\nhome",
+        "newNet": [
+          "serviceworker:/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js"
+        ]
+      },
+      "pushState(/pushed) then reload shell": {
+        "top": "/",
+        "frame": "/",
+        "h": "kitchen",
+        "title": "kitchen",
+        "bodyText": "kitchen\n  abs rel frag top\ngo",
+        "newNet": [
+          "serviceworker:/sw-site.js->host:404",
+          "serviceworker:/sw.js->host:sw.js",
+          "serviceworker:/sw-site.js->host:404"
+        ]
+      }
+    },
+    "leaksAfterLoad": [
+      "serviceworker:/sw-site.js -> host:404"
+    ],
+    "console": [
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "afterLoad": {
+      "top": "/",
+      "frame": "/",
+      "h": "kitchen",
+      "title": "kitchen",
+      "bodyText": "kitchen\n  abs rel frag top\ngo"
+    },
+    "swDecisions": [
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/ => site:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json",
+      "document(nav) / client=- => shell(document)",
+      "script /shell.js client=top-level:/ => network(shell-client)",
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/ => site:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json",
+      "iframe(nav) /about.html client=- => site(iframe):about.html",
+      "style /css/root.css client=nested:/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/about.html => site:css/imported.css",
+      "font /fonts/f.woff2 client=nested:/about.html => site:fonts/f.woff2",
+      "document(nav) / client=- => shell(document)",
+      "script /shell.js client=top-level:/ => network(shell-client)",
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "script /js/chunk2.mjs client=nested:/ => site:js/chunk2.mjs",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json",
+      "iframe(nav) /about.html client=- => site(iframe):about.html",
+      "style /css/root.css client=nested:/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/about.html => site:css/imported.css",
+      "font /fonts/f.woff2 client=nested:/about.html => site:fonts/f.woff2",
+      "document(nav) / client=- => shell(document)",
+      "script /shell.js client=top-level:/ => network(shell-client)",
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/ => site:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json",
+      "document(nav) / client=- => shell(document)",
+      "script /shell.js client=top-level:/ => network(shell-client)",
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/ => site:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json",
+      "iframe(nav) /search?q=1 client=- => site(iframe):404.html",
+      "document(nav) / client=- => shell(document)",
+      "script /shell.js client=top-level:/ => network(shell-client)",
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "script /js/chunk2.mjs client=nested:/ => site:js/chunk2.mjs",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json",
+      "document(nav) /about.html client=- => shell(document)",
+      "script /shell.js client=top-level:/about.html => network(shell-client)",
+      "iframe(nav) /about.html client=- => site(iframe):about.html",
+      "style /css/root.css client=nested:/about.html => site:css/root.css",
+      "style /css/imported.css client=nested:/about.html => site:css/imported.css",
+      "font /fonts/f.woff2 client=nested:/about.html => site:fonts/f.woff2",
+      "document(nav) / client=- => shell(document)",
+      "script /shell.js client=top-level:/ => network(shell-client)",
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "script /js/chunk2.mjs client=nested:/ => site:js/chunk2.mjs",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json",
+      "document(nav) / client=- => shell(document)",
+      "script /shell.js client=top-level:/ => network(shell-client)",
+      "iframe(nav) / client=- => site(iframe):index.html",
+      "style /css/root.css client=nested:/ => site:css/root.css",
+      "style /css/rel.css client=nested:/ => site:css/rel.css",
+      "image /img/abs.png client=nested:/ => site:img/abs.png",
+      "script /js/main.mjs client=nested:/ => site:js/main.mjs",
+      "image /img/rel.png client=nested:/ => site:img/rel.png",
+      "image /img/abs2.png client=nested:/ => site:img/abs2.png",
+      "script /js/dep.mjs client=nested:/ => site:js/dep.mjs",
+      "style /css/imported.css client=nested:/ => site:css/imported.css",
+      "script /js/chunk.mjs client=nested:/ => site:js/chunk.mjs",
+      "font /fonts/f.woff2 client=nested:/ => site:fonts/f.woff2",
+      "- /js/asset.txt client=nested:/ => site:js/asset.txt",
+      "- /data/abs.json client=nested:/ => site:data/abs.json",
+      "- /data/rel.json client=nested:/ => site:data/rel.json",
+      "worker /js/worker.js client=nested:/ => site:js/worker.js",
+      "- /data/abs.json client=none:/js/worker.js => site:data/abs.json",
+      "script /js/imp.js client=none:/js/worker.js => site:js/imp.js",
+      "worker /js/worker2.mjs client=nested:/ => site:js/worker2.mjs",
+      "worker /js/dep.mjs client=none:/js/worker2.mjs => site:js/dep.mjs",
+      "- /data/abs.json client=none:/js/worker2.mjs => site:data/abs.json"
+    ],
+    "site": "kitchen-rel"
+  }
+}

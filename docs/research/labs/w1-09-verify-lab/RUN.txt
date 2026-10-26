@@ -1,0 +1,34 @@
+w1-09 VERIFY lab: independent re-checks behind docs/research/w1-09-protocol-handler-magnet-VERIFY.md  (run date 2026-10-17, ET afternoon)
+All of this is test code written for the fact-check, NOT production code. Nothing here registers a handler in a real profile or touches OS default handlers.
+
+Environment: macOS 27.0.1 (build 26A434) arm64, Node v24.22.0 (~/.local/share/node/current/bin/node), Playwright 1.64.1 from the project's node_modules.
+Browsers actually driven:
+  - Playwright Chromium 156.0.8078.4 (chromium_headless_shell-1248)          -> results/val_chromium.json, man_chromium.json, frag_chromium.json, redir_chromium.json
+  - Brave Browser 155.1.97.59 (Chromium 155.0.8059.85, headless, throwaway    -> results/val_brave.json, man_brave.json
+    --user-data-dir, deleted afterwards; navigator.brave.isBrave() === true)
+  - Playwright WebKit 27.2 (webkit-2370, tip-of-tree build, not Safari.app)   -> results/val_webkit.json, frag_webkit.json, redir_webkit.json
+  - System WebKit (WebKit.framework 22625.1.29.11.28, the engine under        -> results/wkcheck.json  (scripts/wkcheck.swift, WKWebView, no network)
+    Safari.app 27.0.1 on this Mac)
+  - Firefox: NOT run. Playwright Firefox build 1555 (Firefox 157.0) exits with "Could not find profile folder." for every -profile path and for -CreateProfile
+    (headless ProfileMissingDialog path in toolkit/xre/nsAppRunner.cpp). All Firefox statements in the VERIFY note come from Gecko source.
+
+Scripts (scripts/):
+  rph_cases.mjs, exp_validation.mjs   57-case registerProtocolHandler matrix (schemes, templates, order of checks, <base>, sandboxed iframes). Usage: node exp_validation.mjs <chromium|webkit|brave> <out.json> [braveProfileDir]
+  exp_manifest.mjs                    19 manifest protocol_handlers cases via CDP Page.getAppManifest. Usage: node exp_manifest.mjs <chromium|brave> <out.json> [braveProfileDir]
+  exp_insecure.mjs                    availability in an insecure context (http://hub.test via --host-resolver-rules)
+  exp_fragment.mjs                    does the fragment reach the HTTP server / Referer, and does a Service Worker see it in FetchEvent.request.url
+  exp_redirect.mjs                    fragment inheritance across a same-origin and a cross-origin 302 (RFC 9110 10.2.2)
+  exp_serialize.mjs                   how the engines serialize a magnet link before the %s step (a.href), and the fragment that results
+  old_detect_mode.mjs                 VERBATIM copy of the pointer-detection lines of src/loader/render.js as read at ~17:44 ET (render.js was rewritten at 17:53 ET and no longer exports detectMode)
+                                      plus the research note's proposed fix fragmentToPointerText()
+  exp_decode2.mjs                     claim 4: one special character at a time, project parseMagnet vs WebTorrent magnet-uri 7.0.10 (the instant.io path)
+  exp_decode_fix.mjs                  claim 4: the proposed R2 fix against the same matrix
+  charmap_check.mjs                   decodes Chromium's kQueryCharmap (base/strings/escape.cc) and compares with encodeURIComponent for bytes 0..255
+  isbrave.mjs                         confirms the Brave binary
+  wkcheck.swift                       build: swiftc -O -o wkcheck wkcheck.swift ; prints one JSON line
+  defhandler.swift                    post-run side-effect check: which app (if any) LaunchServices returns for magnet:, web+magnetweb: (expected: none)
+  fetch.sh                            the fetch helper used for every URL (writes results/fetch-manifest.tsv: UTC time, HTTP status, bytes, sha256 prefix, name, URL)
+                                      (its output directory is hard-coded to the session scratchpad; the downloaded files themselves are NOT copied here)
+The decode scripts import src/common/magnet.js from the live project tree; that file changed at 17:41 ET and may change again.
+
+Not done: no Firefox runtime, no Edge/Opera/Vivaldi, no device (iOS, Android), no installed-PWA protocol launch, no consent-UI observation (headless cannot show it).

@@ -1,0 +1,54 @@
+[
+ {
+  "bundle": "dist/webtorrent.min.js",
+  "engine": "chromium",
+  "version": "156.0.8078.4",
+  "seeder": {
+   "infoHash": "d0037167fc5786a0b755637e93e5995d23e935a4",
+   "done": true,
+   "progress": 1
+  },
+  "infoHashMatchesCreateTorrent": true,
+  "leecher": {
+   "wires": [
+    {
+     "type": "webrtc",
+     "tMs": 141
+    }
+   ],
+   "warnings": [],
+   "errors": [],
+   "metadataMs": 142,
+   "doneMs": 150,
+   "done": true,
+   "sha": "7a080ac26586ee6a40944a11ff6402fc4be9e9f57c39bdebb8b1ca8e85c2e607"
+  },
+  "shaMatches": true
+ },
+ {
+  "bundle": "out/wt-slimnodebug.js",
+  "engine": "chromium",
+  "version": "156.0.8078.4",
+  "seeder": {
+   "infoHash": "d0037167fc5786a0b755637e93e5995d23e935a4",
+   "done": true,
+   "progress": 1
+  },
+  "infoHashMatchesCreateTorrent": true,
+  "leecher": {
+   "wires": [
+    {
+     "type": "webrtc",
+     "tMs": 143
+    }
+   ],
+   "warnings": [],
+   "errors": [],
+   "metadataMs": 145,
+   "doneMs": 152,
+   "done": true,
+   "sha": "7a080ac26586ee6a40944a11ff6402fc4be9e9f57c39bdebb8b1ca8e85c2e607"
+  },
+  "shaMatches": true
+ }
+]

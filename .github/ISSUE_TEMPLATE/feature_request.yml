@@ -1,0 +1,15 @@
+name: Feature request
+description: Propose a capability, an SDK method, a tool or a deployment recipe
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: What problem are you solving?, description: "Who hits it, how often, what they do today" }
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes: { label: Proposal, description: "What you want to exist; API shape if any" }
+    validations: { required: true }
+  - type: textarea
+    id: honesty
+    attributes: { label: Constraints check, description: "How does it behave with nobody online, on a phone on mobile data, and when the host is the only source? See docs/SECURITY-MODEL.md and docs/ARCHITECTURE.md §8." }

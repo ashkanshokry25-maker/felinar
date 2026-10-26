@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Popup</title></head><body><h1 id="h">Popup</h1><script>
+var r = {}; try { r.opener = !!window.opener } catch (e) { r.opener = 'err' }
+try { var t = performance.now(); alert('x'); r.alertMs = Math.round(performance.now() - t) } catch (e) { r.alert = 'threw ' + e.name }
+try { localStorage.setItem('k', 'v'); r.ls = 'ok' } catch (e) { r.ls = 'threw ' + e.name }
+r.origin = location.origin; r.opaque = (self.origin === 'null'); r.top = (window.top === window)
+try { r.sw = !!navigator.serviceWorker && !!navigator.serviceWorker.controller } catch (e) { r.sw = 'err ' + e.name }
+document.title = 'POPUP ' + JSON.stringify(r); window.__r = r
+</script></body></html>

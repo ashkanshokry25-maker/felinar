@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Peer Guestbook: a static site loaded by magnet link, peer-to-peer, with a guestbook kept in a signed log that every visitor copies and verifies.">
+  <title>Peer Guestbook</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="icon" href="/img/peer.png" type="image/png">
+</head>
+<body data-page="home">
+  <header class="site-head">
+    <div class="wrap row">
+      <img class="logo" src="/img/peer.png" alt="" width="40" height="40">
+      <div>
+        <h1>Peer Guestbook</h1>
+        <p class="tagline">Loaded by magnet link, peer-to-peer, from a plain static host. No backend.</p>
+        <p id="unmoderated" class="flags" hidden><span class="badge warn">unmoderated</span> <span class="small muted">No owner key, so nobody can moderate this copy.</span></p>
+      </div>
+    </div>
+    <nav class="wrap site-nav" aria-label="Site">
+      <a href="/" aria-current="page">Guestbook</a>
+      <a href="/members.html">Members</a>
+      <a href="/profile.html">Profile</a>
+      <a href="/about.html">About</a>
+    </nav>
+    <div id="auth-bar" class="wrap auth-bar" hidden>
+      <p id="auth-state" class="small" aria-live="polite"></p>
+      <button type="button" id="sign-in" hidden>Sign in</button>
+      <button type="button" id="sign-out" class="quiet" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="standalone" class="notice" hidden role="status">
+      <strong>Open this site through the felinar loader.</strong>
+      <span>You are looking at the static files directly, so the live parts (peers, site ledger, guestbook) are off.</span>
+      <span id="standalone-why" class="small muted"></span>
+    </div>
+
+    <section class="grid" aria-label="Status">
+      <article class="card" id="live">
+        <h2>Live</h2>
+        <dl class="stats">
+          <div><dt>Peers connected</dt><dd id="peers">-</dd></div>
+          <div><dt>Guestbook posts</dt><dd id="posts">-</dd></div>
+        </dl>
+        <p id="ledger" class="ledger" aria-live="polite" aria-atomic="true">Ledger: waiting for the loader...</p>
+        <p id="sharing" class="small muted" hidden></p>
+        <h3>How this page reached you</h3>
+        <p id="source" class="muted">Waiting for the loader...</p>
+        <p id="transfer" class="small muted" hidden></p>
+        <p id="site-meta" class="small muted"></p>
+      </article>
+
+      <article class="card" id="you">
+        <h2>You <span id="role-badge" class="badge" hidden></span></h2>
+        <p>Your id is <code id="me-short">-</code>. <span id="me-copy">It comes from a signing key that this browser made for this site. The private key stays in this browser unless you export it in the loader's Settings.</span></p>
+        <form id="name-form">
+          <fieldset disabled>
+            <label for="name">Display name</label>
+            <div class="row">
+              <input id="name" name="name" maxlength="48" autocomplete="nickname" enterkeyhint="done" placeholder="for example, Robin">
+              <button type="submit">Save</button>
+            </div>
+          </fieldset>
+        </form>
+        <p class="small muted">Your name is written to the site ledger, so other visitors see it next to your posts.</p>
+      </article>
+    </section>
+
+    <article class="card" id="notice-card">
+      <h2>Notice from the site owner</h2>
+      <p id="notice" class="notice-text muted">No notice has been posted.</p>
+      <form id="notice-form" hidden>
+        <label for="notice-input">Edit the notice (owner and moderators only)</label>
+        <textarea id="notice-input" name="notice" maxlength="1000" rows="3" placeholder="Leave empty to remove the notice"></textarea>
+        <div class="row end"><button type="submit" id="notice-btn">Publish notice</button></div>
+      </form>
+    </article>
+
+    <article class="card" id="guestbook">
+      <h2>Guestbook</h2>
+      <form id="post-form">
+        <fieldset disabled>
+          <label for="msg">Leave a message</label>
+          <textarea id="msg" name="msg" maxlength="280" rows="3" required placeholder="Say hi to the other visitors"></textarea>
+          <div class="row between">
+            <span id="count" class="small muted">0 / 280</span>
+            <button type="submit" id="post-btn">Post</button>
+          </div>
+        </fieldset>
+      </form>
+      <p id="post-note" class="small muted">Each post is signed in your browser and carries a small proof-of-work fee, so posting takes a moment.</p>
+      <ul id="entries" class="entries"></ul>
+      <p id="entries-empty" class="muted">Connecting to the loader...</p>
+    </article>
+
+    <article class="card" id="mod-card">
+      <h2>Moderation</h2>
+      <p id="role-line">Your role on this site: waiting for the loader...</p>
+      <p id="role-help" class="small muted"></p>
+      <p id="mod-howto" class="small muted">The owner names moderators in the site's signed policy, with a key that never enters a browser. A moderator opens the loader's Settings, chooses Import moderator key, and then sees Remove post and Ban author on every post here, plus the notice editor.</p>
+      <p id="unmoderated-note" class="small" hidden>This copy was opened from an unsigned magnet link. It has no owner key, so it has no moderators and nobody can remove posts except their authors.</p>
+      <dl class="facts">
+        <div><dt>Who can post</dt><dd id="pol-writers">-</dd></div>
+        <div><dt>Posting fee</dt><dd id="pol-fee">-</dd></div>
+        <div><dt>Moderators</dt><dd id="pol-mods">-</dd></div>
+        <div><dt>Banned authors</dt><dd id="pol-banned">-</dd></div>
+      </dl>
+    </article>
+
+    <article class="card" id="files">
+      <h2>Ordinary files, delivered peer-to-peer</h2>
+      <p>This page is plain HTML, CSS, an image, a JSON file and a short video. They all came out of one torrent and keep their normal URLs, such as <code>/css/app.css</code> and <code>/media/clip.mp4</code>.</p>
+      <figure class="media">
+        <video id="clip" src="/media/clip.mp4" controls playsinline preload="metadata" width="320" height="180"></video>
+        <figcaption class="small muted">A 4-second H.264 test clip. Seeking sends HTTP Range requests, which the loader's Service Worker answers from the downloaded copy.</figcaption>
+      </figure>
+      <p class="small muted">Read at runtime from <code>/data/about.json</code>: <span data-about="description">...</span></p>
+    </article>
+  </main>
+
+  <footer class="wrap small muted">
+    <p>Static files plus a site ledger: a signed, hash-linked log that every visitor copies and verifies. No backend. <a href="/about.html">How it works</a>.</p>
+    <p>Version <span data-about="version">...</span>, built <span data-about="built">...</span>.</p>
+  </footer>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

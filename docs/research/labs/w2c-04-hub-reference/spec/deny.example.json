@@ -1,0 +1,45 @@
+{
+  "v": 1,
+  "src": "EXAMPLE-b64url-raw-P-256-public-key-65-bytes (the hub key pinned in the loader build)",
+  "seq": 42,
+  "exp": 1795000000,
+  "note": "Shape follows w2b-06-abuse-legal-ops.md R3 (signed, double-hashed client denylist). k = label|btih|host|file; h = sha256 of the lowercase value (file: of the bytes); r = reason code; ref = case id or Lumen URL; t = unix seconds. Removal = publish seq+1 without the entry.",
+  "entries": [
+    {
+      "k": "label",
+      "h": "84cb29b2c78b393c0d30a90d5a9f670267d02d9ec3743fc1800acff8b03bac15",
+      "r": "phishing",
+      "ref": "case-2026-0001",
+      "t": 1791900000
+    },
+    {
+      "k": "label",
+      "h": "afc802e93e7b319a07ef280e3dabefca8c7d74f8a1bcba240a7a5df81415fdfd",
+      "r": "court",
+      "ref": "order-ref-redacted",
+      "t": 1791900600
+    },
+    {
+      "k": "btih",
+      "h": "deb87fabd17715bb31ad4cf4ffb9494eeb15f8d33d85b031a301c64ab3417eaa",
+      "r": "copyright",
+      "ref": "https://lumendatabase.org/notices/EXAMPLE",
+      "t": 1791901200
+    },
+    {
+      "k": "host",
+      "h": "b141fdb948d6b6e4d8cc9a65f132fd570eefe595d8ac65835e8dc6cf7ae00e9a",
+      "r": "tos",
+      "ref": "case-2026-0002",
+      "t": 1791901800
+    },
+    {
+      "k": "file",
+      "h": "bccf91bb0f6329f9aa69dffdb837f1c661c14aa1655beb7ad1ee945475ba1be9",
+      "r": "malware",
+      "ref": "case-2026-0003",
+      "t": 1791902400
+    }
+  ],
+  "sig": "EXAMPLE-b64url-ECDSA-P256-SHA256-raw-r||s-over-the-canonical-JSON-without-sig"
+}

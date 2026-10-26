@@ -1,0 +1,413 @@
+{
+  "pieceLengthTable": [
+    {
+      "bytes": 0,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 0
+    },
+    {
+      "bytes": 1,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 1
+    },
+    {
+      "bytes": 1023,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 1
+    },
+    {
+      "bytes": 1024,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 1
+    },
+    {
+      "bytes": 102400,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 7
+    },
+    {
+      "bytes": 1048576,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 64
+    },
+    {
+      "bytes": 8388608,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 512
+    },
+    {
+      "bytes": 16777216,
+      "calc": 16384,
+      "usedWithDefaultMax4MiB": 16384,
+      "pieces": 1024
+    },
+    {
+      "bytes": 25165824,
+      "calc": 32768,
+      "usedWithDefaultMax4MiB": 32768,
+      "pieces": 768
+    },
+    {
+      "bytes": 33554432,
+      "calc": 32768,
+      "usedWithDefaultMax4MiB": 32768,
+      "pieces": 1024
+    },
+    {
+      "bytes": 67108864,
+      "calc": 65536,
+      "usedWithDefaultMax4MiB": 65536,
+      "pieces": 1024
+    },
+    {
+      "bytes": 134217728,
+      "calc": 131072,
+      "usedWithDefaultMax4MiB": 131072,
+      "pieces": 1024
+    },
+    {
+      "bytes": 268435456,
+      "calc": 262144,
+      "usedWithDefaultMax4MiB": 262144,
+      "pieces": 1024
+    },
+    {
+      "bytes": 536870912,
+      "calc": 524288,
+      "usedWithDefaultMax4MiB": 524288,
+      "pieces": 1024
+    },
+    {
+      "bytes": 1073741824,
+      "calc": 1048576,
+      "usedWithDefaultMax4MiB": 1048576,
+      "pieces": 1024
+    },
+    {
+      "bytes": 2147483648,
+      "calc": 2097152,
+      "usedWithDefaultMax4MiB": 2097152,
+      "pieces": 1024
+    },
+    {
+      "bytes": 4294967296,
+      "calc": 4194304,
+      "usedWithDefaultMax4MiB": 4194304,
+      "pieces": 1024
+    },
+    {
+      "bytes": 8589934592,
+      "calc": 8388608,
+      "usedWithDefaultMax4MiB": 4194304,
+      "pieces": 2048
+    },
+    {
+      "bytes": 17179869184,
+      "calc": 16777216,
+      "usedWithDefaultMax4MiB": 4194304,
+      "pieces": 4096
+    },
+    {
+      "bytes": 68719476736,
+      "calc": 67108864,
+      "usedWithDefaultMax4MiB": 4194304,
+      "pieces": 16384
+    },
+    {
+      "bytes": 274877906944,
+      "calc": 268435456,
+      "usedWithDefaultMax4MiB": 4194304,
+      "pieces": 65536
+    },
+    {
+      "bytes": 1099511627776,
+      "calc": 1073741824,
+      "usedWithDefaultMax4MiB": 4194304,
+      "pieces": 262144
+    }
+  ],
+  "realPieceLengths": [
+    {
+      "bytes": 102400,
+      "pieceLength": 16384,
+      "pieces": 7,
+      "torrentFileBytes": 261
+    },
+    {
+      "bytes": 1048576,
+      "pieceLength": 16384,
+      "pieces": 64,
+      "torrentFileBytes": 1403
+    },
+    {
+      "bytes": 20971520,
+      "pieceLength": 16384,
+      "pieces": 1280,
+      "torrentFileBytes": 25725
+    },
+    {
+      "bytes": 67108864,
+      "pieceLength": 65536,
+      "pieces": 1024,
+      "torrentFileBytes": 20605
+    },
+    {
+      "bytes": 209715200,
+      "pieceLength": 262144,
+      "pieces": 800,
+      "torrentFileBytes": 16127
+    }
+  ],
+  "determinism": {
+    "sameInputThreeRunsIdenticalBytesWithPinnedDate": true,
+    "infoHash": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783",
+    "fileListInTorrent": [
+      {
+        "path": "site/index.html",
+        "length": 11
+      },
+      {
+        "path": "site/css/app.css",
+        "length": 6
+      },
+      {
+        "path": "site/js/app.js",
+        "length": 14
+      },
+      {
+        "path": "site/.well-known/security.txt",
+        "length": 10
+      },
+      {
+        "path": "site/empty.txt",
+        "length": 0
+      },
+      {
+        "path": "site/ünï/cödé.txt",
+        "length": 7
+      }
+    ],
+    "note": ".DS_Store dropped by isJunkPath (dot-prefixed AND in junk list); .well-known/security.txt kept in array mode; zero-length file kept",
+    "unpinnedDateBytesDiffer": true,
+    "unpinnedDateInfoHashSame": true
+  },
+  "creationDateEdgeCases": {
+    "0": 1792272417,
+    "nowSeconds": 1792272416,
+    "new Date(0)": 1792272417,
+    "new Date(1)": 1,
+    "new Date(1000)": 1,
+    "1700000000 (seconds as number)": 1700000
+  },
+  "topLevelKeys": [
+    "creation date",
+    "encoding",
+    "info"
+  ],
+  "infoKeys": [
+    "files",
+    "name",
+    "piece length",
+    "pieces"
+  ],
+  "infoFileEntryKeys": [
+    "length",
+    "path"
+  ],
+  "optionEffects": {
+    "baseline": {
+      "infoHash": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783",
+      "sameAsBaseline": true,
+      "torrentBytes": 357,
+      "files": 6
+    },
+    "comment": {
+      "infoHash": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783",
+      "sameAsBaseline": true,
+      "torrentBytes": 373,
+      "files": 6
+    },
+    "createdBy": {
+      "infoHash": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783",
+      "sameAsBaseline": true,
+      "torrentBytes": 385,
+      "files": 6
+    },
+    "announceList": {
+      "infoHash": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783",
+      "sameAsBaseline": true,
+      "torrentBytes": 441,
+      "files": 6
+    },
+    "urlList": {
+      "infoHash": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783",
+      "sameAsBaseline": true,
+      "torrentBytes": 395,
+      "files": 6
+    },
+    "urlListString": {
+      "infoHash": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783",
+      "sameAsBaseline": true,
+      "torrentBytes": 395,
+      "files": 6
+    },
+    "privateTrue": {
+      "infoHash": "885b99cf4e951db908fb6cecaeb6f10c9e04c513",
+      "sameAsBaseline": false,
+      "torrentBytes": 369,
+      "files": 6
+    },
+    "privateFalse": {
+      "infoHash": "a604f01e7bb2199007a435850504eb7c31fc7a8f",
+      "sameAsBaseline": false,
+      "torrentBytes": 369,
+      "files": 6
+    },
+    "infoSource": {
+      "infoHash": "9d489dc2946cef7325cf86c53d3c818bb9de92af",
+      "sameAsBaseline": false,
+      "torrentBytes": 378,
+      "files": 6
+    },
+    "sslCert": {
+      "infoHash": "83d210578f9858d226c7cb697a36da38e24cfbb9",
+      "sameAsBaseline": false,
+      "torrentBytes": 372,
+      "files": 6
+    },
+    "pieceLength32k": {
+      "infoHash": "e7ce38a720f57e9d931400c42ebf776ff60b4e31",
+      "sameAsBaseline": false,
+      "torrentBytes": 357,
+      "files": 6
+    },
+    "nameOther": {
+      "infoHash": "47a10b0c371a6a91c0e015bf034827d3cab2ed9a",
+      "sameAsBaseline": false,
+      "torrentBytes": 358,
+      "files": 6
+    },
+    "filterJunkOff": {
+      "infoHash": "f8d369794ba7bb29b9335b6ca64645ad5e700c62",
+      "sameAsBaseline": false,
+      "torrentBytes": 389,
+      "files": 7
+    }
+  },
+  "defaultAnnounce": [
+    "udp://tracker.leechers-paradise.org:6969",
+    "udp://tracker.coppersurfer.tk:6969",
+    "udp://tracker.opentrackr.org:1337",
+    "udp://explodie.org:6969",
+    "udp://tracker.empire-js.us:1337",
+    "wss://tracker.btorrent.xyz",
+    "wss://tracker.openwebtorrent.com",
+    "wss://tracker.webtorrent.dev"
+  ],
+  "orderEffect": {
+    "reversedInfoHash": "74b18ef5c3224850a4ce3685b316be04a8481443",
+    "baseline": "ad5ddd1bd27eaee0299cf540c15fa59a29fa3783"
+  },
+  "pieceSpanning": {
+    "totalLength": 48,
+    "pieceLength": 16384,
+    "pieces": 1,
+    "fileOffsets": [
+      [
+        "site/index.html",
+        0,
+        11
+      ],
+      [
+        "site/css/app.css",
+        11,
+        6
+      ],
+      [
+        "site/js/app.js",
+        17,
+        14
+      ],
+      [
+        "site/.well-known/security.txt",
+        31,
+        10
+      ],
+      [
+        "site/empty.txt",
+        41,
+        0
+      ],
+      [
+        "site/ünï/cödé.txt",
+        41,
+        7
+      ]
+    ]
+  },
+  "directoryInput": {
+    "readdirOrderA": [
+      ".htaccess",
+      ".nojekyll",
+      ".well-known",
+      "Beta.txt",
+      "alpha.txt",
+      "index.html",
+      "mid.txt",
+      "sub",
+      "zeta.txt"
+    ],
+    "readdirOrderB": [
+      ".htaccess",
+      ".nojekyll",
+      ".well-known",
+      "Beta.txt",
+      "alpha.txt",
+      "index.html",
+      "mid.txt",
+      "sub",
+      "zeta.txt"
+    ],
+    "filesInTorrentA": [
+      "site/Beta.txt",
+      "site/alpha.txt",
+      "site/index.html",
+      "site/mid.txt",
+      "site/sub/a.txt",
+      "site/sub/z.txt",
+      "site/zeta.txt"
+    ],
+    "filesInTorrentB": [
+      "site/Beta.txt",
+      "site/alpha.txt",
+      "site/index.html",
+      "site/mid.txt",
+      "site/sub/a.txt",
+      "site/sub/z.txt",
+      "site/zeta.txt"
+    ],
+    "sameInfoHashDespiteCreationOrder": true,
+    "hiddenFilesDroppedInDirectoryMode": true,
+    "note": "string/directory input: every dot-file and dot-directory is skipped (notHidden filter), order = fs.readdir order"
+  },
+  "singleFile": {
+    "infoKeys": [
+      "length",
+      "name",
+      "piece length",
+      "pieces"
+    ],
+    "name": "only.bin"
+  },
+  "autoName": {
+    "twoFilesNoPrefix": "a.txt"
+  },
+  "autoNameCommonPrefix": "a"
+}

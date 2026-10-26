@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E6 default store (OPFS): persistence, destroy, chunks-dir wipe at import</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+const R = { steps: [], errors: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e6', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+const ls = async (dir, prefix = '') => { const out = []; for await (const [name, h] of dir.entries()) { out.push(prefix + name + (h.kind === 'directory' ? '/' : '')); if (h.kind === 'directory') out.push(...await ls(h, prefix + name + '/')) } return out }
+try {
+  const root = await navigator.storage.getDirectory()
+  // wipe leftovers from earlier runs in this profile
+  for await (const name of root.keys()) await root.removeEntry(name, { recursive: true })
+  // user-owned dirs created BEFORE webtorrent is imported
+  for (const d of ['chunks', 'mydata']) { const dh = await root.getDirectoryHandle(d, { create: true }); const fh = await dh.getFileHandle('keep.txt', { create: true }); const w = await fh.createWritable(); await w.write('x'); await w.close() }
+  R.beforeImport = await ls(root)
+  const { default: WebTorrent } = await import('./webtorrent.min.js')
+  await sleep(1500)
+  R.afterImport = await ls(root)
+  R.chunksDirSurvivedImport = R.afterImport.includes('chunks/')
+  R.mydataSurvivedImport = R.afterImport.includes('mydata/')
+
+  const mk = (path, text, type) => { const f = new File([text], path.split('/').pop(), { type }); Object.defineProperty(f, 'fullPath', { value: path }); return f }
+  const files = () => [mk('site/index.html', '<h1>x</h1>'.repeat(2000), 'text/html'), mk('site/a.js', 'console.log(1)'.repeat(3000), 'text/javascript')]
+  const opts = { announce: [], name: 'site', pieceLength: 16384 }
+  const c1 = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  const t1 = await new Promise((res, rej) => { const t = c1.seed(files(), opts, res); t.on('error', rej) })
+  R.infoHash = t1.infoHash
+  R.afterSeed = await ls(root)
+  const torrentFile = t1.torrentFile
+  await new Promise(r => t1.destroy(r))            // destroy WITHOUT destroyStore
+  R.afterDestroyKeepStore = await ls(root)
+  await new Promise(r => c1.destroy(r))
+
+  // re-add the same torrent in a fresh client: data should be picked up from OPFS without any network
+  const c2 = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  const t0 = performance.now()
+  const t2 = c2.add(torrentFile, {})
+  let done = false; t2.on('done', () => { done = true })
+  t2.on('error', e => R.errors.push('re-add: ' + e.message))
+  for (let i = 0; i < 100 && !done; i++) await sleep(50)
+  R.reAdd = { doneFromOPFS: done, ms: Math.round(performance.now() - t0), progress: t2.progress }
+  await new Promise(r => t2.destroy({ destroyStore: true }, r))   // destroy WITH destroyStore
+  R.afterDestroyStore = await ls(root)
+  await new Promise(r => c2.destroy(r))
+
+  // destroyStoreOnDestroy option on add
+  const c3 = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  const t3 = await new Promise((res, rej) => { const t = c3.seed(files(), { ...opts, destroyStoreOnDestroy: true }, res); t.on('error', rej) })
+  R.afterSeed3 = await ls(root)
+  await new Promise(r => c3.destroy(r))               // client.destroy -> torrent.destroy
+  await sleep(300)
+  R.afterClientDestroyWithDestroyStoreOnDestroy = await ls(root)
+  const est = await navigator.storage.estimate(); R.estimate = { quota: est.quota, usage: est.usage }
+  R.persisted = await navigator.storage.persisted()
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

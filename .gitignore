@@ -1,0 +1,42 @@
+# dependencies and build output (dist-idp: the identity origin bundle of tools/build-idp.mjs)
+node_modules/
+dist/
+dist-idp/
+dist-idp-test/
+*.tgz
+
+# local tool state: the demo, the pin profile, end-to-end runs and lab checks (.tools/), and orchestration notes
+.tools/
+.orchestration/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+*.bak
+*.orig
+*.rej
+*.swp
+
+# secrets and certificates: owner and moderator keys, mkcert files, any private key or certificate
+*.jwk
+.mw-dev-certs/
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+
+# publish outputs and deploy trees (docs/QUICKSTART.md), release work files (docs/PUBLISH-CHECKLIST.md)
+dist-publish/
+# tools/ship.mjs work directory (v0.3 C2, zero-setup rung 2a)
+dist-ship/
+dist-example*/
+deploy-root/
+release/
+release-notes.md
+pack-list.txt
+ci-logs/
+
+# operator data of deploy/tracker (the allow list)
+deploy/tracker/allow/

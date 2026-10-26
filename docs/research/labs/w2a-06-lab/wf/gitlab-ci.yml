@@ -1,0 +1,55 @@
+# .gitlab-ci.yml (outline; same tools/mw.mjs contract as the GitHub workflows)
+stages: [build, pack, seed, pointer, verify]
+default: { image: 'node:24' }
+variables: { SITE_NAME: site, PIECE_LENGTH: '262144', CDN: 'https://seed.example.com', AWS_REGION: us-east-1 }
+.release_rules: &release_rules
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+build:
+  stage: build
+  <<: *release_rules
+  script:
+    - export SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
+    - npm ci --ignore-scripts && npm run build
+  artifacts: { paths: [dist/], expire_in: 1 week }
+
+pack:
+  stage: pack
+  <<: *release_rules
+  needs: [build]
+  script:
+    - node tools/mw.mjs pack dist --name "$SITE_NAME" --piece-length "$PIECE_LENGTH" --created "$(git log -1 --pretty=%ct)" --out out
+  artifacts: { paths: [out/], expire_in: 90 days }
+
+seed:
+  stage: seed
+  <<: *release_rules
+  needs: [pack]
+  resource_group: mw-publish                  # one deploy at a time; set the process mode (oldest_first) through the API, not in YAML
+  environment: { name: production }
+  id_tokens: { AWS_TOKEN: { aud: 'sts.amazonaws.com' } }   # RS256 JWT, expires at job timeout or after 5 minutes
+  script:
+    - ./ci/aws-web-identity.sh "$SEED_ROLE_ARN"            # sts assume-role-with-web-identity (trust policy on project_id / namespace_id / ref_protected)
+    - ./ci/upload-release.sh out
+    - node tools/mw.mjs seed-verify out/site.torrent "$CDN/r/$(jq -r .rel out/release.json)/" --origin "https://example.com" --retries 6
+
+pointer:
+  stage: pointer
+  <<: *release_rules
+  needs: [seed]
+  resource_group: mw-publish
+  environment: { name: production-dns }
+  when: manual                                # explicit approval gate (protected-environment approvals depend on the GitLab tier: unverified)
+  id_tokens: { AWS_TOKEN: { aud: 'sts.amazonaws.com' } }
+  script:
+    - ./ci/aws-web-identity.sh "$SIGNER_ROLE_ARN" && ./ci/sign-pointer.sh out
+    - ./ci/aws-web-identity.sh "$DNS_ROLE_ARN" && node tools/mw.mjs dns publish route53 --zone "$ZONE_ID" --name "_magnet.example.com" --value-file ptr/pointer.txt --ttl 300 --cas
+
+verify:
+  stage: verify
+  <<: *release_rules
+  needs: [pointer]
+  script:
+    - node tools/mw.mjs dns check "_magnet.example.com" --expect ptr/pointer.txt --authoritative --doh cloudflare,google --wait 15m

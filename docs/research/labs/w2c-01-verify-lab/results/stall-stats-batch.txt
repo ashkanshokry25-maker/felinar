@@ -1,0 +1,36 @@
+# stall-stats batch started 2026-10-17T22:09:01Z  node v24.22.0
+## good-first x8 (20 s)
+{"scenario":"good-first","run":1,"done":false,"ms":20001,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"scenario":"good-first","run":2,"done":false,"ms":20001,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"scenario":"good-first","run":3,"done":false,"ms":20001,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8},{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"scenario":"good-first","run":4,"done":false,"ms":20002,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"scenario":"good-first","run":5,"done":false,"ms":20000,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"scenario":"good-first","run":6,"done":false,"ms":20001,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"scenario":"good-first","run":7,"done":false,"ms":20001,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"scenario":"good-first","run":8,"done":false,"ms":20001,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8},{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8}],"warnings":0,"reqs":["good:28req/2MiB","ignorerange:4req/8MiB"]}
+{"summary":"good-first","runs":8,"completed":0,"stuck":8,"requestsMin":28,"requestsMax":28}
+## ignorerange-first x1 (130 s, past 60 s fetch timeout and 30 s piece timeout)
+{"scenario":"ignorerange-first","run":1,"done":false,"ms":130002,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8},{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8}],"warnings":0,"reqs":["ignorerange:4req/8MiB","good:28req/2MiB"]}
+{"summary":"ignorerange-first","runs":1,"completed":0,"stuck":1,"requestsMin":4,"requestsMax":4}
+## ignorerange-first x4 (20 s)
+{"scenario":"ignorerange-first","run":1,"done":false,"ms":20003,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8},{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8}],"warnings":0,"reqs":["ignorerange:4req/8MiB","good:28req/2MiB"]}
+{"scenario":"ignorerange-first","run":2,"done":false,"ms":20001,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["ignorerange:4req/8MiB","good:28req/2MiB"]}
+{"scenario":"ignorerange-first","run":3,"done":false,"ms":20002,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["ignorerange:4req/8MiB","good:28req/2MiB"]}
+{"scenario":"ignorerange-first","run":4,"done":false,"ms":20002,"missingPieces":4,"downloadedB":1835008,"wires":[{"type":"webSeed","requests":0,"speedBps":0,"downloadedMiB":1.8},{"type":"webSeed","requests":4,"speedBps":0,"downloadedMiB":8}],"warnings":0,"reqs":["ignorerange:4req/8MiB","good:28req/2MiB"]}
+{"summary":"ignorerange-first","runs":4,"completed":0,"stuck":4,"requestsMin":4,"requestsMax":4}
+## corrupt-only x3 (10 s)
+{"scenario":"corrupt-only","run":1,"done":false,"ms":9999,"missingPieces":32,"downloadedB":0,"wires":[{"type":"webSeed","requests":4,"speedBps":384630784,"downloadedMiB":3750.7}],"warnings":60011,"reqs":["corrupt206:60014req/3751MiB"]}
+{"scenario":"corrupt-only","run":2,"done":false,"ms":10000,"missingPieces":32,"downloadedB":0,"wires":[{"type":"webSeed","requests":4,"speedBps":292867277,"downloadedMiB":2981.1}],"warnings":47697,"reqs":["corrupt206:47700req/2981MiB"]}
+{"scenario":"corrupt-only","run":3,"done":false,"ms":10000,"missingPieces":32,"downloadedB":0,"wires":[{"type":"webSeed","requests":4,"speedBps":323905126,"downloadedMiB":3315.4}],"warnings":53046,"reqs":["corrupt206:53047req/3315MiB"]}
+{"summary":"corrupt-only","runs":3,"completed":0,"stuck":3,"requestsMin":47700,"requestsMax":60014}
+## short206-first x3 (20 s)
+{"scenario":"short206-first","run":1,"done":true,"ms":61,"missingPieces":0,"downloadedB":2097152,"wires":[{"type":"webSeed","requests":0,"speedBps":2097152,"downloadedMiB":2},{"type":"webSeed","requests":2,"speedBps":200,"downloadedMiB":0}],"warnings":0,"reqs":["short206:2req/0MiB","good:32req/2MiB"]}
+{"scenario":"short206-first","run":2,"done":true,"ms":17,"missingPieces":0,"downloadedB":2097152,"wires":[{"type":"webSeed","requests":0,"speedBps":2097152,"downloadedMiB":2},{"type":"webSeed","requests":2,"speedBps":200,"downloadedMiB":0}],"warnings":0,"reqs":["short206:2req/0MiB","good:32req/2MiB"]}
+{"scenario":"short206-first","run":3,"done":true,"ms":15,"missingPieces":0,"downloadedB":2097152,"wires":[{"type":"webSeed","requests":2,"speedBps":200,"downloadedMiB":0},{"type":"webSeed","requests":0,"speedBps":2097152,"downloadedMiB":2}],"warnings":0,"reqs":["short206:2req/0MiB","good:32req/2MiB"]}
+{"summary":"short206-first","runs":3,"completed":3,"stuck":0,"requestsMin":2,"requestsMax":2}
+## html200-first x3 (20 s)
+{"scenario":"html200-first","run":1,"done":true,"ms":59,"missingPieces":0,"downloadedB":2097152,"wires":[{"type":"webSeed","requests":0,"speedBps":2097152,"downloadedMiB":2},{"type":"webSeed","requests":2,"speedBps":62,"downloadedMiB":0}],"warnings":0,"reqs":["html200:2req/0MiB","good:32req/2MiB"]}
+{"scenario":"html200-first","run":2,"done":true,"ms":16,"missingPieces":0,"downloadedB":2097152,"wires":[{"type":"webSeed","requests":0,"speedBps":2097152,"downloadedMiB":2},{"type":"webSeed","requests":2,"speedBps":62,"downloadedMiB":0}],"warnings":0,"reqs":["html200:2req/0MiB","good:32req/2MiB"]}
+{"scenario":"html200-first","run":3,"done":true,"ms":15,"missingPieces":0,"downloadedB":2097152,"wires":[{"type":"webSeed","requests":2,"speedBps":62,"downloadedMiB":0},{"type":"webSeed","requests":0,"speedBps":2097152,"downloadedMiB":2}],"warnings":0,"reqs":["html200:2req/0MiB","good:32req/2MiB"]}
+{"summary":"html200-first","runs":3,"completed":3,"stuck":0,"requestsMin":2,"requestsMax":2}
+# batch finished 2026-10-17T22:15:42Z

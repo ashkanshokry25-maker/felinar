@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E10 client.throttleUpload(0) vs extension messages, torrent.pause(), piece upload</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { phases: {}, errors: [], events: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const t00 = performance.now(); const now = () => Math.round(performance.now() - t00)
+const report = async () => { try { await fetch('/report/e10', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = new Map(); this.length = opts.length }
+  put (i, buf, cb = () => {}) { this.chunks.set(i, new Uint8Array(buf)); queueMicrotask(() => cb(null)) }
+  get (i, o, cb) { if (typeof o === 'function') { cb = o; o = {} } const c = this.chunks.get(i); if (!c) { const e = new Error('Chunk not found'); e.notFound = true; return queueMicrotask(() => cb(e)) } const off = (o && o.offset) || 0; const len = (o && o.length) || (c.length - off); queueMicrotask(() => cb(null, c.slice(off, off + len))) }
+  close (cb = () => {}) { queueMicrotask(() => cb(null)) }
+  destroy (cb = () => {}) { this.chunks.clear(); queueMicrotask(() => cb(null)) }
+}
+const sent = []     // {seq, t}
+const recv = []     // {seq, t}
+let wireA = null; let wireB = null
+function makeExt (side) {
+  class Gossip {
+    constructor (wire) { if (side === 'A') wireA = wire; else wireB = wire; this.wire = wire }
+    onMessage (buf) { if (side === 'B') recv.push({ seq: (buf[0] << 8) | buf[1], t: now(), len: buf.length }) }
+  }
+  Gossip.prototype.name = 'ashgossip'
+  return Gossip
+}
+try {
+  const mk = () => new WebTorrent({ dht: false, lsd: false, utPex: false, tracker: { rtcConfig: { iceServers: [] } } })
+  const A = mk(); const B = mk(); const B2 = mk()
+  const TR = 'ws://127.0.0.1:18082'
+  const mkBytes = (n, seed) => { const b = new Uint8Array(n); let x = seed; for (let i = 0; i < n; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; b[i] = x & 255 } return b }
+  const f1 = mkBytes(65536, 11); const f2 = mkBytes(131072, 22)
+  const tA = A.seed(new File([f1], 'one.bin'), { announce: [TR], name: 'one.bin', pieceLength: 16384, store: MemStore })
+  tA.on('wire', w => w.use(makeExt('A')))
+  await new Promise(r => tA.once('ready', r))
+  const tB = B.add(tA.magnetURI, { store: MemStore })
+  tB.on('wire', w => w.use(makeExt('B')))
+  for (let i = 0; i < 100 && !tB.done; i++) await sleep(50)
+  R.baselineDone = tB.done
+  await sleep(300)
+  R.wiresReady = !!(wireA && wireB && wireA.peerExtendedMapping.ashgossip)
+
+  // second torrent from A for the "piece upload while throttle=0" check
+  const tA2 = A.seed(new File([f2], 'two.bin'), { announce: [TR], name: 'two.bin', pieceLength: 16384, store: MemStore })
+  await new Promise(r => tA2.once('ready', r))
+
+  let seq = 0
+  const sender = setInterval(() => { try { const m = new Uint8Array(1024); m[0] = seq >> 8; m[1] = seq & 255; wireA.extended('ashgossip', m); sent.push({ seq, t: now() }); seq++ } catch (e) { R.errors.push('send: ' + e.message) } }, 200)
+
+  const phase = async (name, ms, setup, teardown) => {
+    const t0 = now(); const s0 = sent.length; const r0 = recv.length
+    if (setup) await setup()
+    await sleep(ms)
+    const t1 = now()
+    const duringRecv = recv.filter(m => m.t >= t0 && m.t <= t1).length
+    const sentDuring = sent.filter(m => m.t >= t0 && m.t <= t1).length
+    if (teardown) await teardown()
+    await sleep(1500)
+    const afterRecv = recv.filter(m => m.t > t1 && m.t <= t1 + 1500).length
+    R.phases[name] = { ms, sentDuring, receivedDuring: duringRecv, receivedInNext1500msAfterTeardown: afterRecv, wireAAlive: !wireA.destroyed, wireBAlive: !wireB.destroyed }
+  }
+  await phase('P0_no_throttle', 1500)
+  let b2done = null
+  await phase('P1_throttleUpload_0', 3000,
+    async () => { A.throttleUpload(0); const t2 = B2.add(tA2.magnetURI, { store: MemStore }); t2.once('done', () => { b2done = now() }); R.b2StartedAt = now() },
+    async () => { R.b2DoneBeforeRestore = b2done !== null; A.throttleUpload(-1) })
+  R.b2DoneAfterRestore = await (async () => { for (let i = 0; i < 60 && b2done === null; i++) await sleep(100); return b2done !== null })()
+  await phase('P3_throttleUpload_2048Bps', 3000, async () => { A.throttleUpload(2048) }, async () => { A.throttleUpload(-1) })
+  await phase('P4_torrent_pause', 1500, async () => { tA.pause() }, async () => { tA.resume() })
+  clearInterval(sender)
+  R.totals = { sent: sent.length, received: recv.length, dupOrMissing: sent.length - recv.length }
+  R.firstRecvOutOfOrder = recv.some((m, i) => i > 0 && m.seq < recv[i - 1].seq)
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

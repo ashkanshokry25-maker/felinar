@@ -1,0 +1,674 @@
+## GitHub Pages png https://pages.github.com/images/slideshow/bootstrap.png
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        accept-ranges: bytes
+        content-range: bytes 0-99/156915
+        content-length: 100
+        content-type: image/png
+        cache-control: max-age=600
+        server: GitHub.com
+        via: 1.1 varnish
+        vary: Accept-Encoding
+        x-cache: HIT
+        age: 0
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 405
+        accept-ranges: bytes
+        content-length: 131
+        server: Varnish
+        via: 1.1 varnish
+        x-cache: MISS
+   OPTIONS range-only -> HTTP/2 405
+        accept-ranges: bytes
+        content-length: 131
+        server: Varnish
+        via: 1.1 varnish
+        x-cache: MISS
+## GitHub Pages css https://pages.github.com/css/pages.css
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        accept-ranges: bytes
+        content-range: bytes 0-99/3412
+        content-length: 100
+        content-encoding: gzip
+        content-type: text/css; charset=utf-8
+        cache-control: max-age=600
+        server: GitHub.com
+        via: 1.1 varnish
+        vary: Accept-Encoding
+        x-cache: HIT
+        age: 0
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 405
+        accept-ranges: bytes
+        content-length: 131
+        server: Varnish
+        via: 1.1 varnish
+        x-cache: MISS
+   OPTIONS range-only -> HTTP/2 405
+        accept-ranges: bytes
+        content-length: 131
+        server: Varnish
+        via: 1.1 varnish
+        x-cache: MISS
+## Netlify woff2 https://vuejs.org/assets/inter-roman-latin.Cy4MYw_J.woff2
+   GET Range 0-99 -> HTTP/2 206
+        accept-ranges: bytes
+        content-range: bytes 0-99/71624
+        content-length: 100
+        content-type: font/woff2
+        cache-control: max-age=31536000,immutable
+        server: Netlify
+        age: 82925
+        strict-transport-security: max-age=31536000
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 200
+        content-length: 0
+        cache-control: max-age=31536000,immutable
+        server: Netlify
+        age: 0
+        strict-transport-security: max-age=31536000
+   OPTIONS range-only -> HTTP/2 200
+        content-length: 0
+        cache-control: max-age=31536000,immutable
+        server: Netlify
+        age: 0
+        strict-transport-security: max-age=31536000
+## Netlify js https://vuejs.org/assets/app.B91ytTIH.js
+   GET Range 0-99 -> HTTP/2 206
+        accept-ranges: bytes
+        content-range: bytes 0-99/7959
+        content-length: 100
+        content-type: application/javascript; charset=UTF-8
+        cache-control: max-age=31536000,immutable
+        server: Netlify
+        vary: Accept-Encoding
+        age: 71720
+        strict-transport-security: max-age=31536000
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 200
+        content-length: 0
+        cache-control: max-age=31536000,immutable
+        server: Netlify
+        age: 0
+        strict-transport-security: max-age=31536000
+   OPTIONS range-only -> HTTP/2 200
+        content-length: 0
+        cache-control: max-age=31536000,immutable
+        server: Netlify
+        age: 0
+        strict-transport-security: max-age=31536000
+## Vercel woff2 https://react.dev/fonts/Source-Code-Pro-Regular.woff2
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        accept-ranges: bytes
+        content-range: bytes 0-99/76348
+        content-length: 100
+        content-type: font/woff2
+        cache-control: public, max-age=31536000, immutable
+        server: Vercel
+        age: 243282
+        strict-transport-security: max-age=63072000
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 204
+        cache-control: public, max-age=31536000, immutable
+        server: Vercel
+        strict-transport-security: max-age=63072000
+   OPTIONS range-only -> HTTP/2 204
+        cache-control: public, max-age=31536000, immutable
+        server: Vercel
+        strict-transport-security: max-age=63072000
+## Cloudflare docs png https://developers.cloudflare.com/favicon.png
+   GET Range 0-99 -> HTTP/2 200
+        access-control-allow-origin: *
+        content-length: 1900
+        content-type: image/png
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: accept-encoding
+        cf-cache-status: HIT
+        strict-transport-security: max-age=15552000; preload
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 405
+        access-control-allow-origin: *
+        content-length: 0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: accept-encoding
+        strict-transport-security: max-age=15552000; preload
+   OPTIONS range-only -> HTTP/2 405
+        access-control-allow-origin: *
+        content-length: 0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: accept-encoding
+        strict-transport-security: max-age=15552000; preload
+## Cloudflare docs svg https://developers.cloudflare.com/_astro/logo.te5VL_aD.svg
+   GET Range 0-99 -> HTTP/2 200
+        access-control-allow-origin: *
+        content-encoding: br
+        content-type: image/svg+xml
+        cache-control: public, max-age=604800, immutable
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: accept-encoding
+        cf-cache-status: HIT
+        strict-transport-security: max-age=15552000; preload
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 405
+        access-control-allow-origin: *
+        content-length: 0
+        cache-control: public, max-age=604800, immutable
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: accept-encoding
+        strict-transport-security: max-age=15552000; preload
+   OPTIONS range-only -> HTTP/2 405
+        access-control-allow-origin: *
+        content-length: 0
+        cache-control: public, max-age=604800, immutable
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: accept-encoding
+        strict-transport-security: max-age=15552000; preload
+## Bunny jpg https://bunny.net/images/bunnynet-the-best-content-delivery-network-cdn.jpg
+   GET Range 0-99 -> HTTP/2 206
+        content-range: bytes 0-99/258788
+        content-length: 100
+        content-type: image/jpeg
+        cache-control: public, max-age=0
+        server: BunnyCDN-CA1-1025
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 403
+        content-length: 2334
+        content-type: text/html
+        cache-control: no-cache, no-store, max-age=0
+        server: BunnyCDN-CA1-1025
+        vary: Accept-Encoding
+   OPTIONS range-only -> HTTP/2 403
+        content-length: 2334
+        content-type: text/html
+        cache-control: no-cache, no-store, max-age=0
+        server: BunnyCDN-CA1-1025
+        vary: Accept-Encoding
+## Bunny svg https://bunny.net/images/bunny-cdn-icon-modern.svg
+   GET Range 0-99 -> HTTP/2 200
+        content-encoding: br
+        content-type: image/svg+xml
+        cache-control: public, max-age=0
+        server: BunnyCDN-CA1-1025
+        vary: Accept-Encoding
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 403
+        content-length: 2334
+        content-type: text/html
+        cache-control: no-cache, no-store, max-age=0
+        server: BunnyCDN-CA1-1025
+        vary: Accept-Encoding
+   OPTIONS range-only -> HTTP/2 403
+        content-length: 2334
+        content-type: text/html
+        cache-control: no-cache, no-store, max-age=0
+        server: BunnyCDN-CA1-1025
+        vary: Accept-Encoding
+## B2 f001 js https://f001.backblazeb2.com/file/backblaze-com-assets/codeSamples.js
+   GET Range 0-99 -> HTTP/1.1 206
+        accept-ranges: bytes
+        content-range: bytes 0-99/277989
+        content-length: 100
+        content-type: application/javascript
+        strict-transport-security: max-age=63072000
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/1.1 401
+        content-length: 136
+        content-type: application/json;charset=utf-8
+        cache-control: max-age=0, no-cache, no-store
+        strict-transport-security: max-age=63072000
+   OPTIONS range-only -> HTTP/1.1 401
+        content-length: 136
+        content-type: application/json;charset=utf-8
+        cache-control: max-age=0, no-cache, no-store
+        strict-transport-security: max-age=63072000
+## DO Spaces CDN svg https://product-docs.nyc3.cdn.digitaloceanspaces.com/ai-agent-icon.svg
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-allow-methods: GET
+        access-control-max-age: 0
+        content-range: bytes 0-99/3151
+        content-length: 100
+        content-type: image/svg+xml
+        cache-control: max-age=3600
+        server: cloudflare
+        vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method
+        cf-cache-status: MISS
+        strict-transport-security: max-age=15552000; includeSubDomains; preload
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 403
+        accept-ranges: bytes
+        content-length: 249
+        content-type: application/xml
+        cache-control: max-age=0
+        server: cloudflare
+        vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method
+        cf-cache-status: DYNAMIC
+        strict-transport-security: max-age=15552000; includeSubDomains; preload
+   OPTIONS range-only -> HTTP/2 403
+        accept-ranges: bytes
+        content-length: 249
+        content-type: application/xml
+        cache-control: max-age=0
+        server: cloudflare
+        vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method
+        cf-cache-status: DYNAMIC
+        strict-transport-security: max-age=15552000; includeSubDomains; preload
+## Storj linkshare png https://link.us1.storjshare.io/raw/jua7rls6hkx5556qfcmhrqed2tfa/docs/images/6lBTvetkB98edSAjvyB_q_root.png
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-allow-headers: *
+        access-control-allow-methods: GET, HEAD
+        accept-ranges: bytes
+        content-range: bytes 0-99/37827
+        content-length: 100
+        content-type: image/png
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: *
+        access-control-allow-methods: GET, HEAD
+        content-length: 0
+   OPTIONS range-only -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: *
+        access-control-allow-methods: GET, HEAD
+        content-length: 0
+## S3 default (noaa-goes16) https://noaa-goes16.s3.amazonaws.com/index.html
+   GET Range 0-99 -> HTTP/1.1 206 Partial Content
+        access-control-allow-origin: *
+        access-control-allow-methods: GET
+        access-control-max-age: 3000
+        accept-ranges: bytes
+        content-range: bytes 0-99/32357
+        content-length: 100
+        content-encoding: text/html
+        content-type: text/html
+        server: AmazonS3
+        vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/1.1 200 OK
+        access-control-allow-origin: *
+        access-control-allow-headers: cache-control, range, user-agent
+        access-control-allow-methods: GET
+        access-control-max-age: 3000
+        content-length: 0
+        server: AmazonS3
+        vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method
+   OPTIONS range-only -> HTTP/1.1 200 OK
+        access-control-allow-origin: *
+        access-control-allow-headers: range
+        access-control-allow-methods: GET
+        access-control-max-age: 3000
+        content-length: 0
+        server: AmazonS3
+        vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method
+## Blossom primal https://blossom.primal.net/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf
+   GET Range 0-99 -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: *
+        access-control-allow-methods: *
+        content-length: 184292
+        content-type: application/pdf
+        server: nginx
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: Authorization, *
+        access-control-allow-methods: GET, PUT, DELETE
+        content-length: 2
+        content-type: text/plain
+        server: nginx
+   OPTIONS range-only -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: Authorization, *
+        access-control-allow-methods: GET, PUT, DELETE
+        content-length: 2
+        content-type: text/plain
+        server: nginx
+## Blossom satellite https://cdn.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf
+   GET Range 0-99 -> HTTP/1.1 302 Found
+        access-control-allow-origin: https://example.org
+        content-length: 0
+        server: nginx/1.24.0 (Ubuntu)
+        vary: Origin
+        location: https://blob.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553
+   OPTIONS stock (cache-control,range,user-agent) -> ERR rc=28 
+   OPTIONS range-only -> HTTP/1.1 204 No Content
+        access-control-allow-origin: https://example.org
+        access-control-allow-headers: range
+        access-control-allow-methods: GET, POST, PUT, DELETE, HEAD, OPTIONS
+        content-length: 0
+        server: nginx/1.24.0 (Ubuntu)
+        vary: Origin, Access-Control-Request-Headers
+## Blossom nostr.download https://nostr.download/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-expose-headers: x-reason,x-identical-media,sunset
+        accept-ranges: bytes
+        content-range: bytes 0-99/184292
+        content-type: application/pdf
+        cache-control: max-age=31536000, immutable
+        vary: origin, access-control-request-method, access-control-request-headers
+        strict-transport-security: max-age=31536000; includeSubDomains
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: authorization,content-type,x-sha-256,x-content-length,x-content-type,x-identical-media,*
+        access-control-allow-methods: GET,HEAD,PUT,POST,DELETE,OPTIONS
+        content-length: 0
+        vary: origin, access-control-request-method, access-control-request-headers
+        strict-transport-security: max-age=31536000; includeSubDomains
+   OPTIONS range-only -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: authorization,content-type,x-sha-256,x-content-length,x-content-type,x-identical-media,*
+        access-control-allow-methods: GET,HEAD,PUT,POST,DELETE,OPTIONS
+        content-length: 0
+        vary: origin, access-control-request-method, access-control-request-headers
+        strict-transport-security: max-age=31536000; includeSubDomains
+## Blossom hzrd149 https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-expose-headers: X-Reason,Content-Range
+        accept-ranges: bytes
+        content-range: bytes 0-99/184292
+        content-length: 100
+        content-type: application/pdf
+        cache-control: public, max-age=31536000, immutable
+        via: 1.1 Caddy
+        alt-svc: h3=":443"; ma=2592000
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 204
+        access-control-allow-origin: *
+        access-control-allow-headers: Authorization,Content-Type,*
+        access-control-allow-methods: GET,HEAD,PUT,DELETE,OPTIONS
+        access-control-expose-headers: X-Reason,Content-Range
+        access-control-max-age: 86400
+        via: 1.1 Caddy
+        alt-svc: h3=":443"; ma=2592000
+        vary: Access-Control-Request-Headers
+   OPTIONS range-only -> HTTP/2 204
+        access-control-allow-origin: *
+        access-control-allow-headers: Authorization,Content-Type,*
+        access-control-allow-methods: GET,HEAD,PUT,DELETE,OPTIONS
+        access-control-expose-headers: X-Reason,Content-Range
+        access-control-max-age: 86400
+        via: 1.1 Caddy
+        alt-svc: h3=":443"; ma=2592000
+        vary: Access-Control-Request-Headers
+## IPFS ipfs.io https://ipfs.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> HTTP/2 429
+        access-control-allow-origin: *
+        access-control-expose-headers: Retry-After, Sunset
+        content-length: 175
+        content-type: text/plain; charset=utf-8
+        cache-control: public, max-age=900
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: Sec-Fetch-Dest, Sec-Fetch-Mode, Origin
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 525
+        content-length: 16
+        content-type: text/plain; charset=UTF-8
+        cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+   OPTIONS range-only -> HTTP/2 521
+        content-length: 16
+        content-type: text/plain; charset=UTF-8
+        cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+## IPFS dweb.link https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> HTTP/2 429
+        access-control-allow-origin: *
+        access-control-expose-headers: Retry-After, Sunset
+        content-length: 175
+        content-type: text/plain; charset=utf-8
+        cache-control: public, max-age=900
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        vary: Sec-Fetch-Dest, Sec-Fetch-Mode, Origin
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 521
+        content-length: 16
+        content-type: text/plain; charset=UTF-8
+        cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+   OPTIONS range-only -> HTTP/2 521
+        content-length: 16
+        content-type: text/plain; charset=UTF-8
+        cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+## IPFS w3s.link https://w3s.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> ERR rc=7 
+   OPTIONS stock (cache-control,range,user-agent) -> ERR rc=7 
+   OPTIONS range-only -> ERR rc=7 
+## IPFS storacha.link https://storacha.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> HTTP/2 301
+        content-type: text/html; charset=UTF-8
+        server: cloudflare
+        location: https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 301
+        content-type: text/html; charset=UTF-8
+        server: cloudflare
+        location: https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   OPTIONS range-only -> HTTP/2 301
+        content-type: text/html; charset=UTF-8
+        server: cloudflare
+        location: https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+## IPFS pinata gw https://gateway.pinata.cloud/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-allow-headers: Content-Type | Range | User-Agent | X-Requested-With
+        access-control-allow-methods: GET | HEAD | OPTIONS
+        access-control-expose-headers: Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output
+        content-range: bytes 0-99/184292
+        content-length: 100
+        content-type: application/pdf
+        cache-control: public, max-age=29030400
+        server: cloudflare
+        cf-cache-status: MISS
+        strict-transport-security: max-age=31536000; includeSubDomains
+        x-ipfs-path: /ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 204
+        access-control-allow-origin: *
+        access-control-allow-methods: HEAD, GET, OPTIONS
+        server: cloudflare
+   OPTIONS range-only -> HTTP/2 204
+        access-control-allow-origin: *
+        access-control-allow-methods: HEAD, GET, OPTIONS
+        server: cloudflare
+## IPFS filebase https://ipfs.filebase.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-allow-headers: Content-Type, Range, User-Agent, X-Requested-With
+        access-control-allow-methods: GET, HEAD
+        access-control-expose-headers: Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output
+        access-control-max-age: 1728000
+        content-range: bytes 0-99/184292
+        content-length: 100
+        content-type: application/pdf
+        cache-control: public, max-age=29030400, immutable
+        server: Filebase
+        x-ipfs-path: /ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 204
+        access-control-allow-origin: *
+        access-control-allow-headers: Content-Type, Range, User-Agent, X-Requested-With
+        access-control-allow-methods: GET, HEAD
+        access-control-expose-headers: Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output
+        access-control-max-age: 1728000
+        server: Filebase
+   OPTIONS range-only -> HTTP/2 204
+        access-control-allow-origin: *
+        access-control-allow-headers: Content-Type, Range, User-Agent, X-Requested-With
+        access-control-allow-methods: GET, HEAD
+        access-control-expose-headers: Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output
+        access-control-max-age: 1728000
+        server: Filebase
+## IPFS trustless-gateway.link https://trustless-gateway.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> HTTP/2 522
+        content-length: 7286
+        content-type: text/html; charset=UTF-8
+        cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 522
+        content-length: 16
+        content-type: text/plain; charset=UTF-8
+        cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+   OPTIONS range-only -> HTTP/2 525
+        content-length: 16
+        content-type: text/plain; charset=UTF-8
+        cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+## IPFS 4everland https://4everland.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> HTTP/2 301
+        access-control-allow-origin: *
+        access-control-allow-headers: Content-Type | Range | User-Agent | X-Requested-With
+        access-control-allow-methods: GET | HEAD | OPTIONS
+        access-control-expose-headers: Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output
+        content-type: text/html; charset=utf-8
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        cf-cache-status: MISS
+        location: https://bafybeibj3nf4iyxt2guxihs77sylpuwu4l4yn4cfqumpc2xplxgxt4ssoa.ipfs.4everland.io/
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 301
+        access-control-allow-origin: *
+        access-control-allow-headers: Content-Type | Range | User-Agent | X-Requested-With
+        access-control-allow-methods: GET | HEAD | OPTIONS
+        access-control-expose-headers: Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output
+        content-length: 0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        cf-cache-status: DYNAMIC
+        location: https://bafybeibj3nf4iyxt2guxihs77sylpuwu4l4yn4cfqumpc2xplxgxt4ssoa.ipfs.4everland.io/
+   OPTIONS range-only -> HTTP/2 301
+        access-control-allow-origin: *
+        access-control-allow-headers: Content-Type | Range | User-Agent | X-Requested-With
+        access-control-allow-methods: GET | HEAD | OPTIONS
+        access-control-expose-headers: Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output
+        content-length: 0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        cf-cache-status: DYNAMIC
+        location: https://bafybeibj3nf4iyxt2guxihs77sylpuwu4l4yn4cfqumpc2xplxgxt4ssoa.ipfs.4everland.io/
+## IPFS cloudflare-ipfs https://cloudflare-ipfs.com/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj
+   GET Range 0-99 -> ERR rc=6 
+   OPTIONS stock (cache-control,range,user-agent) -> ERR rc=6 
+   OPTIONS range-only -> ERR rc=6 
+## jsDelivr npm https://cdn.jsdelivr.net/npm/webtorrent@3.0.21/dist/webtorrent.min.js
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-expose-headers: *
+        accept-ranges: bytes
+        content-range: bytes 0-99/66074
+        content-length: 100
+        content-encoding: br
+        content-type: application/javascript; charset=utf-8
+        cache-control: public, max-age=31536000, s-maxage=31536000, immutable
+        alt-svc: h3=":443";ma=86400,h3-29=":443";ma=86400,h3-27=":443";ma=86400
+        vary: Accept-Encoding
+        x-cache: HIT, HIT
+        age: 1415978
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-expose-headers: *
+        accept-ranges: bytes
+        content-length: 0
+        cache-control: public, max-age=86400
+        alt-svc: h3=":443";ma=86400,h3-29=":443";ma=86400,h3-27=":443";ma=86400
+        vary: Accept-Encoding
+        x-cache: MISS, MISS
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+   OPTIONS range-only -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-expose-headers: *
+        accept-ranges: bytes
+        content-length: 0
+        cache-control: public, max-age=86400
+        alt-svc: h3=":443";ma=86400,h3-29=":443";ma=86400,h3-27=":443";ma=86400
+        vary: Accept-Encoding
+        x-cache: MISS, MISS
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+## unpkg npm https://unpkg.com/webtorrent@3.0.21/dist/webtorrent.min.js
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        access-control-allow-headers: *
+        access-control-allow-methods: GET, HEAD, OPTIONS
+        access-control-expose-headers: *
+        content-range: bytes 0-99/222929
+        content-length: 100
+        content-type: text/javascript; charset=utf-8
+        cache-control: public, max-age=31536000
+        server: cloudflare
+        via: 1.1 fly.io
+        alt-svc: h3=":443"; ma=86400
+        vary: accept-encoding
+        cf-cache-status: HIT
+        age: 1931
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: *
+        access-control-allow-methods: GET, HEAD, OPTIONS, POST
+        content-length: 0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+   OPTIONS range-only -> HTTP/2 200
+        access-control-allow-origin: *
+        access-control-allow-headers: *
+        access-control-allow-methods: GET, HEAD, OPTIONS, POST
+        content-length: 0
+        server: cloudflare
+        alt-svc: h3=":443"; ma=86400
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+## GitHub raw https://raw.githubusercontent.com/hzrd149/blossom/master/buds/01.md
+   GET Range 0-99 -> HTTP/2 206
+        access-control-allow-origin: *
+        accept-ranges: bytes
+        content-range: bytes 0-99/2688
+        content-length: 100
+        content-encoding: gzip
+        content-type: text/plain; charset=utf-8
+        cache-control: max-age=300
+        via: 1.1 varnish
+        vary: Authorization,Accept-Encoding
+        x-cache: MISS
+        strict-transport-security: max-age=31536000
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 403
+        access-control-allow-origin: *
+        accept-ranges: bytes
+        content-type: text/html; charset=utf-8
+        cache-control: no-cache
+        via: 1.1 varnish
+        vary: Authorization,Accept-Encoding
+        x-cache: MISS
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+   OPTIONS range-only -> HTTP/2 403
+        access-control-allow-origin: *
+        accept-ranges: bytes
+        content-type: text/html; charset=utf-8
+        cache-control: no-cache
+        via: 1.1 varnish
+        vary: Authorization,Accept-Encoding
+        x-cache: MISS
+        strict-transport-security: max-age=31536000; includeSubDomains; preload
+## CloudFront aws.amazon.com static https://a0.awsstatic.com/libra-css/images/logos/aws_smile-header-desktop-en-white_59x35.png
+   GET Range 0-99 -> HTTP/2 206
+        content-range: bytes 0-99/2278
+        content-length: 100
+        content-type: image/png
+        cache-control: max-age=31536000
+        server: AmazonS3
+        via: 1.1 978311a6a9634c2382984c17b7233a28.cloudfront.net (CloudFront)
+        alt-svc: h3=":443"; ma=86400
+        x-cache: Miss from cloudfront
+   OPTIONS stock (cache-control,range,user-agent) -> HTTP/2 403
+        content-type: application/xml
+        server: AmazonS3
+        via: 1.1 c6adbb6591d0fc149fcaa981b4104ccc.cloudfront.net (CloudFront)
+        alt-svc: h3=":443"; ma=86400
+        x-cache: Error from cloudfront
+   OPTIONS range-only -> HTTP/2 403
+        content-type: application/xml
+        server: AmazonS3
+        via: 1.1 9b4290f9c8982cac782653af1b9237a0.cloudfront.net (CloudFront)
+        alt-svc: h3=":443"; ma=86400
+        x-cache: Error from cloudfront

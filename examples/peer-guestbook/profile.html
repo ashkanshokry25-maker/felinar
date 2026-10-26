@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Your profile on the Peer Guestbook example: your public name, your private record, your recovery kit and your devices.">
+  <title>Profile - Peer Guestbook</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="icon" href="/img/peer.png" type="image/png">
+</head>
+<body data-page="profile">
+  <header class="site-head">
+    <div class="wrap row">
+      <img class="logo" src="/img/peer.png" alt="" width="40" height="40">
+      <div>
+        <h1>Your profile</h1>
+        <p class="tagline">Your public name, your private record, and how to get back in.</p>
+      </div>
+    </div>
+    <nav class="wrap site-nav" aria-label="Site">
+      <a href="/">Guestbook</a>
+      <a href="/members.html">Members</a>
+      <a href="/profile.html" aria-current="page">Profile</a>
+      <a href="/about.html">About</a>
+    </nav>
+    <div id="auth-bar" class="wrap auth-bar" hidden>
+      <p id="auth-state" class="small" aria-live="polite"></p>
+      <button type="button" id="sign-in" hidden>Sign in</button>
+      <button type="button" id="sign-out" class="quiet" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="standalone" class="notice" hidden role="status">
+      <strong>Open this site through the felinar loader.</strong>
+      <span>You are looking at the static files directly, so signing in and your record are off.</span>
+      <span id="standalone-why" class="small muted"></span>
+    </div>
+
+    <article class="card" id="profile-old" hidden>
+      <h2>This loader cannot sign you in</h2>
+      <p>The loader that opened this page is older than the version with sign-in. It signs with a key that this browser made for this site, and it has no profile, recovery kit or private record.</p>
+    </article>
+
+    <article class="card" id="profile-guest" hidden>
+      <h2>Sign in to see your profile</h2>
+      <p>You are browsing as a guest. Sign in opens the felinar identity page in its own window. This site gets a key that works only here. It cannot see your other sites. Code on this site can act as you here while you are signed in.</p>
+      <div class="row"><button type="button" id="profile-sign-in">Sign in</button></div>
+    </article>
+
+    <div id="profile-signed" class="stack" hidden>
+      <article class="card" id="identity-card">
+        <h2>Your identity</h2>
+        <dl class="facts">
+          <div><dt>Public name</dt><dd id="pf-name">-</dd></div>
+          <div><dt>Id</dt><dd id="pf-short">-</dd></div>
+        </dl>
+        <p class="small muted">Your name is written to the site ledger, so other visitors see it next to your posts. You can change it on the <a href="/">guestbook page</a>.</p>
+        <p class="small muted" id="pf-scripts">Scripts on this page can act as you on this site while you are signed in. They cannot reach your other sites.</p>
+      </article>
+
+      <article class="card" id="record-card">
+        <h2>Your private record</h2>
+        <p id="rec-privacy"><strong>Encrypted. The site can read it while you are signed in.</strong></p>
+        <p class="small muted" id="rec-readers">Other visitors and anyone holding a copy of the ledger see only ciphertext. The site's own code can read your record while you are signed in.</p>
+        <form id="rec-form" novalidate>
+          <div class="field">
+            <label for="rec-display">Private nickname</label>
+            <input id="rec-display" name="display" maxlength="60" autocomplete="off" placeholder="Shown only to you">
+          </div>
+          <div class="field">
+            <label for="rec-link">Your own link</label>
+            <input id="rec-link" name="link" type="url" inputmode="url" maxlength="200" autocomplete="off" placeholder="https://">
+            <p class="small muted">Kept with your record. It is not shown to other visitors.</p>
+          </div>
+          <div class="row wrap">
+            <button type="button" id="rec-load" class="quiet">Show my record</button>
+            <button type="submit" id="rec-save">Save</button>
+          </div>
+          <p id="rec-status" class="small state-line" aria-live="polite">Tap Show my record to open it. Opening your record asks you to confirm once per visit.</p>
+        </form>
+        <label class="check" for="rec-sync"><input type="checkbox" id="rec-sync"><span>Keep an encrypted copy on this site's ledger</span></label>
+        <p class="small muted" id="rec-sync-note">An encrypted copy goes into this site's ledger, which every visitor copies. Nobody without your keys can read it. Copies kept by others stay even after you remove it.</p>
+        <div id="rec-erase-slot" class="row"></div>
+        <p class="small muted">Removing your private data hides your encrypted record from copies that sync and destroys the key for this site. Your browser asks you to confirm.</p>
+      </article>
+
+      <article class="card" id="recovery-card">
+        <h2>Recovery and devices</h2>
+        <p>Your recovery kit and the list of your devices are kept on the felinar identity page, not on this site. These buttons open it in its own window. felinar never asks for your 12 words on the site you are signing in to.</p>
+        <div class="row wrap">
+          <button type="button" id="open-kit">Recovery kit</button>
+          <button type="button" id="open-link" class="quiet">Link another device</button>
+        </div>
+        <dl class="facts" id="backup-status">
+          <div><dt>Recovery kit</dt><dd id="bk-kit">-</dd></div>
+          <div><dt>Backup file</dt><dd id="bk-file">-</dd></div>
+          <div><dt>Passkey</dt><dd id="bk-passkey">-</dd></div>
+          <div><dt>Kept by this browser</dt><dd id="bk-persisted">-</dd></div>
+        </dl>
+        <p class="small" id="bk-legacy" hidden>This identity started as a key made by an older version of this site. Open the identity page to move it to your new identity.</p>
+        <p class="small muted" id="bk-ios">Safari deletes this page's data after 7 days without a visit. Save your recovery kit now. The sites you sign in to keep a sealed copy for this device.</p>
+      </article>
+
+      <article class="card" id="signout-card">
+        <h2>Sign out</h2>
+        <p>Sign out deletes this site's keys from this browser. Signing in again takes one tap.</p>
+        <div class="row wrap">
+          <button type="button" id="pf-sign-out">Sign out</button>
+          <button type="button" id="pf-forget" class="quiet">Remove from this device</button>
+        </div>
+        <p class="small muted">Remove from this device. This deletes your working keys, saved copies and caches on this device. Nothing changes for other people. You can sign in again.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="wrap small muted">
+    <p><a href="/">Back to the guestbook</a>. Part of the felinar example.</p>
+  </footer>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module" src="/js/profile.js"></script>
+</body>
+</html>

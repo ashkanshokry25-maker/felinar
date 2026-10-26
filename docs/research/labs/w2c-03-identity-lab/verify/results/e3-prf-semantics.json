@@ -1,0 +1,41 @@
+{
+ "chromium": "156.0.8078.4",
+ "A": {
+  "caps": {
+   "prf": true,
+   "relatedOrigins": true,
+   "hybridTransport": true
+  },
+  "createEmpty": {
+   "enabled": true,
+   "hasResults": false
+  },
+  "createWithEval": {
+   "enabled": true,
+   "hasResults": true
+  },
+  "get": {
+   "len": 32,
+   "stable": true,
+   "saltSeparated": true,
+   "secondEqualsFirstOfSameSalt": true,
+   "hasEnabledAtGet": false
+  },
+  "secondCredentialDiffers": true,
+  "evalByCredential": {
+   "equalsEval": true
+  },
+  "_ids": {
+   "c1": [
+    209,
+    189,
+    121,
+    185,
+    209,
+    197,
+    187,
+    201
+   ]
+  }
+ }
+}

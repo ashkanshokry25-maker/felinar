@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>leech</title>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const MODE = q.get('mode') || 'file';      // 'file' = .torrent bytes known (xs-like), 'magnet' = infohash only (ut_metadata)
+const PRIO = q.get('prio') || 'none';       // 'none' | 'prio'
+const TR = q.get('tr'); const WSURL = q.get('ws') || ''; const MAXWEB = +(q.get('maxweb') || 0); const NOPEERS = q.get('nopeers') === '1';
+const CRIT = (q.get('crit') || '').split(',').filter(Boolean);
+const marks = {}; let T0 = 0; const mark = (k, extra) => { if (marks[k] === undefined) marks[k] = +(performance.now() - T0).toFixed(1); if (extra !== undefined) marks[k + '_x'] = extra; };
+// WebSocket instrumentation (tracker)
+const OrigWS = window.WebSocket;
+window.WebSocket = class extends OrigWS {
+  constructor(...a) { super(...a); mark('ws_new'); this.addEventListener('open', () => mark('ws_open')); this.addEventListener('message', ev => { try { const j = JSON.parse(ev.data); if (j.offer) mark('offer_received'); if (j.answer) mark('answer_received'); if (j.interval) mark('announce_reply'); } catch {} }); }
+  send(d) { try { const j = JSON.parse(d); if (j.action === 'announce') mark('announce_sent'); } catch {} return super.send(d); }
+};
+class MemStore {
+  constructor(pieceLength, opts) { this.chunkLength = pieceLength; this.length = opts && opts.length; this.m = new Map(); }
+  put(i, buf, opts, cb) { if (typeof opts === 'function') cb = opts; this.m.set(i, buf.slice()); queueMicrotask(() => cb && cb(null)); }
+  get(i, opts, cb) { if (typeof opts === 'function') { cb = opts; opts = {}; } const b = this.m.get(i); if (!b) return queueMicrotask(() => cb(new Error('Chunk not found'))); const o = opts || {}; const off = o.offset || 0; const len = o.length === undefined ? b.length - off : o.length; queueMicrotask(() => cb(null, b.subarray(off, off + len))); }
+  close(cb) { cb && cb(null); } destroy(cb) { this.m.clear(); cb && cb(null); }
+}
+const out = { errors: [] };
+try {
+  const { default: WebTorrent } = await import('/wt.js');
+  const c = new WebTorrent({ dht: false, lsd: false, utPex: false, webSeeds: !!WSURL, tracker: NOPEERS ? false : { rtcConfig: { iceServers: [] } } });
+  c.on('error', e => out.errors.push('client: ' + (e && e.message || e)));
+  const info = JSON.parse(q.get('info'));
+  let id;
+  if (MODE === 'file') { const bin = atob(info.torrentFileB64); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); id = u8; }
+  else id = 'magnet:?xt=urn:btih:' + info.infoHash + '&dn=site' + (TR ? '&tr=' + encodeURIComponent(TR) : '');
+  if (q.get('wait') === '1') await new Promise(ok => { window.__start = ok; });   // lets the harness apply network throttling after the module is loaded
+  T0 = performance.now(); marks.t0abs = T0;
+  const opts = { store: MemStore, announce: TR ? [TR] : [], private: true, deselect: PRIO === 'select' || PRIO === 'stream-only' };
+  if (WSURL) opts.urlList = [WSURL]; if (MAXWEB) opts.maxWebConns = MAXWEB;
+  const t = c.add(id, opts);
+  window.__t = t;
+  t.on('infoHash', () => mark('infohash'));
+  t.on('metadata', () => mark('metadata'));
+  t.on('wire', w => { mark('wire_first', w.type); });
+  t.on('verified', () => { mark('verified_first'); marks.verified_count = (marks.verified_count || 0) + 1; });
+  t.on('ready', () => {
+    mark('ready');
+    const names = t.files.map(f => f.path.replace(/^site\//, ''));
+    const critFiles = CRIT.map(n => t.files[names.indexOf(n)]).filter(Boolean);
+    if (PRIO === 'select') { t.files.forEach((f, i) => { f.select(CRIT.includes(names[i]) ? 10 : 1); }); }
+    if (PRIO === 'select2') { critFiles.forEach(f => f.select(10)); }
+    if (PRIO === 'stream' || PRIO === 'stream-only') { critFiles.forEach(f => { f.arrayBuffer().then(() => mark('stream_' + f.name.replace(/\W/g, '_'))); }); }
+    if (PRIO === 'stream-only') { Promise.all(critFiles.map(f => new Promise(ok => f.done ? ok() : f.on('done', ok)))).then(() => { mark('rest_started'); t.select(0, t.pieces.length - 1, 0); }); }
+    let critLeft = new Set(CRIT);
+    t.files.forEach((f, i) => f.on('done', () => { const n = names[i]; if (n === 'index.html') mark('index_done'); if (critLeft.delete(n) && critLeft.size === 0) mark('critical_done'); }));
+  });
+  t.on('done', () => { mark('all_done'); out.pieces = t.pieces.length; out.pieceLength = t.pieceLength; window.__done = true; });
+  t.on('error', e => out.errors.push('torrent: ' + (e && e.message || e)));
+  window.__marks = marks;
+} catch (e) { out.thrown = String(e && e.stack || e).slice(0, 500); window.__done = true; }
+window.__out = out;
+</script>

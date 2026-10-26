@@ -1,0 +1,29 @@
+{
+  "when": "2026-10-17T21:51:23.821Z",
+  "engine": "webkit",
+  "base": "http://127.0.0.1:60236",
+  "version": "27.2",
+  "main": {
+    "env": {
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+      "href": "http://127.0.0.1:60236/index.html",
+      "origin": "http://127.0.0.1:60236",
+      "isSecureContext": true,
+      "typeofRegister": "undefined",
+      "typeofUnregister": "undefined",
+      "typeofIsRegistered": "undefined",
+      "typeofRegisterContentHandler": "undefined",
+      "inNavigator": false,
+      "protoHas": false
+    }
+  },
+  "withBaseHref": "TypeError: navigator.registerProtocolHandler is not a function. (In 'navigator.registerProtocolHandler('magnet', '/#%s')', 'navigator.registerProtocolHandler' is undefined)",
+  "iframe sandbox \"allow-scripts allow-same-origin\"": {
+    "has": "undefined",
+    "call": "TypeError: navigator.registerProtocolHandler is not a function. (In 'navigator.registerProtocolHandler('magnet', location.origin + '/#%s')', 'navigator.registerProtocolHandler' is undefined)"
+  },
+  "iframe sandbox \"allow-scripts\" (opaque)": {
+    "has": "undefined",
+    "call": "TypeError: navigator.registerProtocolHandler is not a function. (In 'navigator.registerProtocolHandler('magnet', location.origin + '/#%s')', 'navigator.registerProtocolHandler' is undefined)"
+  }
+}

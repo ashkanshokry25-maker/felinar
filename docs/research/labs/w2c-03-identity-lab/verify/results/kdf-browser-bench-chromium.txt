@@ -1,0 +1,2 @@
+chromium 156.0.8078.4 {"wasm m=19MiB t=2":{"min":19,"med":20},"noble m=19MiB t=2":{"min":103,"med":111},"wasm m=64MiB t=3":{"min":106,"med":111},"noble m=64MiB t=3":{"min":517,"med":520},"noble scrypt N=2^16":{"min":119,"med":121}} 
+ ratio noble/wasm 19MiB t=2: 5.5  64MiB t=3: 4.7

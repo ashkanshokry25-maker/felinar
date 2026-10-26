@@ -1,0 +1,28 @@
+import { dep } from './dep.mjs';
+const results = {};
+const rec = async (name, fn) => { try { results[name] = { ok: true, v: await fn() }; } catch (e) { results[name] = { ok: false, e: String((e && e.name) || '') + ': ' + String((e && e.message) || e).slice(0, 160) }; } };
+const runWorker = (w) => new Promise((res, rej) => { const t = setTimeout(() => { w.terminate(); rej(new Error('worker timeout')); }, 4000); w.onmessage = (ev) => { clearTimeout(t); w.terminate(); res(ev.data); }; w.onerror = (ev) => { clearTimeout(t); rej(new Error('worker error: ' + (ev.message || 'load failed'))); }; });
+const loaded = (img) => (img.complete && img.naturalWidth > 0) ? img.naturalWidth : 0;
+await rec('static-import-rel', async () => dep);
+await rec('dynamic-import-rel', async () => (await import('./chunk.mjs')).chunk);
+await rec('dynamic-import-abs', async () => (await import('/js/chunk2.mjs')).chunk2);
+await rec('fetch-import-meta-url', async () => (await (await fetch(new URL('./asset.txt', import.meta.url))).text()).trim());
+await rec('fetch-abs-json', async () => (await (await fetch('/data/abs.json')).json()).where);
+await rec('fetch-rel-json', async () => (await (await fetch('data/rel.json')).json()).where);
+await rec('worker-classic-root-abs', () => runWorker(new Worker('/js/worker.js')));
+await rec('worker-module-import-meta-url', () => runWorker(new Worker(new URL('./worker2.mjs', import.meta.url), { type: 'module' })));
+await rec('css-root.css-@import-applied', async () => getComputedStyle(document.getElementById('h')).color === 'rgb(1, 2, 3)');
+await rec('css-rel.css-applied', async () => getComputedStyle(document.getElementById('h')).borderBottomWidth === '1px');
+await rec('css-bg-abs-url(/img)', async () => { const bi = getComputedStyle(document.getElementById('bg-abs')).backgroundImage; const m = /url\("?([^")]+)"?\)/.exec(bi); if (!m) return false; const i = new Image(); i.src = m[1]; await i.decode(); return i.naturalWidth > 0; });
+await rec('css-bg-rel-url(../img)', async () => { const bi = getComputedStyle(document.getElementById('bg-rel')).backgroundImage; const m = /url\("?([^")]+)"?\)/.exec(bi); if (!m) return false; const i = new Image(); i.src = m[1]; await i.decode(); return i.naturalWidth > 0; });
+await rec('img-root-abs', async () => loaded(document.getElementById('img-abs')));
+await rec('img-rel', async () => loaded(document.getElementById('img-rel')));
+await rec('img-srcset-root-abs', async () => loaded(document.getElementById('img-srcset')));
+await rec('font-root-abs-request', async () => { try { await document.fonts.load('12px F'); } catch (_) {} return 'requested'; });
+await rec('sw-register-root-abs(/sw.js)', async () => { const r = await navigator.serviceWorker.register('/sw.js'); return { scope: r.scope, script: ((r.active || r.waiting || r.installing) || {}).scriptURL }; });
+await rec('sw-register-site-own(sw-site.js)', async () => { const r = await navigator.serviceWorker.register('sw-site.js'); return { scope: r.scope }; });
+await rec('sw-getRegistrations', async () => (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope + ' -> ' + ((r.active || r.waiting || r.installing) || {}).scriptURL));
+await rec('doc-location', async () => ({ pathname: location.pathname, baseURI: document.baseURI }));
+await rec('pushState(/pushed)', async () => { history.pushState({}, '', '/pushed'); return location.pathname; });
+history.replaceState({}, '', results['doc-location'].v.pathname); // restore so later clicks start from the load URL
+parent.postMessage({ type: 'checks', results }, '*');

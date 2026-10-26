@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 724" width="1000" height="724" role="img" aria-labelledby="arch-title arch-desc">
+  <title id="arch-title">How a visit to a felinar site works</title>
+  <desc id="arch-desc">Six steps of a first visit. 1: the visitor's browser downloads the loader from the site's static HTTPS host, on every visit. 2: the loader checks the signed pointer, from a page tag in the loader page or, optionally, a DNS TXT record read over DNS-over-HTTPS, and the site key it remembered. 3: it downloads the site's pieces from the host's web seed by HTTP Range and, after the visitor agrees, from other visitors over WebRTC; WebSocket trackers and STUN servers only introduce the browsers to each other. Every piece is checked against the infohash. 4: the verified copy and the site ledger's entries are stored in IndexedDB. 5: the Service Worker answers the site's own URLs from that copy, so the site runs unchanged. 6: the site reads and writes shared data through mw.db; the site ledger is a signed, hash-linked log that every visitor copies and verifies, and its entries travel to other visitors over the same peer connections.</desc>
+  <style>
+    .card { fill: #ffffff; stroke: #d0d7de; }
+    .box { fill: #f6f8fa; stroke: #6e7781; stroke-width: 1.25; }
+    .chip { fill: #ffffff; stroke: #6e7781; stroke-width: 1; }
+    .ledger { fill: #ffffff; stroke: #5b52f0; stroke-width: 1.5; }
+    .group { fill: #f4f3ff; stroke: #5b52f0; stroke-width: 1.25; stroke-dasharray: 7 5; }
+    .t { fill: #1f2328; font: 600 15px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .ct { fill: #1f2328; font: 600 13.5px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .lt { fill: #4b42e0; font: 600 13.5px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .s { fill: #59636e; font: 400 13px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .lab { fill: #1f2328; font: 500 12.5px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .lab-p { fill: #4b42e0; font: 600 12.5px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .gt { fill: #4b42e0; font: 600 14px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .ln { stroke: #59636e; stroke-width: 1.6; fill: none; }
+    .lnd { stroke: #59636e; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+    .lp { stroke: #5b52f0; stroke-width: 2.2; fill: none; }
+    .lpd { stroke: #5b52f0; stroke-width: 1.4; fill: none; stroke-dasharray: 4 3; }
+    .ah { fill: #59636e; }
+    .ahp { fill: #5b52f0; }
+    .peer { fill: #ffffff; stroke: #5b52f0; stroke-width: 2; }
+    .badge { fill: #1f2328; }
+    .bt { fill: #ffffff; font: 700 11.5px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .card { fill: #0d1117; stroke: #30363d; }
+      .box { fill: #161b22; stroke: #8b949e; }
+      .chip { fill: #0d1117; stroke: #8b949e; }
+      .ledger { fill: #0d1117; stroke: #a5a0ff; }
+      .group { fill: #17163a; stroke: #a5a0ff; }
+      .t, .ct, .lab { fill: #e6edf3; }
+      .s { fill: #9198a1; }
+      .lt, .lab-p, .gt { fill: #b7b3ff; }
+      .ln, .lnd { stroke: #9198a1; }
+      .lp, .lpd { stroke: #a5a0ff; }
+      .ah { fill: #9198a1; }
+      .ahp { fill: #a5a0ff; }
+      .peer { fill: #0d1117; stroke: #a5a0ff; }
+      .badge { fill: #e6edf3; }
+      .bt { fill: #0d1117; }
+    }
+  </style>
+  <defs>
+    <marker id="arch-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="arch-ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ahp" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="card" x="1" y="1" width="998" height="722" rx="14"/>
+
+  <!-- legend -->
+  <line class="ln" x1="24" y1="34" x2="62" y2="34" marker-end="url(#arch-a)"/>
+  <text class="s" x="70" y="38">HTTPS from your host and DNS</text>
+  <line class="lp" x1="292" y1="34" x2="330" y2="34" marker-end="url(#arch-ap)"/>
+  <text class="s" x="338" y="38">peer-to-peer (WebRTC), only after the visitor agrees</text>
+  <circle class="badge" cx="736" cy="33" r="9"/>
+  <text class="bt" x="736" y="37.5" text-anchor="middle">1</text>
+  <text class="s" x="752" y="38">the steps of a first visit</text>
+
+  <!-- top row: DNS and the static host -->
+  <rect class="box" x="24" y="64" width="248" height="120" rx="10"/>
+  <text class="t" x="40" y="90">DNS (optional)</text>
+  <text class="s" x="40" y="116">TXT record _magnet.example.com,</text>
+  <text class="s" x="40" y="136">read over DNS-over-HTTPS</text>
+  <text class="s" x="40" y="156">(Cloudflare, dns.sb or Google)</text>
+
+  <rect class="box" x="296" y="64" width="680" height="120" rx="10"/>
+  <text class="t" x="312" y="90">Your static HTTPS host: a plain bucket that is also the web seed</text>
+  <rect class="chip" x="312" y="104" width="250" height="64" rx="8"/>
+  <text class="ct" x="326" y="128">Loader</text>
+  <text class="s" x="326" y="150">index.html, /_mw/*, /mw-sw.js</text>
+  <rect class="chip" x="576" y="104" width="384" height="64" rx="8"/>
+  <text class="ct" x="590" y="128">Web seed (ws=, xs=, cs=)</text>
+  <text class="s" x="590" y="150">the site's files, its .torrent, a ledger snapshot</text>
+
+  <!-- the visitor's browser -->
+  <rect class="group" x="24" y="230" width="952" height="330" rx="14"/>
+  <text class="gt" x="40" y="256">Visitor's browser</text>
+
+  <rect class="box" x="44" y="270" width="520" height="184" rx="10"/>
+  <text class="t" x="60" y="296">Loader: the shell page, or /_mw/mw.js on your pages</text>
+  <circle class="badge" cx="69" cy="315" r="9"/>
+  <text class="bt" x="69" y="319.5" text-anchor="middle">2</text>
+  <text class="s" x="86" y="320">checks the signed pointer and the site key it remembered</text>
+  <text class="s" x="86" y="341">asks before any peer, tracker or DoH connection</text>
+  <text class="s" x="86" y="362">checks every piece against the infohash</text>
+
+  <rect class="ledger" x="60" y="378" width="488" height="62" rx="8"/>
+  <text class="lt" x="74" y="401">Site ledger</text>
+  <text class="s" x="74" y="424">a signed, hash-linked log that every visitor copies and verifies</text>
+
+  <rect class="box" x="660" y="270" width="296" height="184" rx="10"/>
+  <text class="t" x="676" y="296">Your site, unchanged</text>
+  <text class="s" x="676" y="320">same URLs, same code</text>
+  <text class="s" x="676" y="341">shell: in a same-URL frame</text>
+  <text class="s" x="676" y="362">drop-in: under your own pages</text>
+  <text class="s" x="676" y="383">shared data: mw.db from /_mw/sdk.js</text>
+
+  <rect class="box" x="300" y="486" width="264" height="58" rx="10"/>
+  <text class="t" x="316" y="510">IndexedDB</text>
+  <text class="s" x="316" y="532">the verified copy and the entries</text>
+
+  <rect class="box" x="660" y="486" width="296" height="58" rx="10"/>
+  <text class="t" x="676" y="510">Service Worker</text>
+  <text class="s" x="676" y="532">answers the site's URLs from the copy</text>
+
+  <!-- inside the browser: store, read, serve, mw.db -->
+  <line class="ln" x1="432" y1="454" x2="432" y2="484" marker-end="url(#arch-a)"/>
+  <circle class="badge" cx="452" cy="470" r="9"/>
+  <text class="bt" x="452" y="474.5" text-anchor="middle">4</text>
+  <text class="lab" x="468" y="474">stores</text>
+  <line class="ln" x1="564" y1="515" x2="658" y2="515" marker-end="url(#arch-a)"/>
+  <text class="lab" x="611" y="507" text-anchor="middle">reads</text>
+  <line class="ln" x1="808" y1="486" x2="808" y2="456" marker-end="url(#arch-a)"/>
+  <circle class="badge" cx="828" cy="471" r="9"/>
+  <text class="bt" x="828" y="475.5" text-anchor="middle">5</text>
+  <text class="lab" x="844" y="475">serves the files</text>
+  <line class="ln" x1="550" y1="409" x2="658" y2="409" marker-start="url(#arch-a)" marker-end="url(#arch-a)"/>
+  <text class="lab" x="608" y="400" text-anchor="middle">mw.db</text>
+  <circle class="badge" cx="608" cy="427" r="9"/>
+  <text class="bt" x="608" y="431.5" text-anchor="middle">6</text>
+
+  <!-- from the top: pointer, loader, pieces from the web seed -->
+  <line class="ln" x1="214" y1="184" x2="214" y2="268" marker-end="url(#arch-a)"/>
+  <text class="lab" x="226" y="204">pointer by DNS,</text>
+  <text class="lab" x="226" y="220">if you publish one</text>
+
+  <line class="ln" x1="436" y1="168" x2="436" y2="268" marker-end="url(#arch-a)"/>
+  <circle class="badge" cx="436" cy="206" r="9"/>
+  <text class="bt" x="436" y="210.5" text-anchor="middle">1</text>
+  <text class="lab" x="452" y="210">loader, every visit</text>
+
+  <polyline class="ln" points="640,168 640,212 540,212 540,268" marker-end="url(#arch-a)"/>
+  <circle class="badge" cx="660" cy="206" r="9"/>
+  <text class="bt" x="660" y="210.5" text-anchor="middle">3</text>
+  <text class="lab" x="676" y="210">pieces by HTTP Range</text>
+
+  <!-- bottom row: the swarm and the connection servers -->
+  <rect class="box" x="24" y="604" width="470" height="104" rx="10"/>
+  <text class="t" x="40" y="630">Other visitors (the swarm)</text>
+  <text class="s" x="40" y="654">share pieces and pass on entries</text>
+  <text class="s" x="40" y="674">while their page is open; phones only</text>
+  <text class="s" x="40" y="694">after the visitor turns sharing on</text>
+  <line class="lpd" x1="400" y1="672" x2="440" y2="642"/>
+  <line class="lpd" x1="440" y1="642" x2="466" y2="684"/>
+  <line class="lpd" x1="400" y1="672" x2="466" y2="684"/>
+  <circle class="peer" cx="400" cy="672" r="12"/>
+  <circle class="peer" cx="440" cy="642" r="12"/>
+  <circle class="peer" cx="466" cy="684" r="12"/>
+
+  <rect class="box" x="540" y="604" width="436" height="104" rx="10"/>
+  <text class="t" x="556" y="630">Connection servers (public or your own)</text>
+  <text class="s" x="556" y="654">WebSocket trackers introduce visitors to each other;</text>
+  <text class="s" x="556" y="674">STUN servers tell a browser its public address.</text>
+  <text class="s" x="556" y="694">No site files or entries pass through them.</text>
+
+  <line class="lp" x1="96" y1="602" x2="96" y2="456" marker-start="url(#arch-ap)" marker-end="url(#arch-ap)"/>
+  <circle class="badge" cx="96" cy="488" r="9"/>
+  <text class="bt" x="96" y="492.5" text-anchor="middle">3</text>
+  <text class="lab-p" x="112" y="510">pieces and ledger</text>
+  <text class="lab-p" x="112" y="528">entries, over WebRTC</text>
+
+  <polyline class="lnd" points="758,602 758,584 268,584 268,456" marker-start="url(#arch-a)" marker-end="url(#arch-a)"/>
+  <text class="lab" x="513" y="578" text-anchor="middle">introductions only: offers, answers, addresses</text>
+</svg>

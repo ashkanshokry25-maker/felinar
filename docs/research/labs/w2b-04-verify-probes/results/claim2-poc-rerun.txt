@@ -1,0 +1,7 @@
+# claim 2 original PoC re-run (2026-10-17T22:07:02Z)
+Chromium 156.0.8078.4
+=== wrappers installed BEFORE the webtorrent import ===
+=== wrappers installed AFTER the webtorrent import ===
+['"done": true', '"wsCount": 1', '"pcCount": 11']
+{"mode":"after","done":true,"wires":1,"wsCount":0,"pcCount":0}
+

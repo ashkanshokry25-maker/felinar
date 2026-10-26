@@ -1,0 +1,5 @@
+baseURL = 'https://example.org/'
+languageCode = 'en-us'
+title = 'hugo site'
+enableRobotsTXT = true
+disableKinds = ['taxonomy', 'term', 'rss']

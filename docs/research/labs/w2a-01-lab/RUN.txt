@@ -1,0 +1,37 @@
+w2a-01 lab: what generators emit, and what breaks under a Service-Worker-served, path-prefixed or iframe-hosted deployment
+(research aid for docs/research/w2a-01-site-generator-output.md; test code written for that study, not production code)
+
+Needs: Node >= 22 on PATH (this repo: export PATH=$HOME/.local/share/node/current/bin:$PATH), the repo's node_modules (Playwright 1.64.1 with
+Chromium and WebKit installed; Playwright's Firefox build did not start on the machine used), network for npm install, Python 3 for the
+MkDocs venv and score.py, and a Hugo binary (see lab/gen/build-all.sh for how the official macOS .pkg was verified and expanded without installing).
+
+Layout (all imports are relative to the repo root; scripts write their outputs next to themselves, copy what you want to keep to results/)
+  lab/server.mjs        static-host stand-in: serves /sw.js (mode baked in), /shell.js, the shell for unknown navigations (S3/CloudFront/GitHub Pages
+                        style SPA fallback, status 200), logs every request that reaches it; control plane under /_lab/ (NOT /__ : Next.js owns /__next.*)
+  lab/sw-core.js        the three serving models: prefix (v0.1 /_mw/s/<btih>/), remap (prefix + client-based remapping), true (= v0.2 same-URL dispatch,
+                        optional siteBase stripping). A MODEL of the rules, not src/sw/sw.js.
+  lab/shell.js          mimics src/loader/render.js: registers the SW, mounts a sandboxed same-URL iframe, mirrors the frame URL to the top URL on load
+  lab/lab.mjs           Playwright helpers (ENGINE=chromium|webkit|firefox), leak detection
+  lab/run-kitchen.mjs   synthetic 21-check site       usage: ENGINE=webkit node run-kitchen.mjs prefix,remap,true kitchen|kitchen-rel
+  lab/run-gen.mjs       one real build               usage: node run-gen.mjs <name> <distDir> <homeMarker> <aboutMarker> <aboutLinkSelector> <spa 0|1> <modes> <base>
+  lab/run-all.sh        the whole matrix (24 builds x 3 modes)   usage: ENGINE=chromium ./run-all.sh   (writes gen-cr-*.json / gen-wk-*.json, matrix-<engine>.log)
+  lab/run-mirror.mjs    History-API soft navigation vs address bar (needs gen/vite-react/dist-root)
+  lab/score.py          strict scoring of the synthetic-site JSON
+  lab/gen/              sources of the 10 tools' hello-worlds + build-all.sh (no node_modules, no build output; run build-all.sh first)
+  lab/sites/            the synthetic sites
+  lab-base/base-lab.mjs what <base href> changes (ENGINE=...)
+  lab-sw/sw-lab.mjs     E1 replace/flip-flop, E2 same-URL no-op, E3 scope separation + worker control, E4 importScripts composition
+  lab-sw/sw-lab2.mjs    E5 migration over a precaching SW: same-URL with skipWaiting, with and without long max-age on the SW URL
+  lab-sw/sw-lab3.mjs    E5 failure variants: no skipWaiting; loader SW at a new URL
+  lab-sw/sw-lab4.mjs    getRegistration('/') vs getRegistration(page URL); non-root SW scope with/without Service-Worker-Allowed; sandbox without allow-modals
+  lint/mw-lint.mjs      reference implementation of the migration lint (zero dependencies):  node mw-lint.mjs <dir> [--origin https://example.org] [--json]
+  lint/all.mjs          table over all builds:  cd lint && node all.mjs <path to lab/gen>
+  ng-app/               the untouched Angular CLI 22.2.3 scaffold (`ng new ng-app`) that lab/gen/angular/ng-app was made from
+                        (that copy replaces src/app/{home,about,app,app.routes}.ts, app.html and styles.css); kept as the
+                        diff baseline, not built by any script here (moved from the repository root on 2026-10-19)
+  results/              captured outputs of the 2026-10-17 runs (Chromium 156.0.8078.4, Playwright WebKit 27.2): matrix logs, synthetic-site JSON,
+                        SW/base/mirror results, lint table, tables.json (the markdown tables used in the report), versions-installed.txt
+
+Known limits: one run per matrix cell; localhost only; Firefox and real Safari/iOS not covered; E5 timings are for the engines named, not for
+every browser version. Next.js and Astro send anonymous telemetry unless NEXT_TELEMETRY_DISABLED=1 / ASTRO_TELEMETRY_DISABLED=1 / DO_NOT_TRACK=1 are
+set (build-all.sh sets them).

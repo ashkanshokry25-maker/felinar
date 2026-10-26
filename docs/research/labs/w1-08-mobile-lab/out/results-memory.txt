@@ -1,0 +1,35 @@
+# mem-exp.mjs, run 2026-10-17 (Chromium 156.0.8078.4 headless, macOS arm64; desktop proxy: ratios matter, absolutes do not transfer to phones)
+# store=mem: custom abstract-chunk-store holding piece buffers; store=default: webtorrent's fsa-chunk-store (OPFS)
+
+== store=mem site=24 MiB  pieceLength=32768  downloadMs=10520  errors=[]
+   baseline                                             downloader-renderer RSS    94 MB   total Chromium RSS   529 MB
+   downloaded (all pieces held by chunk store)          downloader-renderer RSS   161 MB   total Chromium RSS   587 MB
+   after file.blob()                                    downloader-renderer RSS   161 MB   total Chromium RSS   612 MB
+   after IndexedDB put(Blob)                            downloader-renderer RSS   162 MB   total Chromium RSS   620 MB
+   after client.destroy() + gc                          downloader-renderer RSS   162 MB   total Chromium RSS   620 MB
+
+== store=mem site=48 MiB  pieceLength=65536  downloadMs=2767  errors=[]
+   baseline                                             downloader-renderer RSS    94 MB   total Chromium RSS   638 MB
+   downloaded (all pieces held by chunk store)          downloader-renderer RSS   224 MB   total Chromium RSS   788 MB
+   after file.blob()                                    downloader-renderer RSS   282 MB   total Chromium RSS   836 MB
+   after IndexedDB put(Blob)                            downloader-renderer RSS   225 MB   total Chromium RSS   837 MB
+   after client.destroy() + gc                          downloader-renderer RSS   224 MB   total Chromium RSS   836 MB
+
+== store=mem site=128 MiB  pieceLength=131072  downloadMs=11037  errors=[]
+   baseline                                             downloader-renderer RSS    95 MB   total Chromium RSS   948 MB
+   downloaded (all pieces held by chunk store)          downloader-renderer RSS   296 MB   total Chromium RSS  1131 MB
+   after file.blob()                                    downloader-renderer RSS   434 MB   total Chromium RSS  1359 MB
+   after IndexedDB put(Blob)                            downloader-renderer RSS   297 MB   total Chromium RSS  1260 MB
+   after client.destroy() + gc                          downloader-renderer RSS   296 MB   total Chromium RSS  1259 MB
+
+== store=default site=128 MiB  pieceLength=131072  downloadMs=11355  errors=[]
+   baseline                                             downloader-renderer RSS    94 MB   total Chromium RSS   863 MB
+   downloaded (all pieces held by chunk store)          downloader-renderer RSS   194 MB   total Chromium RSS  1096 MB
+   after file.blob()                                    downloader-renderer RSS   367 MB   total Chromium RSS  1380 MB
+   after IndexedDB put(Blob)                            downloader-renderer RSS   229 MB   total Chromium RSS  1268 MB
+   after client.destroy() + gc                          downloader-renderer RSS   229 MB   total Chromium RSS  1268 MB
+
+# NOTE: run-to-run variance. An earlier run of the same script (run 1; JSON in mem-results-*-run1.json) gave for the in-memory store:
+#   24 MiB: 180 MB downloaded / 180 blob / 180 idb;   48 MiB: 188 / 188 / 189;   128 MiB: 296 / 435 / 298;
+#   default OPFS store 128 MiB: 213 / 375 / 238.
+# The 128 MiB case reproduced within 1 MB; the 48 MiB case varied by ~35 MB (GC/allocator timing). Treat results as +/- 40 MB.

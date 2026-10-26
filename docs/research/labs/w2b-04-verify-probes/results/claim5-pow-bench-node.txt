@@ -1,0 +1,16 @@
+
+=== preimage: 1 parent(s), canonical(e) = 394 bytes = 7 SHA-256 blocks ; digest cross-check vs node:crypto: OK ===
+bits=14 (expected 16384 hashes)
+   node:crypto 1 thread : ms {"n":400,"mean":15.55,"median":10.82,"p95":50.68,"max":85.6}  mean hashes 17303  rate 1.112 MH/s
+   pure-JS     1 thread : ms {"n":400,"mean":32.45,"median":23.18,"p95":86.74,"max":200}  mean hashes 16759  rate 0.516 MH/s
+bits=16 (expected 65536 hashes)
+   node:crypto 1 thread : ms {"n":150,"mean":56.77,"median":38.26,"p95":206.31,"max":272.33}  mean hashes 56659  rate 0.998 MH/s
+   pure-JS     1 thread : ms {"n":150,"mean":114.66,"median":95.68,"p95":302.83,"max":529.24}  mean hashes 59218  rate 0.516 MH/s
+
+=== preimage: 3 parent(s), canonical(e) = 528 bytes = 9 SHA-256 blocks ; digest cross-check vs node:crypto: OK ===
+bits=14 (expected 16384 hashes)
+   node:crypto 1 thread : ms {"n":400,"mean":14.58,"median":10.42,"p95":42.73,"max":116.33}  mean hashes 15142  rate 1.039 MH/s
+   pure-JS     1 thread : ms {"n":400,"mean":44.23,"median":30.09,"p95":129.33,"max":329.96}  mean hashes 16352  rate 0.370 MH/s
+bits=16 (expected 65536 hashes)
+   node:crypto 1 thread : ms {"n":150,"mean":63.4,"median":40.64,"p95":191.72,"max":501.32}  mean hashes 62247  rate 0.982 MH/s
+   pure-JS     1 thread : ms {"n":150,"mean":178.38,"median":135.62,"p95":503.13,"max":1175.22}  mean hashes 63000  rate 0.353 MH/s

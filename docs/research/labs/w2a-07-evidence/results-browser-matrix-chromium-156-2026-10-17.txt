@@ -1,0 +1,29 @@
+chromium GitHub Pages png               stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 4000 B)                     h2
+chromium GitHub Pages css               stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 4000 B)                     h2
+chromium Netlify woff2                  stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+chromium Netlify js                     stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+chromium Vercel woff2                   stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 4000 B)                     h2
+chromium Cloudflare docs png            stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: WRONG BYTES (200, got 1900 B, wanted 900 B)      h2
+chromium Cloudflare docs svg            stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: WRONG BYTES (200, got 1892 B, wanted 892 B)      h3
+chromium Bunny jpg                      stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+chromium Bunny svg                      stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+chromium B2 f001 js                     stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      http/1.1
+chromium DO Spaces CDN svg              stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 2151 B)                     h2
+chromium Storj linkshare png            stock: OK exact slice (206, 4000 B)                               range-only: OK exact slice (206, 4000 B)                     h2
+chromium S3 default (noaa-goes16)       stock: OK exact slice (206, 4000 B)                               range-only: OK exact slice (206, 4000 B)                     http/1.1
+chromium Blossom primal                 stock: WRONG BYTES (200, got 184292 B, wanted 4000 B)             range-only: WRONG BYTES (200, got 184292 B, wanted 4000 B)   h2
+chromium Blossom satellite              stock: OK exact slice (206, 4000 B)                               range-only: OK exact slice (206, 4000 B)                     http/1.1
+chromium Blossom nostr.download         stock: OK exact slice (206, 4000 B)                               range-only: OK exact slice (206, 4000 B)                     h2
+chromium Blossom hzrd149                stock: OK exact slice (206, 4000 B)                               range-only: OK exact slice (206, 4000 B)                     h2/h3
+chromium IPFS ipfs.io                   stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+chromium IPFS dweb.link                 stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+chromium IPFS storacha.link             stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      ?
+chromium IPFS pinata gw                 stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 4000 B)                     h2
+chromium IPFS filebase                  stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 4000 B)                     h2
+chromium IPFS trustless-gateway.link    stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+chromium IPFS 4everland                 stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 4000 B)                     ?
+chromium jsDelivr npm                   stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: WRONG BYTES (206, got 4000 B, wanted 4000 B)     h2
+chromium unpkg npm                      stock: OK exact slice (206, 4000 B)                               range-only: OK exact slice (206, 4000 B)                     h2/h3
+chromium GitHub raw                     stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: OK exact slice (206, 4000 B)                     h2
+chromium CloudFront aws.amazon.com static stock: BLOCKED/FAILED (TypeError: Failed to fetch)                range-only: BLOCKED/FAILED (TypeError: Failed to fetch)      h2
+webkit could not load the https://example.org/ origin page, skipping this engine: TimeoutError: page.goto: Timeout 30000ms exceeded.

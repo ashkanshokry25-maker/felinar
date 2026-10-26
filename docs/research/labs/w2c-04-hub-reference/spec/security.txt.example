@@ -1,0 +1,7 @@
+# Served at https://hub.example/.well-known/security.txt AND https://hub-sites.example/.well-known/security.txt (RFC 9116: Contact and Expires are mandatory)
+Contact: mailto:abuse@hub.example
+Contact: https://hub.example/abuse
+Expires: 2027-10-17T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://hub.example/.well-known/security.txt
+Policy: https://hub.example/policy

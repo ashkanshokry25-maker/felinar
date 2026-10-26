@@ -1,0 +1,39 @@
+{
+  "events": [
+    "140ms seeded; magnet=magnet:?xt=urn:btih:62233f9c4ecbb15aa0de777727701fa2ece3391a&dn=mysite&tr=ws%3A%2F%2F127.0.0.1%3A18082",
+    "365ms B metadata",
+    "367ms B done",
+    "383ms cached 4 files"
+  ],
+  "errors": [],
+  "iframe": {
+    "plain": {
+      "title": "js-ran:rgb(1, 2, 3):10",
+      "h1": "hello"
+    },
+    "sandbox_allow_scripts": {
+      "title": null,
+      "h1": null
+    },
+    "sandbox_allow_scripts_same_origin": {
+      "title": "js-ran:rgb(1, 2, 3):10",
+      "h1": "hello"
+    }
+  },
+  "controlled": true,
+  "infoHash": "62233f9c4ecbb15aa0de777727701fa2ece3391a",
+  "magnet": "magnet:?xt=urn:btih:62233f9c4ecbb15aa0de777727701fa2ece3391a&dn=mysite&tr=ws%3A%2F%2F127.0.0.1%3A18082",
+  "bDone": true,
+  "cachedKeys": [
+    "/site/<hash>/index.html",
+    "/site/<hash>/css/style.css",
+    "/site/<hash>/app.js",
+    "/site/<hash>/img/logo.svg"
+  ],
+  "popup": true,
+  "withSecondTab": {
+    "200": 100
+  },
+  "missing": 404,
+  "rangeStatusFromCacheSW": 200
+}

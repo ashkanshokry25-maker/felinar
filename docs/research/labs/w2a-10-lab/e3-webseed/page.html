@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>e3</title>
+<script type="module">
+const q = new URLSearchParams(location.search)
+const mode = q.get('mode'); const id = q.get('id'); const s = q.get('s'); const mwc = +q.get('mwc') || 4; const single = q.get('single') === '1'
+const R = { mode, id }
+class MemStore {
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.chunks = [] }
+  put (i, buf, opts, cb) { if (typeof opts === 'function') { cb = opts } this.chunks[i] = buf; queueMicrotask(() => cb(null)) }
+  get (i, opts, cb) { if (typeof opts === 'function') { cb = opts; opts = {} } const b = this.chunks[i]; if (!b) return queueMicrotask(() => cb(new Error('Chunk not found'))); const off = (opts && opts.offset) || 0; const len = (opts && opts.length) != null ? opts.length : b.length - off; queueMicrotask(() => cb(null, b.subarray(off, off + len))) }
+  close (cb) { queueMicrotask(() => cb && cb(null)) }
+  destroy (cb) { this.chunks = []; queueMicrotask(() => cb && cb(null)) }
+}
+try {
+  if (mode === 'fetchall') {
+    const list = await (await fetch(`/t/${id}.json`)).json()
+    const t0 = performance.now(); let first = null
+    await Promise.all(list.map(p => fetch(`/raw/${s}/${p}`, { cache: 'no-store' }).then(r => r.arrayBuffer()).then(() => { if (first === null) first = performance.now() - t0 })))
+    R.totalMs = Math.round(performance.now() - t0); R.firstFileMs = Math.round(first); R.readyMs = 0
+  } else {
+    const { default: WebTorrent } = await import('/wt.js')
+    const tb = new Uint8Array(await (await fetch(`/t/${id}.torrent`)).arrayBuffer())
+    const client = new WebTorrent({ tracker: false })
+    const t0 = performance.now()
+    const ws = single ? `${location.origin}/ws/${s}/bundle.bin` : `${location.origin}/ws/${s}/`
+    const torrent = client.add(tb, { store: MemStore, announce: [], maxWebConns: mwc, urlList: [ws] })
+    torrent.on('ready', () => { R.readyMs = Math.round(performance.now() - t0); torrent.files[0].on('done', () => { R.firstFileMs = Math.round(performance.now() - t0) }) })
+    await new Promise((res, rej) => { torrent.on('done', res); torrent.on('error', rej); setTimeout(() => rej(new Error('timeout 120s')), 120000) })
+    R.totalMs = Math.round(performance.now() - t0); R.pieces = torrent.pieces.length; R.pieceLength = torrent.pieceLength
+    client.destroy()
+  }
+} catch (e) { R.error = String(e) }
+window.__result = R; window.__done = true
+</script>

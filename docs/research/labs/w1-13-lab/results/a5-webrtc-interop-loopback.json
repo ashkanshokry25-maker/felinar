@@ -1,0 +1,57 @@
+{
+ "ifaces": [
+  "lo0: 127.0.0.1(lo),::1(lo),fe80::1(lo)",
+  "utun0: fe80::8fa9:7684:10b:d329",
+  "utun1: fe80::8fe9:475b:4d2a:fd40",
+  "utun2: fe80::b492:84d0:48bd:22b1",
+  "utun3: fe80::ce81:b1c:bd2c:69e",
+  "llw0: fe80::6048:f1ff:feb5:3743",
+  "en5: 192.168.18.5",
+  "bridge100: 192.168.139.3,fe80::9c58:84ff:fed3:6564,fd07:b51a:cc66:0:a617:db5e:ab7:e9f1"
+ ],
+ "res": [
+  {
+   "label": "chromium mdns-off + --allow-loopback-in-peer-connection, node bindAddress=127.0.0.1",
+   "iceServers": "[]",
+   "browserVersion": "156.0.8078.4",
+   "nodeOfferCandidates": [
+    "udp 127.0.0.1:51275 host"
+   ],
+   "browserAnswerCandidates": [
+    "udp 192.168.18.5:55349 host"
+   ],
+   "nodeConnectionState": "connected",
+   "nodeIceState": "connected",
+   "channelOpened": true,
+   "echo": "echo:ping-from-node",
+   "msToEcho": 102,
+   "browserLog": {
+    "log": [
+     "open",
+     "got:ping-from-node"
+    ],
+    "ice": "connected",
+    "conn": "connected"
+   }
+  },
+  {
+   "label": "webkit default, node bindAddress=127.0.0.1",
+   "iceServers": "[]",
+   "browserVersion": "27.2",
+   "nodeOfferCandidates": [
+    "udp 127.0.0.1:56612 host"
+   ],
+   "browserAnswerCandidates": [],
+   "nodeConnectionState": "connecting",
+   "nodeIceState": "checking",
+   "channelOpened": false,
+   "echo": null,
+   "msToEcho": null,
+   "browserLog": {
+    "log": [],
+    "ice": "new",
+    "conn": "new"
+   }
+  }
+ ]
+}

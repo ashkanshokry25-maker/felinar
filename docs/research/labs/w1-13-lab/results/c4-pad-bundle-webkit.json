@@ -1,0 +1,59 @@
+{
+ "torrentFiles": [
+  "a.html:9000",
+  ".pad/7384:7384",
+  "b.js:30000",
+  ".pad/2768:2768",
+  "c.css:5000",
+  ".pad/11384:11384",
+  "d.bin:70000",
+  ".pad/11920:11920",
+  "e.txt:300"
+ ],
+ "results": [
+  {
+   "bundle": "dist/webtorrent.min.js",
+   "engine": "webkit",
+   "version": "27.2",
+   "warnings": [],
+   "errors": [],
+   "filesSeen": 9,
+   "done": false,
+   "progress": 0,
+   "shaMatches": false,
+   "hostSawPadRequests": 4,
+   "host404s": 0,
+   "options": 14
+  },
+  {
+   "bundle": "out/wt-slimnodebug.js",
+   "engine": "webkit",
+   "version": "27.2",
+   "warnings": [],
+   "errors": [],
+   "filesSeen": 9,
+   "done": false,
+   "progress": 0.556,
+   "shaMatches": false,
+   "hostSawPadRequests": 4,
+   "host404s": 4,
+   "options": 0
+  },
+  {
+   "bundle": "out/wt-padfix.js",
+   "engine": "webkit",
+   "version": "27.2",
+   "warnings": [],
+   "errors": [],
+   "filesSeen": 9,
+   "doneMs": 20,
+   "done": true,
+   "progress": 1,
+   "sha": "606efba8427d2a84d5bf60aededf57ffbb219e80bef1c8a9475fe67329b49939",
+   "shaMatches": true,
+   "hostSawPadRequests": 0,
+   "host404s": 0,
+   "options": 0
+  }
+ ]
+}

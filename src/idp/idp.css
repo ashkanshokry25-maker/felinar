@@ -1,0 +1,125 @@
+/* src/idp/idp.css: the identity origin's cards (CSP style-src 'self'; no inline styles). */
+:root {
+  --mw-bg: #f6f7f9;
+  --mw-card: #ffffff;
+  --mw-fg: #1f2328;
+  --mw-muted: #57606a;
+  --mw-accent: #0a58ca;
+  --mw-accent-fg: #ffffff;
+  --mw-danger: #b42318;
+  --mw-warn-bg: #fff4d6;
+  --mw-border: #d0d7de;
+  --mw-focus: #fb8c00;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mw-bg: #0d1117;
+    --mw-card: #161b22;
+    --mw-fg: #e6edf3;
+    --mw-muted: #9da7b3;
+    --mw-accent: #5b9bff;
+    --mw-accent-fg: #08111f;
+    --mw-danger: #ff7b72;
+    --mw-warn-bg: #3a2e05;
+    --mw-border: #30363d;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--mw-bg);
+  color: var(--mw-fg);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.mw-idp {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+.mw-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--mw-card);
+  border: 1px solid var(--mw-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.mw-card h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; overflow-wrap: anywhere; }
+.mw-card h2 { font-size: 16px; margin: 18px 0 6px; }
+.mw-card p { margin: 8px 0; }
+.mw-sub { font-weight: 400; }
+.mw-reg { font-weight: 700; }
+.mw-origin { color: var(--mw-muted); font-size: 13px; margin-top: 0; overflow-wrap: anywhere; }
+.mw-note { color: var(--mw-muted); font-size: 13px; }
+.mw-strong { font-weight: 600; }
+.mw-warn { background: var(--mw-warn-bg); border-radius: 6px; padding: 8px 10px; }
+.mw-error { color: var(--mw-danger); font-weight: 600; }
+.mw-error:empty { display: none; }
+.mw-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.mw-sas { font-size: 22px; font-weight: 700; letter-spacing: 0.08em; }
+.mw-statement { margin: 4px 0 10px; padding: 8px 10px; border-left: 3px solid var(--mw-border); overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.mw-as { display: flex; align-items: center; gap: 8px; }
+.mw-identicon { display: inline-grid; grid-template-columns: repeat(5, 5px); grid-auto-rows: 5px; gap: 0; border: 1px solid var(--mw-border); }
+.mw-cell { width: 5px; height: 5px; }
+.mw-short { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+.mw-actions, .mw-more { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; }
+.mw-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+
+button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--mw-border);
+  background: transparent;
+  color: var(--mw-fg);
+}
+button.mw-primary { background: var(--mw-accent); border-color: var(--mw-accent); color: var(--mw-accent-fg); font-weight: 600; }
+button.mw-danger { border-color: var(--mw-danger); color: var(--mw-danger); }
+button:disabled { opacity: 0.5; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--mw-focus); outline-offset: 2px; }
+
+.mw-field { display: block; margin: 10px 0; }
+.mw-field span { display: block; font-size: 13px; color: var(--mw-muted); margin-bottom: 4px; }
+.mw-field input, .mw-field textarea, .mw-mode select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--mw-border);
+  background: var(--mw-bg);
+  color: var(--mw-fg);
+  font: inherit;
+  /* iOS Safari zooms into a focused field under 16 px and stays zoomed (code review v0.3, browser): every field is 16 px. */
+  font-size: 16px;
+}
+.mw-copy textarea { width: 100%; min-height: 88px; font: 16px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.mw-mode { display: block; margin: 10px 0; }
+.mw-check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.mw-check input { width: 20px; height: 20px; }
+
+.mw-words { columns: 2; padding-left: 28px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 16px; }
+.mw-sites { padding-left: 20px; overflow-wrap: anywhere; }
+.mw-qr-holder { display: flex; justify-content: center; margin: 10px 0; }
+.mw-qr { width: 100%; max-width: 300px; height: auto; image-rendering: pixelated; background: #ffffff; }
+.mw-camera { width: 100%; max-height: 320px; background: #000000; border-radius: 6px; }
+.mw-others summary { cursor: pointer; color: var(--mw-muted); min-height: 32px; }
+.mw-build { margin-top: 14px; font-size: 12px; color: var(--mw-muted); }
+.mw-test { color: var(--mw-danger); }
+.mw-busy { text-align: center; padding: 24px 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

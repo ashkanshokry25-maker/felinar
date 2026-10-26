@@ -1,0 +1,15 @@
+wss://relay.primal.net/ events: 17 newest: 2026-10-17T21:06:39.000Z monitors: 17 | rtt-open ms (newest 5): 405,131,572,477,428 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://nostr.wine/ events: 14 newest: 2026-10-17T21:06:01.000Z monitors: 14 | rtt-open ms (newest 5): 552,205,263,739,1195 | R: ["!auth","payment","!pow"] | kinds tags: 0
+wss://relay.snort.social/ events: 15 newest: 2026-10-17T20:59:29.000Z monitors: 15 | rtt-open ms (newest 5): 96,559,988,994,1476 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://0x-nostr-relay.fly.dev/ events: 11 newest: 2026-10-17T20:57:39.000Z monitors: 11 | rtt-open ms (newest 5): 417,180,44,457,185 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://purplepag.es/ events: 16 newest: 2026-10-17T20:56:10.000Z monitors: 16 | rtt-open ms (newest 5): 324,920,140,482,484 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://nos.lol/ events: 18 newest: 2026-10-17T20:50:19.000Z monitors: 18 | rtt-open ms (newest 5): 1018,99,542,169,737 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://nostr.mom/ events: 17 newest: 2026-10-17T20:49:49.000Z monitors: 17 | rtt-open ms (newest 5): 100,1152,726,155,956 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://offchain.pub/ events: 17 newest: 2026-10-17T20:44:50.000Z monitors: 17 | rtt-open ms (newest 5): 850,1418,1129,1102,907 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://relay.bullishbounty.com/ events: 13 newest: 2026-10-17T20:40:49.000Z monitors: 13 | rtt-open ms (newest 5): 334,714,933,190,757 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://relay.damus.io/ events: 17 newest: 2026-10-17T20:23:48.000Z monitors: 17 | rtt-open ms (newest 5): 223,131,445,178,249 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://relay.nostrmap.net/ events: 10 newest: 2026-10-17T20:07:17.000Z monitors: 10 | rtt-open ms (newest 5): 1275,732,593,596,1029 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://relay.nostr.dev.br/ events: 10 newest: 2026-10-17T19:24:15.000Z monitors: 10 | rtt-open ms (newest 5): 128,831,1148,1411,1966 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://relay.piazza.today/ events: 12 newest: 2026-10-17T18:17:22.000Z monitors: 12 | rtt-open ms (newest 5): 624,175,1399,947,1074 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+wss://relay.nostr.band/ events: 13 newest: 2026-02-06T09:20:39.000Z monitors: 13 | rtt-open ms (newest 5): 1909,1106,1317,175,1160 | R: ["!auth","!payment","!pow"] | kinds tags: 0
+monitor announcements (kind 10166) seen: 20 | total events 220

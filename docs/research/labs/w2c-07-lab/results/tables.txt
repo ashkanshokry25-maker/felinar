@@ -1,0 +1,47 @@
+T1. Little's law: mean visitors online E[N] = visits/day x mean dwell / 86400, and P(alone on arrival) = e^-E[N]
+visits/day            dwell 20s         dwell 60s        dwell 180s        dwell 600s
+100                  0.02 (98%)        0.07 (93%)        0.21 (81%)        0.69 (50%)
+1000                 0.23 (79%)        0.69 (50%)        2.08 (12%)      6.94 (0.10%)
+10000               2.31 (9.9%)      6.94 (0.10%)      20.8 (0.00%)      69.4 (0.00%)
+100000             23.1 (0.00%)      69.4 (0.00%)       208 (0.00%)       694 (0.00%)
+1000000             231 (0.00%)       694 (0.00%)      2083 (0.00%)      6944 (0.00%)
+
+T2. Eligible seeders online (a_seed), mean dwell 60 s, Weibull shape 0.6, ready after 3 s; and daily visits needed for a_seed = 25
+scenario      p        seedTime         V=100     V=1000    V=10000   V=100000  V=1000000   visits/day for a_seed=25
+pessimistic   0.0042   0.96              0.00       0.00       0.03       0.28       2.79                   8964665
+baseline      0.0840   0.96              0.01       0.06       0.56       5.58       55.8                    448233
+optimistic    0.4590   0.96              0.03       0.30       3.05       30.5        305                     82030
+
+T3. Expected share of bytes from peers (model), web seed 8 MiB/s, peers 1 MiB/s each, first peer wire after 2 s
+site MiB     a_seed=0.1    a_seed=1    a_seed=3   a_seed=10   a_seed=30  a_seed=100
+2                 0.00%       0.00%       0.00%       0.00%       0.00%       0.00%
+5                 0.00%       0.00%       0.00%       0.00%       0.00%       0.00%
+20                0.22%        2.0%        5.1%         11%         16%         19%
+50                0.75%        6.9%         17%         37%         53%         63%
+128               0.96%        8.8%         22%         47%         69%         81%
+
+T3b. Same, but a slow or distant web-seed path (2 MiB/s effective): peers matter more when the host path is slow
+site MiB     a_seed=0.1    a_seed=1    a_seed=3   a_seed=10   a_seed=30  a_seed=100
+2                 0.00%       0.00%       0.00%       0.00%       0.00%       0.00%
+5                 0.65%        5.3%         11%         16%         19%         20%
+20                 2.6%         21%         44%         66%         75%         78%
+50                 3.0%         24%         50%         75%         86%         90%
+128                3.2%         26%         53%         79%         91%         95%
+
+T4. Egress and list-price savings per month (30 days), baseline scenario, CloudFront list $0.085/GB (first 10 TB)
+visits/day  site MiB  egress GB/mo  a_seed   offload   saved GB/mo   saved $/mo
+1000        5         146           0.06     0.00%     0.0           $0.00
+10000       5         1465          0.56     0.00%     0.0           $0.00
+100000      5         14648         5.58     0.00%     0.0           $0.00
+10000       50        14648         0.56     4.0%      584.5         $49.69
+100000      50        146484        5.58     27%       39118.6       $3325.08
+100000      500       1464844       5.58     38%       556864.3      $47333.47
+
+T5. What a mobile visitor pays to upload (price per GB from cable.co.uk 2023 edition; both directions count toward caps on most plans: assumption)
+region                        5 MiB up   15 MiB up   50 MiB up   vs host saving at $0.085/GB
+Israel (cheapest)              $0.0001     $0.0003     $0.0010   visitor cost = 0.2x host saving
+Asia ex Near East avg          $0.0054     $0.0161     $0.0537   visitor cost = 12.9x host saving
+global avg (2023)              $0.0126     $0.0379     $0.1265   visitor cost = 30.5x host saving
+Sub-Saharan Africa avg         $0.0162     $0.0485     $0.1616   visitor cost = 38.9x host saving
+Northern America avg           $0.0224     $0.0672     $0.2241   visitor cost = 54.0x host saving
+Zimbabwe (dearest)             $0.2136     $0.6409     $2.1362   visitor cost = 514.7x host saving

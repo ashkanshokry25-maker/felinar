@@ -1,0 +1,24 @@
+[
+ {
+  "variant": "same-URL loader SW (skipWaiting+claim), /sw.js Cache-Control: no-cache",
+  "rows": [
+   "nav #1: shown=\"OLD SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #2: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #3: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #4: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #5: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "after explicit registration.update() + nav: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js hits=2"
+  ]
+ },
+ {
+  "variant": "same-URL loader SW (skipWaiting+claim), /sw.js Cache-Control: max-age=86400 (typical CDN default)",
+  "rows": [
+   "nav #1: shown=\"OLD SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #2: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #3: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #4: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "nav #5: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js fetched during this nav: 1",
+   "after explicit registration.update() + nav: shown=\"NEW SITE\" controller=/sw.js caches=[] /sw.js hits=2"
+  ]
+ }
+]

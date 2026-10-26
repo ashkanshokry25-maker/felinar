@@ -1,0 +1,2 @@
+phase 1 (web seed serves a corrupted first piece for 4 s): corrupted Range requests=23240, 'failed verification' warnings=23240, done=false, progress=92.9%, webSeed wires still attached=1
+phase 2 (seed fixed): done=true after 4002 ms, total corrupted requests=23240 (phase-1 rate ~5810.0/s)

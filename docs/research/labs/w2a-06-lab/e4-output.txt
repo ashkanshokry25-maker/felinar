@@ -1,0 +1,8 @@
+
+[chromium 156.0.8078.4] fetch results: {"same":206,"cross":206,"plain":200}
+  A-same-origin  GET     /f.bin   range=bytes=0-99 accept-encoding=identity cache-control=no-store ACRH=null
+  B-cross-origin OPTIONS /f.bin   range=null accept-encoding=gzip, deflate, br, zstd cache-control=no-cache ACRH=cache-control
+  B-cross-origin GET     /f.bin   range=bytes=0-99 accept-encoding=identity cache-control=no-store ACRH=null
+  A-same-origin  GET     /f2.bin  range=null accept-encoding=gzip, deflate, br, zstd cache-control=null ACRH=null
+[firefox] not available: browserType.launch: Executable doesn't exist at $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox
+[webkit] not available: browserType.launch: Executable doesn't exist at $HOME/Library/Caches/ms-playwright/webkit-2370/pw_run.sh

@@ -1,0 +1,14 @@
+space                      {"pathname":"/ws/site/a%20b.png","search":"","hash":""}
+query-style name           {"pathname":"/ws/site/style.css","search":"?ver=6.4.2","hash":""}
+hash in name               {"pathname":"/ws/site/img","search":"","hash":"#1.png"}
+lone percent               {"pathname":"/ws/site/100%.png","search":"","hash":""}
+percent-escape lookalike   {"pathname":"/ws/site/a%41.png","search":"","hash":""}
+backslash                  {"pathname":"/ws/site/dir/file.png","search":"","hash":""}
+dot segment                {"pathname":"/ws/site/b.png","search":"","hash":""}
+tab+newline                {"pathname":"/ws/site/abc.png","search":"","hash":""}
+encoded slash              {"pathname":"/ws/site/a%2Fb.png","search":"","hash":""}
+NFC e-acute                {"pathname":"/ws/site/caf%C3%A9.html","search":"","hash":""}
+NFD e-acute                {"pathname":"/ws/site/cafe%CC%81.html","search":"","hash":""}
+
+NFC === NFD (JS strings): false | URL pathnames equal: false
+decodeURIComponent("a%2Fb.png") -> a/b.png (the SW decodes before IndexedDB lookup, so an encoded slash becomes a path separator)

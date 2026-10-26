@@ -1,0 +1,28 @@
+{
+  "rows": [
+    {
+      "label": "sandbox BASE (popups inherit sandbox)",
+      "nonHtmlDirect": true,
+      "popup": {
+        "url": "chrome-error://chromewebdata/",
+        "contentType": "text/html",
+        "frames": [
+          "chrome-error://chromewebdata/"
+        ]
+      }
+    },
+    {
+      "label": "sandbox BASE + allow-popups-to-escape-sandbox",
+      "nonHtmlDirect": true,
+      "popup": {
+        "url": "/file.pdf",
+        "contentType": "application/pdf",
+        "frames": [
+          "/file.pdf",
+          "chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/index.ht",
+          "/file.pdf"
+        ]
+      }
+    }
+  ]
+}

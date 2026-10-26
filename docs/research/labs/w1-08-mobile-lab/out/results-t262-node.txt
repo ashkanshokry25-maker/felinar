@@ -1,0 +1,25 @@
+# Lab results, run 2026-10-17 on macOS (darwin 27.0.0 arm64), Node v24.22.0, Playwright Chromium 156.0.8078.4
+
+## fetch-t262.sh
+tests: 70 files, harness: 10 files
+
+## run-t262.mjs (Node vm, fresh realm per test, sloppy+strict): baseline without polyfill
+none: 16/140 passed (70 test files x modes)
+  fromBase64                   2/26
+  fromHex                      2/18
+  prototype/setFromBase64      2/36
+  prototype/setFromHex         4/26
+  prototype/toBase64           2/20
+  prototype/toHex              4/14
+
+## run-t262.mjs with u8-polyfill.js
+u8-polyfill.js: 84/140 passed (70 test files x modes)
+  fromBase64                   26/26
+  fromHex                      18/18
+  prototype/setFromBase64      2/36
+  prototype/setFromHex         4/26
+  prototype/toBase64           20/20
+  prototype/toHex              14/14
+
+## FAILs with polyfill limited to the four implemented methods (expect none):
+(none)

@@ -1,0 +1,10 @@
+{
+  "name": "w1-13-lab",
+  "private": true,
+  "type": "module",
+  "description": "Lab-only extras for docs/research/w1-13-toolchain.md (kept out of the project root on purpose)",
+  "devDependencies": {
+    "events": "3.3.0",
+    "path-esm": "1.0.0"
+  }
+}

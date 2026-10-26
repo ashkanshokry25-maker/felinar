@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><title>yidb tx test</title><body><pre id="o">running</pre>
+<script src="/bundle.js"></script>
+<script>
+(async () => {
+  const out = { ua: navigator.userAgent, trim: PREFERRED_TRIM_SIZE };
+  const txIds = new WeakMap(); let nextTx = 1; const ops = []; let rec = false;
+  const idOf = (tx) => { if (!txIds.has(tx)) txIds.set(tx, nextTx++); return txIds.get(tx); };
+  const origTransaction = IDBDatabase.prototype.transaction;
+  IDBDatabase.prototype.transaction = function (...a) { const tx = origTransaction.apply(this, a); idOf(tx); if (rec) ops.push({ op: 'transaction()', mode: a[1] || 'readonly', tx: idOf(tx) }); return tx; };
+  for (const m of ['add', 'put', 'delete', 'getAll', 'count', 'openCursor', 'openKeyCursor']) {
+    const o = IDBObjectStore.prototype[m];
+    IDBObjectStore.prototype[m] = function (...a) { if (rec) ops.push({ op: m, tx: idOf(this.transaction) }); return o.apply(this, a); };
+  }
+  const doc = new Y.Doc(); const p = new IndexeddbPersistence('yidb-' + Math.random(), doc); await p.whenSynced;
+  const text = doc.getText('t');
+  for (let i = 0; i < PREFERRED_TRIM_SIZE + 150; i++) { text.insert(text.length, 'x'); await new Promise(r => setTimeout(r, 0)); }
+  out.dbsizeBeforeTrim = p._dbsize;
+  const tLast = performance.now();
+  rec = true;                                   // record everything from here: the debounce fires ~1000 ms after the last update
+  await new Promise(r => setTimeout(r, 2500));
+  rec = false;
+  out.dbsizeAfterTrim = p._dbsize; out.waitedMs = +(performance.now() - tLast).toFixed(0);
+  out.opsAfterLastUpdate = ops;
+  const addIdx = ops.findIndex(o => o.op === 'add'); const delIdx = ops.findIndex(o => o.op === 'delete');
+  out.addTx = addIdx >= 0 ? ops[addIdx].tx : null; out.deleteTx = delIdx >= 0 ? ops[delIdx].tx : null;
+  out.sameTransaction = out.addTx !== null && out.addTx === out.deleteTx;
+  out.transactionsCreatedDuringTrim = ops.filter(o => o.op === 'transaction()').length;
+  window.__RESULT = out; document.getElementById('o').textContent = JSON.stringify(out, null, 1);
+})();
+</script>

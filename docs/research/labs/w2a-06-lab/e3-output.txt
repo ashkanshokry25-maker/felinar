@@ -1,0 +1,7 @@
+minimal     246 bytes -> 1 TXT string(s) of <=255 B (Route 53 value limit 4000 chars incl. quotes+spaces)
+typical     363 bytes -> 2 TXT string(s) of <=255 B (Route 53 value limit 4000 chars incl. quotes+spaces)
+withXsRel   487 bytes -> 2 TXT string(s) of <=255 B (Route 53 value limit 4000 chars incl. quotes+spaces)
+
+chunk sizes: 255 + 108 | Route53 Value length incl quotes/spaces: 368
+Route 53 ChangeBatch JSON bytes: 559 (API limit 32,000 chars per request)
+round trip equals original: true

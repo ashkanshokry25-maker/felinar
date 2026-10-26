@@ -1,0 +1,20 @@
+### F5. TLS termination with Caddy 2.11.7: works for WebSockets with a 6-line config; three behaviours need configuration (reload, metrics option, IP trust)
+
+**Claim.** Caddy in front of the tracker gives automatic HTTPS, HTTP->HTTPS, HTTP/2 and HTTP/3 with no code, and I verified the behaviours that matter with the real binary. Official release `v2.11.7` (latest on 2026-10-17; `caddy_2.11.7_mac_arm64.tar.gz`, SHA-512 matched the release's `checksums.txt`); `deploy/Caddyfile` passes `caddy validate`; tests in `caddytest/run.mjs` (plain-HTTP listener, because TLS is not what is being tested):
+
+| Check | Result |
+|---|---|
+| T1a WebSocket announce/offer relay through `reverse_proxy` | passes, no special WebSocket configuration |
+| T1b a client sending `X-Forwarded-For: 203.0.113.99` cannot obtain a fresh identity | passes: Caddy ignores client-supplied `X-Forwarded-*` unless `trusted_proxies` is set, appends the real address, and `tracker.mjs` reads the last entry only when the TCP peer is loopback (the per-IP cap still counted the real client) |
+| T2 `servers { timeouts { idle 10s } }` vs an idle WebSocket | the socket **survived 40 s of silence**: upgraded (hijacked) connections are exempt from the server idle timeout; liveness is the tracker's ping/pong job |
+| T3 `caddy reload` | **closes every WebSocket after 71 ms with code 1001**; with `stream_close_delay 8s` after **8,049 ms** (code 1001). The delay postpones, it does not prevent; clients still reconnect, so avoid config reloads at peak (certificate renewal does not need a reload) |
+
+**Docs facts (caddyserver.com, read 2026-10-17):** "The proxy also supports WebSocket connections"; `stream_timeout` default "no timeout"; `stream_close_delay` default "no delay"; incoming `X-Forwarded-*` are ignored by default to prevent spoofing; `servers > timeouts > idle` defaults to 5 minutes, `read_header` 1 minute; `keepalive_interval` (TCP keepalive) defaults to 15 s; `grace_period` default "eternal" (connections never force-closed on shutdown unless set); `shutdown_delay` exists to drain health-checked upstreams; active health checks need `health_uri` (defaults interval 30 s, timeout 5 s). **In 2.11.x the nested `servers { metrics }` form is deprecated** (the binary warns); use the global `metrics` option, which exposes `caddy_http_*` on the admin endpoint (`localhost:2019/metrics`).
+
+**Certificates.** Let's Encrypt profiles (letsencrypt.org/docs/profiles, 2026-10-17): `classic` 90 days (default), `tlsserver` 45 days, `shortlived` 160 hours; the CA/Browser Forum maximum falls to 100 days for certificates issued from 2027-03-15 and 47 days from 2029-03-15. Caddy renews in-process and never needs a restart; the leaf certificates of all four public trackers show renewals on schedule (first-wave F15). Operational needs: DNS A/AAAA before first start, ports 80 and 443 reachable (TCP; allow UDP 443 for HTTP/3), a CAA record, working time sync.
+
+**Alternatives.** Fly.io terminates TLS at its proxy (no Caddy; client IP in `Fly-Client-IP`; `deploy/fly.toml`); Cloudflare in front adds an unstated idle timeout and restarts on deploy; `aquatic_ws`/`wt-tracker(-rust)` have built-in TLS but aquatic wants DER files and has no `X-Forwarded-For` support, so a proxy must preserve the IP family; nginx needs `Upgrade`/`Connection` headers and `proxy_read_timeout` above the announce interval (default 60 s would cut every socket).
+**Confidence:** high (binary tested; docs quoted). Also run on Linux (Ubuntu 24.04.5 arm64, Caddy 2.11.7 with `tls internal`: TLS, WebSocket proxying and `caddy_http_*` metrics work, `deploy/results/linux-verify-2026-10-17.txt`). Not tested here: real ACME issuance, HTTP/3, behaviour under 20k sockets through Caddy.
+**Sources:** https://github.com/caddyserver/caddy/releases/tag/v2.11.7 ; https://caddyserver.com/docs/caddyfile/directives/reverse_proxy , /docs/caddyfile/options ; https://letsencrypt.org/docs/profiles/ ; https://nginx.org/en/docs/http/websocket.html ; `deploy/Caddyfile`, `caddytest/run.mjs`.
+**Source date:** 2026-10-17.
+

@@ -1,0 +1,87 @@
+{
+  "engine": "webkit",
+  "rows": [
+    {
+      "test": "frame-buster at load",
+      "label": "sandbox without allow-top-navigation*",
+      "shellLoadsIn3_5s": 0,
+      "topUrl": "/bust.html",
+      "console": []
+    },
+    {
+      "test": "frame-buster at load",
+      "label": "sandbox with by-user-activation",
+      "shellLoadsIn3_5s": 0,
+      "topUrl": "/bust.html",
+      "console": []
+    },
+    {
+      "test": "frame-buster at load",
+      "label": "no sandbox",
+      "shellLoadsIn3_5s": 228,
+      "topUrl": "/bust.html",
+      "console": []
+    },
+    {
+      "test": "pdf link in frame",
+      "label": "sandbox BASE",
+      "frameUrl": "/behaviors.html",
+      "contentType": "text/html",
+      "downloads": 1,
+      "console": []
+    },
+    {
+      "test": "pdf link in frame",
+      "label": "no sandbox",
+      "frameUrl": "/behaviors.html",
+      "contentType": "text/html",
+      "downloads": 1,
+      "console": []
+    },
+    {
+      "test": "popup callback: window.opener",
+      "label": "no agent",
+      "popupTitle": "CB {\"opener\":false,\"parentOpener\":true,\"isTop\":false}"
+    },
+    {
+      "test": "popup callback: window.opener",
+      "label": "agent injected by SW",
+      "popupTitle": "CB {\"opener\":true,\"parentOpener\":true,\"isTop\":false,\"posted\":true}",
+      "openerGotMessages": [
+        "{\"mw\":\"token\",\"via\":\"opener\"}"
+      ]
+    },
+    {
+      "test": "agent injection vs strict CSP",
+      "label": "meta CSP, agent injected before it",
+      "state": {
+        "site": "ran",
+        "agent": "ran",
+        "title": "strict:ran"
+      },
+      "console": []
+    },
+    {
+      "test": "agent injection vs strict CSP",
+      "label": "header CSP, agent injected without nonce",
+      "state": {
+        "site": "ran",
+        "agent": null,
+        "title": "strict:no-agent-yet"
+      },
+      "console": [
+        "Refused to load http://127.0.0.1:54279/_mw/agent.js because it does not appear in the script-src directive of the Content Security Policy."
+      ]
+    },
+    {
+      "test": "agent injection vs strict CSP",
+      "label": "header CSP, agent injected with the page nonce",
+      "state": {
+        "site": "ran",
+        "agent": "ran",
+        "title": "strict:ran"
+      },
+      "console": []
+    }
+  ]
+}

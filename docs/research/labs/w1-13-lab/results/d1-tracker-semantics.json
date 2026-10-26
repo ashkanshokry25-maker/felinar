@@ -1,0 +1,84 @@
+{
+ "T1": {
+  "intervalMs": 600000,
+  "wsIntervalToldToClient": 120,
+  "completeIncomplete": [
+   0,
+   6
+  ],
+  "otherPeersInSwarm": 5,
+  "offersSent": 10,
+  "numwantClaimed": 3,
+  "offersDeliveredPerOtherPeer": [
+   1,
+   1,
+   1,
+   1,
+   1
+  ],
+  "totalDelivered": 5,
+  "note": "numwant is ignored; delivered = min(offers, other peers); extra offers dropped silently",
+  "answerRelayedWithUnknownOfferId": true,
+  "httpAnnounceInterval": 600
+ },
+ "T2": {
+  "peersInSwarm": 120,
+  "offersSent": 120,
+  "offersDelivered": 82
+ },
+ "T3": {
+  "announceAllowedReply": true,
+  "announceDeniedReply": "infohash not allowed",
+  "scrapeKeys": 2,
+  "scrapeNoInfoHashReturnsAllSwarmsCount": 1,
+  "torrentsKnownToServer": 1,
+  "statsJson": {
+   "torrents": 1,
+   "activeTorrents": 1,
+   "peersAll": 1,
+   "peersSeederOnly": 0,
+   "peersLeecherOnly": 1,
+   "peersSeederAndLeecher": 0,
+   "peersIPv4": 1,
+   "peersIPv6": 0,
+   "clients": {
+    "unknown": {
+     "p0000000": 1
+    }
+   }
+  },
+  "statsHtmlStartsWith": "<h1>1 torrents (1 active)</h1>\n<h2>Connected Peers: 1</h2>\n<",
+  "randomPathStatus": 200
+ },
+ "T4 default ws options": {
+  "sent": 1000137,
+  "socketStillOpen": true,
+  "closeCode": null,
+  "gotReply": 1
+ },
+ "T4 ws: { maxPayload: 65536 }": {
+  "sent": 1000137,
+  "socketStillOpen": false,
+  "closeCode": 1009,
+  "gotReply": 0
+ },
+ "T5": {
+  "wssWorks": true,
+  "reply": {
+   "interval": 120,
+   "complete": 0,
+   "incomplete": 1
+  },
+  "untrustedCertRejected": "DEPTH_ZERO_SELF_SIGNED_CERT"
+ },
+ "T6": {
+  "connected": 1100,
+  "peersKeptInSwarm": 1000,
+  "completeIncomplete": [
+   0,
+   1000
+  ],
+  "peersCacheLengthDefault": "undefined => 1000 inside Swarm",
+  "peersCacheTtl": "undefined => 20 min"
+ }
+}

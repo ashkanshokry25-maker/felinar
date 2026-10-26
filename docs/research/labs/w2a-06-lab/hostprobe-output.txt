@@ -1,0 +1,46 @@
+GitHub Pages           https://pages.github.com/css/pages.css
+   server/via: GitHub.com | via: 1.1 varnish
+   Range+identity : 206 total=12226 ce=-
+   Range+gzip,br  : 206 total=3412 ce=gzip  <-- Content-Range over COMPRESSED bytes
+   GET ACAO       : *  (expose=-)
+   OPTIONS preflight: 405 ACAO=- ACAH=- ACAM=-
+   cache-control  : max-age=600
+
+Vercel                 https://nextjs.org/_next/static/immutable/chunks/2rm3-g0b_2tme.css
+   server/via: Vercel | via: -
+   Range+identity : 206 total=23306 ce=-
+   Range+gzip,br  : 206 total=23306 ce=-  
+   GET ACAO       : *  (expose=-)
+   OPTIONS preflight: 204 ACAO=- ACAH=- ACAM=-
+   cache-control  : public,max-age=31536000,immutable
+
+Netlify                https://www.netlify.com/_astro/ClientRouter.astro_astro_type_script_in
+   server/via: Netlify | via: -
+   Range+identity : 206 total=15362 ce=-
+   Range+gzip,br  : 206 total=15362 ce=-  
+   GET ACAO       : -  (expose=-)
+   OPTIONS preflight: 200 ACAO=- ACAH=- ACAM=-
+   cache-control  : public,max-age=0,must-revalidate
+
+Cloudflare (CDN)       https://developers.cloudflare.com/_nimbus/shiki.css
+   server/via: cloudflare | via: -
+   Range+identity : 200 total=- ce=-
+   Range+gzip,br  : 200 total=- ce=br  
+   GET ACAO       : *  (expose=-)
+   OPTIONS preflight: 405 ACAO=* ACAH=- ACAM=-
+   cache-control  : -
+
+GitLab Pages           could not discover an asset on https://gitlab-org.gitlab.io/gitlab-ui/
+
+CloudFront/S3          could not discover an asset on https://aws.amazon.com/
+
+Firebase Hosting       could not discover an asset on https://firebase.google.com/
+
+Fastly/jsDelivr        https://cdn.jsdelivr.net/npm/webtorrent@3.0.21/dist/webtorrent.min.js
+   server/via: ? | via: -
+   Range+identity : 206 total=222929 ce=-
+   Range+gzip,br  : 206 total=66074 ce=br  <-- Content-Range over COMPRESSED bytes
+   GET ACAO       : *  (expose=*)
+   OPTIONS preflight: 200 ACAO=* ACAH=- ACAM=-
+   cache-control  : public, max-age=31536000, s-maxage=31536000, immutable
+

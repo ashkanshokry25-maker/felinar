@@ -1,0 +1,63 @@
+{
+ "webkit": {
+  "version": "27.2",
+  "ice": [
+   {
+    "label": "stun A+B (mapping varies by dest)",
+    "cands": [
+     {
+      "t": 57,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 62197,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 57,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 63197,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34781",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      55,
+      "gathering"
+     ]
+    ],
+    "gatherState": "gathering",
+    "tComplete": null,
+    "sdpBytes": 708,
+    "sdpCandLines": 2,
+    "stats": [
+     {
+      "candidateType": "host",
+      "protocol": "tcp"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34781"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780"
+     }
+    ]
+   }
+  ]
+ }
+}

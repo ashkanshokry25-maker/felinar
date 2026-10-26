@@ -1,0 +1,946 @@
+[
+ {
+  "label": "GitHub Pages png",
+  "url": "https://pages.github.com/images/slideshow/bootstrap.png",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "server": "GitHub.com",
+   "content-type": "image/png",
+   "access-control-allow-origin": "*",
+   "cache-control": "max-age=600",
+   "accept-ranges": "bytes",
+   "age": "0",
+   "content-range": "bytes 0-99/156915",
+   "via": "1.1 varnish",
+   "x-cache": "HIT",
+   "vary": "Accept-Encoding",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 405",
+   "server": "Varnish",
+   "accept-ranges": "bytes",
+   "via": "1.1 varnish",
+   "x-cache": "MISS",
+   "content-length": "131"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 405",
+   "server": "Varnish",
+   "accept-ranges": "bytes",
+   "via": "1.1 varnish",
+   "x-cache": "MISS",
+   "content-length": "131"
+  }
+ },
+ {
+  "label": "GitHub Pages css",
+  "url": "https://pages.github.com/css/pages.css",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "server": "GitHub.com",
+   "content-type": "text/css; charset=utf-8",
+   "access-control-allow-origin": "*",
+   "cache-control": "max-age=600",
+   "content-encoding": "gzip",
+   "accept-ranges": "bytes",
+   "age": "0",
+   "content-range": "bytes 0-99/3412",
+   "via": "1.1 varnish",
+   "x-cache": "HIT",
+   "vary": "Accept-Encoding",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 405",
+   "server": "Varnish",
+   "accept-ranges": "bytes",
+   "via": "1.1 varnish",
+   "x-cache": "MISS",
+   "content-length": "131"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 405",
+   "server": "Varnish",
+   "accept-ranges": "bytes",
+   "via": "1.1 varnish",
+   "x-cache": "MISS",
+   "content-length": "131"
+  }
+ },
+ {
+  "label": "Netlify woff2",
+  "url": "https://vuejs.org/assets/inter-roman-latin.Cy4MYw_J.woff2",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "accept-ranges": "bytes",
+   "age": "82925",
+   "cache-control": "max-age=31536000,immutable",
+   "content-range": "bytes 0-99/71624",
+   "content-type": "font/woff2",
+   "server": "Netlify",
+   "strict-transport-security": "max-age=31536000",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 200",
+   "age": "0",
+   "cache-control": "max-age=31536000,immutable",
+   "server": "Netlify",
+   "strict-transport-security": "max-age=31536000",
+   "content-length": "0"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 200",
+   "age": "0",
+   "cache-control": "max-age=31536000,immutable",
+   "server": "Netlify",
+   "strict-transport-security": "max-age=31536000",
+   "content-length": "0"
+  }
+ },
+ {
+  "label": "Netlify js",
+  "url": "https://vuejs.org/assets/app.B91ytTIH.js",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "accept-ranges": "bytes",
+   "age": "71720",
+   "cache-control": "max-age=31536000,immutable",
+   "content-range": "bytes 0-99/7959",
+   "content-type": "application/javascript; charset=UTF-8",
+   "server": "Netlify",
+   "strict-transport-security": "max-age=31536000",
+   "vary": "Accept-Encoding",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 200",
+   "age": "0",
+   "cache-control": "max-age=31536000,immutable",
+   "server": "Netlify",
+   "strict-transport-security": "max-age=31536000",
+   "content-length": "0"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 200",
+   "age": "0",
+   "cache-control": "max-age=31536000,immutable",
+   "server": "Netlify",
+   "strict-transport-security": "max-age=31536000",
+   "content-length": "0"
+  }
+ },
+ {
+  "label": "Vercel woff2",
+  "url": "https://react.dev/fonts/Source-Code-Pro-Regular.woff2",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "accept-ranges": "bytes",
+   "access-control-allow-origin": "*",
+   "age": "243282",
+   "cache-control": "public, max-age=31536000, immutable",
+   "content-range": "bytes 0-99/76348",
+   "content-type": "font/woff2",
+   "server": "Vercel",
+   "strict-transport-security": "max-age=63072000",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 204",
+   "cache-control": "public, max-age=31536000, immutable",
+   "server": "Vercel",
+   "strict-transport-security": "max-age=63072000"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 204",
+   "cache-control": "public, max-age=31536000, immutable",
+   "server": "Vercel",
+   "strict-transport-security": "max-age=63072000"
+  }
+ },
+ {
+  "label": "Cloudflare docs png",
+  "url": "https://developers.cloudflare.com/favicon.png",
+  "get_range": {
+   "status": "HTTP/2 200",
+   "content-type": "image/png",
+   "content-length": "1900",
+   "cf-cache-status": "HIT",
+   "access-control-allow-origin": "*",
+   "strict-transport-security": "max-age=15552000; preload",
+   "vary": "accept-encoding",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 405",
+   "content-length": "0",
+   "access-control-allow-origin": "*",
+   "strict-transport-security": "max-age=15552000; preload",
+   "vary": "accept-encoding",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 405",
+   "content-length": "0",
+   "access-control-allow-origin": "*",
+   "strict-transport-security": "max-age=15552000; preload",
+   "vary": "accept-encoding",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ },
+ {
+  "label": "Cloudflare docs svg",
+  "url": "https://developers.cloudflare.com/_astro/logo.te5VL_aD.svg",
+  "get_range": {
+   "status": "HTTP/2 200",
+   "content-type": "image/svg+xml",
+   "cf-cache-status": "HIT",
+   "access-control-allow-origin": "*",
+   "cache-control": "public, max-age=604800, immutable",
+   "strict-transport-security": "max-age=15552000; preload",
+   "vary": "accept-encoding",
+   "content-encoding": "br",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 405",
+   "content-length": "0",
+   "access-control-allow-origin": "*",
+   "cache-control": "public, max-age=604800, immutable",
+   "strict-transport-security": "max-age=15552000; preload",
+   "vary": "accept-encoding",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 405",
+   "content-length": "0",
+   "access-control-allow-origin": "*",
+   "cache-control": "public, max-age=604800, immutable",
+   "strict-transport-security": "max-age=15552000; preload",
+   "vary": "accept-encoding",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ },
+ {
+  "label": "Bunny jpg",
+  "url": "https://bunny.net/images/bunnynet-the-best-content-delivery-network-cdn.jpg",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "content-type": "image/jpeg",
+   "content-length": "100",
+   "server": "BunnyCDN-CA1-1025",
+   "cache-control": "public, max-age=0",
+   "content-range": "bytes 0-99/258788"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 403",
+   "content-type": "text/html",
+   "content-length": "2334",
+   "vary": "Accept-Encoding",
+   "server": "BunnyCDN-CA1-1025",
+   "cache-control": "no-cache, no-store, max-age=0"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 403",
+   "content-type": "text/html",
+   "content-length": "2334",
+   "vary": "Accept-Encoding",
+   "server": "BunnyCDN-CA1-1025",
+   "cache-control": "no-cache, no-store, max-age=0"
+  }
+ },
+ {
+  "label": "Bunny svg",
+  "url": "https://bunny.net/images/bunny-cdn-icon-modern.svg",
+  "get_range": {
+   "status": "HTTP/2 200",
+   "content-type": "image/svg+xml",
+   "server": "BunnyCDN-CA1-1025",
+   "vary": "Accept-Encoding",
+   "cache-control": "public, max-age=0",
+   "content-encoding": "br"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 403",
+   "content-type": "text/html",
+   "content-length": "2334",
+   "vary": "Accept-Encoding",
+   "server": "BunnyCDN-CA1-1025",
+   "cache-control": "no-cache, no-store, max-age=0"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 403",
+   "content-type": "text/html",
+   "content-length": "2334",
+   "vary": "Accept-Encoding",
+   "server": "BunnyCDN-CA1-1025",
+   "cache-control": "no-cache, no-store, max-age=0"
+  }
+ },
+ {
+  "label": "B2 f001 js",
+  "url": "https://f001.backblazeb2.com/file/backblaze-com-assets/codeSamples.js",
+  "get_range": {
+   "status": "HTTP/1.1 206",
+   "strict-transport-security": "max-age=63072000",
+   "accept-ranges": "bytes",
+   "content-range": "bytes 0-99/277989",
+   "content-type": "application/javascript",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/1.1 401",
+   "strict-transport-security": "max-age=63072000",
+   "cache-control": "max-age=0, no-cache, no-store",
+   "content-type": "application/json;charset=utf-8",
+   "content-length": "136"
+  },
+  "opt_range_only": {
+   "status": "HTTP/1.1 401",
+   "strict-transport-security": "max-age=63072000",
+   "cache-control": "max-age=0, no-cache, no-store",
+   "content-type": "application/json;charset=utf-8",
+   "content-length": "136"
+  }
+ },
+ {
+  "label": "DO Spaces CDN svg",
+  "url": "https://product-docs.nyc3.cdn.digitaloceanspaces.com/ai-agent-icon.svg",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "content-type": "image/svg+xml",
+   "content-length": "100",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET",
+   "access-control-max-age": "0",
+   "vary": "Origin, Access-Control-Request-Headers, Access-Control-Request-Method",
+   "strict-transport-security": "max-age=15552000; includeSubDomains; preload",
+   "cache-control": "max-age=3600",
+   "content-range": "bytes 0-99/3151",
+   "cf-cache-status": "MISS",
+   "server": "cloudflare"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 403",
+   "content-type": "application/xml",
+   "content-length": "249",
+   "accept-ranges": "bytes",
+   "vary": "Origin, Access-Control-Request-Headers, Access-Control-Request-Method",
+   "cache-control": "max-age=0",
+   "strict-transport-security": "max-age=15552000; includeSubDomains; preload",
+   "cf-cache-status": "DYNAMIC",
+   "server": "cloudflare"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 403",
+   "content-type": "application/xml",
+   "content-length": "249",
+   "accept-ranges": "bytes",
+   "vary": "Origin, Access-Control-Request-Headers, Access-Control-Request-Method",
+   "cache-control": "max-age=0",
+   "strict-transport-security": "max-age=15552000; includeSubDomains; preload",
+   "cf-cache-status": "DYNAMIC",
+   "server": "cloudflare"
+  }
+ },
+ {
+  "label": "Storj linkshare png",
+  "url": "https://link.us1.storjshare.io/raw/jua7rls6hkx5556qfcmhrqed2tfa/docs/images/6lBTvetkB98edSAjvyB_q_root.png",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "accept-ranges": "bytes",
+   "access-control-allow-headers": "*",
+   "access-control-allow-methods": "GET, HEAD",
+   "access-control-allow-origin": "*",
+   "content-range": "bytes 0-99/37827",
+   "content-type": "image/png",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 200",
+   "access-control-allow-headers": "*",
+   "access-control-allow-methods": "GET, HEAD",
+   "access-control-allow-origin": "*",
+   "content-length": "0"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 200",
+   "access-control-allow-headers": "*",
+   "access-control-allow-methods": "GET, HEAD",
+   "access-control-allow-origin": "*",
+   "content-length": "0"
+  }
+ },
+ {
+  "label": "S3 default (noaa-goes16)",
+  "url": "https://noaa-goes16.s3.amazonaws.com/index.html",
+  "get_range": {
+   "status": "HTTP/1.1 206 Partial Content",
+   "server": "AmazonS3",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET",
+   "access-control-max-age": "3000",
+   "vary": "Origin, Access-Control-Request-Headers, Access-Control-Request-Method",
+   "content-encoding": "text/html",
+   "accept-ranges": "bytes",
+   "content-range": "bytes 0-99/32357",
+   "content-type": "text/html",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/1.1 200 OK",
+   "server": "AmazonS3",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET",
+   "access-control-allow-headers": "cache-control, range, user-agent",
+   "access-control-max-age": "3000",
+   "vary": "Origin, Access-Control-Request-Headers, Access-Control-Request-Method",
+   "content-length": "0"
+  },
+  "opt_range_only": {
+   "status": "HTTP/1.1 200 OK",
+   "server": "AmazonS3",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET",
+   "access-control-allow-headers": "range",
+   "access-control-max-age": "3000",
+   "vary": "Origin, Access-Control-Request-Headers, Access-Control-Request-Method",
+   "content-length": "0"
+  }
+ },
+ {
+  "label": "Blossom primal",
+  "url": "https://blossom.primal.net/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "get_range": {
+   "status": "HTTP/2 200",
+   "server": "nginx",
+   "content-type": "application/pdf",
+   "content-length": "184292",
+   "access-control-allow-methods": "*",
+   "access-control-allow-origin": "*",
+   "access-control-allow-headers": "*"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 200",
+   "server": "nginx",
+   "content-type": "text/plain",
+   "content-length": "2",
+   "access-control-allow-headers": "Authorization, *",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET, PUT, DELETE"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 200",
+   "server": "nginx",
+   "content-type": "text/plain",
+   "content-length": "2",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET, PUT, DELETE",
+   "access-control-allow-headers": "Authorization, *"
+  }
+ },
+ {
+  "label": "Blossom satellite",
+  "url": "https://cdn.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "get_range": {
+   "status": "HTTP/1.1 302 Found",
+   "server": "nginx/1.24.0 (Ubuntu)",
+   "content-length": "0",
+   "vary": "Origin",
+   "access-control-allow-origin": "https://example.org",
+   "location": "https://blob.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553"
+  },
+  "opt_stock": {
+   "status": "ERR rc=28 "
+  },
+  "opt_range_only": {
+   "status": "HTTP/1.1 204 No Content",
+   "server": "nginx/1.24.0 (Ubuntu)",
+   "content-length": "0",
+   "vary": "Origin, Access-Control-Request-Headers",
+   "access-control-allow-origin": "https://example.org",
+   "access-control-allow-methods": "GET, POST, PUT, DELETE, HEAD, OPTIONS",
+   "access-control-allow-headers": "range"
+  }
+ },
+ {
+  "label": "Blossom nostr.download",
+  "url": "https://nostr.download/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "content-type": "application/pdf",
+   "content-range": "bytes 0-99/184292",
+   "cache-control": "max-age=31536000, immutable",
+   "accept-ranges": "bytes",
+   "vary": "origin, access-control-request-method, access-control-request-headers",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "x-reason,x-identical-media,sunset",
+   "strict-transport-security": "max-age=31536000; includeSubDomains"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 200",
+   "content-length": "0",
+   "vary": "origin, access-control-request-method, access-control-request-headers",
+   "access-control-allow-methods": "GET,HEAD,PUT,POST,DELETE,OPTIONS",
+   "access-control-allow-headers": "authorization,content-type,x-sha-256,x-content-length,x-content-type,x-identical-media,*",
+   "access-control-allow-origin": "*",
+   "strict-transport-security": "max-age=31536000; includeSubDomains"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 200",
+   "content-length": "0",
+   "vary": "origin, access-control-request-method, access-control-request-headers",
+   "access-control-allow-methods": "GET,HEAD,PUT,POST,DELETE,OPTIONS",
+   "access-control-allow-headers": "authorization,content-type,x-sha-256,x-content-length,x-content-type,x-identical-media,*",
+   "access-control-allow-origin": "*",
+   "strict-transport-security": "max-age=31536000; includeSubDomains"
+  }
+ },
+ {
+  "label": "Blossom hzrd149",
+  "url": "https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "accept-ranges": "bytes",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "X-Reason,Content-Range",
+   "alt-svc": "h3=\":443\"; ma=2592000",
+   "cache-control": "public, max-age=31536000, immutable",
+   "content-range": "bytes 0-99/184292",
+   "content-type": "application/pdf",
+   "via": "1.1 Caddy",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 204",
+   "access-control-allow-headers": "Authorization,Content-Type,*",
+   "access-control-allow-methods": "GET,HEAD,PUT,DELETE,OPTIONS",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "X-Reason,Content-Range",
+   "access-control-max-age": "86400",
+   "alt-svc": "h3=\":443\"; ma=2592000",
+   "vary": "Access-Control-Request-Headers",
+   "via": "1.1 Caddy"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 204",
+   "access-control-allow-headers": "Authorization,Content-Type,*",
+   "access-control-allow-methods": "GET,HEAD,PUT,DELETE,OPTIONS",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "X-Reason,Content-Range",
+   "access-control-max-age": "86400",
+   "alt-svc": "h3=\":443\"; ma=2592000",
+   "vary": "Access-Control-Request-Headers",
+   "via": "1.1 Caddy"
+  }
+ },
+ {
+  "label": "IPFS ipfs.io",
+  "url": "https://ipfs.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "HTTP/2 429",
+   "content-type": "text/plain; charset=utf-8",
+   "content-length": "175",
+   "access-control-allow-origin": "*",
+   "cache-control": "public, max-age=900",
+   "vary": "Sec-Fetch-Dest, Sec-Fetch-Mode, Origin",
+   "access-control-expose-headers": "Retry-After, Sunset",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 525",
+   "content-type": "text/plain; charset=UTF-8",
+   "content-length": "16",
+   "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 521",
+   "content-type": "text/plain; charset=UTF-8",
+   "content-length": "16",
+   "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ },
+ {
+  "label": "IPFS dweb.link",
+  "url": "https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "HTTP/2 429",
+   "content-type": "text/plain; charset=utf-8",
+   "content-length": "175",
+   "access-control-allow-origin": "*",
+   "cache-control": "public, max-age=900",
+   "vary": "Sec-Fetch-Dest, Sec-Fetch-Mode, Origin",
+   "access-control-expose-headers": "Retry-After, Sunset",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 521",
+   "content-type": "text/plain; charset=UTF-8",
+   "content-length": "16",
+   "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 521",
+   "content-type": "text/plain; charset=UTF-8",
+   "content-length": "16",
+   "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ },
+ {
+  "label": "IPFS w3s.link",
+  "url": "https://w3s.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "ERR rc=7 "
+  },
+  "opt_stock": {
+   "status": "ERR rc=7 "
+  },
+  "opt_range_only": {
+   "status": "ERR rc=7 "
+  }
+ },
+ {
+  "label": "IPFS storacha.link",
+  "url": "https://storacha.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "HTTP/2 301",
+   "content-type": "text/html; charset=UTF-8",
+   "location": "https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+   "server": "cloudflare"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 301",
+   "content-type": "text/html; charset=UTF-8",
+   "location": "https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+   "server": "cloudflare"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 301",
+   "content-type": "text/html; charset=UTF-8",
+   "location": "https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+   "server": "cloudflare"
+  }
+ },
+ {
+  "label": "IPFS pinata gw",
+  "url": "https://gateway.pinata.cloud/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "content-type": "application/pdf",
+   "content-length": "100",
+   "content-range": "bytes 0-99/184292",
+   "cf-cache-status": "MISS",
+   "access-control-allow-origin": "*",
+   "cache-control": "public, max-age=29030400",
+   "server": "cloudflare",
+   "strict-transport-security": "max-age=31536000; includeSubDomains",
+   "access-control-allow-headers": "Content-Type | Range | User-Agent | X-Requested-With",
+   "access-control-allow-methods": "GET | HEAD | OPTIONS",
+   "access-control-expose-headers": "Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output",
+   "x-ipfs-path": "/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 204",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "HEAD, GET, OPTIONS",
+   "server": "cloudflare"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 204",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "HEAD, GET, OPTIONS",
+   "server": "cloudflare"
+  }
+ },
+ {
+  "label": "IPFS filebase",
+  "url": "https://ipfs.filebase.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "content-type": "application/pdf",
+   "content-length": "100",
+   "access-control-allow-headers": "Content-Type, Range, User-Agent, X-Requested-With",
+   "access-control-allow-methods": "GET, HEAD",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output",
+   "access-control-max-age": "1728000",
+   "cache-control": "public, max-age=29030400, immutable",
+   "content-range": "bytes 0-99/184292",
+   "x-ipfs-path": "/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+   "server": "Filebase"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 204",
+   "server": "Filebase",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET, HEAD",
+   "access-control-allow-headers": "Content-Type, Range, User-Agent, X-Requested-With",
+   "access-control-expose-headers": "Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output",
+   "access-control-max-age": "1728000"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 204",
+   "server": "Filebase",
+   "access-control-allow-origin": "*",
+   "access-control-allow-methods": "GET, HEAD",
+   "access-control-allow-headers": "Content-Type, Range, User-Agent, X-Requested-With",
+   "access-control-expose-headers": "Content-Length, Content-Range, X-Chunked-Output, X-Ipfs-Path, X-Ipfs-Roots, X-Stream-Output",
+   "access-control-max-age": "1728000"
+  }
+ },
+ {
+  "label": "IPFS trustless-gateway.link",
+  "url": "https://trustless-gateway.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "HTTP/2 522",
+   "content-type": "text/html; charset=UTF-8",
+   "content-length": "7286",
+   "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 522",
+   "content-type": "text/plain; charset=UTF-8",
+   "content-length": "16",
+   "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 525",
+   "content-type": "text/plain; charset=UTF-8",
+   "content-length": "16",
+   "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ },
+ {
+  "label": "IPFS 4everland",
+  "url": "https://4everland.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "HTTP/2 301",
+   "content-type": "text/html; charset=utf-8",
+   "location": "https://bafybeibj3nf4iyxt2guxihs77sylpuwu4l4yn4cfqumpc2xplxgxt4ssoa.ipfs.4everland.io/",
+   "server": "cloudflare",
+   "access-control-allow-headers": "Content-Type | Range | User-Agent | X-Requested-With",
+   "access-control-allow-methods": "GET | HEAD | OPTIONS",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output",
+   "cf-cache-status": "MISS",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 301",
+   "content-length": "0",
+   "location": "https://bafybeibj3nf4iyxt2guxihs77sylpuwu4l4yn4cfqumpc2xplxgxt4ssoa.ipfs.4everland.io/",
+   "server": "cloudflare",
+   "access-control-allow-headers": "Content-Type | Range | User-Agent | X-Requested-With",
+   "access-control-allow-methods": "GET | HEAD | OPTIONS",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output",
+   "cf-cache-status": "DYNAMIC",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 301",
+   "content-length": "0",
+   "location": "https://bafybeibj3nf4iyxt2guxihs77sylpuwu4l4yn4cfqumpc2xplxgxt4ssoa.ipfs.4everland.io/",
+   "server": "cloudflare",
+   "access-control-allow-headers": "Content-Type | Range | User-Agent | X-Requested-With",
+   "access-control-allow-methods": "GET | HEAD | OPTIONS",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "Content-Length | Content-Range | X-Chunked-Output | X-Ipfs-Path | X-Ipfs-Roots | X-Stream-Output",
+   "cf-cache-status": "DYNAMIC",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ },
+ {
+  "label": "IPFS cloudflare-ipfs",
+  "url": "https://cloudflare-ipfs.com/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj",
+  "get_range": {
+   "status": "ERR rc=6 "
+  },
+  "opt_stock": {
+   "status": "ERR rc=6 "
+  },
+  "opt_range_only": {
+   "status": "ERR rc=6 "
+  }
+ },
+ {
+  "label": "jsDelivr npm",
+  "url": "https://cdn.jsdelivr.net/npm/webtorrent@3.0.21/dist/webtorrent.min.js",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "*",
+   "cache-control": "public, max-age=31536000, s-maxage=31536000, immutable",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "content-type": "application/javascript; charset=utf-8",
+   "content-encoding": "br",
+   "accept-ranges": "bytes",
+   "age": "1415978",
+   "content-range": "bytes 0-99/66074",
+   "x-cache": "HIT, HIT",
+   "vary": "Accept-Encoding",
+   "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 200",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "*",
+   "cache-control": "public, max-age=86400",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "accept-ranges": "bytes",
+   "x-cache": "MISS, MISS",
+   "vary": "Accept-Encoding",
+   "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+   "content-length": "0"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 200",
+   "access-control-allow-origin": "*",
+   "access-control-expose-headers": "*",
+   "cache-control": "public, max-age=86400",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "accept-ranges": "bytes",
+   "x-cache": "MISS, MISS",
+   "vary": "Accept-Encoding",
+   "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+   "content-length": "0"
+  }
+ },
+ {
+  "label": "unpkg npm",
+  "url": "https://unpkg.com/webtorrent@3.0.21/dist/webtorrent.min.js",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "content-type": "text/javascript; charset=utf-8",
+   "content-length": "100",
+   "content-range": "bytes 0-99/222929",
+   "cf-cache-status": "HIT",
+   "access-control-allow-origin": "*",
+   "age": "1931",
+   "cache-control": "public, max-age=31536000",
+   "server": "cloudflare",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "vary": "accept-encoding",
+   "via": "1.1 fly.io",
+   "access-control-allow-headers": "*",
+   "access-control-allow-methods": "GET, HEAD, OPTIONS",
+   "access-control-expose-headers": "*",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 200",
+   "content-length": "0",
+   "access-control-allow-origin": "*",
+   "access-control-allow-headers": "*",
+   "access-control-allow-methods": "GET, HEAD, OPTIONS, POST",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 200",
+   "content-length": "0",
+   "access-control-allow-origin": "*",
+   "access-control-allow-headers": "*",
+   "access-control-allow-methods": "GET, HEAD, OPTIONS, POST",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "server": "cloudflare",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ },
+ {
+  "label": "GitHub raw",
+  "url": "https://raw.githubusercontent.com/hzrd149/blossom/master/buds/01.md",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "cache-control": "max-age=300",
+   "content-type": "text/plain; charset=utf-8",
+   "strict-transport-security": "max-age=31536000",
+   "content-encoding": "gzip",
+   "accept-ranges": "bytes",
+   "content-range": "bytes 0-99/2688",
+   "via": "1.1 varnish",
+   "x-cache": "MISS",
+   "vary": "Authorization,Accept-Encoding",
+   "access-control-allow-origin": "*",
+   "content-length": "100"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 403",
+   "cache-control": "no-cache",
+   "content-type": "text/html; charset=utf-8",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "accept-ranges": "bytes",
+   "via": "1.1 varnish",
+   "x-cache": "MISS",
+   "access-control-allow-origin": "*",
+   "vary": "Authorization,Accept-Encoding"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 403",
+   "cache-control": "no-cache",
+   "content-type": "text/html; charset=utf-8",
+   "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+   "accept-ranges": "bytes",
+   "via": "1.1 varnish",
+   "x-cache": "MISS",
+   "access-control-allow-origin": "*",
+   "vary": "Authorization,Accept-Encoding"
+  }
+ },
+ {
+  "label": "CloudFront aws.amazon.com static",
+  "url": "https://a0.awsstatic.com/libra-css/images/logos/aws_smile-header-desktop-en-white_59x35.png",
+  "get_range": {
+   "status": "HTTP/2 206",
+   "content-type": "image/png",
+   "content-length": "100",
+   "server": "AmazonS3",
+   "cache-control": "max-age=31536000",
+   "x-cache": "Miss from cloudfront",
+   "via": "1.1 978311a6a9634c2382984c17b7233a28.cloudfront.net (CloudFront)",
+   "alt-svc": "h3=\":443\"; ma=86400",
+   "content-range": "bytes 0-99/2278"
+  },
+  "opt_stock": {
+   "status": "HTTP/2 403",
+   "content-type": "application/xml",
+   "server": "AmazonS3",
+   "x-cache": "Error from cloudfront",
+   "via": "1.1 c6adbb6591d0fc149fcaa981b4104ccc.cloudfront.net (CloudFront)",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  },
+  "opt_range_only": {
+   "status": "HTTP/2 403",
+   "content-type": "application/xml",
+   "server": "AmazonS3",
+   "x-cache": "Error from cloudfront",
+   "via": "1.1 9b4290f9c8982cac782653af1b9237a0.cloudfront.net (CloudFront)",
+   "alt-svc": "h3=\":443\"; ma=86400"
+  }
+ }
+]

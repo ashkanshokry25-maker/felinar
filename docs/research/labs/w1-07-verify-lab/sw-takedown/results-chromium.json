@@ -1,0 +1,63 @@
+{
+ "browser": "chromium",
+ "version": "156.0.8078.4",
+ "steps": [
+  {
+   "name": "A. installed + controlling; page fetches /hello",
+   "controlled": true,
+   "answer": "hello from SW v1",
+   "edgeHelloHitsDuringSWAnswer": 0,
+   "swJsHitsSoFar": 1
+  },
+  {
+   "name": "B. plain reload (fresh registration, <24h)",
+   "newSwJsRequestsOnNavigation": 0
+  },
+  {
+   "name": "C. edge answers 404 for /sw.js, then registration.update()",
+   "update": "rejected: TypeError",
+   "registrationStillPresent": true,
+   "activeScriptURL": "http://127.0.0.1:57043/sw.js",
+   "hello": "hello from SW v1",
+   "swJsRequestsDuringUpdate": 1
+  },
+  {
+   "name": "C. edge answers 410 for /sw.js, then registration.update()",
+   "update": "rejected: TypeError",
+   "registrationStillPresent": true,
+   "activeScriptURL": "http://127.0.0.1:57043/sw.js",
+   "hello": "hello from SW v1",
+   "swJsRequestsDuringUpdate": 2
+  },
+  {
+   "name": "C. edge answers 500 for /sw.js, then registration.update()",
+   "update": "rejected: TypeError",
+   "registrationStillPresent": true,
+   "activeScriptURL": "http://127.0.0.1:57043/sw.js",
+   "hello": "hello from SW v1",
+   "swJsRequestsDuringUpdate": 1
+  },
+  {
+   "name": "D. edge serves NEW 200 script (v2) with Cache-Control: max-age=1y immutable, then update()",
+   "update": "resolved",
+   "registrationStillPresent": true,
+   "activeScriptURL": "http://127.0.0.1:57043/sw.js",
+   "hello": "hello from SW v2",
+   "swJsRequestsDuringUpdate": 1
+  },
+  {
+   "name": "E. edge serves 200 self-unregistering \"kill\" script, then update(); reload; fetch /hello",
+   "update": "resolved",
+   "registrationStillPresent": false,
+   "swJsRequestsDuringUpdate": 2,
+   "controlledAfterReload": false,
+   "helloAfterReload": "hello from NETWORK",
+   "edgeHelloHitsNow": 1
+  },
+  {
+   "name": "F. brand-new visitor while edge answers 410 for /sw.js",
+   "regErr": "TypeError: Failed to register a ServiceWorker for scope ('http://127.0.0.1:57043/') with script ('http://127.0.0.1:57043/sw.js'): A bad HTTP response code (410) was received when fetching the script.",
+   "registration": false
+  }
+ ]
+}

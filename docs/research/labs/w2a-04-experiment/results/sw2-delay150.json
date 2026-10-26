@@ -1,0 +1,58 @@
+{
+ "browser": "156.0.8078.4",
+ "delayMs": 150,
+ "variants": {
+  "nf-i": {
+   "cold": {
+    "restarts": "15/15",
+    "dispatch_ms_med": 3.5,
+    "workerStart_med": 0.5,
+    "fetchStart_med": 3.8,
+    "responseStart_med": 155.8,
+    "responseStart_max": 159.4,
+    "preloadUsed": 0
+   },
+   "warm": {
+    "restarts": "0/15",
+    "dispatch_ms_med": -0.3,
+    "workerStart_med": 0.2,
+    "fetchStart_med": 0.3,
+    "responseStart_med": 153.9,
+    "responseStart_max": 156.1,
+    "preloadUsed": 0
+   },
+   "runningStatusesSeen": [
+    "stopped",
+    "starting",
+    "running",
+    "stopping"
+   ]
+  },
+  "nfp-i": {
+   "cold": {
+    "restarts": "15/15",
+    "dispatch_ms_med": 3.2,
+    "workerStart_med": 0.5,
+    "fetchStart_med": 3.3,
+    "responseStart_med": 155.8,
+    "responseStart_max": 158.5,
+    "preloadUsed": 15
+   },
+   "warm": {
+    "restarts": "0/15",
+    "dispatch_ms_med": -0.1,
+    "workerStart_med": 0.3,
+    "fetchStart_med": 0.5,
+    "responseStart_med": 153.6,
+    "responseStart_max": 155.8,
+    "preloadUsed": 15
+   },
+   "runningStatusesSeen": [
+    "stopped",
+    "starting",
+    "running",
+    "stopping"
+   ]
+  }
+ }
+}

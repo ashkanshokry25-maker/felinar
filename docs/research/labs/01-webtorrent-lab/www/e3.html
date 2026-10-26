@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E3 web seed CORS + magnet bootstrap (ws=, xs=)</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { tests: {}, errors: [] }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e3', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+class MemStore { // minimal abstract-chunk-store (callback style) to prove the custom `store` option contract
+  constructor (chunkLength, opts) { this.chunkLength = chunkLength; this.opts = { length: opts.length, name: opts.name, hasTorrent: !!opts.torrent, keys: Object.keys(opts).sort() }; this.chunks = new Map(); this.length = opts.length; MemStore.last = this }
+  put (i, buf, cb = () => {}) { this.chunks.set(i, new Uint8Array(buf)); queueMicrotask(() => cb(null)) }
+  get (i, o, cb) { if (typeof o === 'function') { cb = o; o = {} } const c = this.chunks.get(i); if (!c) { const e = new Error('Chunk not found'); e.notFound = true; return queueMicrotask(() => cb(e)) } const off = (o && o.offset) || 0; const len = (o && o.length) || (c.length - off); queueMicrotask(() => cb(null, c.slice(off, off + len))) }
+  close (cb = () => {}) { queueMicrotask(() => cb(null)) }
+  destroy (cb = () => {}) { this.chunks.clear(); queueMicrotask(() => cb(null)) }
+}
+try {
+  const bytes = new Uint8Array(300000)
+  let x = 123456789
+  for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; bytes[i] = x & 255 }
+  const A = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  const tA = await new Promise((resolve, reject) => { const t = A.seed(new File([bytes], 'blob.bin'), { announce: [], name: 'blob.bin', pieceLength: 16384, store: MemStore }, resolve); t.on('error', reject) })
+  R.seed = { infoHash: tA.infoHash, length: tA.length, pieces: tA.pieces.length, pieceLength: tA.pieceLength, magnet: tA.magnetURI, storeOptsKeys: MemStore.last && MemStore.last.opts.keys, storeName: MemStore.last && MemStore.last.opts.name }
+  await fetch('/upload/blob.bin', { method: 'POST', body: bytes })
+  await fetch('/upload/blob.torrent', { method: 'POST', body: tA.torrentFile })
+  const torrentFile = tA.torrentFile
+  const SEED = 'http://127.0.0.1:18081/seed'
+  const eq = (a, b) => a.length === b.length && a.every((v, i) => v === b[i])
+
+  async function runCase (label, makeId, opts = {}, waitMs = 9000) {
+    const B = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+    const rec = { warnings: [], errors: [] }
+    try {
+      const tB = B.add(makeId(), { store: MemStore, ...opts })
+      tB.on('warning', e => rec.warnings.push(String(e.message || e).slice(0, 140)))
+      tB.on('error', e => rec.errors.push(String(e.message || e).slice(0, 140)))
+      let gotMeta = false; tB.on('metadata', () => { gotMeta = true })
+      let done = false; tB.on('done', () => { done = true })
+      const t0 = performance.now()
+      for (let i = 0; i < waitMs / 100 && !done && !tB.destroyed; i++) await sleep(100)
+      rec.gotMetadata = gotMeta; rec.done = done; rec.ms = Math.round(performance.now() - t0)
+      rec.progress = tB.progress; rec.numPeers = tB.numPeers
+      rec.wireTypes = tB.wires ? tB.wires.map(w => w.type) : []
+      if (done) { const ab = new Uint8Array(await tB.files[0].arrayBuffer()); rec.bytesMatch = eq(ab, bytes) }
+    } catch (e) { rec.fatal = String(e) }
+    try { await new Promise(r => B.destroy(r)) } catch (e) {}
+    R.tests[label] = rec
+  }
+  for (const mode of ['none', 'acao', 'full']) {
+    await runCase('torrentFile+urlList_' + mode, () => torrentFile, { urlList: [`${SEED}/${mode}/blob.bin`] })
+  }
+  await runCase('magnet_ws_only_full', () => `magnet:?xt=urn:btih:${tA.infoHash}&dn=blob.bin&ws=${encodeURIComponent(SEED + '/full/blob.bin')}`, {}, 6000)
+  await runCase('magnet_ws_plus_xs_full', () => `magnet:?xt=urn:btih:${tA.infoHash}&dn=blob.bin&ws=${encodeURIComponent(SEED + '/full/blob.bin')}&xs=${encodeURIComponent(SEED + '/full/blob.torrent')}`)
+  await runCase('magnet_ws_plus_xs_acao', () => `magnet:?xt=urn:btih:${tA.infoHash}&dn=blob.bin&ws=${encodeURIComponent(SEED + '/acao/blob.bin')}&xs=${encodeURIComponent(SEED + '/acao/blob.torrent')}`, {}, 6000)
+  await runCase('magnet_xs_only_full', () => `magnet:?xt=urn:btih:${tA.infoHash}&dn=blob.bin&xs=${encodeURIComponent(SEED + '/full/blob.torrent')}`, {}, 6000)
+  await runCase('magnet_btmh_only', () => 'magnet:?xt=urn:btmh:1220' + '11'.repeat(32) + '&dn=x', {}, 1500)
+  await runCase('magnet_hybrid_btih_btmh_ws_xs', () => `magnet:?xt=urn:btih:${tA.infoHash}&xt=urn:btmh:1220${'22'.repeat(32)}&dn=blob.bin&ws=${encodeURIComponent(SEED + '/full/blob.bin')}&xs=${encodeURIComponent(SEED + '/full/blob.torrent')}`)
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

@@ -1,0 +1,32 @@
+{
+ "default, no STUN": {
+  "events": [
+   [
+    2,
+    "gathering:gathering"
+   ]
+  ],
+  "finalGathering": "gathering",
+  "sdpCandidateLines": 0
+ },
+ "default, google STUN": {
+  "events": [
+   [
+    2,
+    "gathering:gathering"
+   ]
+  ],
+  "finalGathering": "gathering",
+  "sdpCandidateLines": 0
+ },
+ "permissions camera+microphone granted": {
+  "events": [
+   [
+    2,
+    "gathering:gathering"
+   ]
+  ],
+  "finalGathering": "gathering",
+  "sdpCandidateLines": 0
+ }
+}

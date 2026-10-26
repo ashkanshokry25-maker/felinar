@@ -1,0 +1,5 @@
+pages: 8  open tracker sockets: 8
+terminated 8 server-side sockets at 2026-10-17T21:40:31.430Z
+re-announce delay after socket drop, seconds, per client: [73,171.1,55.9,299.9,265.3,225.9,152.3,80.1]
+min 55.9 median 171.1 max 299.9 n 8 / 8  (theory: 10 s + U(0, 300 s) => 10..310 s; fast mode => ~10 s)
+exit=0

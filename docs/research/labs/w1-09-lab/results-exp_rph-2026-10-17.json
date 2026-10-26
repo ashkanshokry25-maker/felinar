@@ -1,0 +1,192 @@
+{
+  "date": "2026-10-17T21:12:54.830Z",
+  "base": "http://127.0.0.1:56460",
+  "exp1": [
+    {
+      "engine": "chromium",
+      "version": "156.0.8078.4",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+      "cases": {
+        "hasRegister": "function",
+        "hasUnregister": "function",
+        "hasIsRegistered": "undefined",
+        "isSecureContext": true,
+        "magnet absolute /#%s": "ok",
+        "magnet relative /#%s": "ok",
+        "magnet legacy 3-arg (title)": "ok",
+        "MAGNET (uppercase scheme)": "ok",
+        "web+magnetweb": "ok",
+        "web+magnet2 (digit)": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': The scheme name 'web+magnet2' is not allowed. Schemes starting with 'web+magnet2' must be followed by one or more ASCII letters.",
+        "web+ (empty suffix)": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': The scheme name 'web+' is not allowed. Schemes starting with 'web+' must be followed by one or more ASCII letters.",
+        "bittorrent (not safelisted)": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': The scheme 'bittorrent' doesn't belong to the scheme allowlist. Please prefix non-allowlisted schemes with the string 'web+'.",
+        "magnet: (trailing colon)": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': The scheme name 'magnet:' is not allowed by URI syntax (RFC3986).",
+        "https (hijack core scheme)": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': The scheme 'https' doesn't belong to the scheme allowlist. Please prefix non-allowlisted schemes with the string 'web+'.",
+        "magnet no %s": "SyntaxError: Failed to execute 'registerProtocolHandler' on 'Navigator': The url provided ('http://127.0.0.1:56460/') does not contain '%s'.",
+        "magnet cross-origin https": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': Can only register custom handler in the document's origin.",
+        "magnet cross-origin http": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': The scheme of the url provided must be HTTP(S).",
+        "magnet %s in host": "SyntaxError: Failed to execute 'registerProtocolHandler' on 'Navigator': The custom handler URL created by removing '%s' and prepending 'http://127.0.0.1:56460/index.html' is invalid.",
+        "magnet ?m=%s query form": "ok"
+      },
+      "iframe sandbox allow-scripts allow-same-origin": {
+        "hasMethod": "function",
+        "isSecureContext": true,
+        "origin": "http://127.0.0.1:56460",
+        "magnet": "ok"
+      },
+      "iframe sandbox allow-scripts (opaque origin)": {
+        "hasMethod": "function",
+        "isSecureContext": true,
+        "origin": "http://127.0.0.1:56460",
+        "magnet": "SecurityError: Failed to execute 'registerProtocolHandler' on 'Navigator': Can only register custom handler in the document's origin."
+      }
+    },
+    {
+      "engine": "firefox",
+      "error": "browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-JcNOsP -juggler-pipe -silent\n<launched> pid=43441\n[pid=43441][err] *** You are running in headless mode.\n[pid=43441][err] Could not find profile folder.\n[pid=43441] <process did exit: exitCode=1, signal=null>\n[pid=43441] starting temporary directories cleanup\nCall log:\n  - <launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-JcNOsP -juggler-pipe -silent\n  - <launched> pid=43441\n  - [pid=43441][err] *** You are running in headless mode.\n  - [pid=43441][err] Could not find profile folder.\n  - [pid=43441] <process did exit: exitCode=1, signal=null>\n  - [pid=43441] starting temporary directories cleanup\n  - [pid=43441] <gracefully close start>\n  - [pid=43441] <kill>\n  - [pid=43441] <skipped force kill spawnedProcess.killed=false processClosed=true>\n  - [pid=43441] finished temporary directories cleanup\n  - [pid=43441] <gracefully close end>\n"
+    },
+    {
+      "engine": "webkit",
+      "version": "27.2",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+      "cases": {
+        "hasRegister": "undefined",
+        "hasUnregister": "undefined",
+        "hasIsRegistered": "undefined",
+        "isSecureContext": true
+      },
+      "iframe sandbox allow-scripts allow-same-origin": {
+        "hasMethod": "undefined",
+        "isSecureContext": true,
+        "origin": "http://127.0.0.1:56460"
+      },
+      "iframe sandbox allow-scripts (opaque origin)": {
+        "hasMethod": "undefined",
+        "isSecureContext": true,
+        "origin": "http://127.0.0.1:56460"
+      }
+    }
+  ],
+  "exp2": {
+    "engine": "chromium",
+    "version": "156.0.8078.4",
+    "c01_magnet_fragment": {
+      "handlers": [
+        {
+          "protocol": "magnet",
+          "url": "/#%s"
+        }
+      ],
+      "errors": [],
+      "hasData": true
+    },
+    "c02_magnet_query": {
+      "handlers": [
+        {
+          "protocol": "magnet",
+          "url": "/?m=%s"
+        }
+      ],
+      "errors": [],
+      "hasData": true
+    },
+    "c03_magnet_path_fragment": {
+      "handlers": [
+        {
+          "protocol": "magnet",
+          "url": "/open#%s"
+        }
+      ],
+      "errors": [],
+      "hasData": true
+    },
+    "c04_web_magnetweb": {
+      "handlers": [
+        {
+          "protocol": "web+magnetweb",
+          "url": "/#%s"
+        }
+      ],
+      "errors": [],
+      "hasData": true
+    },
+    "c05_bittorrent_not_safelisted": {
+      "handlers": [
+        {
+          "protocol": "bittorrent",
+          "url": "/#%s"
+        }
+      ],
+      "errors": [
+        "The scheme 'bittorrent' doesn't belong to the scheme allowlist. Please prefix non-allowlisted schemes with the string 'web+'.",
+        "protocol_handlers entry ignored, required property 'protocol' is invalid."
+      ],
+      "hasData": true
+    },
+    "c06_magnet_no_token": {
+      "handlers": [
+        {
+          "protocol": "magnet",
+          "url": "/"
+        }
+      ],
+      "errors": [
+        "The url provided ('http://127.0.0.1:56460/') does not contain '%s'.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ],
+      "hasData": true
+    },
+    "c07_magnet_cross_origin": {
+      "handlers": [
+        {
+          "protocol": "magnet",
+          "url": "https://other.example/#%s"
+        }
+      ],
+      "errors": [
+        "property 'url' ignored, should be within scope of the manifest.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ],
+      "hasData": true
+    },
+    "c08_magnet_uppercase": {
+      "handlers": [
+        {
+          "protocol": "MAGNET",
+          "url": "/#%s"
+        }
+      ],
+      "errors": [],
+      "hasData": true
+    },
+    "c09_two_handlers_one_bad": {
+      "handlers": [
+        {
+          "protocol": "magnet",
+          "url": "/#%s"
+        },
+        {
+          "protocol": "nope",
+          "url": "/#%s"
+        }
+      ],
+      "errors": [
+        "The scheme 'nope' doesn't belong to the scheme allowlist. Please prefix non-allowlisted schemes with the string 'web+'.",
+        "protocol_handlers entry ignored, required property 'protocol' is invalid."
+      ],
+      "hasData": true
+    },
+    "c10_magnet_outside_scope": {
+      "handlers": [
+        {
+          "protocol": "magnet",
+          "url": "/#%s"
+        }
+      ],
+      "errors": [
+        "property 'url' ignored, should be within scope of the manifest.",
+        "protocol_handlers entry ignored, required property 'url' is invalid."
+      ],
+      "hasData": true
+    }
+  }
+}

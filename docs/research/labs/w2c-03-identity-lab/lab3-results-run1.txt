@@ -1,0 +1,1 @@
+run1 (earlier, console): {"N":200000,"distinctSvg":198564,"collisions":1436,"effectiveBitsIfUniform":23.7}

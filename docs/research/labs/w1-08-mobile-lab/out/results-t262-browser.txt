@@ -1,0 +1,45 @@
+# run-t262-browser.mjs (ENGINE=chromium), final code, run 2026-10-17
+## native (control)
+native on chromium 156.0.8078.4: 134/140 passed
+  fromBase64                   26/26
+  fromHex                      18/18
+  prototype/setFromBase64      32/36
+  prototype/setFromHex         24/26
+  prototype/toBase64           20/20
+  prototype/toHex              14/14
+  FAIL prototype/setFromBase64/throws-when-target-is-backed-by-immutable-arraybuffer.js [sloppy]: no arg factories match include immutable and exclude undefined
+
+## stripped (natives deleted, no polyfill)
+stripped on chromium 156.0.8078.4: 16/140 passed
+  fromBase64                   2/26
+  fromHex                      2/18
+  prototype/setFromBase64      2/36
+  prototype/setFromHex         4/26
+  prototype/toBase64           2/20
+  prototype/toHex              4/14
+  FAIL fromBase64/alphabet.js [sloppy]: Uint8Array.fromBase64 is not a function
+
+## stripped+polyfill
+stripped+polyfill u8-polyfill.js on chromium 156.0.8078.4: 84/140 passed
+  fromBase64                   26/26
+  fromHex                      18/18
+  prototype/setFromBase64      2/36
+  prototype/setFromHex         4/26
+  prototype/toBase64           20/20
+  prototype/toHex              14/14
+  FAIL prototype/setFromBase64/alphabet.js [sloppy]: target.setFromBase64 is not a function
+
+## selftest.mjs
+{"hex":"0102feff","b64":"AQL+/w==","b64url":"AQL-_w","fromHex":[1,2,254,255],"fromB64url":[1,2,254,255],"empty":["","",0,0],"big":true,"errs":["oddhex:okSyntaxError","badhex:okSyntaxError","non-string:okTypeError","strictmissingpad:okSyntaxError","loose1-char:okSyntaxError","b64urlrejects+:okSyntaxError","badalphabet:okTypeError","notu8:okTypeError"],"stopBefore":[1,2,241,"|",1,2,254],"descr":"falsename=fromBase64len=0,0,1,1"}
+
+## abort-test.mjs
+{"nativeBefore":"function","installed":"function","aborted":true,"reasonName":"TimeoutError","ms":51}
+fetch aborted: TimeoutError | after ms 205
+
+## sizes
+    3680 u8-polyfill.js
+     752 abort-polyfill.js
+    4432 total
+u8-polyfill min: 2448 B
+u8-polyfill min+gzip9: 1193 B
+abort-polyfill min: 497 B

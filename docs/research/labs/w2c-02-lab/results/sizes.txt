@@ -1,0 +1,13 @@
+age raw=  142996 gzip9=   52199 brotli11=   40010
+noble-xchacha raw=   11448 gzip9=    4896 brotli11=    4231
+noble-box raw=   44042 gzip9=   16823 brotli11=   14803
+noble-ed25519 raw=   33555 gzip9=   13436 brotli11=   12026
+sodium raw=  433770 gzip9=  151487 brotli11=  123951
+hpke raw=   69552 gzip9=   19939 brotli11=   16813
+idb raw=    3302 gzip9=    1365 brotli11=    1242
+dexie raw=  100219 gzip9=   32729 brotli11=   29213
+argon2 raw=   14007 gzip9=    5617 brotli11=    4951
+sha256only raw=    5402 gzip9=    2640 brotli11=    2312
+sqlite3.wasm(as shipped) raw=  868907 gzip9=  402035 brotli11=  348812
+sqlite index.mjs(unminified) raw=  642742 gzip9=  174526 brotli11=  140830
+sqlite index.mjs(minified) raw=  217850 gzip9=   66602 brotli11=   58224

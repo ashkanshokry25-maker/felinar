@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E2b idle second tab with its own WebTorrent server</title>
+<body>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const reg = await navigator.serviceWorker.register('./sw.min.js', { scope: './' })
+await navigator.serviceWorker.ready
+const client = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+client.createServer({ controller: reg })
+await fetch('/kv/b-ready', { method: 'POST', body: '1' })
+document.body.textContent = 'tab B ready (idle, no torrents)'
+</script>

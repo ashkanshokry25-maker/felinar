@@ -1,0 +1,20 @@
+setTimeout(() => { console.log('HARD TIMEOUT'); process.exit(2); }, 60000).unref();
+import fs from 'node:fs';
+import { chromium } from '../../../../node_modules/playwright/index.mjs';
+const src = fs.readFileSync(new URL('./p2p-timeline.mjs', import.meta.url), 'utf8');
+const linkInit = src.match(/const linkInit = `([\s\S]*?)`;\nasync function newSeeder/)[1];
+const browser = await chromium.launch({ headless: true, args: ['--disable-features=WebRtcHideLocalIpsWithMdns'] });
+const ctx = await browser.newContext(); await ctx.addInitScript(linkInit); const page = await ctx.newPage(); await page.goto('about:blank');
+const r = await page.evaluate(async () => {
+  const a = new RTCPeerConnection({ iceServers: [] }), b = new RTCPeerConnection({ iceServers: [] }); const dc = a.createDataChannel('x'); dc.binaryType = 'arraybuffer';
+  a.onicecandidate = e => e.candidate && b.addIceCandidate(e.candidate); b.onicecandidate = e => e.candidate && a.addIceCandidate(e.candidate);
+  let got = 0, t0 = 0; const times = []; const done = new Promise(ok => { b.ondatachannel = e => { e.channel.onmessage = ev => { got += ev.data.byteLength; times.push(Math.round(performance.now() - t0)); if (got >= 100 * 16384) ok(); }; }; });
+  const open = new Promise(ok => dc.onopen = ok);
+  await a.setLocalDescription(await a.createOffer()); await b.setRemoteDescription(a.localDescription); await b.setLocalDescription(await b.createAnswer()); await a.setRemoteDescription(b.localDescription); await open;
+  window.__link.d = 0; window.__link.bw = 2500; t0 = performance.now();
+  for (let i = 0; i < 100; i++) dc.send(new Uint8Array(16384));
+  await Promise.race([done, new Promise(ok => setTimeout(ok, 8000))]);
+  return { got, times: times.filter((_, i) => i % 10 === 0), expectedMs: 100 * 16384 / 2500 };
+});
+console.log(JSON.stringify(r));
+await browser.close();

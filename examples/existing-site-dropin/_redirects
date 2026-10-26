@@ -1,0 +1,5 @@
+# What the host owns, and drop-in leaves alone (ARCHITECTURE 3.4.1, 3.4.8).
+# The History-API router page needs an SPA fallback: every /app/* URL is answered with app.html.
+/app/*   /app.html   200
+# A permanent redirect.
+/old-about   /about.html   301

@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>SPA</title></head>
+<body><h1>SPA</h1><nav><a id="r1" data-spa href="/spa/one">one</a> <a id="r2" data-spa href="/spa/two">two</a> <a id="rhome" href="/">home (full nav)</a></nav>
+<div id="view"></div>
+<script>
+function render(){ document.getElementById('view').textContent = 'route:' + location.pathname; document.title = 'SPA ' + location.pathname }
+document.addEventListener('click', function (e) { var a = e.target.closest('a[data-spa]'); if (!a) return; e.preventDefault(); history.pushState({}, '', a.getAttribute('href')); render() })
+window.addEventListener('popstate', render); render()
+</script></body></html>

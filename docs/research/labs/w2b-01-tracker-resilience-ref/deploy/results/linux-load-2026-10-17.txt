@@ -1,0 +1,20 @@
+# Linux load check of the reference tracker under the reference systemd unit.
+# Machine: OrbStack Ubuntu 24.04.5 LTS arm64, 7 vCPU, 12 GB, kernel 7.2.9-orbstack, systemd 255, Node v24.22.0 (official tarball, sha256 verified). 2026-10-17 ~21:55Z.
+# Load generator: bench/loadgen.mjs on the macOS host, through OrbStack's localhost port forwarding (adds latency/CPU outside the VM).
+## 10,200 idle connections (3 generator processes, 10-peer swarms, one announce with 5 offers each):
+mwt_process_cpu_seconds_total 6.457141
+mwt_process_resident_memory_bytes 287109120
+mwt_nodejs_heap_size_used_bytes 84697744
+mwt_nodejs_external_memory_bytes 45004477
+mwt_connections 10200
+mwt_swarms 1020
+mwt_peers 10200
+MemoryCurrent=240173056
+MemoryPeak=240173056
+CPUUsageNSec=6543269000
+TasksCurrent=7
+VmRSS:	  281264 kB
+Threads:	7
+## 4,002 connections, one announce (5 offers) per connection per second, 20% of received offers answered; 25 s window:
+interval 25.0 s, cpu 0.81 cores, announce-type msgs/s 7956 (announces + answers), 102 us CPU per message, RSS 365 MiB
+(raw: 1792274246.957436985 82.867542 554922 4002 383463424 | 1792274271.981745774 103.183405 754019 4002 382935040)

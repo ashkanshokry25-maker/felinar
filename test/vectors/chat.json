@@ -1,0 +1,269 @@
+{
+  "format": "mw_chat1 frames, relay stamp, deniable sealed box, Noise XX wire handshake and group epochs (v0.3, R 2.4.3 and 2.7)",
+  "about": "Golden vectors for src/chat (INTERFACES v0.3 src/chat/*). New cryptographic code: these vectors pin the formats; they do not make the construction secure (outside review, R 2.19). Keys are throwaway P-256 JWKs made for these vectors. APPEND ONLY once locked: see LOCK.json.",
+  "vectors": [
+    {
+      "id": "chat-frame-001-collected",
+      "description": "COLLECTED frame: 14-byte header (type 9, version 1, hop 0, flags 0, day, stampNonce) then frameId (32) and proof (32). frameId = SHA-256(type|version|flags|day|body); the hop byte and the stamp nonce are not hashed.",
+      "input": {
+        "type": 9,
+        "hop": 0,
+        "flags": 0,
+        "day": 20381,
+        "stampNonce": "0001020304050607",
+        "frameIdField": "0707070707070707070707070707070707070707070707070707070707070707",
+        "proof": "0909090909090909090909090909090909090909090909090909090909090909"
+      },
+      "expect": {
+        "frame": "090100004f9d000102030405060707070707070707070707070707070707070707070707070707070707070707070909090909090909090909090909090909090909090909090909090909090909",
+        "frameId": "9205b855ae5a022e6b2632fb080c2f0a852c3e5ab3e26eb9f26da6a74a4e5c08",
+        "frameIdAtHop3": "9205b855ae5a022e6b2632fb080c2f0a852c3e5ab3e26eb9f26da6a74a4e5c08"
+      }
+    },
+    {
+      "id": "chat-stamp-001-bits10",
+      "description": "Relay stamp: the first 8-byte big-endian counter nonce from 0 with leadingZeroBits(SHA-256(\"mw-relay-v1\" | frameId | nonce)) >= 10.",
+      "input": {
+        "frameId": "0000000000000000000000000000000000000000000000000000000000000001",
+        "bits": 10
+      },
+      "expect": {
+        "nonce": "0000000000000438",
+        "digest": "000127fa660039ac45b46da1b572ba7084388371d3f86bd75842acf472a17360"
+      }
+    },
+    {
+      "id": "chat-pair-001",
+      "description": "K_pair = HKDF-SHA-256(ECDH(alice, bob), salt \"\", info \"mw-pair-v2|\" + ledgerId + \"|\" + sorted chat keys joined by \"|\"); contact tag = HMAC(K_pair, \"tag|\" + day)[:8]; inbox tag of bob = SHA-256(\"mw-inbox-v2|\" + bobChatPub + \"|\" + day)[:8]; presence id = HMAC(K_pair, \"pres|\" + day)[:8].",
+      "input": {
+        "alice": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "fITIrwPsXONf-FlmI-NZIp7JkvvbJQIGejKZGVL0Rp8",
+          "y": "bLvyzjF2q0iKb5bhjmFeo_eRBsnE1nZUg5b5ILp-yjY",
+          "d": "nW-vauwrLqwtpRVc0gdmCUOwacsYZsUCXo_VZWXUgqg"
+        },
+        "bob": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "DVKb_PObIJ55bH50DP-8nP3G7cJL4EkFRRNLTTwKP30",
+          "y": "wWhsRy2dtrVJUU2mDJaHV6o7Py7S4TtrO0CIsbbw5_I",
+          "d": "2szIBzem0HzaspZHO3jpCuYqhhoalDJVKNSEb3yKn94"
+        },
+        "ledgerId": "mw1:vectorLedgerAbcdefghijklmnop",
+        "day": 20381
+      },
+      "expect": {
+        "alicePub": "p256:BHyEyK8D7FzjX_hZZiPjWSKeyZL72yUCBnoymRlS9EafbLvyzjF2q0iKb5bhjmFeo_eRBsnE1nZUg5b5ILp-yjY",
+        "bobPub": "p256:BA1Sm_zzmyCeeWx-dAz_vJz9xu3CS-BJBUUTS008Cj99wWhsRy2dtrVJUU2mDJaHV6o7Py7S4TtrO0CIsbbw5_I",
+        "kPair": "cb9606c46534ea5a86781752a5f5d56b834caf8253355ec72e5212650787686b",
+        "contactTag": "84586b2307314fe1",
+        "inboxTagBob": "aa1eb3ff027b012d",
+        "presenceId": "47df370569e8774b"
+      }
+    },
+    {
+      "id": "chat-dm-001-contact-256",
+      "description": "Contact DM from alice to bob in the 256-byte bucket: mk = HKDF(K_pair || ECDH(eph, bob), salt = tag, info \"mw-dm-v2|\" + ledgerId); AES-256-GCM, AAD \"mw-dm-v2\" || tag || epk; plaintext id|t|n|kind|flags|len|body|zeros. ENV frame 371 bytes (stamp nonce zero, not minted).",
+      "input": {
+        "alice": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "fITIrwPsXONf-FlmI-NZIp7JkvvbJQIGejKZGVL0Rp8",
+          "y": "bLvyzjF2q0iKb5bhjmFeo_eRBsnE1nZUg5b5ILp-yjY",
+          "d": "nW-vauwrLqwtpRVc0gdmCUOwacsYZsUCXo_VZWXUgqg"
+        },
+        "bob": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "DVKb_PObIJ55bH50DP-8nP3G7cJL4EkFRRNLTTwKP30",
+          "y": "wWhsRy2dtrVJUU2mDJaHV6o7Py7S4TtrO0CIsbbw5_I",
+          "d": "2szIBzem0HzaspZHO3jpCuYqhhoalDJVKNSEb3yKn94"
+        },
+        "ephemeral": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "hxH5zMkeNydcjeAo3tdRWzmHSskc4jLCgjhF6eeWqDc",
+          "y": "-Fw-1ngkq8m-m-5RRx6vw2Ay71aLdXo5v8OFxEdk5xs",
+          "d": "oYjLUITVVw8gYN2jy3vDcVTbs5VKMm7P02ADr96svHo"
+        },
+        "ledgerId": "mw1:vectorLedgerAbcdefghijklmnop",
+        "day": 20381,
+        "iv": "222222222222222222222222",
+        "message": {
+          "id": "11111111111111111111111111111111",
+          "t": 1760961600000,
+          "n": 7,
+          "kind": 1,
+          "flags": 0,
+          "body": "Hello Bob"
+        },
+        "bucket": 256
+      },
+      "expect": {
+        "tag": "84586b2307314fe1",
+        "epk": "048711f9ccc91e37275c8de028ded7515b39874ac91ce232c2823845e9e796a837f85c3ed67824abc9be9bee51471eafc36032ef568b757a39bfc385c44764e71b",
+        "ct": "c1b9d040c146f9dcd9bf8550e06c2f56b64e29a18ece560f25f51135d671f634dd3c89585fabffa26123a4faf7ca9f37cce3b92a7d82d77cbe1f86bb8a4e64eee9d2470f591e7277194c16d985df60f4aa9b9bd93750f58764eee861ce5af500a5d7d0491a630710fa15f384aa40563b08230432e285308e33c8d59c060d209af32eb4732d4aadd3c51af46dbcc15559007a2f37662b59d232ff0afb43b0e4f6b93fc0aa288ed8550bfe4090af9a114d8ce6fda4c064979c90d16f730dedecfafc3c08550f85d448e58d7dc54e31410b9aa1bf6d4115feb245c11856c9a497fa1e2b85e8769f86b613268b2ba257273788a0a05eb4f748a0e7378870826f504d4f927546f860a90c7abdec4299c93161",
+        "ctLength": 272,
+        "frame": "030100004f9d000000000000000084586b2307314fe1048711f9ccc91e37275c8de028ded7515b39874ac91ce232c2823845e9e796a837f85c3ed67824abc9be9bee51471eafc36032ef568b757a39bfc385c44764e71b222222222222222222222222c1b9d040c146f9dcd9bf8550e06c2f56b64e29a18ece560f25f51135d671f634dd3c89585fabffa26123a4faf7ca9f37cce3b92a7d82d77cbe1f86bb8a4e64eee9d2470f591e7277194c16d985df60f4aa9b9bd93750f58764eee861ce5af500a5d7d0491a630710fa15f384aa40563b08230432e285308e33c8d59c060d209af32eb4732d4aadd3c51af46dbcc15559007a2f37662b59d232ff0afb43b0e4f6b93fc0aa288ed8550bfe4090af9a114d8ce6fda4c064979c90d16f730dedecfafc3c08550f85d448e58d7dc54e31410b9aa1bf6d4115feb245c11856c9a497fa1e2b85e8769f86b613268b2ba257273788a0a05eb4f748a0e7378870826f504d4f927546f860a90c7abdec4299c93161",
+        "frameLength": 371
+      }
+    },
+    {
+      "id": "chat-dm-002-stranger-1024",
+      "description": "Stranger DM (message request) from alice to bob: inbox tag, the sender CK inside, mk_s = HKDF(ECDH(eph, bob), salt = tag, info \"mw-dm-v2|\" + ledgerId + \"|stranger\"), auth = HMAC(K_pair, \"mw-dm-v2|auth|\" || tag || epk || plaintext with auth zeroed) (deviation D-1). CK signed by aliceSign over \"mw-chat-key-v2\\n\" + JCS. Opens at `now`.",
+      "input": {
+        "alice": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "fITIrwPsXONf-FlmI-NZIp7JkvvbJQIGejKZGVL0Rp8",
+          "y": "bLvyzjF2q0iKb5bhjmFeo_eRBsnE1nZUg5b5ILp-yjY",
+          "d": "nW-vauwrLqwtpRVc0gdmCUOwacsYZsUCXo_VZWXUgqg"
+        },
+        "bob": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "DVKb_PObIJ55bH50DP-8nP3G7cJL4EkFRRNLTTwKP30",
+          "y": "wWhsRy2dtrVJUU2mDJaHV6o7Py7S4TtrO0CIsbbw5_I",
+          "d": "2szIBzem0HzaspZHO3jpCuYqhhoalDJVKNSEb3yKn94"
+        },
+        "ephemeral": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "8joNPp9r6t8IVucCYnoeti4WrERy9cnQgcxD42luVic",
+          "y": "W_VAHl05sYpJPfoPp5kzn-p-yEMF_LmunFQonBrjv2Y",
+          "d": "Ig1rfkaAtRi4XfUeR8SRRBKITzI4ZBxNPx_1acEucLQ"
+        },
+        "aliceSign": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "PIKewJ9olN_YL1g5gyJuATR0BmcAa0ajR-bpPGaaAS0",
+          "y": "J7lLzpFrGGG3iC7sA6cxqjriILp9xXFCrW2VfO8q3Tk",
+          "d": "7jNCzmCPEzUdUuXP3iPusl8VLwmekGQAfBNx0Rkt_Hc"
+        },
+        "ck": {
+          "v": 2,
+          "ledger": "mw1:vectorLedgerAbcdefghijklmnop",
+          "signer": "p256:BDyCnsCfaJTf2C9YOYMibgE0dAZnAGtGo0fm6TxmmgEtJ7lLzpFrGGG3iC7sA6cxqjriILp9xXFCrW2VfO8q3Tk",
+          "ek": "p256:BHyEyK8D7FzjX_hZZiPjWSKeyZL72yUCBnoymRlS9EafbLvyzjF2q0iKb5bhjmFeo_eRBsnE1nZUg5b5ILp-yjY",
+          "epoch": 1,
+          "exp": 1763553600000,
+          "sig": "yZQ4CTbjQYTG4fUF2h6ygVXY480nK_N5-kCb4s7_2DNKRhMfK9bMBvZLsPuFfTn0I-FXnG8ZUnLV8cV8nAAIUw"
+        },
+        "ledgerId": "mw1:vectorLedgerAbcdefghijklmnop",
+        "day": 20381,
+        "now": 1760961600000,
+        "iv": "444444444444444444444444",
+        "message": {
+          "id": "33333333333333333333333333333333",
+          "t": 1760961600000,
+          "n": 0,
+          "kind": 1,
+          "flags": 0,
+          "body": "Hi, we met at the meetup"
+        }
+      },
+      "expect": {
+        "tag": "aa1eb3ff027b012d",
+        "epk": "04f23a0d3e9f6beadf0856e702627a1eb62e16ac4472f5c9d081cc43e3696e56275bf5401e5d39b18a493dfa0fa799339fea7ec84305fcb9ae9c54289c1ae3bf66",
+        "ct": "259f6e952cc9a87896bf6af620698fab77681482f0d02ec547b4c5b776327ee892da31eb83a97c966a1b37684f809be776db20648e9753c8a36521d22bc148f86131fc95234d3ccb7818a0bbe9d80f57f2b270c3a1cfc6254a6735719971d47076f8d9d52d851c0a56c9555cee6a0730b42f00c07f5588656799045ab171821796b68ec550a03e4d071acbcaf79f7062edc1ce91ef1ccdbc8bee6b32fbaf6c7d791b064b68a5b31a35c9903cd2ad02249bc061e5aa2866f3ef5ebce7744b590e6c30feba33c816922154c9e2eb1ce54319245118c3f8c702bb4d9e0b312d23f7b16a42787d93b0cda213173d5cd70dd45c60b04b7d7b8bc892db69c5f552b1e3db97bbb4cea4ff1ff1ab818fc0b633967d56e0599cae938394285f5444d69bccd70425e8e50c14ba6ec479d638b7e0c8b99bcb105784296a1afc5faa94de05d3f169d5172982c62e01054ae2637690b1742d0873f56a0b315f9697f20202334dee96385a3889fffd7a7e872a39c7b0f61052b5a0742667722c85095905d948cf711a86379e94e2d6315c786167897c5f71fa22648c8ed958fc751023469e7314d9c0a533c77a40689891fed665b08e52608e6cfe88b473b1fc5fe63a6369c4039c5406c1d443a0012bf55e7e191d5a1a8125cef86f2b0d7fbf17bf570dc95c6a87550dc5bb957a9ffe0c190154a9da49417508746937086022d000f8eb4a5ca130b0765fb888e9f6cc33d791282bb6a48f673466b4ad179468aa3081a7f4016e7e2237e65500cd194a08f71b97d95110f2c30540d7d095c4eeefa08c66588a6dd0b4affbc1c66737284a09b96396202744e9eefeece6b3a27a58feb7585ef95b5d1314f874cab23cd986d72bcefb27089872441ffd06edc0034c2caed39cd92690750bf75df758cf5d7d3a6c03642a42372474cf1514809193c78e1c90d886e1487c191021fb51302bcb8d1d24f633867ae9462f3085d1e265a2db108583ce6207820751035f558733c84c0807351e3a841dc7943944358dedbfc811a9edef895b077951dd1889ef2d01b10b84955b51496b3797a650f72b00359ff379101fd1c807d34aac3cc29cb8e910c6cb4069350b0b071d80cd29f3e8a2aef512bc341d2106deef9c421327bc5d24077c2b6ff27eac38f95f42692ccc3deda4cd7d22359b4ed8e8d41c6f6eaea1454bd5552c774aa76d9d0fa188d1d49568d1b68de6135c8547a60231734598dfd252f62877ea774dd184a85737127c8290a49a2201d969d4aafcc4e73a46a46ce413680b2d8d80d61c066719aed8b488d465cfac2d08957d45c80b80fe62f97f0d42df96e47e54ba759187762c41d19f623f38e300078359a8b8d37b5a09cd18a97f0f86741dc5e73d21543d4430b2f09496da1684180de20212ba68b78e89e0f1fb7c6dc5471159447b0ca69c6bbefcef2979ce7950367dbf78954ffc7c21f1bdf0de4c18e0",
+        "ctLength": 1040,
+        "from": "p256:BHyEyK8D7FzjX_hZZiPjWSKeyZL72yUCBnoymRlS9EafbLvyzjF2q0iKb5bhjmFeo_eRBsnE1nZUg5b5ILp-yjY",
+        "ckSigner": "p256:BDyCnsCfaJTf2C9YOYMibgE0dAZnAGtGo0fm6TxmmgEtJ7lLzpFrGGG3iC7sA6cxqjriILp9xXFCrW2VfO8q3Tk"
+      }
+    },
+    {
+      "id": "chat-sizes-001",
+      "description": "Buckets and lengths (arithmetic, R 2.7.4): plaintext buckets, ct = bucket + 16, ENV frame = 14 + 8 + 65 + 12 + ct.",
+      "input": {
+        "buckets": [
+          256,
+          1024,
+          4096,
+          16000
+        ]
+      },
+      "expect": {
+        "ct": [
+          272,
+          1040,
+          4112,
+          16016
+        ],
+        "envFrame": [
+          371,
+          1139,
+          4211,
+          16115
+        ]
+      }
+    },
+    {
+      "id": "chat-noise-001-xx",
+      "description": "Noise_XX_P256_AESGCM_SHA256 with prologue \"mw-wire-v1\" || ledgerId, empty payloads, 65-byte SEC1 public keys, DH = x coordinate (deviation D-2). Initiator alice (static = alice chat key), responder bob. t1: first transport message initiator to responder (\"first frame\"); t2: responder to initiator (\"reply\").",
+      "input": {
+        "initiatorStatic": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "fITIrwPsXONf-FlmI-NZIp7JkvvbJQIGejKZGVL0Rp8",
+          "y": "bLvyzjF2q0iKb5bhjmFeo_eRBsnE1nZUg5b5ILp-yjY",
+          "d": "nW-vauwrLqwtpRVc0gdmCUOwacsYZsUCXo_VZWXUgqg"
+        },
+        "initiatorEphemeral": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "N1jNOe6heWMtfaGVyMhXknZ41ndS5aUsfaEpEdErrfg",
+          "y": "IGBECY9QoDw0Rqxy96LsIwY2C_qaxsLY3gdqNOxTEDY",
+          "d": "xaN_D3FuB2iZH9XpVMjsApODk4km1bW4Z1JB0WD-X2A"
+        },
+        "responderStatic": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "DVKb_PObIJ55bH50DP-8nP3G7cJL4EkFRRNLTTwKP30",
+          "y": "wWhsRy2dtrVJUU2mDJaHV6o7Py7S4TtrO0CIsbbw5_I",
+          "d": "2szIBzem0HzaspZHO3jpCuYqhhoalDJVKNSEb3yKn94"
+        },
+        "responderEphemeral": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "fqe0OHoVMsVJfX0iTf00kcwUDZp_VWCw8XPRlojwvFk",
+          "y": "BC_uJt9_c3buVutjJPAYPzWnIAM4CgNN-S-a79tyLWQ",
+          "d": "auTbCnFUWnyphR3-zpTuwzwvjxzJDdg27NftM2oYe4Y"
+        },
+        "ledgerId": "mw1:vectorLedgerAbcdefghijklmnop"
+      },
+      "expect": {
+        "msg1": "043758cd39eea179632d7da195c8c857927678d67752e5a52c7da12911d12badf8206044098f50a03c3446ac72f7a2ec2306360bfa9ac6c2d8de076a34ec531036",
+        "msg2": "047ea7b4387a1532c5497d7d224dfd3491cc140d9a7f5560b0f173d19688f0bc59042fee26df7f7376ee56eb6324f0183f35a72003380a034df92f9aefdb722d648983d0a161811e99e9c4994648dcf4b8a151ad26984c261a3824e190d2b700d694d6a419d30619c82d5312ad609ed673d5fd3d9d4b20484d3e365770596332408a95053238936cc83cf0ba970d31afb082b697fbc30e1146ca43603477a0d775b4",
+        "msg3": "f6b8c51a4f96da26aa3872c813584410299a2686aed7d79086430525a7eb01ad7a17ec36226f6f94c28a3e3d0b0d97234b79e634c8bf7e0f6042aa839401aab05eccaedc9a2e11ef50012d8162c7ef018416f47bca8dcd3525429264527a55f214",
+        "handshakeHash": "7542cebb7f78bb4c1eccb5ef01962f1deafddad6113b936192cd0131a4fbc98a",
+        "t1": "c13c60ff4e9ee2608abc4d1f8490f6ca4db0ca4d34bd23bf111167",
+        "t2": "b266d83c1d7665ceac34561fffe2458d651ea8f7b4"
+      }
+    },
+    {
+      "id": "chat-group-001-epoch",
+      "description": "Group epoch: commit = SHA-256(secret); epochId = SHA-256(prev (32 zero bytes at genesis) | creator raw 65 bytes | commit); K_g = HKDF(secret, salt \"\", info \"mw-grp-msg-v2|\" + ledgerId + \"|\" + groupId + \"|\" + hex(epochId)); group tag = HMAC(K_g, \"gtag|\" + day)[:8].",
+      "input": {
+        "creatorSign": {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "zYRmmcTFoUv7MPfLrGjpWGLr_GVDpG8Yx4BTjAwzdrw",
+          "y": "JHbAUATHRM97By_OWAqHQCpNjgLJJf7-yOyTTnKogUA",
+          "d": "0x3G6zLX7XKCsqapBgrInOhyDXpy1pcOCzDXbj0eVWs"
+        },
+        "secret": "5555555555555555555555555555555555555555555555555555555555555555",
+        "ledgerId": "mw1:vectorLedgerAbcdefghijklmnop",
+        "groupId": "g-vector",
+        "day": 20381
+      },
+      "expect": {
+        "creator": "p256:BM2EZpnExaFL-zD3y6xo6Vhi6_xlQ6RvGMeAU4wMM3a8JHbAUATHRM97By_OWAqHQCpNjgLJJf7-yOyTTnKogUA",
+        "commit": "84126d0dd850199be29021aadbaee68cb9199047b1cb7ec9894ddb1e3562783c",
+        "epochId": "b04c2582e5feb2d06dff59b7a3acb57f1dda57e1cfdeaf0fd03029fc3dbc1998",
+        "groupKey": "ae66697cee15dd12475b1207bce5b8b077bdacc3656d756ec7dac1b5d98ab7c8",
+        "groupTag": "eff094fa1d72274d"
+      }
+    }
+  ]
+}

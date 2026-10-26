@@ -1,0 +1,118 @@
+{
+ "browser": "156.0.8078.4",
+ "delayMs": 40,
+ "variants": {
+  "nf-i": {
+   "cold": {
+    "restarts": "15/15",
+    "dispatch_ms_med": 4.3,
+    "workerStart_med": 0.6,
+    "fetchStart_med": 5,
+    "responseStart_med": 46.3,
+    "responseStart_max": 50.6,
+    "preloadUsed": 0,
+    "readMs_med": null
+   },
+   "warm": {
+    "restarts": "0/15",
+    "dispatch_ms_med": 0.1,
+    "workerStart_med": 0.2,
+    "fetchStart_med": 0.4,
+    "responseStart_med": 44,
+    "responseStart_max": 45,
+    "preloadUsed": 0,
+    "readMs_med": null
+   },
+   "runningStatusesSeen": [
+    "stopped",
+    "starting",
+    "running",
+    "stopping"
+   ]
+  },
+  "idb-i": {
+   "cold": {
+    "restarts": "15/15",
+    "dispatch_ms_med": 2.1,
+    "workerStart_med": 0.4,
+    "fetchStart_med": 2.7,
+    "responseStart_med": 44.2,
+    "responseStart_max": 49.1,
+    "preloadUsed": 0,
+    "readMs_med": 1
+   },
+   "warm": {
+    "restarts": "0/15",
+    "dispatch_ms_med": -0.3,
+    "workerStart_med": 0.2,
+    "fetchStart_med": 0.3,
+    "responseStart_med": 44,
+    "responseStart_max": 44.9,
+    "preloadUsed": 0,
+    "readMs_med": 1
+   },
+   "runningStatusesSeen": [
+    "stopped",
+    "starting",
+    "running",
+    "stopping"
+   ]
+  },
+  "idbs-i": {
+   "cold": {
+    "restarts": "15/15",
+    "dispatch_ms_med": 2.3,
+    "workerStart_med": 0.4,
+    "fetchStart_med": 2.9,
+    "responseStart_med": 44,
+    "responseStart_max": 47.8,
+    "preloadUsed": 0,
+    "readMs_med": 1
+   },
+   "warm": {
+    "restarts": "0/15",
+    "dispatch_ms_med": -0.2,
+    "workerStart_med": 0.2,
+    "fetchStart_med": 0.3,
+    "responseStart_med": 43.8,
+    "responseStart_max": 44.4,
+    "preloadUsed": 0,
+    "readMs_med": 0
+   },
+   "runningStatusesSeen": [
+    "stopped",
+    "starting",
+    "running",
+    "stopping"
+   ]
+  },
+  "cache-i": {
+   "cold": {
+    "restarts": "15/15",
+    "dispatch_ms_med": 2.8,
+    "workerStart_med": 0.4,
+    "fetchStart_med": 3.3,
+    "responseStart_med": 44.2,
+    "responseStart_max": 47.7,
+    "preloadUsed": 0,
+    "readMs_med": 1
+   },
+   "warm": {
+    "restarts": "0/15",
+    "dispatch_ms_med": -0.2,
+    "workerStart_med": 0.2,
+    "fetchStart_med": 0.3,
+    "responseStart_med": 43.4,
+    "responseStart_max": 44.7,
+    "preloadUsed": 0,
+    "readMs_med": 0
+   },
+   "runningStatusesSeen": [
+    "stopped",
+    "starting",
+    "running",
+    "stopping"
+   ]
+  }
+ }
+}

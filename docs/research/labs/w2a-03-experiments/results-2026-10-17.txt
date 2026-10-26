@@ -1,0 +1,243 @@
+# Raw results captured 2026-10-17 (macOS 27.0, Apple M3, Node v24.22.0, Playwright 1.64.1, Chromium 156.0.8078.4, WebKit 27.2)
+
+## blocksize.mjs (project src/chain/canonical.js + crypto.js; ARCHITECTURE s6.1 entry shape)
+guestbook/comment, 200-char text | prev=1 | block JSON 701 B (entry 531 B)
+guestbook/comment, 200-char text | prev=8 | block JSON 1170 B (entry 1000 B)
+comment, 1000-char text | prev=1 | block JSON 1563 B (entry 1393 B)
+comment, 1000-char text | prev=8 | block JSON 2032 B (entry 1862 B)
+reaction/like as put (key like/<target8>/<author8>, v=1) | prev=1 | block JSON 473 B (entry 303 B)
+reaction/like as put (key like/<target8>/<author8>, v=1) | prev=8 | block JSON 942 B (entry 772 B)
+reaction with emoji kind | prev=1 | block JSON 487 B (entry 317 B)
+reaction with emoji kind | prev=8 | block JSON 956 B (entry 786 B)
+profile name | prev=1 | block JSON 457 B (entry 287 B)
+profile name | prev=8 | block JSON 926 B (entry 756 B)
+encrypted inbox msg, plaintext 300 B -> sealed b64url 524 chars -> block 1057 B (limit 16384; value limit 8192)
+encrypted inbox msg, plaintext 1000 B -> sealed b64url 1458 chars -> block 1991 B (limit 16384; value limit 8192)
+encrypted inbox msg, plaintext 4000 B -> sealed b64url 5458 chars -> block 5991 B (limit 16384; value limit 8192)
+max inbox plaintext under 8192 B value limit: 6045 bytes
+ECDSA P-256 verify, sequential (raw subtle.verify on 32-byte message): 6487 verifies/s (0.154 ms each)
+ECDSA P-256 verify, 3000 in flight: 59204 verifies/s
+ECDSA P-256 sign (project sign()): 28350 signs/s
+full per-block ingest check (canonicalize+sha256+verify via project verify()): 11974 blocks/s -> 100k blocks = 8.4 s on this M3 (Node 24, single thread)
+node v24.22.0
+
+## rr_table.py (binary randomized response accuracy; formulas in the script)
+binary RR, true proportion pi=0.10 (e.g., "did visitor use feature X"), 95% CI half-width = 1.96*SE, in percentage points
+eps   p_truth   n=100   n=1k   n=10k   n=100k   n=1M
+0.50   0.622    39.24   12.41    3.92    1.24    0.39
+1.00   0.731    19.70    6.23    1.97    0.62    0.20
+1.10   0.750    17.96    5.68    1.80    0.57    0.18
+2.00   0.881    10.20    3.23    1.02    0.32    0.10
+4.00   0.982     6.47    2.05    0.65    0.20    0.06
+
+pi=0.50 worst-case
+1.00   0.731    21.21    6.71    2.12    0.67
+1.10   0.750    19.60    6.20    1.96    0.62
+2.00   0.881    12.87    4.07    1.29    0.41
+
+eps=1.00: n for +/-1pp (95%, pi=0.10) = 38,826
+eps=1.10: n for +/-1pp (95%, pi=0.10) = 32,269
+eps=2.00: n for +/-1pp (95%, pi=0.10) = 10,411
+eps=4.00: n for +/-1pp (95%, pi=0.10) = 4,188
+no-privacy baseline n for +/-1pp at pi=0.10: 3,457
+
+## prf-exp/run.mjs (WebAuthn PRF + assertion-as-signature inside SW-served iframe; CDP virtual authenticator hasPrf:true)
+browser 156.0.8078.4
+=== top-level page (baseline)
+{
+ "origin": "http://localhost:54008",
+ "isSecure": true,
+ "inIframe": false,
+ "step": {
+  "create": {
+   "id": "Y9gVoCC1TcQ5...",
+   "ext": {
+    "prf": {
+     "enabled": true
+    }
+   }
+  },
+  "prf": {
+   "len": 32,
+   "deterministic": true,
+   "perSiteDiffers": true
+  },
+  "ed25519": {
+   "supported": true,
+   "signVerifyOk": true,
+   "samePubKeyOnRederive": true,
+   "pub": "6Mb9H52cxk8wnHQTAvFSANd7Xb9nUqZN2pTxUnGMNVw"
+  },
+  "webauthnSig": {
+   "verified": true,
+   "challengeMatches": true,
+   "origin": "http://localhost:54008",
+   "type": "webauthn.get",
+   "authDataLen": 37,
+   "cdjLen": 135,
+   "derSigLen": 70,
+   "rawSigLen": 64,
+   "extraBytesVsRawSig": 178,
+   "extraB64urCharsApprox": 238
+  }
+ },
+ "hasPKC": true,
+ "clientCapabilities": {
+ }
+}
+=== SW-served iframe, sandbox="allow-scripts allow-same-origin ..." (magnet-web design)
+{
+ "origin": "http://localhost:54008",
+ "isSecure": true,
+ "inIframe": true,
+ "step": {
+  "create": {
+   "id": "lgJbra4qYkzY...",
+   "ext": {
+    "prf": {
+     "enabled": true
+    }
+   }
+  },
+  "prf": {
+   "len": 32,
+   "deterministic": true,
+   "perSiteDiffers": true
+  },
+  "ed25519": {
+   "supported": true,
+   "signVerifyOk": true,
+   "samePubKeyOnRederive": true,
+   "pub": "jTyv69tLXHVPSNgJfH-XbsOcDR-ZSSKTFAURftJN3gI"
+  },
+  "webauthnSig": {
+   "verified": true,
+   "challengeMatches": true,
+   "origin": "http://localhost:54008",
+   "type": "webauthn.get",
+   "authDataLen": 37,
+   "cdjLen": 135,
+   "derSigLen": 71,
+   "rawSigLen": 64,
+   "extraBytesVsRawSig": 179,
+   "extraB64urCharsApprox": 239
+  }
+ },
+ "hasPKC": true,
+ "clientCapabilities": {
+ }
+}
+=== SW-served iframe, sandbox without allow-same-origin (opaque origin)
+{
+ "harnessError": "TimeoutError: frame.waitForFunction: Timeout 15000ms exceeded."
+}
+## pf-exp (Pagefind 1.5.2 inside SW-served iframe; corpus = Postfix+CUPS docs)
+server port 50811
+launched
+goto
+loaded
+console.warning An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+MODE octet browser 156.0.8078.4
+{
+ "steps": [
+  [
+   "import",
+   7
+  ],
+  [
+   "init",
+   0
+  ],
+  [
+   "smtpd access restrictions",
+   {
+    "hits": 19,
+    "ms": 90,
+    "firstUrl": "/_mw/s/abc/postfix/smtpd.8.html",
+    "firstTitle": "Postfix manual - smtpd(8)",
+    "excerptLen": 392
+   }
+  ],
+  [
+   "printer",
+   {
+    "hits": 68,
+    "ms": 8,
+    "firstUrl": "/_mw/s/abc/cups/man-printers.conf.html",
+    "firstTitle": "printers.conf(5)",
+    "excerptLen": 280
+   }
+  ],
+  [
+   "zzzznotaword",
+   {
+    "hits": 1,
+    "ms": 4,
+    "firstUrl": "/_mw/s/abc/cups/man-cupsd-logs.html",
+    "firstTitle": "cupsd-logs(5)",
+    "excerptLen": 194
+   }
+  ]
+ ]
+}
+server-side file fetches (unique files, bytes) grouped: {"pagefind/":{"files":13,"bytes":332049}}
+total unique files fetched: 13 total bytes 332049
+HARD TIMEOUT
+
+## mailto-exp
+
+### design flags (allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-top-navigation-by-user-activation)
+  plain    topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=[]
+  blank    topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=[]
+  loc      topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=[]
+  top      topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=[]
+  httpsTop topUrl=chrome-error://chromewebdata/ popups=[] console=[]
+
+### without allow-popups
+  plain    topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=[]
+  blank    topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=["error: Blocked opening 'mailto:owner@example.com?subject=hi' in a new window because the request was made in a sandboxed frame whose 'allow-popups' permission is not set."]
+  loc      topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=[]
+  top      topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-modals%20allow-downloads%20allow-top-navigation-by-user-activation popups=[] console=[]
+  httpsTop topUrl=chrome-error://chromewebdata/ popups=[] console=[]
+
+### without allow-top-navigation-by-user-activation
+  plain    topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads popups=[] console=[]
+  blank    topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads popups=[] console=[]
+  loc      topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads popups=[] console=[]
+  top      topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads popups=[] console=["error: Unsafe attempt to initiate navigation for frame with URL 'http://localhost:56944/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads' from frame with UR"]
+  httpsTop topUrl=/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads popups=[] console=["error: Unsafe attempt to initiate navigation for frame with URL 'http://localhost:56944/?sb=allow-scripts%20allow-same-origin%20allow-forms%20allow-popups%20allow-modals%20allow-downloads' from frame with UR"]
+
+### no sandbox at all (baseline)
+  plain    topUrl=/?sb=none popups=[] console=[]
+  blank    topUrl=/?sb=none popups=[] console=[]
+  loc      topUrl=/?sb=none popups=[] console=[]
+  top      topUrl=/?sb=none popups=[] console=[]
+  httpsTop topUrl=chrome-error://chromewebdata/ popups=[] console=[]
+
+## media-exp (video through SW with/without Range)
+{"browser":"chromium 156.0.8078.4","swMode":"range","file":"v.mp4","events":"loadedmetadata@15 seeked@110 canplay@110","duration":6,"readyState":4,"error":null,"currentTimeAfterSeek":4,"seekable":[0,6],"swSawRequests":1,"distinctRangeHeaders":["bytes=0-"]}
+{"browser":"chromium 156.0.8078.4","swMode":"range","file":"v.webm","events":"loadedmetadata@9 seeked@18 canplay@18","duration":6.008,"readyState":4,"error":null,"currentTimeAfterSeek":4,"seekable":[0,6.008],"swSawRequests":1,"distinctRangeHeaders":["bytes=0-"]}
+{"browser":"chromium 156.0.8078.4","swMode":"norange","file":"v.mp4","events":"loadedmetadata@5 seeked@10 canplay@10","duration":6,"readyState":4,"error":null,"currentTimeAfterSeek":0,"seekable":[0,0],"swSawRequests":1,"distinctRangeHeaders":["bytes=0-"]}
+{"browser":"chromium 156.0.8078.4","swMode":"norange","file":"v.webm","events":"loadedmetadata@5 seeked@11 canplay@11","duration":6.008,"readyState":4,"error":null,"currentTimeAfterSeek":0,"seekable":[0,0],"swSawRequests":1,"distinctRangeHeaders":["bytes=0-"]}
+{"browser":"webkit 27.2","swMode":"range","file":"v.mp4","events":"loadedmetadata@75 canplay@167 seeked@167","duration":6,"readyState":4,"error":null,"currentTimeAfterSeek":4,"seekable":[0,6],"swSawRequests":2,"distinctRangeHeaders":["bytes=0-1","bytes=0-96628"]}
+{"browser":"webkit 27.2","swMode":"range","file":"v.webm","events":"loadedmetadata@13","duration":6.0135,"readyState":1,"error":null,"currentTimeAfterSeek":4,"seekable":[0,6.0135],"swSawRequests":1,"distinctRangeHeaders":["-"]}
+{"browser":"webkit 27.2","swMode":"norange","file":"v.mp4","events":"loadedmetadata@16 canplay@29 seeked@29","duration":6,"readyState":4,"error":null,"currentTimeAfterSeek":4,"seekable":[0,6],"swSawRequests":1,"distinctRangeHeaders":["bytes=0-1"]}
+{"browser":"webkit 27.2","swMode":"norange","file":"v.webm","events":"loadedmetadata@7","duration":6.0135,"readyState":1,"error":null,"currentTimeAfterSeek":4,"seekable":[0,6.0135],"swSawRequests":1,"distinctRangeHeaders":["-"]}
+
+## blocksize_v02.mjs (ARCH v0.2 block shape: value outside the hash; emulated because src/chain/block.js did not exist yet)
+comment 200 chars (append comments) | prev=1 | wire JSON 798 B | counted toward maxBlockBytes (e+v) 623 B (e 383 + v 240)
+comment 200 chars (append comments) | prev=8 | wire JSON 1267 B | counted toward maxBlockBytes (e+v) 1092 B (e 852 + v 240)
+comment 1000 chars | prev=1 | wire JSON 1660 B | counted toward maxBlockBytes (e+v) 1485 B (e 383 + v 1102)
+comment 1000 chars | prev=8 | wire JSON 2129 B | counted toward maxBlockBytes (e+v) 1954 B (e 852 + v 1102)
+like (put like/<t8>/<a8>, v=1) | prev=1 | wire JSON 570 B | counted toward maxBlockBytes (e+v) 395 B (e 394 + v 1)
+like (put like/<t8>/<a8>, v=1) | prev=8 | wire JSON 1039 B | counted toward maxBlockBytes (e+v) 864 B (e 863 + v 1)
+emoji reaction (put react/..., v={e}) | prev=1 | wire JSON 584 B | counted toward maxBlockBytes (e+v) 409 B (e 395 + v 14)
+emoji reaction (put react/..., v={e}) | prev=8 | wire JSON 1053 B | counted toward maxBlockBytes (e+v) 878 B (e 864 + v 14)
+profile name | prev=1 | wire JSON 551 B | counted toward maxBlockBytes (e+v) 376 B (e 369 + v 7)
+profile name | prev=8 | wire JSON 1020 B | counted toward maxBlockBytes (e+v) 845 B (e 838 + v 7)
+max sealed plaintext when canonical(v) <= 2048 B (v = {"c": b64url}): 1437 bytes
+max sealed plaintext when canonical(v) <= 3000 B (v = {"c": b64url}): 2151 bytes
+sealed inbox 300 B plaintext: wire 1154 B, e+v 979 B; 1000 B plaintext: wire 2088 B, e+v 1913 B
+like prev=1: 570 B each -> 8 MiB holds 14716 blocks; 64 MiB holds 117734 blocks
+like prev=8: 1039 B each -> 8 MiB holds 8073 blocks; 64 MiB holds 64589 blocks
+comment200 prev=2: 865 B each -> 8 MiB holds 9697 blocks; 64 MiB holds 77582 blocks

@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E8 custom IndexedDB chunk store (Uint8Array, no Buffer) with webtorrent 3.0.21</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { errors: [], store: {} }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e8', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+// ~45-line abstract-chunk-store (callback API) on IndexedDB: Uint8Array only, no Buffer, no dependencies
+class IdbChunkStore {
+  constructor (chunkLength, opts = {}) {
+    this.chunkLength = Number(chunkLength); this.length = Number(opts.length) || Infinity
+    this.name = 'wt-chunks:' + (opts.name || 'default')
+    if (this.length !== Infinity) { this.lastChunkLength = (this.length % this.chunkLength) || this.chunkLength; this.lastChunkIndex = Math.ceil(this.length / this.chunkLength) - 1 }
+    this.closed = false
+    this.dbp = new Promise((resolve, reject) => { const r = indexedDB.open(this.name, 1); r.onupgradeneeded = () => r.result.createObjectStore('c'); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error) })
+  }
+  put (i, buf, cb = () => {}) {
+    if (this.closed) return queueMicrotask(() => cb(new Error('Storage is closed')))
+    const last = i === this.lastChunkIndex
+    if ((last && buf.length !== this.lastChunkLength) || (!last && buf.length !== this.chunkLength)) return queueMicrotask(() => cb(new Error('Invalid chunk length')))
+    const copy = new Uint8Array(buf) // detach from any shared backing buffer
+    this.dbp.then(db => { const tx = db.transaction('c', 'readwrite'); tx.objectStore('c').put(copy, i); tx.oncomplete = () => cb(null); tx.onerror = () => cb(tx.error) }).catch(cb)
+  }
+  get (i, o, cb = () => {}) {
+    if (typeof o === 'function') { cb = o; o = {} }
+    if (this.closed) return queueMicrotask(() => cb(new Error('Storage is closed')))
+    this.dbp.then(db => { const rq = db.transaction('c').objectStore('c').get(i); rq.onsuccess = () => { const v = rq.result; if (v == null) { const e = new Error('Chunk not found'); e.notFound = true; return cb(e) } const off = (o && o.offset) || 0; const len = (o && o.length) || (v.length - off); cb(null, v.subarray(off, off + len)) }; rq.onerror = () => cb(rq.error) }).catch(cb)
+  }
+  close (cb = () => {}) { if (this.closed) return queueMicrotask(() => cb(null)); this.closed = true; this.dbp.then(db => { db.close(); cb(null) }).catch(cb) }
+  destroy (cb = () => {}) { this.close(() => { const r = indexedDB.deleteDatabase(this.name); r.onsuccess = () => cb(null); r.onerror = () => cb(r.error); r.onblocked = () => cb(null) }) }
+}
+const dbNames = async () => (await indexedDB.databases()).map(d => d.name).sort()
+try {
+  for (const d of await indexedDB.databases()) indexedDB.deleteDatabase(d.name)
+  await sleep(200)
+  const bytes = new Uint8Array(150000); let x = 424242
+  for (let i = 0; i < bytes.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; bytes[i] = x & 255 }
+  const c1 = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  const t1 = await new Promise((res, rej) => { const t = c1.seed(new File([bytes], 'idb.bin'), { announce: [], name: 'idb.bin', pieceLength: 16384, store: IdbChunkStore }, res); t.on('error', rej) })
+  R.infoHash = t1.infoHash
+  R.dbsAfterSeed = await dbNames()
+  const torrentFile = t1.torrentFile
+  await new Promise(r => c1.destroy(r))      // keep data
+  R.dbsAfterClientDestroy = await dbNames()
+  const c2 = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  const t0 = performance.now()
+  const t2 = c2.add(torrentFile, { store: IdbChunkStore })
+  t2.on('error', e => R.errors.push('re-add: ' + e.message))
+  let done = false; t2.on('done', () => { done = true })
+  for (let i = 0; i < 100 && !done; i++) await sleep(50)
+  R.reAdd = { doneFromIDB: done, ms: Math.round(performance.now() - t0) }
+  if (done) { const ab = new Uint8Array(await t2.files[0].arrayBuffer()); R.reAdd.bytesMatch = ab.length === bytes.length && ab.every((v, i) => v === bytes[i]) }
+  await new Promise(r => t2.destroy({ destroyStore: true }, r))
+  await sleep(200)
+  R.dbsAfterDestroyStore = await dbNames()
+  await new Promise(r => c2.destroy(r))
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

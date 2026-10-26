@@ -1,0 +1,47 @@
+{
+ "baseURI": "http://127.0.0.1:59452/base/",
+ "docURL": "/app/page.html",
+ "importMetaUrl": "/elsewhere/mod.mjs",
+ "staticImportDep": "/elsewhere/dep.mjs",
+ "importMap": "/base/mapped.mjs",
+ "dynamicImport": "/elsewhere/dyn.mjs",
+ "fetchRel": "/base/f.json",
+ "newURLimportMeta": "/elsewhere/u.txt",
+ "newURLbaseURI": "/base/u.txt",
+ "newURLlocation": "/app/u.txt",
+ "workerRel": {
+  "where": "/base/w.js",
+  "imp": "/base/imp.js"
+ },
+ "workerImportMetaUrl": {
+  "where": "/elsewhere/w2.js",
+  "imp": "/elsewhere/imp.js"
+ },
+ "pushStateRel": "/base/pushed",
+ "fragAnchorHref": "/base/#frag",
+ "imgSrc": "/base/rel.png",
+ "formAction": "/base/submit",
+ "sheets": [
+  "/base/rel.css",
+  "inline"
+ ]
+}
+
+== requests observed (path, sec-fetch-dest), excluding the page itself
+style       /base/rel.css
+script      /base/pre.mjs
+image       /base/rel.png
+script      /elsewhere/mod.mjs
+image       /base/rel2.png
+image       /base/inline-bg.png
+script      /elsewhere/dep.mjs
+script      /base/mapped.mjs
+iframe      /base/rel-frame.html
+script      /elsewhere/dyn.mjs
+empty       /base/f.json
+worker      /base/w.js
+script      /base/imp.js
+worker      /elsewhere/w2.js
+script      /elsewhere/imp.js
+
+after clicking <a href="#frag">: location = /base/#frag | title = 

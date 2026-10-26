@@ -1,0 +1,35 @@
+# .github/workflows/tracker-health.yml  (example; GitHub 'schedule' is best effort: min 5 min, delayed at :00, may be dropped,
+# and auto-disabled after 60 days without repository activity - so ALSO feed a dead-man's-switch heartbeat monitor)
+name: tracker-health
+on:
+  schedule: [{ cron: '*/10 * * * *' }, { cron: '0 6 * * *' }]
+  workflow_dispatch: {}
+permissions: { contents: read }
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: github.event.schedule != '0 6 * * *'
+    steps:
+      - uses: actions/checkout@v4
+      - name: WebSocket announce + offer relay on every tracker in the pointer's list
+        run: |
+          python3 -I docs/research/labs/w2b-01-tracker-resilience-ref/probes/check_trackers.py \
+            --min-ok 3 --relay --heartbeat "${{ secrets.TRACKER_HEARTBEAT_URL }}" \
+            wss://tracker.webtorrent.dev wss://tracker.openwebtorrent.com wss://open.ftorrent.com wss://tracker.novage.com.ua wss://rtc.example.com
+  hostnames:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - name: Are our hostnames on browser or DNS block lists?
+        working-directory: docs/research/labs/w2b-01-tracker-resilience-ref/probes/filterlist-check
+        run: |
+          npm ci --ignore-scripts || npm install --ignore-scripts
+          sh fetch-lists.sh "$RUNNER_TEMP/lists"
+          node check.mjs "$RUNNER_TEMP"/lists/browser/*.txt | tee out.txt
+          python3 -I dnscheck.py "$RUNNER_TEMP/lists/dns" | tee dns.txt
+          ! grep -E '^BLOCKED' out.txt   # edit the candidate list in check.mjs / dnscheck.py to your hostnames first

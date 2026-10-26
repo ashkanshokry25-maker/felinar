@@ -1,0 +1,5 @@
+<!doctype html><meta charset="utf-8"><title>E7b idle second tab</title><body>idle second tab (no WebTorrent)
+<script type="module">
+await navigator.serviceWorker.register('./sw-site.js', { scope: '/' }); await navigator.serviceWorker.ready
+await fetch('/kv/e7b-ready', { method: 'POST', body: '1' })
+</script>

@@ -1,0 +1,187 @@
+[
+ {
+  "label": "blossom cdn.hzrd149.com alone",
+  "done": true,
+  "ms": 439,
+  "downloaded": 184292,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "primal.net + cdn.hzrd149.com",
+  "done": true,
+  "ms": 382,
+  "downloaded": 184292,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "blossom cdn.satellite.earth alone",
+  "done": true,
+  "ms": 934,
+  "downloaded": 184292,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "blossom nostr.download alone",
+  "done": true,
+  "ms": 1005,
+  "downloaded": 184292,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "ardrive.net apex alone",
+  "done": true,
+  "ms": 1660,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "vilenarios.com alone",
+  "done": true,
+  "ms": 2242,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "arweave.net apex + ardrive.net",
+  "done": true,
+  "ms": 1824,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "dropped": [
+   "arweave.net"
+  ],
+  "failReasons": [
+   "status 200 (server ignored Range)"
+  ],
+  "nFail": 5,
+  "cors": null
+ },
+ {
+  "label": "arweave.net sandbox + vilenarios.com",
+  "done": true,
+  "ms": 488,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "dropped": [
+   "tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.arweave.net"
+  ],
+  "failReasons": [
+   "status 200 (server ignored Range)"
+  ],
+  "nFail": 5,
+  "cors": null
+ },
+ {
+  "label": "ipfs.filebase.io alone",
+  "done": true,
+  "ms": 181,
+  "downloaded": 32,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "ipfs.orbitor.dev alone",
+  "done": true,
+  "ms": 237,
+  "downloaded": 32,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "gateway.pinata.cloud alone",
+  "done": true,
+  "ms": 3395,
+  "downloaded": 32,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "ipfs.storry.tv subdomain alone",
+  "done": true,
+  "ms": 440,
+  "downloaded": 32,
+  "shaOk": true,
+  "dropped": [],
+  "failReasons": [],
+  "nFail": 0,
+  "cors": null
+ },
+ {
+  "label": "blossom primal.net alone (ignores Range)",
+  "done": false,
+  "ms": 20001,
+  "downloaded": 0,
+  "shaOk": null,
+  "dropped": [
+   "blossom.primal.net"
+  ],
+  "failReasons": [
+   "status 200 (server ignored Range)"
+  ],
+  "nFail": 5,
+  "cors": null
+ },
+ {
+  "label": "arweave.net apex alone (ignores Range)",
+  "done": false,
+  "ms": 20002,
+  "downloaded": 0,
+  "shaOk": null,
+  "dropped": [
+   "arweave.net"
+  ],
+  "failReasons": [
+   "status 200 (server ignored Range)"
+  ],
+  "nFail": 5,
+  "cors": null
+ },
+ {
+  "label": "arweave.net sandbox alone",
+  "done": false,
+  "ms": 20001,
+  "downloaded": 0,
+  "shaOk": null,
+  "dropped": [
+   "tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.arweave.net"
+  ],
+  "failReasons": [
+   "status 200 (server ignored Range)"
+  ],
+  "nFail": 5,
+  "cors": null
+ }
+]

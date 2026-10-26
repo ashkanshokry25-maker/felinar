@@ -1,0 +1,8 @@
+# rerun EXTRA=1 started 2026-10-17T22:06:14Z
+{"scenario":"ignorerange + good (run2, 20s)","done":false,"ms":20002,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}
+{"scenario":"ignorerange + good (run3, 20s)","done":false,"ms":20003,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}
+{"scenario":"ignorerange + good maxWebConns=1 (20s)","done":false,"ms":20001,"downloaded":2031616,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=1,ok=0,MB=2.0","good:req=31,ok=31,MB=1.9"]}
+{"scenario":"good + ignorerange (20s)","done":false,"ms":20002,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["good:req=28,ok=28,MB=1.8","ignorerange:req=4,ok=0,MB=8.0"]}
+{"scenario":"html200 + good (run2)","done":true,"ms":16,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["html200:req=2,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"corrupt206 + ignorerange + good (20s)","done":false,"ms":20003,"downloaded":1835008,"verified":null,"pieceFailWarnings":39,"otherWarn":[],"servers":["corrupt206:req=39,ok=0,MB=2.4","ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}
+# finished 2026-10-17T22:07:54Z

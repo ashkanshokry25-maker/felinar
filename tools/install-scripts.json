@@ -1,0 +1,11 @@
+{
+  "note": "Every package of npm-shrinkwrap.json that has an install script (hasInstallScript), with the reason it is there and what keeps its script from running (review round SUP-1). test/unit/tools-install-scripts.test.mjs fails when this list and the shrinkwrap differ: a new entry is a change for the second reviewer.",
+  "packages": {
+    "bufferutil": "optional native speed-up of ws; its script builds a native module. Never run: the clone's .npmrc has ignore-scripts=true and every documented install passes --ignore-scripts; ws works without it.",
+    "esbuild": "dev dependency (the build); its postinstall checks the platform binary that npm installs as an optional dependency. Not in the published package's production tree.",
+    "ip-set": "transitive through webtorrent > load-ip-set; preinstall 'npx only-allow pnpm' would fetch an unpinned package from the registry. Never run: --ignore-scripts on every install; the code works without it.",
+    "node-datachannel": "transitive through webtorrent > @thaunknown/simple-peer > webrtc-polyfill; its install downloads a prebuilt native binary (not covered by the lockfile). Never run by an install; tools/seed.mjs tells the owner how to run only this one (npm rebuild node-datachannel --ignore-scripts=false) and what it downloads.",
+    "utf-8-validate": "optional native speed-up of ws; never run (as bufferutil).",
+    "utp-native": "optional uTP transport of webtorrent for Node; never run, and the browser loader does not use it."
+  }
+}

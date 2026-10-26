@@ -1,0 +1,47 @@
+{
+ "chromium": "156.0.8078.4",
+ "runs": [
+  {
+   "run": 0,
+   "firstSwScriptFetchMsAfterGoto": 1983,
+   "tombstoneRecoveryMs": 2623
+  },
+  {
+   "run": 1,
+   "firstSwScriptFetchMsAfterGoto": 1978,
+   "tombstoneRecoveryMs": 2610
+  },
+  {
+   "run": 2,
+   "firstSwScriptFetchMsAfterGoto": 1980,
+   "tombstoneRecoveryMs": 2619
+  },
+  {
+   "run": 3,
+   "firstSwScriptFetchMsAfterGoto": 1982,
+   "tombstoneRecoveryMs": 2607
+  },
+  {
+   "run": 4,
+   "firstSwScriptFetchMsAfterGoto": 1982,
+   "tombstoneRecoveryMs": 2594
+  },
+  {
+   "run": 5,
+   "firstSwScriptFetchMsAfterGoto": 1987,
+   "tombstoneRecoveryMs": 2579
+  }
+ ],
+ "median": {
+  "firstSwScriptFetchMsAfterGoto": 1982,
+  "tombstoneRecoveryMs": 2610
+ },
+ "min": {
+  "firstFetch": 1978,
+  "recovery": 2579
+ },
+ "max": {
+  "firstFetch": 1987,
+  "recovery": 2623
+ }
+}

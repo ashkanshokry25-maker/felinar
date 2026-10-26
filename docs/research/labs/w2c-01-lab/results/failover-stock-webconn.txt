@@ -1,0 +1,22 @@
+# failover.mjs (stock WebConn, loopback) 2026-10-17T21:19:30Z
+{"scenario":"good only","done":true,"ms":50,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["good:req=32,ok=32,MB=2.0"]}
+{"scenario":"404 + good","done":true,"ms":18,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["e404:req=9,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"good + 404","done":true,"ms":38,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["good:req=32,ok=32,MB=2.0","e404:req=7,ok=0,MB=0.0"]}
+{"scenario":"503 + good","done":true,"ms":11,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["e503:req=9,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"hang + good","done":true,"ms":11,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["hang:req=1,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"slow(3s) + good","done":true,"ms":11,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["slow:req=1,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"corrupt206 + good","done":true,"ms":23,"downloaded":2097152,"verified":true,"pieceFailWarnings":41,"otherWarn":[],"servers":["corrupt206:req=41,ok=0,MB=2.6","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"html200 + good","done":true,"ms":10,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["html200:req=2,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"ignorerange + good","done":false,"ms":45001,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}
+{"scenario":"flaky + good","done":true,"ms":19,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["flaky:req=17,ok=9,MB=0.6","good:req=23,ok=23,MB=1.4"]}
+{"scenario":"corrupt206 only (10s)","done":false,"ms":10001,"downloaded":0,"verified":null,"pieceFailWarnings":58420,"otherWarn":[],"servers":["corrupt206:req=58421,ok=0,MB=3651.3"]}
+{"scenario":"ignorerange only (10s)","done":false,"ms":10002,"downloaded":0,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=1,ok=0,MB=2.0"]}
+{"scenario":"404 only (25s)","done":false,"ms":25003,"downloaded":0,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["e404:req=96,ok=0,MB=0.0"]}
+
+# failover.mjs EXTRA=1
+{"scenario":"ignorerange + good (run2, 20s)","done":false,"ms":20002,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}
+{"scenario":"ignorerange + good (run3, 20s)","done":false,"ms":20002,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}
+{"scenario":"ignorerange + good maxWebConns=1 (20s)","done":false,"ms":20002,"downloaded":2031616,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=1,ok=0,MB=2.0","good:req=31,ok=31,MB=1.9"]}
+{"scenario":"good + ignorerange (20s)","done":false,"ms":20003,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["good:req=28,ok=28,MB=1.8","ignorerange:req=4,ok=0,MB=8.0"]}
+{"scenario":"html200 + good (run2)","done":true,"ms":16,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["html200:req=2,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"corrupt206 + ignorerange + good (20s)","done":false,"ms":20000,"downloaded":1835008,"verified":null,"pieceFailWarnings":34,"otherWarn":[],"servers":["corrupt206:req=34,ok=0,MB=2.1","ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}

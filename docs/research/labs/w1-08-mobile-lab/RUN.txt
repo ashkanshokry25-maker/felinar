@@ -1,0 +1,22 @@
+w1-08-mobile-lab: experiments behind docs/research/w1-08-mobile-constraints.md (run 2026-10-17)
+
+Requirements: Node >= 22, the repo's node_modules (playwright 1.64.1, webtorrent 3.0.21, bittorrent-tracker, create-torrent, parse-torrent),
+Playwright Chromium installed. For other engines: npx playwright install webkit firefox (or set PW_WEBKIT_EXE / PW_FIREFOX_EXE).
+Run everything from this directory. Nothing here uses git; test262 files are fetched with curl from raw.githubusercontent.com.
+
+Polyfills (the deliverables):
+  u8-polyfill.js      Uint8Array.prototype.toHex/toBase64, Uint8Array.fromHex/fromBase64 (ES2026). 3,680 B; 2,448 B min; 1,193 B gzip.
+  abort-polyfill.js   AbortSignal.timeout. 752 B; 497 B min.
+
+Tests and experiments (engine selected with ENGINE=chromium|webkit|firefox, default chromium):
+  fetch-t262.sh                    download 70 test262 files + 10 harness files into ./t262 (git-ignored)
+  run-t262.mjs <poly|none>         test262 in fresh Node vm realms, sloppy + strict
+  run-t262-browser.mjs <mode> [poly]   mode = native | stripped | stripped+polyfill ; fresh iframe realm per test in the chosen engine
+  selftest.mjs, abort-test.mjs     literal vectors, error classes, descriptors; AbortSignal.timeout polyfill
+  wt-exp.mjs                       vendored webtorrent: native / natives deleted / deleted + polyfill, then a 3 MiB WebRTC transfer (WT_STORE=mem uses an in-memory chunk store)
+  mem-exp.mjs <MiB,list> <mem|default>   RSS of the download path (Chromium only: uses CDP SystemInfo.getProcessInfo)
+  recon-exp.mjs [N] [fast]         tracker reconnect delay after a dropped WebSocket (up to ~6 minutes; "fast" pins Math.random to 0)
+  probe-storage.mjs [persistent]   persist(), estimate(), OPFS, IndexedDB Blob vs ArrayBuffer, CryptoKey round trips, API presence
+
+Results of the recorded run: out/results-*.txt, out/*.json
+Notes: the numbers from mem-exp.mjs are desktop RSS (ratios, not phone values); run-to-run variance is documented in out/results-memory.txt.

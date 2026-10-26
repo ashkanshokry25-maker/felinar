@@ -1,0 +1,149 @@
+{
+  "browser": "156.0.8078.4",
+  "when": "2026-10-17T21:26:15.471Z",
+  "results": {
+    "sw.js answers 404": {
+      "update": "rejected",
+      "after": {
+        "registrations": 1,
+        "localStorage": "site-data",
+        "cacheStorage": [
+          "site"
+        ],
+        "indexedDB": [
+          "db"
+        ]
+      }
+    },
+    "sw.js answers 410": {
+      "update": "rejected",
+      "after": {
+        "registrations": 1,
+        "localStorage": "site-data",
+        "cacheStorage": [
+          "site"
+        ],
+        "indexedDB": [
+          "db"
+        ]
+      }
+    },
+    "sw.js answers 451": {
+      "update": "rejected",
+      "after": {
+        "registrations": 1,
+        "localStorage": "site-data",
+        "cacheStorage": [
+          "site"
+        ],
+        "indexedDB": [
+          "db"
+        ]
+      }
+    },
+    "sw.js answers 500": {
+      "update": "rejected",
+      "after": {
+        "registrations": 1,
+        "localStorage": "site-data",
+        "cacheStorage": [
+          "site"
+        ],
+        "indexedDB": [
+          "db"
+        ]
+      }
+    },
+    "sw.js answers killer-no-navigate": {
+      "update": "resolved",
+      "after": {
+        "registrations": 0,
+        "localStorage": "site-data",
+        "cacheStorage": [
+          "site"
+        ],
+        "indexedDB": [
+          "db"
+        ]
+      }
+    },
+    "sw.js answers killer": {
+      "update": "resolved",
+      "after": {
+        "registrations": 0,
+        "localStorage": "site-data",
+        "cacheStorage": [
+          "site"
+        ],
+        "indexedDB": [
+          "db"
+        ]
+      }
+    },
+    "Clear-Site-Data: \"storage\"": {
+      "onFetch": {
+        "status": 200,
+        "after": {
+          "registrations": 0,
+          "localStorage": null,
+          "cacheStorage": [],
+          "indexedDB": []
+        }
+      },
+      "onNavigation": {
+        "after": {
+          "registrations": 0,
+          "localStorage": null,
+          "cacheStorage": [],
+          "indexedDB": []
+        }
+      }
+    },
+    "Clear-Site-Data: \"cache\", \"storage\"": {
+      "onFetch": {
+        "status": 200,
+        "after": {
+          "registrations": 0,
+          "localStorage": null,
+          "cacheStorage": [],
+          "indexedDB": []
+        }
+      },
+      "onNavigation": {
+        "after": {
+          "registrations": 0,
+          "localStorage": null,
+          "cacheStorage": [],
+          "indexedDB": []
+        }
+      }
+    },
+    "Clear-Site-Data: \"executionContexts\"": {
+      "onFetch": {
+        "status": 200,
+        "after": {
+          "registrations": 1,
+          "localStorage": "site-data",
+          "cacheStorage": [
+            "site"
+          ],
+          "indexedDB": [
+            "db"
+          ]
+        }
+      },
+      "onNavigation": {
+        "after": {
+          "registrations": 1,
+          "localStorage": "site-data",
+          "cacheStorage": [
+            "site"
+          ],
+          "indexedDB": [
+            "db"
+          ]
+        }
+      }
+    }
+  }
+}

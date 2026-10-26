@@ -1,0 +1,71 @@
+{
+  "name": "e2 bugout-style seeded identifier torrent",
+  "chromium": "156.0.8078.4",
+  "infoHashA": {
+    "infoHash": "8951d924d0ab777a2fb2a2928406ef2982afdd94",
+    "length": 29,
+    "pieceLength": 16384,
+    "name": "magnet-web-rv-test-identifier"
+  },
+  "infoHashB": {
+    "infoHash": "8951d924d0ab777a2fb2a2928406ef2982afdd94",
+    "length": 29,
+    "pieceLength": 16384,
+    "name": "magnet-web-rv-test-identifier"
+  },
+  "sameInfoHash": true,
+  "timeToWireMs": [
+    {
+      "ok": false,
+      "ms": 30001
+    },
+    {
+      "ok": false,
+      "ms": 30000
+    }
+  ],
+  "announcesFromPageA": [
+    {
+      "t": 81,
+      "url": "ws://127.0.0.1:18482/",
+      "event": "completed",
+      "left": 0,
+      "uploaded": 0,
+      "downloaded": 29,
+      "numwant": 50,
+      "nOffers": 0,
+      "hasAnswer": false,
+      "ih": "8951d924d0ab777a2fb2a2928406ef2982afdd94"
+    },
+    {
+      "t": 206,
+      "url": "ws://127.0.0.1:18482/",
+      "event": "started",
+      "left": 0,
+      "uploaded": 0,
+      "downloaded": 29,
+      "numwant": 5,
+      "nOffers": 5,
+      "hasAnswer": false,
+      "ih": "8951d924d0ab777a2fb2a2928406ef2982afdd94"
+    },
+    {
+      "t": 232,
+      "url": "ws://127.0.0.1:18482/",
+      "left": "<absent>",
+      "nOffers": 0,
+      "hasAnswer": true,
+      "ih": "8951d924d0ab777a2fb2a2928406ef2982afdd94"
+    }
+  ],
+  "trackerSideAnnounces": {
+    "complete left=0": 2,
+    "start left=0": 2,
+    "update left=null": 2
+  },
+  "wiresAfter30s": {
+    "A": 0,
+    "B": 0
+  },
+  "wireInfoA": []
+}

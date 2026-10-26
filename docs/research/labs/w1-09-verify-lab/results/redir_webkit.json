@@ -1,0 +1,42 @@
+{
+  "engine": "webkit",
+  "version": "27.2",
+  "same-origin 302": {
+    "finalUrl": "http://127.0.0.1:51086/landing#magnet%3A%3Fxt%3Durn%3Abtih%3Aabc",
+    "fragmentKept": true,
+    "serverRequests": [
+      {
+        "server": "A",
+        "url": "/hop-same",
+        "host": "127.0.0.1:51086",
+        "referer": null
+      },
+      {
+        "server": "A",
+        "url": "/landing",
+        "host": "127.0.0.1:51086",
+        "referer": null
+      }
+    ],
+    "fragmentSeenByAnyServer": false
+  },
+  "cross-origin 302 (127.0.0.1 -> localhost)": {
+    "finalUrl": "http://localhost:51087/landing#magnet%3A%3Fxt%3Durn%3Abtih%3Aabc",
+    "fragmentKept": true,
+    "serverRequests": [
+      {
+        "server": "A",
+        "url": "/hop-cross",
+        "host": "127.0.0.1:51086",
+        "referer": null
+      },
+      {
+        "server": "B",
+        "url": "/landing",
+        "host": "localhost:51087",
+        "referer": null
+      }
+    ],
+    "fragmentSeenByAnyServer": false
+  }
+}

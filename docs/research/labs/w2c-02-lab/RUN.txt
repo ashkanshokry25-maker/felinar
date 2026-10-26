@@ -1,0 +1,28 @@
+w2c-02 lab - how the measurements in ../../w2c-02-chain-production-features.md were produced (2026-10-17)
+
+Machine: MacBook Air, Apple M3, 8 cores, macOS 27.0, Node 24.22.0 (official tarball at ~/.local/share/node/current/bin).
+Browsers: Playwright Chromium (HeadlessChrome/156.0.8078.4) and Playwright WebKit (UA "Version/27.2 Safari/605.1.15").
+Firefox failed to launch under Playwright on this machine (profile folder error) and was not measured.
+
+SAFETY: the packages below are third-party code. Install them OUTSIDE the repo, with scripts disabled, and never run
+anything from inside that directory:
+
+  export PATH=$HOME/.local/share/node/current/bin:$PATH
+  DL=$(mktemp -d) && cd "$DL" && npm init -y >/dev/null
+  npm install --ignore-scripts --no-audit --no-fund \
+    age-encryption@0.3.1 @noble/ciphers@2.4.0 @noble/curves@2.4.0 @noble/hashes@2.4.0 libsodium-wrappers@0.8.4 \
+    hpke-js@1.8.0 @sqlite.org/sqlite-wasm@3.53.4-build2 idb@8.0.4 dexie@4.4.6
+  (ts-mls@1.6.4 cannot be installed next to noble 2.4.0: its exact peer pins give ERESOLVE.)
+
+1) Bundle sizes (results/sizes.txt):
+  cd <repo>/docs/research/labs/w2c-02-lab
+  DL=<dir from above> ESB=<repo>/node_modules/.bin/esbuild OUT=<repo-external out dir> ./sizes.sh
+
+2) IndexedDB vs SQLite WASM vs Argon2id (results/result-chromium.json, result-webkit.json):
+  OUT=<out dir used above>   # contains argon2.min.js
+  node bench-server.mjs 18765 <repo>/docs/research/labs/w2c-02-lab/bench "$DL/node_modules/@sqlite.org/sqlite-wasm/dist" "$OUT" &
+  node bench-run.mjs "http://127.0.0.1:18765/?n=50000" chromium    # or: webkit
+  (bench-run.mjs imports playwright from the repo's node_modules via ../../../../node_modules/playwright.)
+
+Notes: SQLite runs in-memory on the main thread (no OPFS). WebKit rounds performance.now() to 1 ms.
+All numbers are desktop numbers; nothing was measured on a phone.

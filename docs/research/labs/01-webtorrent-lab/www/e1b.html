@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E1b iframe variants with onRequest wrapper</title>
+<body>
+<pre id="log"></pre>
+<script type="module">
+import WebTorrent from './webtorrent.min.js'
+const R = { errors: [], requests: [], msgs: [], variants: {} }
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const report = async () => { try { await fetch('/report/e1b', { method: 'POST', body: JSON.stringify(R, null, 2) }) } catch (e) {} }
+window.addEventListener('message', e => { if (e.data && e.data.v) R.msgs.push({ origin: e.origin, ...e.data }) })
+try {
+  const reg = await navigator.serviceWorker.register('./sw.min.js', { scope: './' })
+  await navigator.serviceWorker.ready
+  const mk = (path, text, type) => { const f = new File([text], path.split('/').pop(), { type }); Object.defineProperty(f, 'fullPath', { value: path }); return f }
+  const probe = v => `window.addEventListener("load",function(){var i=document.getElementById("img");parent.postMessage({v:"${v}",origin:String(location.origin),href:String(location.href),ran:1,bg:getComputedStyle(document.body).backgroundColor,imgW:i?i.naturalWidth:-1,hasSW:("serviceWorker" in navigator)},"*")})`
+  const client = new WebTorrent({ tracker: false, lsd: false, dht: false, utPex: false })
+  const server = client.createServer({ controller: reg })
+  let mode = { stripCsp: false, csp: null, docAsIframe: false }
+  const orig = server.onRequest.bind(server)
+  server.onRequest = (req, cb) => {
+    R.requests.push({ url: req.url.replace(/^https?:\/\/[^/]+/, '').replace(/[0-9a-f]{40}/, '<hash>'), dest: req.destination, method: req.method })
+    if (mode.docAsIframe && req.destination === 'document') req = { ...req, destination: 'iframe' }
+    orig(req, res => {
+      if (res && res.headers) {
+        if (mode.stripCsp) delete res.headers['Content-Security-Policy']
+        if (mode.csp) res.headers['Content-Security-Policy'] = mode.csp
+      }
+      cb(res)
+    })
+  }
+  const mkSite = v => [
+    mk('site/index.html', '<!doctype html><meta charset=utf-8><title>site</title><link rel=stylesheet href="style.css"><h1 id=x>hello</h1><img id=img src="img/logo.svg"><script src="app.js"><\/script>', 'text/html'),
+    mk('site/style.css', 'body{background:rgb(1,2,3)}', 'text/css'),
+    mk('site/app.js', probe(v), 'text/javascript'),
+    mk('site/img/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>', 'image/svg+xml')
+  ]
+  const seed = (files, opts) => new Promise((resolve, reject) => { const t = client.seed(files, opts, resolve); t.on('error', reject) })
+  const t = await seed(mkSite('V'), { announce: [], name: 'site', pieceLength: 16384 })
+  R.infoHash = t.infoHash
+  const base = t.files[0].streamURL.replace(/index\.html$/, '')
+
+  async function tryFrame (label, sandbox, m) {
+    mode = m
+    const v = {}
+    const iframe = document.createElement('iframe')
+    iframe.style.cssText = 'width:300px;height:150px'
+    if (sandbox !== null) iframe.setAttribute('sandbox', sandbox)
+    let loaded = false
+    iframe.addEventListener('load', () => { loaded = true })
+    // each variant needs its own marker; app.js is shared by hash, so match by label via query
+    iframe.src = base + 'index.html?v=' + label
+    document.body.appendChild(iframe)
+    for (let i = 0; i < 80 && !loaded; i++) await sleep(100)
+    await sleep(1500)
+    v.loadEvent = loaded
+    try { const d = iframe.contentDocument; v.docReadable = !!d; v.title = d && d.title; v.bg = d && getComputedStyle(d.body).backgroundColor; v.jsRan = iframe.contentWindow.__ran; v.imgW = d && d.getElementById('img').naturalWidth } catch (e) { v.accessError = String(e).slice(0, 160) }
+    R.variants[label] = v
+    iframe.remove()
+  }
+  // control: stock behaviour
+  await tryFrame('stock_plain', null, { stripCsp: false, csp: null, docAsIframe: false })
+  R.msgs.length = 0
+  await tryFrame('csp_stripped_plain', null, { stripCsp: true, csp: null, docAsIframe: false })
+  R.msgsAfterStripped = R.msgs.slice()
+  R.msgs.length = 0
+  await tryFrame('csp_self_plain', null, { stripCsp: false, csp: "base-uri 'none'; frame-ancestors 'self'; form-action 'none';", docAsIframe: false })
+  R.msgsAfterSelf = R.msgs.slice()
+  R.msgs.length = 0
+  await tryFrame('csp_stripped_sandbox_allow_scripts', 'allow-scripts', { stripCsp: true, csp: null, docAsIframe: false })
+  R.msgsAfterSandbox = R.msgs.slice()
+  R.msgs.length = 0
+  await tryFrame('csp_stripped_sandbox_scripts_same_origin', 'allow-scripts allow-same-origin', { stripCsp: true, csp: null, docAsIframe: false })
+  R.msgsAfterSandboxSameOrigin = R.msgs.slice()
+
+  // popup (top-level-like navigation => destination "document")
+  mode = { stripCsp: true, csp: null, docAsIframe: false }
+  const pop1 = window.open(base + 'index.html?v=popup_stock')
+  await sleep(2500)
+  R.popupStock = { opened: !!pop1 }
+  try { R.popupStock.href = pop1 && pop1.location.href; R.popupStock.html = pop1 && pop1.document && pop1.document.documentElement.outerHTML.slice(0, 120); R.popupStock.closed = pop1 && pop1.closed } catch (e) { R.popupStock.err = String(e).slice(0, 120) }
+  try { pop1 && pop1.close() } catch (e) {}
+  mode = { stripCsp: true, csp: null, docAsIframe: true }
+  const pop2 = window.open(base + 'index.html?v=popup_patched')
+  await sleep(2500)
+  R.popupPatched = { opened: !!pop2 }
+  try { R.popupPatched.href = pop2 && pop2.location.href; R.popupPatched.title = pop2 && pop2.document && pop2.document.title; R.popupPatched.bg = pop2 && getComputedStyle(pop2.document.body).backgroundColor } catch (e) { R.popupPatched.err = String(e).slice(0, 120) }
+  try { pop2 && pop2.close() } catch (e) {}
+} catch (e) { R.fatal = String(e && e.stack || e) }
+document.getElementById('log').textContent = JSON.stringify(R, null, 2)
+await report()
+</script>

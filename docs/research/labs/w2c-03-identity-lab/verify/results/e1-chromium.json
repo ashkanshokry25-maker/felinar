@@ -1,0 +1,44 @@
+{
+ "engine": "chromium",
+ "version": "156.0.8078.4",
+ "origin": "http://localhost:57770",
+ "setup": {
+  "stored": true,
+  "privExtractable": false,
+  "swActive": true
+ },
+ "loaderControlled": true,
+ "frames": {
+  "sandbox=allow-scripts allow-same-origin": {
+   "origin": "http://localhost:57770",
+   "isolatedOrigin": "http://localhost:57770",
+   "foundKey": true,
+   "keyExtractable": false,
+   "signedLen": 64,
+   "verifiesWithVisitorPub": true,
+   "exported": false,
+   "exportErr": "InvalidAccessError",
+   "swController": true,
+   "fetchWho": "sw"
+  },
+  "sandbox=allow-scripts": {
+   "origin": "http://localhost:57770",
+   "isolatedOrigin": "http://localhost:57770",
+   "idbError": "SecurityError: Failed to execute 'open' on 'IDBFactory': access to the Indexed Database API is denied in this context.",
+   "swError": "SecurityError",
+   "fetchWho": "network"
+  },
+  "no sandbox": {
+   "origin": "http://localhost:57770",
+   "isolatedOrigin": "http://localhost:57770",
+   "foundKey": true,
+   "keyExtractable": false,
+   "signedLen": 64,
+   "verifiesWithVisitorPub": true,
+   "exported": false,
+   "exportErr": "InvalidAccessError",
+   "swController": true,
+   "fetchWho": "sw"
+  }
+ }
+}

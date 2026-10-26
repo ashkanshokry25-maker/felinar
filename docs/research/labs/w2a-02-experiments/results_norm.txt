@@ -1,0 +1,5 @@
+platform darwin 27.0.0
+second write (NFC after NFD, wx): error EEXIST
+readdir count: 1
+ readdir name codepoints: 63 61 66 65 301 2e 68 74 6d 6c | isNFC: false | isNFD: true
+case-colliding create (README.txt after Readme.txt): error EEXIST | readdir: [ 'Readme.txt' ]

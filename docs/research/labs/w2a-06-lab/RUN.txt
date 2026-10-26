@@ -1,0 +1,19 @@
+w2a-06 lab: executed experiments behind docs/research/w2a-06-cicd-automation.md (2026-10-17, Toronto)
+
+Environment: macOS 27.0 arm64, Node 24.22 at ~/.local/share/node/current/bin (prepend to PATH), project node_modules
+(webtorrent 3.0.21, create-torrent 6.1.3, parse-torrent 11.0.24, playwright 1.64 + Chromium 156), AWS CLI 2.38.1,
+openssl 4.0.3 (Homebrew), Ruby 2.6 (YAML lint), curl (Apple). Scripts import the project's node_modules by absolute path.
+Network-using programs other than curl/Chromium are blocked or prompt under LuLu on this machine: use curl for web probes.
+
+  export PATH=$HOME/.local/share/node/current/bin:$PATH ; cd docs/research/labs/w2a-06-lab
+  node e1-determinism.mjs          # create-torrent 6.1.3: dot-entries dropped in directory mode, readdir order, creationDate=0, default trackers, default piece length
+  node e2-external-signer.mjs      # openssl DER signatures -> raw r||s -> src/chain/crypto.js verify() (stand-in for KMS / PIV / Vault transit)
+  node e3-pointer-size.mjs         # byte size of a signed v=mw1 pointer and its split into <=255-byte TXT strings, Route 53 value quoting
+  node e4-range-ae.mjs             # Chromium: Accept-Encoding sent on fetch() with a Range header; preflight headers (Firefox/WebKit not installed)
+  python3 hostprobe.py             # Range / compression / CORS preflight behaviour of real hosts (GitHub Pages, Vercel, Netlify, Cloudflare, jsDelivr); uses curl
+  node e5-verify-seed-test.mjs     # verify-seed.mjs against local servers imitating the measured failure modes
+  node e6-badseed.mjs              # webtorrent 3.0.21 vs a web seed that serves corrupted bytes (request storm)
+  node e7-pack-test.mjs            # pack-sketch.mjs determinism across paths, creation order, mtimes, modes
+  ruby wf/lint.rb                  # YAML syntax + 4 security policies for the reference GitHub workflows (wf/*.yml)
+cfg/*.json were validated with jq and the AWS CLI client-side parameter validation (dead loopback endpoint, no network).
+wf/*.yml carry full-SHA pins resolved with gh_pin.sh on 2026-10-17 (gh-pins-2026-10-17.txt); gh_releases.sh is the earlier multi-repo variant (needs unauthenticated API quota: 60 requests per hour per IP).

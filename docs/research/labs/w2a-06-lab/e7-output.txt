@@ -1,0 +1,6 @@
+release.json identical: true | site.torrent bytes identical: true | btih 9ffb4994ab8e16bd649149c6185bc5f6e4eb04a4 | rel 1.4.2-9ffb4994
+packed files: .well-known/security.txt, Zeta.txt, about.html, alpha.txt, café/é.html, css/app.css, img/p.png, index.html, js/app.js, 😀.txt
+excluded (junk/host config): .DS_Store, _headers, .htaccess | included dot-path: .well-known/security.txt
+staged tree == torrent file list: true | sort check (UTF-8 byte order): .well-known/security.txt | Zeta.txt | about.html | alpha.txt | café/é.html | css/app.css | img/p.png | index.html | js/app.js | 😀.txt
+rejects bad input -> created must be a positive unix-seconds integer (new Date(0) is falsy 
+rejects bad input -> name is required (it is part of the infohash)

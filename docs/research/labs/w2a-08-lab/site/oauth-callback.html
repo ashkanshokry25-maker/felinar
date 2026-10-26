@@ -1,0 +1,5 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>OAuth callback</title></head><body><h1>callback</h1><script>
+var r = { opener: !!window.opener, parentOpener: (function () { try { return !!window.parent.opener } catch (e) { return 'err' } })(), isTop: window.top === window }
+try { if (window.opener) { window.opener.postMessage({ mw: 'token', via: 'opener' }, location.origin); r.posted = true } } catch (e) { r.err = e.name }
+document.title = 'CB ' + JSON.stringify(r)
+</script></body></html>

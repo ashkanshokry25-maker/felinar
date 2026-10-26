@@ -1,0 +1,11 @@
+import Wire from '../../../../node_modules/bittorrent-protocol/index.js';
+const hs = new Uint8Array(68); hs[0] = 19; hs.set(new TextEncoder().encode('BitTorrent protocol'), 1); hs[25] = 0x10; hs.fill(7, 28, 48); hs.fill(9, 48, 68);
+const w = new Wire(); w.on('error', (e) => console.log('error', e.message));
+w.write(hs); await new Promise((r) => setImmediate(r));
+console.log('after handshake: parserSize', w._parserSize, 'bufferSize', w._bufferSize, 'handshake?', w.handshaked ?? '(n/a)');
+w.write(new Uint8Array([0xff, 0xff, 0xff, 0xff])); await new Promise((r) => setImmediate(r));
+console.log('after 0xffffffff prefix: parserSize', w._parserSize, 'bufferSize', w._bufferSize);
+w.write(new Uint8Array(16384).fill(0)); await new Promise((r) => setImmediate(r));
+console.log('after 16KiB zero filler: parserSize', w._parserSize, 'bufferSize', w._bufferSize);
+w.write(new Uint8Array(16384).fill(1)); await new Promise((r) => setImmediate(r));
+console.log('after 16KiB 0x01 filler: parserSize', w._parserSize, 'bufferSize', w._bufferSize);

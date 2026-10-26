@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Existing Site with its own Service Worker, integrated</title>
+<link rel="stylesheet" href="/css/app.3f2a1b.css">
+<script type="module" src="/_mw/mw.js" async></script>
+</head>
+<body data-page="own-sw-integrated">
+<header class="site"><strong>Existing Site</strong></header>
+<main>
+<h1>A site worker that opted in</h1>
+<p id="lead">This page registers /sw.js. That worker starts with importScripts('/_mw/sw-core.js') and gives felinar the first look at each fetch, which is the whole integration (ARCHITECTURE 3.4.4).</p>
+<p>Pathname: <code id="path">JavaScript is off</code></p>
+<p id="data">data.json has not been fetched</p>
+<p id="own-sw">The site worker has not answered yet.</p>
+</main>
+<script src="/js/app.9c0d2e.js"></script>
+<script src="/js/register-sw.js"></script>
+</body>
+</html>

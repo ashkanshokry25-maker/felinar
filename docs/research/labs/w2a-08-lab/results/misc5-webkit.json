@@ -1,0 +1,25 @@
+{
+  "engine": "webkit",
+  "rows": [
+    {
+      "test": "tab close with beforeunload handler inside the frame",
+      "label": "sandbox without allow-modals (spec 7.2)",
+      "dialogsSeen": [],
+      "pageStillOpen": true
+    },
+    {
+      "test": "tab close with beforeunload handler inside the frame",
+      "label": "sandbox with allow-modals",
+      "dialogsSeen": [],
+      "pageStillOpen": true
+    },
+    {
+      "test": "aria snapshot of shell (iframe title=\"Site content\")",
+      "snapshot": "- iframe"
+    },
+    {
+      "test": "aria snapshot of shell (iframe title=\"\")",
+      "snapshot": "- iframe"
+    }
+  ]
+}

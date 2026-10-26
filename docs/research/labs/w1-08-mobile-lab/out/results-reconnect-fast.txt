@@ -1,0 +1,5 @@
+# recon-exp.mjs fast smoke test (Math.random pinned to 0 in the pages): expected ~10 s
+pages: 4 (fast mode: Math.random pinned to 0) open tracker sockets: 4
+terminated 4 server-side sockets at 2026-10-17T21:40:16.956Z
+re-announce delay after socket drop, seconds, per client: [10.1,10.1,10.1,10.1]
+min 10.1 median 10.1 max 10.1 n 4 / 4  (theory: 10 s + U(0, 300 s) => 10..310 s; fast mode => ~10 s)

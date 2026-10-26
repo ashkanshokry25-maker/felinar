@@ -1,0 +1,421 @@
+# deploy/github-actions/publish-site.yml: a GitHub Actions template for a site owner's own repository (not for the
+# felinar repository). On every push to main it builds your site, publishes it through felinar in shell
+# mode, uploads it to Amazon S3 (behind CloudFront) or Cloudflare R2, writes the pointer to DNS (Route 53 or
+# Cloudflare) and checks the live site from outside.
+#
+# Copy it to .github/workflows/publish-site.yml in your site's repository and replace every CHANGE-ME. Read
+# docs/DEPLOY.md in the felinar repository first: "Owner duties", "Deploy order", "CI/CD" and the host and
+# DNS recipes this template follows. Nothing in it has run against a real account yet: run it on a staging
+# hostname first and keep check-site green.
+#
+# Jobs, in the deploy order of docs/RUNBOOK.md section 7:
+#   loader   builds the felinar loader (dist/) from a pinned felinar commit. No secrets, read-only token.
+#   site     builds your site with your own build command. No secrets, read-only token. Your build's
+#            dependencies never run in a job that holds a key.
+#   publish  packs the site into a torrent and signs its pointer with your owner key (secret MW_OWNER_JWK), in
+#            the "mw-sign" environment. Give that environment required reviewers and allow only main.
+#   upload   1. the web seed (<name>/ and <name>.torrent) under a new, immutable prefix for this release
+#            2. check-webseed against the live web seed: nothing below runs unless it passes
+#            3. the shell (index.html, 404.html, mw-sw.js, _mw/): this switches the pointer; then the CDN purge
+#   dns      writes the signed pointer to the TXT record _magnet.<host>, unless a newer one is already there
+#            (skipped with DNS_PROVIDER: none: the page tag in the shell is then the only pointer)
+#   check    check-site against the live site
+#
+# One-time setup:
+#   1. On your own machine, in a clone of felinar: create the owner key and publish once, and keep both
+#      files. The key goes into the secret; genesis.json is the site ledger's first block, public data that
+#      every later publish must reuse (otherwise each run would start a new, empty ledger):
+#        npx felinar keygen --out owner.jwk
+#        npx felinar publish <your built site> --name <SITE_NAME> --scope <SITE_HOST> --key owner.jwk --out first-publish
+#      Commit first-publish/genesis.json to this repository as felinar/genesis.json. Back up owner.jwk offline.
+#   2. Environments (Settings, Environments), each with required reviewers and only main allowed: "mw-sign" with
+#      the secret MW_OWNER_JWK (the whole content of owner.jwk); "mw-deploy" for the storage and CDN
+#      credentials; "mw-dns" for the DNS credentials. One role per job, so no job can do all three.
+#   3. Credentials. Amazon: OIDC roles, no stored keys: vars.AWS_UPLOAD_ROLE_ARN (write to the bucket, create
+#      CloudFront invalidations) and vars.AWS_DNS_ROLE_ARN (change only the TXT record _magnet.<host>; see the
+#      IAM conditions in docs/DEPLOY.md, Route 53), plus vars.AWS_REGION. Cloudflare R2: the secrets
+#      R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY (R2 has no OIDC). Cloudflare DNS: the secret CF_API_TOKEN and
+#      vars.CF_ZONE_ID.
+#   4. Your own tracker (deploy/tracker in felinar) on a neutral hostname, first in TRACKERS, allowing
+#      summary.json's btih and rendezvousBtih of every release (the publish job prints both).
+#
+# Keeping the key off CI: signing here means whoever can change this workflow can sign for your site.
+# docs/DEPLOY.md, CI/CD, describes the safer pattern: run publish on your own machine, commit or attach the
+# dist-publish directory (it holds no key), delete the loader, site and publish jobs, and let upload, dns
+# and check deploy what you published.
+
+name: publish-site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# Publishes never overlap: the pointer's seq is the clock, and two runs could otherwise deploy out of order.
+concurrency:
+  group: publish-site
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # felinar, pinned. The commit is checked after the clone, so a moved tag cannot change the code.
+  FELINAR_REPO: https://github.com/ashkanshokry25-maker/felinar.git # CHANGE-ME: the felinar repository
+  FELINAR_REF: v0.3.0 # CHANGE-ME: a release tag
+  FELINAR_COMMIT: 0000000000000000000000000000000000000000 # CHANGE-ME: git rev-parse 'v0.3.0^{commit}'
+  # The felinar release key, as pinned in felinar's SECURITY.md and its second places (never from the release itself).
+  # The loader built below must match the signed per-file list of FELINAR_REF before the owner key is read.
+  FELINAR_RELEASE_KEY: p256:CHANGE-ME # CHANGE-ME: the pinned release key
+  # Your site.
+  SITE_DIR: public # CHANGE-ME: the directory your build writes
+  SITE_NAME: my-site # CHANGE-ME: the torrent name; keep it the same for every release
+  SITE_HOST: www.example.com # CHANGE-ME: the hostname visitors open; the pointer is signed for it
+  # Trackers, in pointer order: your own first, then "public" (the four public trackers).
+  TRACKERS: wss://rtc.example.com public # CHANGE-ME
+  # Where the files go. The site root (the shell) and the web seed base may be the same bucket.
+  SHELL_DEST: s3://example-site/ # CHANGE-ME: served as https://<SITE_HOST>/
+  SEED_DEST: s3://example-site/ws/ # CHANGE-ME: served as SEED_BASE
+  SEED_BASE: https://www.example.com/ws/ # CHANGE-ME: the public URL of SEED_DEST, ending in /
+  # Empty for Amazon S3; https://<account id>.r2.cloudflarestorage.com for Cloudflare R2.
+  S3_ENDPOINT: ''
+  # Amazon CloudFront in front of the bucket: the distribution to purge after the shell upload ('' = none).
+  CLOUDFRONT_DISTRIBUTION_ID: '' # CHANGE-ME
+  # route53, cloudflare or none.
+  DNS_PROVIDER: route53 # CHANGE-ME
+  ROUTE53_ZONE_ID: '' # CHANGE-ME when DNS_PROVIDER is route53
+
+jobs:
+  loader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Clone felinar at the pinned commit and build the loader
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/felinar"
+          git clone --quiet --depth 1 --branch "$FELINAR_REF" "$FELINAR_REPO" "$mw"
+          test "$(git -C "$mw" rev-parse HEAD)" = "$FELINAR_COMMIT" || { echo "::error::$FELINAR_REF is not commit $FELINAR_COMMIT"; exit 1; }
+          cd "$mw"
+          # The lockfile only, and no install scripts (felinar's .npmrc says the same).
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          node build.mjs --check-lock
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: loader
+          path: ${{ runner.temp }}/felinar/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Build the site # CHANGE-ME: your build; it must write SITE_DIR
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site
+          path: ${{ env.SITE_DIR }}/
+          # .well-known/ and other dot paths: publish lists what it keeps (--include-dot) and drops.
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [loader, site]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: mw-sign
+    permissions:
+      contents: read
+    outputs:
+      release: ${{ steps.publish.outputs.release }}
+    steps:
+      # This repository, for felinar/genesis.json and the commit time (the torrent's creation date).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: loader
+          path: ${{ runner.temp }}/loader
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site
+          path: ${{ runner.temp }}/site
+      - name: Clone felinar at the pinned commit (the tools only)
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/felinar"
+          git clone --quiet --depth 1 --branch "$FELINAR_REF" "$FELINAR_REPO" "$mw"
+          test "$(git -C "$mw" rev-parse HEAD)" = "$FELINAR_COMMIT" || { echo "::error::$FELINAR_REF is not commit $FELINAR_COMMIT"; exit 1; }
+          (cd "$mw" && npm ci --ignore-scripts --omit=dev --no-audit --no-fund)
+      # The loader is what visitors run with your keys: it must be the release, byte for byte, before the key is read
+      # (felinar builds are reproducible, so the build above matches the signed list of the same tag).
+      - name: Check the loader against the signed release list
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/felinar"
+          rel="$RUNNER_TEMP/release"
+          mkdir -p "$rel"
+          for f in hashes-dist.json hashes-dist.json.sig; do
+            curl -fsSL --proto '=https' -o "$rel/$f" "${FELINAR_REPO%.git}/releases/download/$FELINAR_REF/$f"
+          done
+          node "$mw/tools/verify-release.mjs" verify "$RUNNER_TEMP/loader" --list "$rel/hashes-dist.json" --sig "$rel/hashes-dist.json.sig" \
+            --pubkey "$FELINAR_RELEASE_KEY" --expect-version "${FELINAR_REF#v}" --expect-tree dist
+      - name: Pack the site and sign the pointer
+        id: publish
+        env:
+          MW_OWNER_JWK: ${{ secrets.MW_OWNER_JWK }}
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/felinar"
+          release="$(git rev-parse --short=12 HEAD)"
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          key="$RUNNER_TEMP/owner.jwk"
+          (umask 077 && printf '%s' "$MW_OWNER_JWK" > "$key")
+          trap 'rm -f "$key"' EXIT
+          trackers=()
+          for t in $TRACKERS; do trackers+=(--tr "$t"); done
+          # The web seed of this release lives under its own prefix: visitors still on the previous version
+          # keep finding its files there. --genesis keeps the ledger root of every earlier publish.
+          node "$mw/bin/felinar.mjs" publish "$RUNNER_TEMP/site" --name "$SITE_NAME" --scope "$SITE_HOST" --key "$key" \
+            --ws "${SEED_BASE}r/$release/" --cs "${SEED_BASE}genesis.json" "${trackers[@]}" \
+            --genesis felinar/genesis.json --shell --dist "$RUNNER_TEMP/loader" --double-pack --out dist-publish \
+            --release-list "$RUNNER_TEMP/release/hashes-dist.json" --release-sig "$RUNNER_TEMP/release/hashes-dist.json.sig" --release-key "$FELINAR_RELEASE_KEY"
+          # CHANGE-ME as needed: --policy owner|allow|open, --moderator <pub>, --ct <contact> (required
+          # reading: docs/DEPLOY.md, "Owner duties"), --consent gate, --aud <tokens>, --spa, --clean-urls.
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          node -e 'const s = require(process.argv[1]); console.log("btih " + s.btih + ", ledger rendezvous " + s.rendezvousBtih + ", seq " + s.seq + ", expires " + s.expires)' "$PWD/dist-publish/summary.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-publish
+          path: dist-publish/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  upload:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: mw-deploy
+    permissions:
+      contents: read
+      id-token: write # the OIDC role for Amazon; unused with R2
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist-publish
+          path: dist-publish
+      # check-webseed needs no npm packages, so no dependency code runs in this job, which can assume the role.
+      - name: Clone felinar at the pinned commit (for check-webseed)
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/felinar"
+          git clone --quiet --depth 1 --branch "$FELINAR_REF" "$FELINAR_REPO" "$mw"
+          test "$(git -C "$mw" rev-parse HEAD)" = "$FELINAR_COMMIT" || { echo "::error::$FELINAR_REF is not commit $FELINAR_COMMIT"; exit 1; }
+      - if: env.S3_ENDPOINT == ''
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_UPLOAD_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-duration-seconds: 900
+      - name: 1. Upload the web seed under this release's prefix
+        env:
+          RELEASE: ${{ needs.publish.outputs.release }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          ep=()
+          if [ -n "$S3_ENDPOINT" ]; then
+            ep=(--endpoint-url "$S3_ENDPOINT")
+            export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION=auto
+          fi
+          dest="${SEED_DEST}r/$RELEASE/"
+          if [ -n "$(aws s3 ls "${ep[@]}" "$dest" | head -n 1)" ]; then echo "::error::$dest already exists: release prefixes are never rewritten"; exit 1; fi
+          # Immutable: a release prefix never changes. The .mw/ directory (routing manifest, file list) is part of it.
+          aws s3 cp "${ep[@]}" "dist-publish/$SITE_NAME/" "$dest$SITE_NAME/" --recursive --only-show-errors \
+            --cache-control 'public, max-age=31536000, immutable'
+          aws s3 cp "${ep[@]}" "dist-publish/$SITE_NAME.torrent" "$dest$SITE_NAME.torrent" --only-show-errors \
+            --content-type application/x-bittorrent --cache-control 'public, max-age=31536000, immutable'
+          # The ledger snapshot (cs=): the genesis block on the first release only; later snapshots come from a
+          # pin node or tools/snapshot.mjs (docs/DEPLOY.md, "Pin node"), and this never overwrites them.
+          if ! aws s3 ls "${ep[@]}" "${SEED_DEST}genesis.json" > /dev/null 2>&1; then
+            aws s3 cp "${ep[@]}" dist-publish/genesis.json "${SEED_DEST}genesis.json" --only-show-errors \
+              --content-type application/json --cache-control no-cache
+          fi
+      - name: 2. Check the live web seed (the pointer is not switched unless this passes)
+        env:
+          RELEASE: ${{ needs.publish.outputs.release }}
+        run: |
+          node "$RUNNER_TEMP/felinar/bin/felinar.mjs" check-webseed "${SEED_BASE}r/$RELEASE/" dist-publish/site.torrent \
+            --origin "https://$SITE_HOST"
+      - name: 3. Upload the shell (this switches the page tag) and purge the CDN
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          ep=()
+          if [ -n "$S3_ENDPOINT" ]; then
+            ep=(--endpoint-url "$S3_ENDPOINT")
+            export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION=auto
+          fi
+          # No --delete: the files of earlier releases stay (keep them at least 7 days, docs/DEPLOY.md).
+          # Every shell file is revalidated: /mw-sw.js, the HTML and /_mw/ change with each loader build.
+          aws s3 sync "${ep[@]}" dist-publish/shell/ "$SHELL_DEST" --exclude 'ws/*' --only-show-errors --cache-control no-cache
+          if [ -n "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+              --paths /index.html /404.html /mw-sw.js '/_mw/*' --query Invalidation.Id --output text
+          fi
+
+  dns:
+    needs: upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: mw-dns
+    permissions:
+      contents: read
+      id-token: write # the OIDC role for Route 53; unused with Cloudflare
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: env.DNS_PROVIDER != 'none'
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: env.DNS_PROVIDER != 'none'
+        with:
+          name: dist-publish
+          path: dist-publish
+      - name: Clone felinar at the pinned commit (the pointer helpers)
+        if: env.DNS_PROVIDER != 'none'
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/felinar"
+          git clone --quiet --depth 1 --branch "$FELINAR_REF" "$FELINAR_REPO" "$mw"
+          test "$(git -C "$mw" rev-parse HEAD)" = "$FELINAR_COMMIT" || { echo "::error::$FELINAR_REF is not commit $FELINAR_COMMIT"; exit 1; }
+          # The TXT value to write, unless the live record is already as new: prints nothing then.
+          cat > "$RUNNER_TEMP/txt-value.mjs" <<'JS'
+          // node txt-value.mjs <felinar dir> <pointer.txt> [<live TXT value>]
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { pathToFileURL } from 'node:url';
+          const [mw, file, live] = process.argv.slice(2);
+          const { splitTxt, joinTxtData, parsePointer } = await import(pathToFileURL(join(mw, 'src/common/pointer.js')).href);
+          const pointer = readFileSync(file, 'utf8').trim();
+          const mine = parsePointer(pointer);
+          if (!mine.ok || !mine.record.signed) throw new Error(file + ' is not a signed pointer');
+          if (live && live !== 'None' && live !== 'null') {
+            const cur = parsePointer(joinTxtData(live));
+            if (cur.ok && cur.record.signed && Number(cur.record.seq) >= Number(mine.record.seq)) {
+              console.error('the live TXT record has seq ' + cur.record.seq + ', not older than ' + mine.record.seq + ': leaving it');
+              process.exit(0);
+            }
+          }
+          const quote = (s) => '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+          console.log(splitTxt(pointer).map(quote).join(' '));
+          JS
+      - if: env.DNS_PROVIDER == 'route53'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DNS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-duration-seconds: 900
+      - name: Write the pointer to Route 53 (compare-and-swap)
+        if: env.DNS_PROVIDER == 'route53'
+        run: |
+          set -euo pipefail
+          name="_magnet.$SITE_HOST."
+          # The live record set, exactly as Route 53 holds it (all values, its TTL), or nothing.
+          aws route53 list-resource-record-sets --hosted-zone-id "$ROUTE53_ZONE_ID" --start-record-name "$name" \
+            --start-record-type TXT --max-items 1 --output json \
+            | jq -c --arg name "$name" '[.ResourceRecordSets[] | select(.Name == $name and .Type == "TXT")][0] // null' > live.json
+          live="$(jq -r 'if . == null then "" else .ResourceRecords[0].Value end' live.json)"
+          value="$(node "$RUNNER_TEMP/txt-value.mjs" "$RUNNER_TEMP/felinar" dist-publish/pointer.txt "$live")"
+          if [ -z "$value" ]; then exit 0; fi
+          # A DELETE must match the live set exactly and Route 53 applies all of a batch or none of it, so the
+          # batch fails if the record changed under this run (docs/DEPLOY.md, Route 53). _magnet.<host> holds
+          # only the felinar pointer.
+          jq -n --arg name "$name" --arg value "$value" --slurpfile live live.json '
+            { Comment: "felinar pointer", Changes: (
+              (if $live[0] == null then [] else [ { Action: "DELETE", ResourceRecordSet: $live[0] } ] end)
+              + [ { Action: "CREATE", ResourceRecordSet: { Name: $name, Type: "TXT", TTL: 300, ResourceRecords: [ { Value: $value } ] } } ] ) }' > route53.json
+          aws route53 change-resource-record-sets --hosted-zone-id "$ROUTE53_ZONE_ID" --change-batch file://route53.json \
+            --query ChangeInfo.Status --output text
+      - name: Write the pointer to Cloudflare
+        if: env.DNS_PROVIDER == 'cloudflare'
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ vars.CF_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          name="_magnet.$SITE_HOST"
+          api="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records"
+          auth=(-H "Authorization: Bearer $CF_API_TOKEN")
+          current="$(curl -fsS "${auth[@]}" "$api?type=TXT&name=$name")"
+          id="$(jq -r '.result[0].id // empty' <<< "$current")"
+          live="$(jq -r '.result[0].content // empty' <<< "$current")"
+          value="$(node "$RUNNER_TEMP/txt-value.mjs" "$RUNNER_TEMP/felinar" dist-publish/pointer.txt "$live")"
+          if [ -z "$value" ]; then exit 0; fi
+          body="$(jq -n --arg name "$name" --arg value "$value" '{ type: "TXT", name: $name, content: $value, ttl: 300, comment: "felinar pointer" }')"
+          if [ -n "$id" ]; then
+            curl -fsS -X PATCH "${auth[@]}" -H 'Content-Type: application/json' "$api/$id" --data "$body" | jq -r '.success'
+          else
+            curl -fsS -X POST "${auth[@]}" -H 'Content-Type: application/json' "$api" --data "$body" | jq -r '.success'
+          fi
+
+  check:
+    needs: [dns]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Clone felinar at the pinned commit
+        run: |
+          set -euo pipefail
+          mw="$RUNNER_TEMP/felinar"
+          git clone --quiet --depth 1 --branch "$FELINAR_REF" "$FELINAR_REPO" "$mw"
+          test "$(git -C "$mw" rev-parse HEAD)" = "$FELINAR_COMMIT" || { echo "::error::$FELINAR_REF is not commit $FELINAR_COMMIT"; exit 1; }
+          (cd "$mw" && npm ci --ignore-scripts --omit=dev --no-audit --no-fund)
+      # The page, its loader files and SRI hashes, the page tag and the DNS pointer, the .torrent, the web seed,
+      # every tracker and the snapshot. A CDN can take a few minutes to serve the new files everywhere.
+      - name: check-site
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if node "$RUNNER_TEMP/felinar/bin/felinar.mjs" check-site "https://$SITE_HOST/"; then exit 0; fi
+            echo "attempt $attempt failed; trying again in 60 s"
+            sleep 60
+          done
+          exit 1

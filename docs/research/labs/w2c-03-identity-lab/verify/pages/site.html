@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>site</title>
+<script type="module">
+const out = { origin: location.origin, isolatedOrigin: String(location.origin) };
+const DB = new URLSearchParams(location.search).get('db') || 'mw-exp';
+try {
+  const db = await new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onupgradeneeded = () => r.result.createObjectStore('identity'); r.onblocked = () => rej(new Error('blocked')); });
+  const rec = await new Promise((res, rej) => { const r = db.transaction('identity').objectStore('identity').get('me'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  out.foundKey = !!(rec && rec.privateKey);
+  out.keyExtractable = rec && rec.privateKey ? rec.privateKey.extractable : null;
+  const msg = new TextEncoder().encode('attacker-chosen bytes');
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, rec.privateKey, msg);
+  out.signedLen = sig.byteLength;
+  out.verifiesWithVisitorPub = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, rec.publicKey, sig, msg);
+  try { await crypto.subtle.exportKey('jwk', rec.privateKey); out.exported = true; } catch (e) { out.exported = false; out.exportErr = e.name; }
+} catch (e) { out.idbError = e.name + ': ' + String(e.message).slice(0, 140); }
+try { out.swController = !!(navigator.serviceWorker && navigator.serviceWorker.controller); } catch (e) { out.swError = e.name; }
+try { out.fetchWho = await (await fetch('/who', { cache: 'no-store' })).text(); } catch (e) { out.fetchWhoErr = e.name + ': ' + e.message; }
+parent.postMessage({ lab: 'site-result', tag: new URLSearchParams(location.search).get('tag'), out }, '*');
+</script>

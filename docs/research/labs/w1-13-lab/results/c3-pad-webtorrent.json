@@ -1,0 +1,108 @@
+{
+ "parsedFiles": [
+  {
+   "path": "site/a.txt",
+   "length": 20000,
+   "offset": 0
+  },
+  {
+   "path": "site/.pad/12768",
+   "length": 12768,
+   "offset": 20000
+  },
+  {
+   "path": "site/b.txt",
+   "length": 5000,
+   "offset": 32768
+  },
+  {
+   "path": "site/.pad/11384",
+   "length": 11384,
+   "offset": 37768
+  },
+  {
+   "path": "site/c.bin",
+   "length": 40000,
+   "offset": 49152
+  }
+ ],
+ "infoHash": "773c41c04aaa03142e36f7ac42d5449074763fb4",
+ "padAttrInInfoDict": 2,
+ "runs": [
+  {
+   "label": "control: unpadded torrent",
+   "done": true,
+   "ms": 102,
+   "progress": 1,
+   "requests": 3,
+   "sample404s": [],
+   "fullLog": [
+    "GET site/a.txt bytes=16384-19999 -> 206",
+    "GET site/b.txt bytes=0-12767 -> 206",
+    "GET site/c.bin bytes=0-7767 -> 206"
+   ]
+  },
+  {
+   "label": "host serves pads",
+   "done": true,
+   "ms": 103,
+   "progress": 1,
+   "requests": 2,
+   "sample404s": [],
+   "fullLog": [
+    "GET site/b.txt bytes=0-16383 -> 206",
+    "GET site/.pad/11384 bytes=0-11383 -> 206"
+   ],
+   "filesSeen": [
+    {
+     "name": "a.txt",
+     "path": "site/a.txt",
+     "length": 20000
+    },
+    {
+     "name": "12768",
+     "path": "site/.pad/12768",
+     "length": 12768
+    },
+    {
+     "name": "b.txt",
+     "path": "site/b.txt",
+     "length": 5000
+    },
+    {
+     "name": "11384",
+     "path": "site/.pad/11384",
+     "length": 11384
+    },
+    {
+     "name": "c.bin",
+     "path": "site/c.bin",
+     "length": 40000
+    }
+   ]
+  },
+  {
+   "label": "host 404s pads",
+   "done": false,
+   "ms": 12097,
+   "progress": 0.632,
+   "requests": 8,
+   "sample404s": [
+    "GET site/.pad/11384 bytes=0-11383 -> 404",
+    "GET site/.pad/12768 bytes=0-12767 -> 404",
+    "GET site/.pad/11384 bytes=0-11383 -> 404",
+    "GET site/.pad/12768 bytes=0-12767 -> 404"
+   ],
+   "fullLog": [
+    "GET site/b.txt bytes=0-16383 -> 206",
+    "GET site/.pad/11384 bytes=0-11383 -> 404",
+    "GET site/a.txt bytes=16384-19999 -> 206",
+    "GET site/.pad/12768 bytes=0-12767 -> 404",
+    "GET site/b.txt bytes=0-16383 -> 206",
+    "GET site/.pad/11384 bytes=0-11383 -> 404",
+    "GET site/a.txt bytes=16384-19999 -> 206",
+    "GET site/.pad/12768 bytes=0-12767 -> 404"
+   ]
+  }
+ ]
+}

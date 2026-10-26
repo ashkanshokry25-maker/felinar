@@ -1,0 +1,114 @@
+[
+ {
+  "label": "GitHub Pages png",
+  "url": "https://pages.github.com/images/slideshow/bootstrap.png"
+ },
+ {
+  "label": "GitHub Pages css",
+  "url": "https://pages.github.com/css/pages.css"
+ },
+ {
+  "label": "Netlify woff2",
+  "url": "https://vuejs.org/assets/inter-roman-latin.Cy4MYw_J.woff2"
+ },
+ {
+  "label": "Netlify js",
+  "url": "https://vuejs.org/assets/app.B91ytTIH.js"
+ },
+ {
+  "label": "Vercel woff2",
+  "url": "https://react.dev/fonts/Source-Code-Pro-Regular.woff2"
+ },
+ {
+  "label": "Cloudflare docs png",
+  "url": "https://developers.cloudflare.com/favicon.png"
+ },
+ {
+  "label": "Cloudflare docs svg",
+  "url": "https://developers.cloudflare.com/_astro/logo.te5VL_aD.svg"
+ },
+ {
+  "label": "Bunny jpg",
+  "url": "https://bunny.net/images/bunnynet-the-best-content-delivery-network-cdn.jpg"
+ },
+ {
+  "label": "Bunny svg",
+  "url": "https://bunny.net/images/bunny-cdn-icon-modern.svg"
+ },
+ {
+  "label": "B2 f001 js",
+  "url": "https://f001.backblazeb2.com/file/backblaze-com-assets/codeSamples.js"
+ },
+ {
+  "label": "DO Spaces CDN svg",
+  "url": "https://product-docs.nyc3.cdn.digitaloceanspaces.com/ai-agent-icon.svg"
+ },
+ {
+  "label": "Storj linkshare png",
+  "url": "https://link.us1.storjshare.io/raw/jua7rls6hkx5556qfcmhrqed2tfa/docs/images/6lBTvetkB98edSAjvyB_q_root.png"
+ },
+ {
+  "label": "S3 default (noaa-goes16)",
+  "url": "https://noaa-goes16.s3.amazonaws.com/index.html"
+ },
+ {
+  "label": "Blossom primal",
+  "url": "https://blossom.primal.net/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf"
+ },
+ {
+  "label": "Blossom satellite",
+  "url": "https://cdn.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf"
+ },
+ {
+  "label": "Blossom nostr.download",
+  "url": "https://nostr.download/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf"
+ },
+ {
+  "label": "Blossom hzrd149",
+  "url": "https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf"
+ },
+ {
+  "label": "IPFS ipfs.io",
+  "url": "https://ipfs.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+ },
+ {
+  "label": "IPFS dweb.link",
+  "url": "https://dweb.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+ },
+ {
+  "label": "IPFS storacha.link",
+  "url": "https://storacha.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+ },
+ {
+  "label": "IPFS pinata gw",
+  "url": "https://gateway.pinata.cloud/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+ },
+ {
+  "label": "IPFS filebase",
+  "url": "https://ipfs.filebase.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+ },
+ {
+  "label": "IPFS trustless-gateway.link",
+  "url": "https://trustless-gateway.link/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+ },
+ {
+  "label": "IPFS 4everland",
+  "url": "https://4everland.io/ipfs/QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+ },
+ {
+  "label": "jsDelivr npm",
+  "url": "https://cdn.jsdelivr.net/npm/webtorrent@3.0.21/dist/webtorrent.min.js"
+ },
+ {
+  "label": "unpkg npm",
+  "url": "https://unpkg.com/webtorrent@3.0.21/dist/webtorrent.min.js"
+ },
+ {
+  "label": "GitHub raw",
+  "url": "https://raw.githubusercontent.com/hzrd149/blossom/master/buds/01.md"
+ },
+ {
+  "label": "CloudFront aws.amazon.com static",
+  "url": "https://a0.awsstatic.com/libra-css/images/logos/aws_smile-header-desktop-en-white_59x35.png"
+ }
+]

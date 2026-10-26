@@ -1,0 +1,2 @@
+# one lowercase 40-hex info hash per line; produced by tools/publish.mjs (site btih, and the chain-room id derived from it)
+0123456789abcdef0123456789abcdef01234567  # example site

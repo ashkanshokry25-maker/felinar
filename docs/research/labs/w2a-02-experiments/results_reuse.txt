@@ -1,0 +1,23 @@
+v1 files=2428 bytes=141.0 MiB | v2 files=2433 bytes=141.3 MiB | theoretical file-level delta (new+changed files) = 858 KiB
+┌─────────┬──────────┬───────────────────────────────────────────────┬──────────┬────────────────────┬──────────────────────────┬─────────────────────────────┬────────────┬───────────┐
+│ (index) │ pieceKiB │ layout                                        │ v2Pieces │ reuse@same-index % │ reuse via file-prefill % │ download MiB (file-prefill) │ paddingMiB │ torrentKB │
+├─────────┼──────────┼───────────────────────────────────────────────┼──────────┼────────────────────┼──────────────────────────┼─────────────────────────────┼────────────┼───────────┤
+│ 0       │ 256      │ 'A path-sorted'                               │ 566      │ 6.9                │ 97.9                     │ 3                           │ 0          │ 184       │
+│ 1       │ 256      │ 'F path-sorted + piece padding'               │ 2491     │ 16                 │ 99.2                     │ 5                           │ 481.2      │ 316       │
+│ 2       │ 256      │ 'B class[media>code>pf>html>volatile]'        │ 566      │ 74                 │ 98.1                     │ 2.75                        │ 0          │ 184       │
+│ 3       │ 256      │ 'C generational[media>code>pf>html>volatile]' │ 566      │ 80.6               │ 99.1                     │ 1.25                        │ 0          │ 184       │
+│ 4       │ 64       │ 'A path-sorted'                               │ 2262     │ 6.9                │ 98.9                     │ 1.5                         │ 0          │ 217       │
+│ 5       │ 64       │ 'F path-sorted + piece padding'               │ 3756     │ 15.7               │ 99.4                     │ 1.5                         │ 93.4       │ 336       │
+│ 6       │ 64       │ 'B class[media>code>pf>html>volatile]'        │ 2262     │ 74.1               │ 98.9                     │ 1.56                        │ 0          │ 217       │
+│ 7       │ 64       │ 'C generational[media>code>pf>html>volatile]' │ 2262     │ 80.7               │ 99.3                     │ 0.94                        │ 0          │ 217       │
+│ 8       │ 16       │ 'A path-sorted'                               │ 9045     │ 6.9                │ 99.3                     │ 1.03                        │ 0          │ 350       │
+│ 9       │ 16       │ 'F path-sorted + piece padding'               │ 10348    │ 17.5               │ 99.4                     │ 1.02                        │ 20.4       │ 462       │
+│ 10      │ 16       │ 'B class[media>code>pf>html>volatile]'        │ 9045     │ 74.1               │ 99.3                     │ 1.05                        │ 0          │ 350       │
+│ 11      │ 16       │ 'C generational[media>code>pf>html>volatile]' │ 9045     │ 80.8               │ 99.4                     │ 0.86                        │ 0          │ 350       │
+│ 12      │ 256      │ 'B class[media>code>html>pf>volatile]'        │ 566      │ 74                 │ 98.1                     │ 2.75                        │ 0          │ 184       │
+│ 13      │ 256      │ 'C generational[media>code>html>pf>volatile]' │ 566      │ 86.7               │ 99.1                     │ 1.25                        │ 0          │ 184       │
+│ 14      │ 64       │ 'B class[media>code>html>pf>volatile]'        │ 2262     │ 74.1               │ 98.9                     │ 1.5                         │ 0          │ 217       │
+│ 15      │ 64       │ 'C generational[media>code>html>pf>volatile]' │ 2262     │ 86.8               │ 99.3                     │ 0.94                        │ 0          │ 217       │
+│ 16      │ 16       │ 'B class[media>code>html>pf>volatile]'        │ 9045     │ 74.1               │ 99.3                     │ 1.05                        │ 0          │ 350       │
+│ 17      │ 16       │ 'C generational[media>code>html>pf>volatile]' │ 9045     │ 86.9               │ 99.4                     │ 0.86                        │ 0          │ 350       │
+└─────────┴──────────┴───────────────────────────────────────────────┴──────────┴────────────────────┴──────────────────────────┴─────────────────────────────┴────────────┴───────────┘

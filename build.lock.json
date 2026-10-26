@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "note": "sha256 pins of vendored files (DESIGN-REVIEW S7): sha256 is the stock file in node_modules, patched.sha256 the bytes copied into dist/_mw after the hash-asserted patches (v0.2.1 B3 request headers; code review round 1: no OPFS chunks cleanup, no FSA polyfill on host globals). node build.mjs fails when either differs or a patch point moved; after reviewing an upgrade, run node build.mjs --update-lock. v0.3 (MF-78): \"packages\" pins every other package the bundles take from node_modules (name, version, sha256 of the package files, the tarball integrity of package-lock.json); a bundled package that is not pinned, or whose source changed, fails the build.",
+  "review": "Two people review every change to this file. The pull request that changes it needs the approval of a code owner who did not write it (.github/CODEOWNERS), and that reviewer compares the new package source with its upstream release before approving (V03-DESIGN-REVIEW 2.19, SC-2). Nobody runs --update-lock and merges alone.",
+  "vendored": {
+    "webtorrent.min.js": {
+      "package": "webtorrent",
+      "version": "3.0.21",
+      "source": "node_modules/webtorrent/dist/webtorrent.min.js",
+      "bytes": 222929,
+      "sha256": "db4dca98cd135c732eeffdede3cf5f8febd0585a0eba4dc4d1effa1b901f4c3d",
+      "markers": [
+        "_onMessageLength("
+      ],
+      "patched": {
+        "sha256": "97b5771c367304f444d0baaa4e4be63b662726f5d7d9f3fe3b29fe30433e0bc0",
+        "bytes": 222343,
+        "patches": [
+          "webconn-request-headers",
+          "xs-metadata-user-agent",
+          "remote-torrent-user-agent",
+          "opfs-chunks-cleanup",
+          "fsa-createwritable-polyfill"
+        ]
+      }
+    }
+  },
+  "packages": {}
+}

@@ -1,0 +1,2 @@
+[[1,"ok",1],[2,"ok",2],[3,"ok",3],[4,"NotAllowedError",3],[5,"NotAllowedError",3],[6,"NotAllowedError",3]]
+after clear create: ok

@@ -1,0 +1,41 @@
+{
+  "engine": "webkit",
+  "rows": [
+    {
+      "nonHtmlDirect": false,
+      "target": "/file.pdf",
+      "topUrl": "/file.pdf",
+      "topDoc": "text/html hasShell=true",
+      "frameUrl": "",
+      "frameContentType": "text/html",
+      "downloads": 1
+    },
+    {
+      "nonHtmlDirect": false,
+      "target": "/dl.txt",
+      "topUrl": "/dl.txt",
+      "topDoc": "text/html hasShell=true",
+      "frameUrl": "/dl.txt",
+      "frameContentType": "text/plain",
+      "downloads": 0
+    },
+    {
+      "nonHtmlDirect": true,
+      "target": "/file.pdf",
+      "topUrl": "/a.html",
+      "topDoc": "text/html hasShell=true",
+      "frameUrl": "/a.html",
+      "frameContentType": "text/html",
+      "downloads": 1
+    },
+    {
+      "nonHtmlDirect": true,
+      "target": "/dl.txt",
+      "topUrl": "/dl.txt",
+      "topDoc": "text/plain hasShell=false",
+      "frameUrl": null,
+      "frameContentType": null,
+      "downloads": 0
+    }
+  ]
+}

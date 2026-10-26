@@ -1,0 +1,19 @@
+w2c-07 lab: Little's-law calculator and P2P offload model (no dependencies, Node >= 22)
+
+  export PATH="$HOME/.local/share/node/current/bin:$PATH"
+  cd docs/research/labs/w2c-07-lab
+  node little-calc.mjs --visits 3000 --dwell 60          # one scenario (all knobs: see header of little-calc.mjs)
+  node little-calc.mjs --tables      > results/tables.txt       # T1-T5 used in ../../w2c-07-incentives-economics.md
+  node little-calc.mjs --montecarlo  > results/montecarlo.txt   # simulation check of the M/G/infinity Poisson claim
+
+Everything printed is a MODEL OUTPUT built on stated assumptions (see the research note, section 5). The only
+measured inputs are the ones cited there. Re-run after changing SCENARIOS in little-calc.mjs.
+
+Wikimedia diurnal and device-mix numbers (research note F24, F27). Data are fetched, not stored here:
+
+  mkdir -p /tmp/w2c07-wm && cd /tmp/w2c07-wm
+  for p in en.wikipedia de.wikipedia fa.wikipedia ja.wikipedia; do
+    curl -s -A "magnet-web-research/1.0" "https://wikimedia.org/api/rest_v1/metrics/pageviews/aggregate/$p/all-access/user/hourly/2026091000/2026101623" -o "$p.json"
+  done
+  python3 -I /path/to/docs/research/labs/w2c-07-lab/diurnal.py /tmp/w2c07-wm
+  # device mix: same endpoint with access = desktop | mobile-web | mobile-app, granularity daily, 2026090100..2026101600

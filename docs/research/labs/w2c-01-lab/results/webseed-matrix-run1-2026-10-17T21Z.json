@@ -1,0 +1,673 @@
+[
+ {
+  "label": "blossom cdn.hzrd149.com",
+  "patch": 0,
+  "done": true,
+  "ms": 532,
+  "downloaded": 184292,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 12,
+  "fetch0": {
+   "url": "https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 180224-184291/184292",
+   "ms": 202
+  },
+  "fetchErrs": 0,
+  "fetchOk": 12,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "blossom cdn.satellite.earth (302)",
+  "patch": 0,
+  "done": true,
+  "ms": 1383,
+  "downloaded": 184292,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 12,
+  "fetch0": {
+   "url": "https://cdn.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f5",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": null,
+   "ms": 494
+  },
+  "fetchErrs": 0,
+  "fetchOk": 12,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "blossom nostr.download",
+  "patch": 0,
+  "done": true,
+  "ms": 1512,
+  "downloaded": 184292,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 12,
+  "fetch0": {
+   "url": "https://nostr.download/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": null,
+   "ms": 487
+  },
+  "fetchErrs": 0,
+  "fetchOk": 12,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "arweave ardrive.net apex (302->sandbox)",
+  "patch": 0,
+  "done": true,
+  "ms": 2295,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 6,
+  "fetch0": {
+   "url": "https://ardrive.net/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 1310720-1503085/1503086",
+   "ms": 958
+  },
+  "fetchErrs": 0,
+  "fetchOk": 6,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "arweave sandbox host ardrive.net",
+  "patch": 0,
+  "done": true,
+  "ms": 1528,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 6,
+  "fetch0": {
+   "url": "https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.ardrive.net/nBOEA5n1P9qCVyJL2",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 1310720-1503085/1503086",
+   "ms": 532
+  },
+  "fetchErrs": 0,
+  "fetchOk": 6,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "arweave vilenarios.com apex",
+  "patch": 0,
+  "done": true,
+  "ms": 695,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 6,
+  "fetch0": {
+   "url": "https://vilenarios.com/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 1310720-1503085/1503086",
+   "ms": 433
+  },
+  "fetchErrs": 0,
+  "fetchOk": 6,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "blossom blossom.primal.net (ignores Range)",
+  "patch": 0,
+  "done": false,
+  "ms": 18003,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://blossom.primal.net/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f55",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 200,
+   "cr": null,
+   "ms": 947
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "200",
+  "cors": null
+ },
+ {
+  "label": "arweave arweave.net apex (302->sandbox)",
+  "patch": 0,
+  "done": false,
+  "ms": 18002,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 12,
+  "fetch0": {
+   "url": "https://arweave.net/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "err": "TypeError: Failed to fetch",
+   "ms": 113
+  },
+  "fetchErrs": 12,
+  "fetchOk": 0,
+  "statuses": "",
+  "cors": "Access to fetch at 'https://arweave.net/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ' from origin 'http://127.0.0.1:8137' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: Redirect is"
+ },
+ {
+  "label": "arweave sandbox host arweave.net",
+  "patch": 0,
+  "done": false,
+  "ms": 18001,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.arweave.net/nBOEA5n1P9qCVyJL2",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "status": 200,
+   "cr": null,
+   "ms": 204
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "200",
+  "cors": null
+ },
+ {
+  "label": "ipfs ipfs.filebase.io",
+  "patch": 0,
+  "done": false,
+  "ms": 18001,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 2,
+  "fetch0": {
+   "url": "https://ipfs.filebase.io/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "err": "TypeError: Failed to fetch",
+   "ms": 170
+  },
+  "fetchErrs": 2,
+  "fetchOk": 0,
+  "statuses": "",
+  "cors": "Access to fetch at 'https://ipfs.filebase.io/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m' from origin 'http://127.0.0.1:8137' has been blocked by CORS policy: Request header field cache-control is not allowed "
+ },
+ {
+  "label": "blossom cdn.hzrd149.com",
+  "patch": 1,
+  "done": true,
+  "ms": 418,
+  "downloaded": 184292,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 12,
+  "fetch0": {
+   "url": "https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 180224-184291/184292",
+   "ms": 174
+  },
+  "fetchErrs": 0,
+  "fetchOk": 12,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "blossom nostr.download",
+  "patch": 1,
+  "done": true,
+  "ms": 1013,
+  "downloaded": 184292,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 12,
+  "fetch0": {
+   "url": "https://nostr.download/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": null,
+   "ms": 394
+  },
+  "fetchErrs": 0,
+  "fetchOk": 12,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "blossom cdn.satellite.earth (302)",
+  "patch": 1,
+  "done": true,
+  "ms": 1170,
+  "downloaded": 184292,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 12,
+  "fetch0": {
+   "url": "https://cdn.satellite.earth/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f5",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": null,
+   "ms": 689
+  },
+  "fetchErrs": 0,
+  "fetchOk": 12,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "ipfs ipfs.orbitor.dev",
+  "patch": 0,
+  "done": false,
+  "ms": 18001,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 2,
+  "fetch0": {
+   "url": "https://ipfs.orbitor.dev/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "err": "TypeError: Failed to fetch",
+   "ms": 216
+  },
+  "fetchErrs": 2,
+  "fetchOk": 0,
+  "statuses": "",
+  "cors": "Access to fetch at 'https://ipfs.orbitor.dev/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m' from origin 'http://127.0.0.1:8137' has been blocked by CORS policy: Request header field cache-control is not allowed "
+ },
+ {
+  "label": "ipfs gateway.pinata.cloud",
+  "patch": 0,
+  "done": false,
+  "ms": 18001,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 2,
+  "fetch0": {
+   "url": "https://gateway.pinata.cloud/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5s",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "err": "TypeError: Failed to fetch",
+   "ms": 133
+  },
+  "fetchErrs": 2,
+  "fetchOk": 0,
+  "statuses": "",
+  "cors": "Access to fetch at 'https://gateway.pinata.cloud/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m' from origin 'http://127.0.0.1:8137' has been blocked by CORS policy: Request header field cache-control is not allo"
+ },
+ {
+  "label": "arweave ardrive.net apex (302->sandbox)",
+  "patch": 1,
+  "done": true,
+  "ms": 1627,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 6,
+  "fetch0": {
+   "url": "https://ardrive.net/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 1310720-1503085/1503086",
+   "ms": 632
+  },
+  "fetchErrs": 0,
+  "fetchOk": 6,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "ipfs subdomain ipfs.storry.tv",
+  "patch": 0,
+  "done": false,
+  "ms": 18001,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 2,
+  "fetch0": {
+   "url": "https://bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m.ipfs.storry.tv/",
+   "hdr": "Cache-Control,user-agent,range",
+   "cache": "no-store",
+   "err": "TypeError: Failed to fetch",
+   "ms": 481
+  },
+  "fetchErrs": 2,
+  "fetchOk": 0,
+  "statuses": "",
+  "cors": "Access to fetch at 'https://bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m.ipfs.storry.tv/' from origin 'http://127.0.0.1:8137' has been blocked by CORS policy: Response to preflight request doesn't pass access contro"
+ },
+ {
+  "label": "arweave sandbox host ardrive.net",
+  "patch": 1,
+  "done": true,
+  "ms": 1423,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 6,
+  "fetch0": {
+   "url": "https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.ardrive.net/nBOEA5n1P9qCVyJL2",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 1310720-1503085/1503086",
+   "ms": 722
+  },
+  "fetchErrs": 0,
+  "fetchOk": 6,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "arweave vilenarios.com apex",
+  "patch": 1,
+  "done": true,
+  "ms": 496,
+  "downloaded": 1503086,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 6,
+  "fetch0": {
+   "url": "https://vilenarios.com/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 1310720-1503085/1503086",
+   "ms": 297
+  },
+  "fetchErrs": 0,
+  "fetchOk": 6,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "ipfs ipfs.filebase.io",
+  "patch": 1,
+  "done": true,
+  "ms": 198,
+  "downloaded": 32,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://ipfs.filebase.io/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 0-31/32",
+   "ms": 178
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "ipfs ipfs.orbitor.dev",
+  "patch": 1,
+  "done": true,
+  "ms": 240,
+  "downloaded": 32,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://ipfs.orbitor.dev/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 0-31/32",
+   "ms": 221
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "blossom blossom.primal.net (ignores Range)",
+  "patch": 1,
+  "done": false,
+  "ms": 18000,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://blossom.primal.net/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f55",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 200,
+   "cr": null,
+   "ms": 736
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "200",
+  "cors": null
+ },
+ {
+  "label": "ipfs subdomain ipfs.storry.tv",
+  "patch": 1,
+  "done": true,
+  "ms": 261,
+  "downloaded": 32,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m.ipfs.storry.tv/",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 0-31/32",
+   "ms": 240
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "ipfs gateway.pinata.cloud",
+  "patch": 1,
+  "done": true,
+  "ms": 5063,
+  "downloaded": 32,
+  "shaOk": true,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://gateway.pinata.cloud/ipfs/bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5s",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 206,
+   "cr": "bytes 0-31/32",
+   "ms": 5045
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "206",
+  "cors": null
+ },
+ {
+  "label": "arweave arweave.net apex (302->sandbox)",
+  "patch": 1,
+  "done": false,
+  "ms": 18001,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://arweave.net/nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 200,
+   "cr": null,
+   "ms": 299
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "200",
+  "cors": null
+ },
+ {
+  "label": "arweave sandbox host arweave.net",
+  "patch": 1,
+  "done": false,
+  "ms": 18001,
+  "downloaded": 0,
+  "shaOk": null,
+  "wires": [
+   "webSeed"
+  ],
+  "nWarn": 0,
+  "warn0": null,
+  "nFetch": 1,
+  "fetch0": {
+   "url": "https://tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa.arweave.net/nBOEA5n1P9qCVyJL2",
+   "hdr": "range",
+   "cache": "no-store",
+   "status": 200,
+   "cr": null,
+   "ms": 196
+  },
+  "fetchErrs": 0,
+  "fetchOk": 1,
+  "statuses": "200",
+  "cors": null
+ }
+]

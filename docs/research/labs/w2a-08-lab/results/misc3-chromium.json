@@ -1,0 +1,92 @@
+{
+  "engine": "chromium",
+  "rows": [
+    {
+      "test": "keyboard scroll without clicking into the frame",
+      "focusOnLoad": false,
+      "state": {
+        "topActive": "BODY",
+        "topHasFocus": true,
+        "frameHasFocus": false,
+        "frameActive": "BODY"
+      },
+      "scrollY": {
+        "start": 0,
+        "afterPageDown": 0,
+        "afterSpace": 0
+      },
+      "afterInFrameLinkClick": {
+        "startY": 0,
+        "afterPageDown": 680,
+        "active": {
+          "topActive": "IFRAME",
+          "frameActive": "BODY"
+        }
+      }
+    },
+    {
+      "test": "keyboard scroll without clicking into the frame",
+      "focusOnLoad": true,
+      "state": {
+        "topActive": "IFRAME",
+        "topHasFocus": true,
+        "frameHasFocus": true,
+        "frameActive": "BODY"
+      },
+      "scrollY": {
+        "start": 0,
+        "afterPageDown": 680,
+        "afterSpace": 1360
+      },
+      "afterInFrameLinkClick": {
+        "startY": 0,
+        "afterPageDown": 680,
+        "active": {
+          "topActive": "IFRAME",
+          "frameActive": "BODY"
+        }
+      }
+    },
+    {
+      "test": "scroll: control (plain top-level page)",
+      "before": 1500,
+      "afterReload": 1500,
+      "afterBack": 1500
+    },
+    {
+      "test": "scroll: shell, no restore logic",
+      "before": 1500,
+      "afterTopReload": 0,
+      "afterInFrameBack": 1500
+    },
+    {
+      "test": "scroll: shell + sessionStorage restore",
+      "before": 1500,
+      "afterTopReload": 1500,
+      "afterInFrameBack": 1500
+    },
+    {
+      "test": "text fragment: control (plain top-level)",
+      "scrollY": 3417,
+      "locationHash": "",
+      "navEntryName": "/__site/long.html#:~:text=quick%20needle%20phrase"
+    },
+    {
+      "test": "text fragment: shell passes location.hash",
+      "frameScrollY": 0,
+      "frameSrc": "/long.html",
+      "shellSaw": [
+        "{\"t\":8,\"type\":\"location-hash-seen-by-shell\",\"hash\":\"\",\"fragmentDirectiveKeys\":0}"
+      ]
+    },
+    {
+      "test": "text fragment: shell passes navigation-entry hash",
+      "frameScrollY": 0,
+      "frameSrc": "/long.html#:~:text=quick%20needle%20phrase",
+      "shellSaw": [
+        "{\"t\":8,\"type\":\"nav-entry-name\",\"hash\":\"#:~:text=quick%20needle%20phrase\"}",
+        "{\"t\":8,\"type\":\"location-hash-seen-by-shell\",\"hash\":\"\",\"fragmentDirectiveKeys\":0}"
+      ]
+    }
+  ]
+}

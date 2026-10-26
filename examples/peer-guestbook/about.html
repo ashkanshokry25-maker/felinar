@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="How the Peer Guestbook example site is loaded by magnet link and how its site ledger works.">
+  <title>About - Peer Guestbook</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="icon" href="/img/peer.png" type="image/png">
+</head>
+<body data-page="about">
+  <header class="site-head">
+    <div class="wrap row">
+      <img class="logo" src="/img/peer.png" alt="" width="40" height="40">
+      <div>
+        <h1>About this site</h1>
+        <p class="tagline">A second page, to show that links, deep links and the Back button work.</p>
+        <p id="unmoderated" class="flags" hidden><span class="badge warn">unmoderated</span> <span class="small muted">No owner key, so nobody can moderate this copy.</span></p>
+      </div>
+    </div>
+    <nav class="wrap site-nav" aria-label="Site">
+      <a href="/">Guestbook</a>
+      <a href="/members.html">Members</a>
+      <a href="/profile.html">Profile</a>
+      <a href="/about.html" aria-current="page">About</a>
+    </nav>
+    <div id="auth-bar" class="wrap auth-bar" hidden>
+      <p id="auth-state" class="small" aria-live="polite"></p>
+      <button type="button" id="sign-in" hidden>Sign in</button>
+      <button type="button" id="sign-out" class="quiet" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="standalone" class="notice" hidden role="status">
+      <strong>Open this site through the felinar loader.</strong>
+      <span>You are looking at the static files directly, so the live numbers below stay empty.</span>
+      <span id="standalone-why" class="small muted"></span>
+    </div>
+
+    <article class="card" id="live">
+      <h2>Live</h2>
+      <dl class="stats">
+        <div><dt>Peers connected</dt><dd id="peers">-</dd></div>
+        <div><dt>Guestbook posts</dt><dd id="posts">-</dd></div>
+      </dl>
+      <p id="ledger" class="ledger" aria-live="polite" aria-atomic="true">Ledger: waiting for the loader...</p>
+      <p id="sharing" class="small muted" hidden></p>
+      <p id="source" class="small muted">Waiting for the loader...</p>
+    </article>
+
+    <article class="card prose">
+      <h2>What you are looking at</h2>
+      <p data-about="description">A static website loaded by magnet link.</p>
+      <p>No backend means there is no application server or database behind it. A plain HTTPS static host serves a small loader on every visit and keeps the site loading when nobody else is online. Visitors find each other through WebSocket trackers and STUN servers.</p>
+      <h3>How it works</h3>
+      <ol>
+        <li>The loader reads a signed <strong>pointer</strong> for this site, usually from a <code>&lt;meta&gt;</code> tag in the loader page and otherwise from a DNS TXT record that it reads through DNS-over-HTTPS.</li>
+        <li>It downloads the site's files <strong>by infohash over WebTorrent</strong>, from other visitors and from a web seed on the static host. Every piece is checked against the infohash before it is used.</li>
+        <li>A <strong>Service Worker</strong> serves those files at this site's own URLs inside a full-page frame, so <code>/about.html</code>, <code>/css/app.css</code> and <code>fetch('/data/about.json')</code> work exactly as they would on a normal host.</li>
+        <li>The guestbook, the display names and the owner notice live in the <strong>site ledger</strong>. Shared data on this site is kept in a signed log. Every visitor keeps a copy and checks every entry, so nobody can forge or quietly rewrite one. There's no mining and no single 'latest' version. Two visitors can briefly see different states, and they catch up when they connect.</li>
+        <li>Each visit copies the log to one more device and serves it to others while the page is open. At any moment the log is reachable only if someone with a copy is online, and for small sites that's usually nobody. A snapshot on the host keeps it loadable and a pinned node keeps it always on.</li>
+      </ol>
+      <h3>Privacy</h3>
+      <p>There's no private mode. Peers, trackers and STUN servers see each visitor's IP address, and anyone who knows the site's infohash can see who's online. There are no relay (TURN) servers, so some visitors, often on mobile data, can't reach peers and load from the host instead. The loader's Settings let you turn sharing off or use the host only.</p>
+      <h3>On phones</h3>
+      <p>Phones load the site and sync the ledger while the page is open and on screen. iOS stops peer connections within seconds of switching apps or locking the screen, and Android can do the same. On mobile data, sharing is off unless you turn it on. Safari may delete the site's local copy after 7 days without a visit. Your identity lives at the identity page, so adding the site to the Home Screen is not a way to keep it: keep your 12 words or the backup file.</p>
+      <h3>Moderation and deleting posts</h3>
+      <p>Everything written to the guestbook is public and copied to every visitor. Deleting an entry hides it for visitors who receive the deletion. Copies on devices that never sync again stay where they are.</p>
+      <p>The owner's key never enters a browser. The owner names moderators in the site's signed policy, and a moderator can remove posts, ban authors and edit the notice, but cannot change who may post.</p>
+      <h3>Signing in</h3>
+      <p>Anyone can read this site. To post, or to use the members area, sign in. Sign in opens the felinar identity page in its own window. This site gets a key that works only here. It cannot see your other sites. Code on this site can act as you here while you are signed in.</p>
+      <p>Signing in does not send your key or the list of your other sites to any identity company. The host of the identity page does see your IP address and the time whenever your browser has to load that page. Your passkey provider, if you use one, stores a passkey for the identity page. Sign out deletes this site's keys from this browser, and signing in again takes one tap. Your <a href="/profile.html">profile page</a> has your private record, your recovery kit and a link to add another device.</p>
+      <h3>The members area</h3>
+      <p>The <a href="/members.html">members area</a> is optional and off by default. Messages and file listings work only after the site owner turns them on and you turn them on for yourself. Until then nothing there connects to other visitors.</p>
+    </article>
+
+    <article class="card prose">
+      <h2>Site facts</h2>
+      <p class="small muted">Version <span data-about="version">...</span>, built <span data-about="built">...</span>. This list is read from <code>/data/about.json</code> at runtime.</p>
+      <ul data-about="facts"><li class="muted">Loading...</li></ul>
+    </article>
+  </main>
+
+  <footer class="wrap small muted">
+    <p><a href="/">Back to the guestbook</a>. Part of the felinar example.</p>
+  </footer>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

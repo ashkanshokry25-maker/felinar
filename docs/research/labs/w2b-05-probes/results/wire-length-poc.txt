@@ -1,0 +1,14 @@
+# wire-length-poc (bittorrent-protocol 5.0.9, Node v24.22.0), 2026-10-17T21:23:50Z
+# columns: prefix(hex) chunkBytes totalMiB patched cap
+## args: ffffffff 16384 32 0
+{"prefixHex":"ffffffff","patched":false,"chunkBytes":16384,"stateAfterPrefix":{"parserSize":4,"parser":"_onMessageLength"},"sentMiB":32,"closed":false,"errMsg":null,"elapsedMs":801,"bufferedMiB":0,"parserSizeMiB":0,"rssMiB":66,"arrayBuffersMiB":0}
+## args: 7fffffff 16384 32 0
+{"prefixHex":"7fffffff","patched":false,"chunkBytes":16384,"stateAfterPrefix":{"parserSize":2147483647,"parser":"_onMessage"},"sentMiB":32,"closed":false,"errMsg":null,"elapsedMs":2797,"bufferedMiB":32,"parserSizeMiB":2048,"rssMiB":2320,"arrayBuffersMiB":160}
+## args: 7fffffff 16384 128 0
+{"prefixHex":"7fffffff","patched":false,"chunkBytes":16384,"stateAfterPrefix":{"parserSize":2147483647,"parser":"_onMessage"},"sentMiB":128,"closed":false,"errMsg":null,"elapsedMs":76556,"bufferedMiB":128,"parserSizeMiB":2048,"rssMiB":8692,"arrayBuffersMiB":384}
+## args: 7fffffff 1024 32 0
+{"prefixHex":"7fffffff","patched":false,"chunkBytes":1024,"stateAfterPrefix":{"parserSize":2147483647,"parser":"_onMessage"},"sentMiB":32,"closed":false,"errMsg":null,"elapsedMs":59400,"bufferedMiB":32,"parserSizeMiB":2048,"rssMiB":2311,"arrayBuffersMiB":64}
+## args: 7fffffff 16384 128 1 262144
+{"prefixHex":"7fffffff","patched":true,"chunkBytes":16384,"stateAfterPrefix":{"parserSize":1.7976931348623157e+308,"parser":""},"sentMiB":0,"closed":true,"errMsg":null,"elapsedMs":52,"bufferedMiB":0,"parserSizeMiB":1.7144137714980275e+302,"rssMiB":52,"arrayBuffersMiB":0}
+## args: ffffffff 16384 32 1 262144
+{"prefixHex":"ffffffff","patched":true,"chunkBytes":16384,"stateAfterPrefix":{"parserSize":1.7976931348623157e+308,"parser":""},"sentMiB":0,"closed":true,"errMsg":null,"elapsedMs":52,"bufferedMiB":0,"parserSizeMiB":1.7144137714980275e+302,"rssMiB":52,"arrayBuffersMiB":0}

@@ -1,0 +1,215 @@
+# .github/workflows/pages-demo.yml: publishes the project homepage (examples/landing) through felinar to
+# GitHub Pages on every push to main, so the homepage itself is the live demo.
+#
+# What gets deployed: the built loader (dist/) at the root of the Pages site, in shell mode, with the homepage's
+# page tag stamped into index.html and 404.html, and the homepage's files and .torrent under
+# /ws/<12-character commit>/ as the web seed (ws= and xs=), so it loads with nobody else online. Visitors find
+# each other through the four public trackers (plus MW_DEMO_TRACKERS). The page tag is an unsigned record: no
+# owner key lives in CI, and the loader marks the site unmoderated, which costs nothing here because the
+# homepage keeps no shared data. Returning visitors pick up a new version on a later visit, after their Service
+# Worker has fetched the new page (an unsigned tag brings no "Update available" banner). Each deploy replaces
+# the whole site, so the previous version's web seed is gone at once; that is acceptable for a page this small
+# and is not how to run a real site (docs/DEPLOY.md, "Deploy order").
+#
+# The guestbook example (examples/peer-guestbook) is not deployed here. A Pages site is one origin, a shell
+# serves one site per origin, the shared-origin hub cannot render the guestbook (it uses root-relative URLs,
+# which the hub does not support, docs/ARCHITECTURE.md 3.3), and under an unsigned pointer its ledger would be
+# unmoderated: anyone could post and nobody could remove a post for everyone. Try it with `npm run demo`, or
+# give it its own host with deploy/github-actions/publish-site.yml and your own key.
+#
+# Repository settings this workflow needs (the owner sets them once):
+# 1. Settings, Pages, Build and deployment, Source: "GitHub Actions".
+# 2. The site must be served from the root of its origin, because the loader needs /mw-sw.js and /_mw/ at the
+#    root. A project site lives under https://<owner>.github.io/<repository>/, where the loader stops with
+#    the non-root message. So use this workflow in a repository named <owner>.github.io, which needs no domain
+#    (the free route of docs/PUBLISH-CHECKLIST.md, section 12), or set a domain you own (Settings, Pages, Custom
+#    domain, then "Enforce HTTPS"). felinar 0.3.0 runs no hosted demo: in the felinar repository itself the
+#    owner turns this workflow off (sequence step 8), so it never publishes for a name nobody holds.
+# 3. The "github-pages" environment (created by the first deployment) must allow deployments from main.
+# 4. Optional repository variables (Settings, Secrets and variables, Actions, Variables):
+#    MW_DEMO_ORIGIN    the origin to publish for, such as https://<owner>.github.io, when the Pages API does
+#                      not report it yet; it must be the root of an HTTPS origin.
+#    MW_DEMO_TRACKERS  your own wss:// trackers, separated by spaces, listed before the public ones (an
+#                      allow-listing tracker must allow the btih in the job summary).
+# 5. Replace the OWNER placeholders in examples/landing/index.html (docs/PUBLISH-CHECKLIST.md, section 4).
+#
+# Security: no permissions at the workflow level; the build job reads the repository and the Pages
+# configuration and holds no secrets; only the deploy job can write to Pages (pages: write with the OIDC token
+# that actions/deploy-pages requires); every action is pinned to a full commit SHA.
+
+name: pages-demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# One deployment at a time; a newer run waits instead of cancelling one that is deploying.
+concurrency:
+  group: pages-demo
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      origin: ${{ steps.origin.outputs.origin }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from the lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Build the loader
+        run: npm run build
+      - name: Find the origin the demo is served from
+        id: origin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MW_DEMO_ORIGIN: ${{ vars.MW_DEMO_ORIGIN }}
+        run: |
+          set -euo pipefail
+          url="${MW_DEMO_ORIGIN:-}"
+          if [ -z "$url" ]; then
+            if ! url="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .html_url)"; then
+              echo "::error::GitHub Pages is not set up for this repository: Settings, Pages, Source must be \"GitHub Actions\" (see the comment at the top of this workflow)."
+              exit 1
+            fi
+          fi
+          origin="$(node -e '
+            const raw = process.argv[1];
+            let u;
+            try { u = new URL(raw); } catch { console.error("not a URL: " + raw); process.exit(1); }
+            if (u.pathname !== "/" || u.search || u.hash) {
+              console.error("GitHub Pages serves this site at " + u.href + ", under a path. The loader needs the root of an origin " +
+                "(/mw-sw.js and /_mw/): run it in a repository named <owner>.github.io (no domain needed), set a domain you own in Settings, Pages, or set the repository variable MW_DEMO_ORIGIN.");
+              process.exit(1);
+            }
+            if (u.protocol === "http:") console.error("Pages reports " + u.href + "; publishing for https://" + u.host + " (turn on Enforce HTTPS).");
+            else if (u.protocol !== "https:") { console.error("not an http(s) URL: " + raw); process.exit(1); }
+            console.log("https://" + u.host);
+          ' "$url")"
+          echo "origin=$origin" >> "$GITHUB_OUTPUT"
+          echo "Demo origin: $origin" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish the homepage and assemble the Pages site
+        env:
+          ORIGIN: ${{ steps.origin.outputs.origin }}
+          MW_DEMO_TRACKERS: ${{ vars.MW_DEMO_TRACKERS }}
+        run: |
+          set -euo pipefail
+          host="${ORIGIN#https://}"
+          host="${host%%:*}"
+          rel="${GITHUB_SHA:0:12}"
+          work="$RUNNER_TEMP/demo"
+          site="$RUNNER_TEMP/site"
+          mkdir -p "$work" "$site/ws/$rel"
+          # publish signs every pointer, so it gets a throwaway key; the signed pointer is not deployed.
+          node tools/keygen.mjs --out "$work/throwaway.jwk"
+          trackers=()
+          for t in ${MW_DEMO_TRACKERS:-}; do trackers+=(--tr "$t"); done
+          node tools/publish.mjs examples/landing --name landing --scope "$host" --key "$work/throwaway.jwk" \
+            --ws "$ORIGIN/ws/$rel/" ${trackers[@]+"${trackers[@]}"} --tr public --double-pack --quiet --out "$work/landing"
+          rm -f "$work/throwaway.jwk"
+          cp -R dist/. "$site/"
+          cp -R "$work/landing/landing" "$site/ws/$rel/landing"
+          cp "$work/landing/landing.torrent" "$site/ws/$rel/landing.torrent"
+          # The page tag: an unsigned record (the form E2E scenario 6 renders) stamped as the first child of
+          # <head> in index.html and 404.html, the same way publish --shell stamps a signed one.
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            import { join } from "node:path";
+            import { stampHtml } from "./tools/publish.mjs";
+            const [summaryFile, siteDir] = process.argv.slice(1);
+            const s = JSON.parse(readFileSync(summaryFile, "utf8"));
+            const plain = (v) => { if (/[;\r\n]/.test(v)) throw new Error("cannot put " + v + " in a pointer"); return v; };
+            const dn = /[;=%\r\n]|[^\x20-\x7e]/.test(s.name) ? encodeURIComponent(s.name) : s.name;
+            const record = ["v=mw1", "btih=" + s.btih, "dn=" + dn]
+              .concat(s.xs.map((u) => "xs=" + plain(u)), s.ws.map((u) => "ws=" + plain(u)), s.tr.map((u) => "tr=" + plain(u)))
+              .join("; ");
+            for (const page of ["index.html", "404.html"]) {
+              const file = join(siteDir, page);
+              writeFileSync(file, stampHtml(readFileSync(file), record).buffer);
+            }
+            console.log(record);
+          ' "$work/landing/summary.json" "$site" | tee "$work/page-tag.txt"
+          {
+            echo "Published examples/landing: btih $(node -p "require('$work/landing/summary.json').btih"), web seed $ORIGIN/ws/$rel/"
+            echo
+            echo "Page tag: \`$(cat "$work/page-tag.txt")\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Check the assembled site locally (web seed and page tag)
+        run: |
+          set -euo pipefail
+          site="$RUNNER_TEMP/site"
+          rel="${GITHUB_SHA:0:12}"
+          ./node_modules/.bin/http-server "$site" -a 127.0.0.1 -p 8090 -s -c-1 &
+          server=$!
+          for i in $(seq 1 30); do curl -fs -o /dev/null http://127.0.0.1:8090/index.html && break; sleep 0.5; done
+          # Same origin as the page, so no CORS preflight is involved (as on Pages).
+          node tools/check-webseed.mjs "http://127.0.0.1:8090/ws/$rel/" "$RUNNER_TEMP/demo/landing/site.torrent" --origin http://127.0.0.1:8090
+          grep -q 'name="mw-pointer"' "$site/index.html"
+          grep -q 'name="mw-pointer"' "$site/404.html"
+          kill "$server"
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/site
+          # The web seed holds .mw/ (the routing manifest and file list inside the torrent).
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  check:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from the lockfile
+        run: npm ci --no-audit --no-fund
+      # The page, the page tag (unsigned: a warning), the .torrent, the web seed and the trackers, from outside.
+      # The public trackers are not ours, so their failures are warnings; no TXT record, so no DoH lookup.
+      # The CDN can take a few minutes to serve the new files everywhere, hence the retries.
+      - name: check-site against the live demo
+        env:
+          ORIGIN: ${{ needs.build.outputs.origin }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if node tools/check-site.mjs "$ORIGIN/" --no-doh --tolerate-trackers 16; then exit 0; fi
+            echo "attempt $attempt failed; trying again in 60 s"
+            sleep 60
+          done
+          exit 1

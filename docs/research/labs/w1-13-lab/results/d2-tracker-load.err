@@ -1,0 +1,3 @@
+level done 1000 {"connections":1000,"connectSeconds":0.3,"rssMB":101,"heapUsedMB":20,"externalMB":8,"kbPerConnectionAllIn":33.5,"swarms":100,"idleCpuMsPerSecond":0,"throughput":[]}
+level done 5000 {"connections":5000,"connectSeconds":2,"rssMB":164,"heapUsedMB":42,"externalMB":22,"kbPerConnectionAllIn":19.6,"swarms":100,"idleCpuMsPerSecond":0,"throughput":[]}
+level done 10000 {"connections":10000,"connectSeconds":4.5,"rssMB":235,"heapUsedMB":87,"externalMB":39,"kbPerConnectionAllIn":17.1,"swarms":100,"idleCpuMsPerSecond":0,"throughput":[{"offeredAnnouncesPerSec":200,"achievedAnnouncesPerSec":

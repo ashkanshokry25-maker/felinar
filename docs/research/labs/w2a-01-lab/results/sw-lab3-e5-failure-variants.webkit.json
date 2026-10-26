@@ -1,0 +1,26 @@
+[
+ {
+  "variant": "same-URL loader SW WITHOUT skipWaiting/claim",
+  "rows": [
+   "nav #1: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #2: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #3: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #4: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #5: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #6: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "after explicit registration.update() + nav: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js hits=2"
+  ]
+ },
+ {
+  "variant": "loader SW at NEW URL /sw-loader.js; old /sw.js left byte-identical",
+  "rows": [
+   "nav #1: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #2: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #3: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #4: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #5: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "nav #6: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js fetched during this nav: 1",
+   "after explicit registration.update() + nav: shown=\"OLD SITE\" controller=/sw.js caches=[\"legacy-precache-v1\"] /sw.js hits=2"
+  ]
+ }
+]

@@ -1,0 +1,17 @@
+{
+  "errors": [],
+  "baseline": {
+    "ok": 0,
+    "notOk": 0,
+    "statuses": {
+      "200": 40
+    }
+  },
+  "popupOpened": true,
+  "withSecondTab": {
+    "statuses": {
+      "404": 120
+    },
+    "bodies404": 120
+  }
+}

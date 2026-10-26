@@ -1,0 +1,14 @@
+name = "mw-tracker-proto"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+[[durable_objects.bindings]]
+name = "SWARM"
+class_name = "Swarm"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Swarm"]
+
+[vars]
+ALLOW_ORIGINS = ""

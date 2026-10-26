@@ -1,0 +1,38 @@
+[
+ {
+  "store": "default",
+  "MB": 128,
+  "pieceLength": 131072,
+  "downloadMs": 11355,
+  "length": 134217728,
+  "blobSize": 134217728,
+  "errors": [],
+  "marks": [
+   {
+    "label": "baseline",
+    "downloaderRendererMB": 94,
+    "totalChromiumMB": 863
+   },
+   {
+    "label": "downloaded (all pieces held by chunk store)",
+    "downloaderRendererMB": 194,
+    "totalChromiumMB": 1096
+   },
+   {
+    "label": "after file.blob()",
+    "downloaderRendererMB": 367,
+    "totalChromiumMB": 1380
+   },
+   {
+    "label": "after IndexedDB put(Blob)",
+    "downloaderRendererMB": 229,
+    "totalChromiumMB": 1268
+   },
+   {
+    "label": "after client.destroy() + gc",
+    "downloaderRendererMB": 229,
+    "totalChromiumMB": 1268
+   }
+  ]
+ }
+]

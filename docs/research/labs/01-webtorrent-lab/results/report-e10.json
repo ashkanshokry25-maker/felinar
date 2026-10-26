@@ -1,0 +1,49 @@
+{
+  "phases": {
+    "P0_no_throttle": {
+      "ms": 1500,
+      "sentDuring": 7,
+      "receivedDuring": 7,
+      "receivedInNext1500msAfterTeardown": 8,
+      "wireAAlive": true,
+      "wireBAlive": true
+    },
+    "P1_throttleUpload_0": {
+      "ms": 3000,
+      "sentDuring": 15,
+      "receivedDuring": 0,
+      "receivedInNext1500msAfterTeardown": 22,
+      "wireAAlive": true,
+      "wireBAlive": true
+    },
+    "P3_throttleUpload_2048Bps": {
+      "ms": 3000,
+      "sentDuring": 15,
+      "receivedDuring": 7,
+      "receivedInNext1500msAfterTeardown": 16,
+      "wireAAlive": true,
+      "wireBAlive": true
+    },
+    "P4_torrent_pause": {
+      "ms": 1500,
+      "sentDuring": 7,
+      "receivedDuring": 7,
+      "receivedInNext1500msAfterTeardown": 8,
+      "wireAAlive": true,
+      "wireBAlive": true
+    }
+  },
+  "errors": [],
+  "events": [],
+  "baselineDone": true,
+  "wiresReady": true,
+  "b2StartedAt": 3568,
+  "b2DoneBeforeRestore": false,
+  "b2DoneAfterRestore": true,
+  "totals": {
+    "sent": 75,
+    "received": 75,
+    "dupOrMissing": 0
+  },
+  "firstRecvOutOfOrder": false
+}

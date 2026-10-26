@@ -1,0 +1,14 @@
+w2c-03 identity lab (2026-10-17). Reproduces the measurements quoted in ../../w2c-03-identity-ux.md.
+Machine: Apple M3 (8 cores), macOS 27, Node 24.22.0 (~/.local/share/node/current/bin), Playwright 1.64.1 from ../../../../node_modules.
+Chromium 156.0.8078.4 (Playwright chromium-1248). WebKit 27.2 = Playwright "webkit-2370" (installed with PLAYWRIGHT_BROWSERS_PATH pointing at a scratch dir).
+Firefox 157 (Playwright build) failed to launch in this environment ("Could not find profile folder"): see lab4-firefox-launch-failure.txt. Firefox is UNTESTED.
+
+Setup (in this directory):
+  export PATH=$HOME/.local/share/node/current/bin:$PATH
+  npm install --ignore-scripts        # @noble/curves 2.4.0, @noble/hashes 2.4.0, @scure/bip39 2.4.0, hash-wasm 4.12.0, jdenticon 3.3.0
+Run:
+  node lab1-node.mjs                  # seed->HKDF->P-256 JWK import, PKCS8-without-pubkey (Node/OpenSSL), keygen throughput, fingerprint-forgery arithmetic
+  node lab2-chromium.mjs              # Chromium: PKCS8/JWK import, same-origin iframe signs with the visitor's non-extractable IDB key, KDF timings, WebAuthn PRF via CDP virtual authenticator
+  node lab3-identicon.mjs 200000      # Jdenticon distinct-icon count over 200k random inputs
+  node lab4-engines.mjs chromium      # cross-engine primitives; for webkit: PLAYWRIGHT_BROWSERS_PATH=<dir with webkit> node lab4-engines.mjs webkit
+Results are in lab*-results*.json / lab4-*.json. Nothing here touches src/ or any user data. Hostile-site page (pages/iframe-site.html) only signs fixed test bytes.

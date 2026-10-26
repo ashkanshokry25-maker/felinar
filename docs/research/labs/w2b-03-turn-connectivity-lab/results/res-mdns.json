@@ -1,0 +1,92 @@
+{
+ "chromium": {
+  "version": "156.0.8078.4",
+  "ice": [
+   {
+    "label": "stun A+B (mapping varies by dest)",
+    "cands": [
+     {
+      "t": 3,
+      "type": "host",
+      "proto": "udp",
+      "addr": "e95c5eeb-a76c-49b0-af00-81d4f489c9ac.local",
+      "port": 49674,
+      "rel": null,
+      "url": null,
+      "relayProto": null
+     },
+     {
+      "t": 9,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 49674,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34780",
+      "relayProto": null
+     },
+     {
+      "t": 9,
+      "type": "srflx",
+      "proto": "udp",
+      "addr": "203.0.113.7",
+      "port": 50674,
+      "rel": "0.0.0.0:0",
+      "url": "stun:127.0.0.1:34781",
+      "relayProto": null
+     }
+    ],
+    "errors": [],
+    "states": [
+     [
+      2,
+      "gathering"
+     ],
+     [
+      124,
+      "complete"
+     ]
+    ],
+    "tNull": 124,
+    "gatherState": "complete",
+    "tComplete": 124,
+    "sdpBytes": 834,
+    "sdpCandLines": 3,
+    "stats": [
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34781",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "udp",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "srflx",
+      "protocol": "udp",
+      "url": "stun:127.0.0.1:34780",
+      "networkType": "unknown"
+     },
+     {
+      "candidateType": "host",
+      "protocol": "tcp",
+      "networkType": "unknown"
+     }
+    ]
+   }
+  ]
+ }
+}

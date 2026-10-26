@@ -1,0 +1,74 @@
+{
+  "format": "mw_chain1 HELLO frame (byte 0 = type 1, then UTF-8 JSON), v0.2.1",
+  "about": "Golden vectors for the gossip HELLO frame (docs/INTERFACES.md \"src/chain/gossip.js\"). APPEND ONLY: see LOCK.json.",
+  "vectors": [
+    {
+      "id": "hello-001-owned",
+      "description": "HELLO of a signed ledger: owner is the tagged genesis owner key.",
+      "obj": {
+        "v": 1,
+        "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+        "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+        "n": 3,
+        "d": 2,
+        "root": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "heads": [
+          "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8"
+        ]
+      },
+      "frame": "017b2276223a312c2273697465223a226d77313a646c544562744b583030526b6d636f373831703058666c62486b62222c226f776e6572223a22703235363a424c3042433538326c7336514f4f5138746950587844643334515a4a385078736d59744847614f4f69484d562d57417543646246675961426f784b4a4964715654374a6d5f58635179314d79735a443276375677375f49222c226e223a332c2264223a322c22726f6f74223a2264646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464222c226865616473223a5b2230306435636335313839386666343830626366376264383233393864636130323964656262663065363532653839653334383834303266336334343039636338225d7d",
+      "expect": {
+        "decode": {
+          "type": 1,
+          "obj": {
+            "v": 1,
+            "site": "mw1:dlTEbtKX00Rkmco781p0XflbHkb",
+            "owner": "p256:BL0BC582ls6QOOQ8tiPXxDd34QZJ8PxsmYtHGaOOiHMV-WAuCdbFgYaBoxKJIdqVT7Jm_XcQy1MysZD2v7Vw7_I",
+            "n": 3,
+            "d": 2,
+            "root": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "heads": [
+              "00d5cc51898ff480bcf7bd82398dca029debbf0e652e89e3488402f3c4409cc8"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "hello-002-unmoderated",
+      "description": "HELLO of an unsigned (btih:) ledger: owner null, empty DAG.",
+      "obj": {
+        "v": 1,
+        "site": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+        "owner": null,
+        "n": 0,
+        "d": -1,
+        "root": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heads": []
+      },
+      "frame": "017b2276223a312c2273697465223a22627469683a36623361306431633565376639303231343336353837396161626263636464656566663030313132222c226f776e6572223a6e756c6c2c226e223a302c2264223a2d312c22726f6f74223a2265336230633434323938666331633134396166626634633839393666623932343237616534316534363439623933346361343935393931623738353262383535222c226865616473223a5b5d7d",
+      "expect": {
+        "decode": {
+          "type": 1,
+          "obj": {
+            "v": 1,
+            "site": "btih:6b3a0d1c5e7f90214365879aabbccddeeff00112",
+            "owner": null,
+            "n": 0,
+            "d": -1,
+            "root": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "heads": []
+          }
+        }
+      }
+    },
+    {
+      "id": "hello-003-untagged-owner",
+      "description": "A v0.2 HELLO with an untagged owner key: malformed (decode gives null).",
+      "frame": "017b2276223a312c2273697465223a226d77313a646c544562744b583030526b6d636f373831703058666c62486b62222c226f776e6572223a22424c3042433538326c7336514f4f5138746950587844643334515a4a385078736d59744847614f4f69484d562d57417543646246675961426f784b4a4964715654374a6d5f58635179314d79735a443276375677375f49222c226e223a332c2264223a322c22726f6f74223a2264646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464222c226865616473223a5b2230306435636335313839386666343830626366376264383233393864636130323964656262663065363532653839653334383834303266336334343039636338225d7d",
+      "expect": {
+        "decode": null
+      }
+    }
+  ]
+}

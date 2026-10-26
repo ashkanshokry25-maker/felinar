@@ -1,0 +1,127 @@
+{
+  "browser": "156.0.8078.4",
+  "when": "2026-10-17T21:54:12.338Z",
+  "csdValue": "\"storage\"",
+  "results": [
+    {
+      "status": 200,
+      "via": "fetch",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 200,
+      "via": "navigation",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 404,
+      "via": "fetch",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 404,
+      "via": "navigation",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 410,
+      "via": "fetch",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 410,
+      "via": "navigation",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 451,
+      "via": "fetch",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 451,
+      "via": "navigation",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 500,
+      "via": "fetch",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 500,
+      "via": "navigation",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 503,
+      "via": "fetch",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    },
+    {
+      "status": 503,
+      "via": "navigation",
+      "cleared": true,
+      "after": {
+        "registrations": 0,
+        "localStorage": null,
+        "caches": 0
+      }
+    }
+  ]
+}

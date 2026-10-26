@@ -1,0 +1,2 @@
+external-signer signatures verified by project verify(): ok=120 bad=0 (DER lengths seen: 69,70,71,72; min 69, max 72)
+owner (b64url, 65-byte point): 87 chars

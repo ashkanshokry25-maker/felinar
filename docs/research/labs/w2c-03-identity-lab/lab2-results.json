@@ -1,0 +1,112 @@
+{
+  "chromium": "156.0.8078.4",
+  "origin": "http://localhost:52100",
+  "A": {
+    "pkcs8NoPub": {
+      "ok": true,
+      "x": true,
+      "y": true
+    },
+    "jwkImport": {
+      "extractable": false,
+      "verifies": true
+    },
+    "idbStored": true
+  },
+  "B": {
+    "sameOriginSandbox": {
+      "origin": "http://localhost:52100",
+      "foundKey": true,
+      "keyExtractable": false,
+      "signedAsVisitor": true,
+      "sigHex": "6e88445a7757c7a5f966ef9b3e8026555dfb4376aa3529ad8b215e5bdd60ef1c65496167aab22847e031379a4f635a6403a98772ec8fda5d9ed9ed20d4ef971e",
+      "exported": false,
+      "exportErr": "InvalidAccessError"
+    },
+    "opaqueSandbox": {
+      "origin": "http://localhost:52100",
+      "error": "SecurityError: Failed to execute 'open' on 'IDBFactory': access to the Indexed Database API is denied in this context."
+    }
+  },
+  "C": {
+    "argon2id_wasm m=19MiB t=2 p=1": {
+      "min_ms": 18,
+      "median_ms": 18
+    },
+    "argon2id_wasm m=46MiB t=1 p=1": {
+      "min_ms": 25,
+      "median_ms": 26
+    },
+    "argon2id_wasm m=64MiB t=3 p=1": {
+      "min_ms": 103,
+      "median_ms": 105
+    },
+    "argon2id_wasm m=128MiB t=1 p=1": {
+      "min_ms": 75,
+      "median_ms": 76
+    },
+    "argon2id_noble_js m=19MiB t=2 p=1": {
+      "min_ms": 100,
+      "median_ms": 113
+    },
+    "scrypt_noble_js N=2^15 r=8 p=1 (32MiB)": {
+      "min_ms": 66,
+      "median_ms": 68
+    },
+    "scrypt_noble_js N=2^16 r=8 p=1 (64MiB)": {
+      "min_ms": 129,
+      "median_ms": 130
+    },
+    "scrypt_noble_js N=2^17 r=8 p=1 (128MiB)": {
+      "min_ms": 257,
+      "median_ms": 260
+    },
+    "pbkdf2_webcrypto sha256 600000": {
+      "min_ms": 43,
+      "median_ms": 44
+    },
+    "webcrypto_P256_generateKey": {
+      "perSec": 43031
+    }
+  },
+  "D": {
+    "clientCapabilities": {
+      "conditionalCreate": true,
+      "conditionalGet": true,
+      "extension:appid": true,
+      "extension:appidExclude": true,
+      "extension:cmtgKey": false,
+      "extension:credBlob": true,
+      "extension:credProps": true,
+      "extension:credentialProtectionPolicy": true,
+      "extension:crossDeviceFallbackUrl": false,
+      "extension:enforceCredentialProtectionPolicy": true,
+      "extension:getCredBlob": true,
+      "extension:hmacCreateSecret": true,
+      "extension:largeBlob": true,
+      "extension:minPinLength": true,
+      "extension:payment": true,
+      "extension:prf": true,
+      "hybridTransport": true,
+      "immediateGet": true,
+      "passkeyPlatformAuthenticator": true,
+      "relatedOrigins": true,
+      "signalAllAcceptedCredentials": true,
+      "signalCurrentUserDetails": true,
+      "signalUnknownCredential": true,
+      "userVerifyingPlatformAuthenticator": true
+    },
+    "createPrf": {
+      "enabled": true,
+      "hasResultsAtCreate": false
+    },
+    "getPrf": {
+      "len": 32,
+      "stable": true,
+      "differentSaltDiffers": true,
+      "secondEqualsFirstOfSalt1": true,
+      "sample": "ba000ac40faa1536..."
+    },
+    "secondCredentialSameSaltDiffers": true
+  }
+}

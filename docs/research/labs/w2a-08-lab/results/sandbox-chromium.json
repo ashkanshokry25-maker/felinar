@@ -1,0 +1,577 @@
+{
+  "engine": "chromium",
+  "variants": {
+    "spec-7.2": {
+      "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-top-navigation-by-user-activation",
+      "results": [
+        {
+          "test": "dialogs",
+          "dialogs": [],
+          "res": {
+            "alertMs": 0,
+            "alertReturned": true,
+            "confirm": false,
+            "prompt": null
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "Ignored call to 'alert()'. The document is sandboxed, and the 'allow-modals' keyword is not set.",
+            "Ignored call to 'confirm()'. The document is sandboxed, and the 'allow-modals' keyword is not set.",
+            "Ignored call to 'prompt()'. The document is sandboxed, and the 'allow-modals' keyword is not set."
+          ]
+        },
+        {
+          "test": "print",
+          "res": {
+            "printCalled": true
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "Ignored call to 'print()'. The document is sandboxed, and the 'allow-modals' keyword is not set."
+          ]
+        },
+        {
+          "test": "beforeunload",
+          "dialogs": [],
+          "frameNowAt": "/a.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "popups",
+          "out": {
+            "#b-open": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": []
+            },
+            "#a-blank": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": []
+            },
+            "#b-open-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": []
+            },
+            "#a-blank-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":false,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": []
+            },
+            "#a-blank-opener": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": []
+            }
+          },
+          "res": {
+            "open": "window",
+            "openExt": "window"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "downloads",
+          "out": {
+            "#a-dl": "dl.txt",
+            "#a-attach": "attach.bin",
+            "#b-blobdl": "blob.txt"
+          },
+          "frameStill": "/behaviors.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "customProtocols",
+          "out": {
+            "#a-mailto": "/behaviors.html",
+            "#a-tel": "/behaviors.html"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "targetTop",
+          "topUrl": "/b.html",
+          "topReloaded": true,
+          "frameUrl": "/b.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "api",
+          "res": {
+            "shareExists": false,
+            "fsEnabled": true,
+            "fs": "ok",
+            "clip": "NotAllowedError"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "ownServiceWorker",
+          "res": {
+            "sw": "registered http://127.0.0.1:60104/"
+          },
+          "regs": [
+            {
+              "scope": "/",
+              "active": "/site-sw.js",
+              "waiting": null,
+              "installing": null
+            }
+          ],
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        }
+      ]
+    },
+    "plus-modals": {
+      "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-top-navigation-by-user-activation allow-modals",
+      "results": [
+        {
+          "test": "dialogs",
+          "dialogs": [
+            "alert",
+            "confirm",
+            "prompt"
+          ],
+          "res": {
+            "alertMs": 1,
+            "alertReturned": true,
+            "confirm": true,
+            "prompt": ""
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "print",
+          "res": {
+            "printCalled": true,
+            "beforeprint": true,
+            "afterprint": true
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "beforeunload",
+          "dialogs": [
+            "beforeunload"
+          ],
+          "frameNowAt": "/a.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "popups",
+          "out": {
+            "#b-open": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#b-open-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":false,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": []
+            },
+            "#a-blank-opener": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            }
+          },
+          "res": {
+            "open": "window",
+            "openExt": "window"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "downloads",
+          "out": {
+            "#a-dl": "dl.txt",
+            "#a-attach": "attach.bin",
+            "#b-blobdl": "blob.txt"
+          },
+          "frameStill": "/behaviors.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "customProtocols",
+          "out": {
+            "#a-mailto": "/behaviors.html",
+            "#a-tel": "/behaviors.html"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "targetTop",
+          "topUrl": "/b.html",
+          "topReloaded": true,
+          "frameUrl": "/b.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "api",
+          "res": {
+            "shareExists": false,
+            "fsEnabled": true,
+            "fs": "ok",
+            "clip": "NotAllowedError"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "ownServiceWorker",
+          "res": {
+            "sw": "registered http://127.0.0.1:60104/"
+          },
+          "regs": [
+            {
+              "scope": "/",
+              "active": "/site-sw.js",
+              "waiting": null,
+              "installing": null
+            }
+          ],
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        }
+      ]
+    },
+    "plus-modals+escape": {
+      "sandbox": "allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-top-navigation-by-user-activation allow-modals allow-popups-to-escape-sandbox",
+      "results": [
+        {
+          "test": "dialogs",
+          "dialogs": [
+            "alert",
+            "confirm",
+            "prompt"
+          ],
+          "res": {
+            "alertMs": 1,
+            "alertReturned": true,
+            "confirm": true,
+            "prompt": ""
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "print",
+          "res": {
+            "printCalled": true,
+            "beforeprint": true,
+            "afterprint": true
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "beforeunload",
+          "dialogs": [
+            "beforeunload"
+          ],
+          "frameNowAt": "/a.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "popups",
+          "out": {
+            "#b-open": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#b-open-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":false,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank-opener": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            }
+          },
+          "res": {
+            "open": "window",
+            "openExt": "window"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "downloads",
+          "out": {
+            "#a-dl": "dl.txt",
+            "#a-attach": "attach.bin",
+            "#b-blobdl": "blob.txt"
+          },
+          "frameStill": "/behaviors.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "customProtocols",
+          "out": {
+            "#a-mailto": "/behaviors.html",
+            "#a-tel": "/behaviors.html"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "targetTop",
+          "topUrl": "/b.html",
+          "topReloaded": true,
+          "frameUrl": "/b.html",
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "api",
+          "res": {
+            "shareExists": false,
+            "fsEnabled": true,
+            "fs": "ok",
+            "clip": "NotAllowedError"
+          },
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        },
+        {
+          "test": "ownServiceWorker",
+          "res": {
+            "sw": "registered http://127.0.0.1:60104/"
+          },
+          "regs": [
+            {
+              "scope": "/",
+              "active": "/site-sw.js",
+              "waiting": null,
+              "installing": null
+            }
+          ],
+          "console": [
+            "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+          ]
+        }
+      ]
+    },
+    "no-sandbox": {
+      "sandbox": null,
+      "results": [
+        {
+          "test": "dialogs",
+          "dialogs": [
+            "alert",
+            "confirm",
+            "prompt"
+          ],
+          "res": {
+            "alertMs": 1,
+            "alertReturned": true,
+            "confirm": true,
+            "prompt": ""
+          },
+          "console": []
+        },
+        {
+          "test": "print",
+          "res": {
+            "printCalled": true,
+            "beforeprint": true,
+            "afterprint": true
+          },
+          "console": []
+        },
+        {
+          "test": "beforeunload",
+          "dialogs": [
+            "beforeunload"
+          ],
+          "frameNowAt": "/a.html",
+          "console": []
+        },
+        {
+          "test": "popups",
+          "out": {
+            "#b-open": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":0,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#b-open-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":true,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank-ext": {
+              "url": "/popup",
+              "title": "EXTPOPUP {\"opener\":false,\"alert\":\"called\",\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60103\",\"sandboxedOrigin\":false}",
+              "dialogs": [
+                "alert"
+              ]
+            },
+            "#a-blank-opener": {
+              "url": "/popup.html",
+              "title": "POPUP {\"opener\":false,\"alertMs\":1,\"ls\":\"ok\",\"origin\":\"http://127.0.0.1:60104\",\"opaque\":false,\"top\":false,\"sw\":true}",
+              "dialogs": [
+                "alert"
+              ]
+            }
+          },
+          "res": {
+            "open": "window",
+            "openExt": "window"
+          },
+          "console": []
+        },
+        {
+          "test": "downloads",
+          "out": {
+            "#a-dl": "dl.txt",
+            "#a-attach": "attach.bin",
+            "#b-blobdl": "blob.txt"
+          },
+          "frameStill": "/behaviors.html",
+          "console": []
+        },
+        {
+          "test": "customProtocols",
+          "out": {
+            "#a-mailto": "/behaviors.html",
+            "#a-tel": "/behaviors.html"
+          },
+          "console": []
+        },
+        {
+          "test": "targetTop",
+          "topUrl": "/b.html",
+          "topReloaded": true,
+          "frameUrl": "/b.html",
+          "console": []
+        },
+        {
+          "test": "api",
+          "res": {
+            "shareExists": false,
+            "fsEnabled": true,
+            "fs": "ok",
+            "clip": "NotAllowedError"
+          },
+          "console": []
+        },
+        {
+          "test": "ownServiceWorker",
+          "res": {
+            "sw": "registered http://127.0.0.1:60104/"
+          },
+          "regs": [
+            {
+              "scope": "/",
+              "active": "/site-sw.js",
+              "waiting": null,
+              "installing": null
+            }
+          ],
+          "console": []
+        }
+      ]
+    }
+  }
+}

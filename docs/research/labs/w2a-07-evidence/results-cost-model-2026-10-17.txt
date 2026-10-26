@@ -1,0 +1,58 @@
+
+## p2p share of payload bytes = 0 %
+| scenario | cold visits/mo | req per cold visit | web-seed GB/mo | web-seed requests/mo |
+|---|---|---|---|---|
+| A blog 2 MB, 40 files, 1k visits/day | 9,000 | 88 | 18 | 0.8 M |
+| B docs 8 MB, 200 files, 10k visits/day | 90,000 | 431 | 720 | 38.8 M |
+| B2 same, single-file layout (F=1) | 90,000 | 33 | 720 | 3.0 M |
+| B3 same, single-file layout and patched headers (no preflight) | 90,000 | 32 | 720 | 2.9 M |
+| C media 60 MB, 300 files, 10k visits/day | 90,000 | 829 | 5,400 | 74.6 M |
+| D viral: B plus 200k visits in one day (80 % cold) | 250,000 | 431 | 2,000 | 107.8 M |
+| E large: 25 MB, 100 files, 100k visits/day | 900,000 | 296 | 22,500 | 266.4 M |
+
+| provider | A | B | B2 | B3 | C | D | E |
+|---|---|---|---|---|---|---|---|
+| S3 REST direct (HTTPS, no CDN) | $0.32 | $71.32 | $56.99 | $56.95 | $506.85 | $214.10 | $2062 |
+| CloudFront pay-as-you-go + S3 | $0.00 | $28.79 | $0.00 | $0.00 | $436.57 | $180.71 | $2026 |
+| CloudFront flat-rate plan (strict allowances) | $0.00 | $200.00 | $15.00 | $15.00 | $200.00 | $200.00 | $1000 |
+| Cloudflare R2 + custom domain, 90 % cache hit | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 | $0.28 | $5.99 |
+| Cloudflare R2, every request reaches R2 | $0.00 | $10.36 | $0.00 | $0.00 | $23.26 | $35.19 | $92.30 |
+| Backblaze B2 behind Cloudflare (Bandwidth Alliance) | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 |
+| Backblaze B2 direct (3x free egress) | $0.18 | $7.20 | $7.20 | $7.20 | $53.99 | $20.00 | $225.00 |
+| Bunny Storage + CDN Standard (EU/NA) | $1.00 | $7.20 | $7.20 | $7.20 | $54.00 | $20.00 | $225.00 |
+| Bunny Storage + CDN Volume network | $1.00 | $3.60 | $3.60 | $3.60 | $27.00 | $10.00 | $112.50 |
+| DigitalOcean Spaces (+CDN) | $5.00 | $5.00 | $5.00 | $5.00 | $45.05 | $13.39 | $204.31 |
+| Storj (Standard tier) | $5.00 | $5.04 | $5.04 | $5.04 | $37.80 | $14.00 | $157.50 |
+| Netlify (credits) | $9.00 (Personal) | $147.72 (Pro) | $99.96 (Pro) | $99.84 (Pro) | $819.48 (Pro) | $410.33 (Pro) | $3355 (Pro) |
+| Vercel Pro (+Flat Rate CDN tier) | $20.00 | $120.00 | $40.00 | $40.00 | $320.00 | $320.00 | >tier |
+| Pinata Picnic (gateway) | $20.00 | $797.80 | $81.40 | $79.60 | $1982 | $2305 | $7528 |
+| Filebase Pro (IPFS egress) | $7.50 | $14.55 | $14.55 | $14.55 | $84.75 | $33.75 | $341.25 |
+
+## p2p share of payload bytes = 50 %
+| scenario | cold visits/mo | req per cold visit | web-seed GB/mo | web-seed requests/mo |
+|---|---|---|---|---|
+| A blog 2 MB, 40 files, 1k visits/day | 9,000 | 88 | 9 | 0.8 M |
+| B docs 8 MB, 200 files, 10k visits/day | 90,000 | 431 | 360 | 38.8 M |
+| B2 same, single-file layout (F=1) | 90,000 | 33 | 360 | 3.0 M |
+| B3 same, single-file layout and patched headers (no preflight) | 90,000 | 32 | 360 | 2.9 M |
+| C media 60 MB, 300 files, 10k visits/day | 90,000 | 829 | 2,700 | 74.6 M |
+| D viral: B plus 200k visits in one day (80 % cold) | 250,000 | 431 | 1,000 | 107.8 M |
+| E large: 25 MB, 100 files, 100k visits/day | 900,000 | 296 | 11,250 | 266.4 M |
+
+| provider | A | B | B2 | B3 | C | D | E |
+|---|---|---|---|---|---|---|---|
+| S3 REST direct (HTTPS, no CDN) | $0.32 | $38.92 | $24.59 | $24.55 | $263.85 | $124.10 | $1106 |
+| CloudFront pay-as-you-go + S3 | $0.00 | $28.79 | $0.00 | $0.00 | $207.07 | $97.75 | $1126 |
+| CloudFront flat-rate plan (strict allowances) | $0.00 | $200.00 | $15.00 | $15.00 | $200.00 | $200.00 | $1000 |
+| Cloudflare R2 + custom domain, 90 % cache hit | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 | $0.28 | $5.99 |
+| Cloudflare R2, every request reaches R2 | $0.00 | $10.36 | $0.00 | $0.00 | $23.26 | $35.19 | $92.30 |
+| Backblaze B2 behind Cloudflare (Bandwidth Alliance) | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 | $0.00 |
+| Backblaze B2 direct (3x free egress) | $0.09 | $3.60 | $3.60 | $3.60 | $26.99 | $10.00 | $112.50 |
+| Bunny Storage + CDN Standard (EU/NA) | $1.00 | $3.60 | $3.60 | $3.60 | $27.00 | $10.00 | $112.50 |
+| Bunny Storage + CDN Volume network | $1.00 | $1.80 | $1.80 | $1.80 | $13.50 | $5.00 | $56.25 |
+| DigitalOcean Spaces (+CDN) | $5.00 | $5.00 | $5.00 | $5.00 | $19.91 | $5.00 | $99.53 |
+| Storj (Standard tier) | $5.00 | $5.00 | $5.00 | $5.00 | $18.90 | $7.00 | $78.75 |
+| Netlify (credits) | $9.00 (Personal) | $99.72 (Pro) | $51.96 (Pro) | $51.84 (Pro) | $459.48 (Pro) | $277.00 (Pro) | $1855 (Pro) |
+| Vercel Pro (+Flat Rate CDN tier) | $20.00 | $120.00 | $40.00 | $40.00 | $320.00 | $320.00 | >tier |
+| Pinata Picnic (gateway) | $20.00 | $775.80 | $59.40 | $57.60 | $1712 | $2205 | $6403 |
+| Filebase Pro (IPFS egress) | $7.50 | $9.15 | $9.15 | $9.15 | $44.25 | $18.75 | $172.50 |

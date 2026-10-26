@@ -1,0 +1,20 @@
+[
+ {
+  "gc": true,
+  "updatesBytes": 35056,
+  "mergedBytes": 35043,
+  "mergedContainsDeletedText": true,
+  "reencodedBytes": 43,
+  "reencodedContainsDeletedText": false,
+  "text": "visible"
+ },
+ {
+  "gc": false,
+  "updatesBytes": 35056,
+  "mergedBytes": 35043,
+  "mergedContainsDeletedText": true,
+  "reencodedBytes": 35043,
+  "reencodedContainsDeletedText": true,
+  "text": "visible"
+ }
+]

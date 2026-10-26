@@ -1,0 +1,44 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Failed to launch the browser process.
+Browser logs:
+
+<launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-iKnwdJ -juggler-pipe -silent
+<launched> pid=95514
+[pid=95514][err] *** You are running in headless mode.
+[pid=95514][err] Could not find profile folder.
+[pid=95514] <process did exit: exitCode=1, signal=null>
+[pid=95514] starting temporary directories cleanup
+Call log:
+  - <launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-iKnwdJ -juggler-pipe -silent
+  - <launched> pid=95514
+  - [pid=95514][err] *** You are running in headless mode.
+  - [pid=95514][err] Could not find profile folder.
+  - [pid=95514] <process did exit: exitCode=1, signal=null>
+  - [pid=95514] starting temporary directories cleanup
+  - [pid=95514] <gracefully close start>
+  - [pid=95514] <kill>
+  - [pid=95514] <skipped force kill spawnedProcess.killed=false processClosed=true>
+  - [pid=95514] finished temporary directories cleanup
+  - [pid=95514] <gracefully close end>
+
+    at /private/tmp/claude-501/-Users-owner/2e31ae61-4460-4879-804d-f5507c05cdbe/scratchpad/w107v/sw-exp/run.mjs:49:38 {
+  log: [
+    '  - <launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_profile-iKnwdJ -juggler-pipe -silent',
+    '  - <launched> pid=95514',
+    '  - [pid=95514][err] *** You are running in headless mode.',
+    '  - [pid=95514][err] Could not find profile folder.',
+    '  - [pid=95514] <process did exit: exitCode=1, signal=null>',
+    '  - [pid=95514] starting temporary directories cleanup',
+    '  - [pid=95514] <gracefully close start>',
+    '  - [pid=95514] <kill>',
+    '  - [pid=95514] <skipped force kill spawnedProcess.killed=false processClosed=true>',
+    '  - [pid=95514] finished temporary directories cleanup',
+    '  - [pid=95514] <gracefully close end>'
+  ],
+  name: 'Error'
+}
+
+Node.js v24.22.0

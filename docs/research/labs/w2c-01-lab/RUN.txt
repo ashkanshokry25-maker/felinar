@@ -1,0 +1,20 @@
+w2c-01 lab (2026-10-17). Evidence for docs/research/w2c-01-content-layer-alternatives.md
+Toolchain: export PATH=$HOME/.local/share/node/current/bin:$PATH  (Node 24.22.0). webtorrent 3.0.21, create-torrent 6.1.3, parse-torrent 11.0.24, playwright 1.64.
+Scripts import project dependencies by ABSOLUTE path ($HOME/Documents/Projects/magnet-web/node_modules/...); edit if the project moves.
+Downloaded public test blobs are NOT stored here (untrusted data); re-create them with the curl lines below into an empty directory, e.g. $TMP/blobs.
+
+  failover.mjs            local loopback: multi-web-seed failover vs hostile servers (404/503/hang/slow/corrupt206/html200/ignorerange/flaky). `node failover.mjs`, `EXTRA=1 node failover.mjs`
+  hardened-conn.mjs       prototype HardenedWebConn (drop-in via torrent.addWebSeed(conn)); hardened-test.mjs runs the same hostile scenarios against it
+  hybrid.mjs              hand-built VALID hybrid (BEP 52 + BEP 47) torrent; WebTorrent with a web seed that serves zeros vs 404 for .pad/<n>
+  hybrid-hardened.mjs     same, with HardenedWebConn synthesizing pad zeros locally
+  webseeds-false.mjs      client option webSeeds:false stops auto WebConn from url-list/ws= while addWebSeed(conn) still works
+  build-hardened-browser.sh + webseed-matrix-hardened.mjs   browser run (Chromium + real webtorrent.min.js + the separately bundled HardenedWebConn, client webSeeds:false, NO fetch wrapper) against the same live hosts; usage: OUT=$TMP/hb ./build-hardened-browser.sh && node webseed-matrix-hardened.mjs <torrentdir> $TMP/hb/hardened.browser.js results.json
+  mk-torrents.mjs         makes .torrent files from the 3 public test blobs (see below)
+  webseed-matrix.mjs      headless Chromium + the real webtorrent.min.js: web-seed fetch against live IPFS gateways / Blossom servers / Arweave gateways, stock headers (patch=0) vs Cache-Control+User-Agent stripped (patch=1)
+  probe_gw.sh, probe_ar.sh, verify_cid.py   curl probes (GET Range + CORS preflight with Access-Control-Request-Headers: cache-control,range); CID-vs-raw-block check
+
+Test blobs (public data, read-only GETs):
+  H=b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553  (bitcoin.pdf, 184,292 B)  curl -o bitcoin.pdf https://cdn.hzrd149.com/$H   (sha256 must equal $H)
+  TX=nBOEA5n1P9qCVyJL2QD7DWMzCzpMUikE8Ee2-Ev8IqQ  SB=tqjyia4z6u75vasxejf5sah3bvrtgcz2jrjcsbhqi63pqs74eksa (base32 of the txid bytes)  curl -o arweave.png https://$SB.ardrive.net/$TX
+  CID=bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m (IPFS "gateway checker", 32 B)  curl -o gwcheck.txt https://ipfs.filebase.io/ipfs/$CID
+Live results are time-dependent (gateway state changes); results/ holds the snapshot used by the report.

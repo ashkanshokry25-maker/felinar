@@ -1,0 +1,101 @@
+{
+ "browser": "webkit 27.2",
+ "when": "2026-10-17T21:18:05.709Z",
+ "results": [
+  {
+   "scenario": "1 no CSP, native createWritable",
+   "csp": "none",
+   "sim": false,
+   "seedViolations": [],
+   "seedErrors": [],
+   "seeded": true,
+   "leech": {
+    "done": false,
+    "violations": [],
+    "errors": [],
+    "warnings": [],
+    "t": {
+     "imported": 8
+    },
+    "cwBefore": true,
+    "cwAfter": true
+   },
+   "console": []
+  },
+  {
+   "scenario": "2 strict CSP (script/worker self, connect self+tracker), native",
+   "csp": "strict",
+   "sim": false,
+   "seedViolations": [],
+   "seedErrors": [],
+   "seeded": true,
+   "leech": {
+    "done": false,
+    "violations": [],
+    "errors": [],
+    "warnings": [],
+    "t": {
+     "imported": 8
+    },
+    "cwBefore": true,
+    "cwAfter": true
+   },
+   "console": []
+  },
+  {
+   "scenario": "3 strict CSP but tracker NOT in connect-src",
+   "csp": "strict-no-ws",
+   "sim": false,
+   "seedViolations": [
+    {
+     "d": "connect-src",
+     "b": "ws://127.0.0.1:50838/"
+    }
+   ],
+   "seedErrors": [],
+   "seeded": true,
+   "leech": {
+    "done": false,
+    "violations": [
+     {
+      "d": "connect-src",
+      "b": "ws://127.0.0.1:50838/"
+     }
+    ],
+    "errors": [],
+    "warnings": [
+     "The operation is insecure."
+    ],
+    "t": {
+     "imported": 8
+    },
+    "cwBefore": true,
+    "cwAfter": true
+   },
+   "console": [
+    "seed: Refused to connect to ws://127.0.0.1:50838/ because it does not appear in the connect-src directive of the Content Security Policy.",
+    "leech: Refused to connect to ws://127.0.0.1:50838/ because it does not appear in the connect-src directive of the Content Security Policy."
+   ]
+  },
+  {
+   "scenario": "4 strict CSP + require-trusted-types-for script",
+   "csp": "strict-tt",
+   "sim": false,
+   "seedViolations": [],
+   "seedErrors": [],
+   "seeded": true,
+   "leech": {
+    "done": false,
+    "violations": [],
+    "errors": [],
+    "warnings": [],
+    "t": {
+     "imported": 8
+    },
+    "cwBefore": true,
+    "cwAfter": true
+   },
+   "console": []
+  }
+ ]
+}

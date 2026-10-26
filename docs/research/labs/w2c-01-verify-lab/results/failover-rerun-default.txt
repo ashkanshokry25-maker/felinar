@@ -1,0 +1,15 @@
+# rerun of w2c-01-lab/failover.mjs (default set) started 2026-10-17T22:01:15Z
+{"scenario":"good only","done":true,"ms":68,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["good:req=32,ok=32,MB=2.0"]}
+{"scenario":"404 + good","done":true,"ms":38,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["e404:req=10,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"good + 404","done":true,"ms":38,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["good:req=32,ok=32,MB=2.0","e404:req=7,ok=0,MB=0.0"]}
+{"scenario":"503 + good","done":true,"ms":53,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["e503:req=9,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"hang + good","done":true,"ms":28,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["hang:req=1,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"slow(3s) + good","done":true,"ms":29,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["slow:req=1,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"corrupt206 + good","done":true,"ms":63,"downloaded":2097152,"verified":true,"pieceFailWarnings":38,"otherWarn":[],"servers":["corrupt206:req=38,ok=0,MB=2.4","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"html200 + good","done":true,"ms":75,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["html200:req=2,ok=0,MB=0.0","good:req=32,ok=32,MB=2.0"]}
+{"scenario":"ignorerange + good","done":false,"ms":45001,"downloaded":1835008,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=4,ok=0,MB=8.0","good:req=28,ok=28,MB=1.8"]}
+{"scenario":"flaky + good","done":true,"ms":51,"downloaded":2097152,"verified":true,"pieceFailWarnings":0,"otherWarn":[],"servers":["flaky:req=16,ok=9,MB=0.6","good:req=23,ok=23,MB=1.4"]}
+{"scenario":"corrupt206 only (10s)","done":false,"ms":9999,"downloaded":0,"verified":null,"pieceFailWarnings":32808,"otherWarn":[],"servers":["corrupt206:req=32810,ok=0,MB=2050.6"]}
+{"scenario":"ignorerange only (10s)","done":false,"ms":10003,"downloaded":0,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["ignorerange:req=1,ok=0,MB=2.0"]}
+{"scenario":"404 only (25s)","done":false,"ms":25001,"downloaded":0,"verified":null,"pieceFailWarnings":0,"otherWarn":[],"servers":["e404:req=96,ok=0,MB=0.0"]}
+# finished 2026-10-17T22:02:46Z

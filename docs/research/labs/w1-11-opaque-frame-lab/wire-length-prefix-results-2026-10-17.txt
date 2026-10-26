@@ -1,0 +1,11 @@
+# wire-length-prefix-poc.mjs, run 2026-10-17, Node v24.22.0, macOS arm64 (MacBook Air M3), bittorrent-protocol 5.0.9
+# Method: new Wire(); w._parse(4, w._onMessageLength) to skip the handshake; feed 4-byte prefix then 16 KiB chunks through w._write().
+A) prefix 0xFFFFFFFF -> _parserSize = 4 (signed getUint32 => -1 => treated as keep-alive; nothing buffered)
+B) prefix 0x7FFFFFFF -> _parserSize = 2147483647 (waits for 2 GiB-1 bytes)
+   after  31 MiB: bufferSize= 31 MiB, last 2000 chunks took  2657 ms, rss= 2194 MiB, arrayBuffers=  94 MiB
+   after  63 MiB: bufferSize= 63 MiB, last 2000 chunks took  8795 ms, rss= 4411 MiB, arrayBuffers= 312 MiB
+   after  94 MiB: bufferSize= 94 MiB, last 2000 chunks took 15619 ms, rss= 6245 MiB, arrayBuffers= 188 MiB
+   after 125 MiB: bufferSize=125 MiB, last 2000 chunks took 22342 ms, rss= 8212 MiB, arrayBuffers= 500 MiB
+   after 156 MiB: bufferSize=156 MiB, last 2000 chunks took 30889 ms, rss= 6801 MiB, arrayBuffers= 469 MiB
+   after 188 MiB: bufferSize=188 MiB, last 2000 chunks took 57429 ms, rss= 4710 MiB, arrayBuffers= 563 MiB
+   total ms for 12000 chunks: 137733 | message ever delivered to app? no (still waiting)

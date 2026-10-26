@@ -1,0 +1,86 @@
+{
+ "browser": "chromium 156.0.8078.4",
+ "singleTab": [
+  {
+   "pagehide_to_newLeader_ms": 7,
+   "load_to_leader_ms": 1
+  },
+  {
+   "pagehide_to_newLeader_ms": 13,
+   "load_to_leader_ms": 4
+  },
+  {
+   "pagehide_to_newLeader_ms": 8,
+   "load_to_leader_ms": 2
+  },
+  {
+   "pagehide_to_newLeader_ms": 6,
+   "load_to_leader_ms": 1
+  },
+  {
+   "pagehide_to_newLeader_ms": 11,
+   "load_to_leader_ms": 4
+  },
+  {
+   "pagehide_to_newLeader_ms": 11,
+   "load_to_leader_ms": 4
+  },
+  {
+   "pagehide_to_newLeader_ms": 8,
+   "load_to_leader_ms": 2
+  },
+  {
+   "pagehide_to_newLeader_ms": 7,
+   "load_to_leader_ms": 2
+  }
+ ],
+ "twoTabs": [
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 1,
+   "A2_became_leader": false
+  },
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 1,
+   "A2_became_leader": false
+  },
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 1,
+   "A2_became_leader": false
+  },
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 0,
+   "A2_became_leader": false
+  },
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 1,
+   "A2_became_leader": false
+  },
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 1,
+   "A2_became_leader": false
+  },
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 2,
+   "A2_became_leader": false
+  },
+  {
+   "B_was_leader_before": false,
+   "A_pagehide_to_B_leader_ms": 2,
+   "A2_became_leader": false
+  }
+ ],
+ "summary": {
+  "single_pagehide_to_leader_med": 8,
+  "single_load_to_leader_med": 2,
+  "two_pagehide_to_B_med": 1,
+  "two_B_leader_before": 0,
+  "two_A2_leader": 0
+ }
+}

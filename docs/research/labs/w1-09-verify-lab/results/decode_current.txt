@@ -1,0 +1,19 @@
+┌─────────┬────────────────────────┬─────────┬──────────────┐
+│ (index) │ char                   │ literal │ handlerBuilt │
+├─────────┼────────────────────────┼─────────┼──────────────┤
+│ 0       │ '&'                    │ true    │ true         │
+│ 1       │ '='                    │ true    │ true         │
+│ 2       │ '?'                    │ true    │ true         │
+│ 3       │ '#'                    │ true    │ true         │
+│ 4       │ '% (lone)'             │ true    │ true         │
+│ 5       │ '%41 (literal escape)' │ true    │ true         │
+│ 6       │ '+'                    │ true    │ true         │
+│ 7       │ 'space'                │ true    │ true         │
+│ 8       │ '/'                    │ true    │ true         │
+│ 9       │ ':'                    │ true    │ true         │
+│ 10      │ '@'                    │ true    │ true         │
+│ 11      │ 'é'                    │ true    │ true         │
+│ 12      │ 'plain'                │ true    │ true         │
+└─────────┴────────────────────────┴─────────┴──────────────┘
+claim example, literal      : ["wss://tracker.example:443/announce?key=a&b=c"]
+claim example, handler-built: ["wss://tracker.example:443/announce?key=a&b=c"]

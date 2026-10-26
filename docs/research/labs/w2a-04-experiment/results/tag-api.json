@@ -1,0 +1,62 @@
+{
+ "chromium 156.0.8078.4": {
+  "module": {
+   "currentScript": "null",
+   "importMetaUrl": "http://127.0.0.1:55594/tag-mod.js?v=3",
+   "byQuery": "{\"mwEngine\":\"landing\",\"mwSw\":\"off\"}",
+   "readyStateAtRun": "interactive"
+  },
+  "api": {
+   "requestIdleCallback": "function",
+   "SharedWorker": "function",
+   "locks": "function",
+   "BroadcastChannel": "function",
+   "Navigation": "object",
+   "prerendering": "boolean",
+   "serviceWorker": "object",
+   "storageGetDirectory": "function",
+   "RTCPeerConnection": "function",
+   "connection": "object",
+   "saveData": "false",
+   "ReadableStreamTransferable": true,
+   "AbortSignalTimeout": "function",
+   "toHex": "function",
+   "withResolvers": "function",
+   "structuredClone": "function",
+   "scheduler_postTask": "function"
+  },
+  "classic": {
+   "currentScript": "{\"mwEngine\":\"classic\"}"
+  }
+ },
+ "webkit 27.2": {
+  "module": {
+   "currentScript": "null",
+   "importMetaUrl": "http://127.0.0.1:55594/tag-mod.js?v=3",
+   "byQuery": "{\"mwEngine\":\"landing\",\"mwSw\":\"off\"}",
+   "readyStateAtRun": "interactive"
+  },
+  "api": {
+   "requestIdleCallback": "undefined",
+   "SharedWorker": "function",
+   "locks": "function",
+   "BroadcastChannel": "function",
+   "Navigation": "object",
+   "prerendering": "undefined",
+   "serviceWorker": "object",
+   "storageGetDirectory": "function",
+   "RTCPeerConnection": "function",
+   "connection": "undefined",
+   "saveData": "n/a",
+   "ReadableStreamTransferable": true,
+   "AbortSignalTimeout": "function",
+   "toHex": "function",
+   "withResolvers": "function",
+   "structuredClone": "function",
+   "scheduler_postTask": "undefined"
+  },
+  "classic": {
+   "currentScript": "{\"mwEngine\":\"classic\"}"
+  }
+ }
+}

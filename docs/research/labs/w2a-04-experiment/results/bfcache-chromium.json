@@ -1,0 +1,190 @@
+{
+ "browser": "chromium 156.0.8078.4",
+ "results": [
+  {
+   "kind": "base",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "ws-open",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "ws-closed",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "rtc-created-only",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "rtc-created-closed-early",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "rtc-offer-pending",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "rtc-offer-pending-closed",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "neg-open",
+   "setupCompleted": true,
+   "iceStates": [
+    "ice1:checking",
+    "ice1:connected"
+   ],
+   "dataChannelOpened": true,
+   "pageshowPersistedSequence": [
+    false,
+    false
+   ],
+   "restoredFromBfcache": false,
+   "notRestoredReasons": [
+    "WebRTC"
+   ]
+  },
+  {
+   "kind": "neg-closed-pagehide",
+   "setupCompleted": true,
+   "iceStates": [
+    "ice1:checking",
+    "ice1:connected"
+   ],
+   "dataChannelOpened": true,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "neg-closed-early",
+   "setupCompleted": true,
+   "iceStates": [
+    "ice1:checking",
+    "ice1:connected"
+   ],
+   "dataChannelOpened": true,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "neg-close-drop",
+   "setupCompleted": true,
+   "iceStates": [
+    "ice1:checking",
+    "ice1:connected"
+   ],
+   "dataChannelOpened": true,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "neg-close-drop-gc",
+   "setupCompleted": true,
+   "iceStates": [
+    "ice1:checking",
+    "ice1:connected"
+   ],
+   "dataChannelOpened": true,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "lock",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  },
+  {
+   "kind": "idb-open",
+   "setupCompleted": true,
+   "iceStates": [],
+   "dataChannelOpened": false,
+   "pageshowPersistedSequence": [
+    false,
+    true
+   ],
+   "restoredFromBfcache": true,
+   "notRestoredReasons": []
+  }
+ ]
+}

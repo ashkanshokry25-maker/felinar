@@ -1,0 +1,23 @@
+chromium 156.0.8078.4 {
+ "ua": "KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+ "hasSupportsStatic": "function",
+ "results": {
+  "ML-KEM-768 generateKey": "supported",
+  "ML-KEM-1024 generateKey": "supported",
+  "ML-DSA-65 generateKey": "supported",
+  "ChaCha20-Poly1305 generateKey": "supported",
+  "X-Wing (MLKEM768-X25519) generateKey": "supported",
+  "Ed25519 generateKey": "supported",
+  "Argon2id importKey+deriveBits": "NotSupportedError: Failed to execute 'importKey' on 'SubtleCrypto': Algorithm: ",
+  "Argon2id importKey (raw)": "NotSupportedError: Failed to execute 'importKey' on 'SubtleCrypto': Algorithm: ",
+  "scrypt importKey": "NotSupportedError: Failed to execute 'importKey' on 'SubtleCrypto': Algorithm: ",
+  "SHA3-256 digest": "NotSupportedError: Failed to execute 'digest' on 'SubtleCrypto': Algorithm: Unr"
+ },
+ "supports": {
+  "importKey:Argon2id": false,
+  "deriveBits:Argon2id": false,
+  "generateKey:ML-KEM-768": true,
+  "generateKey:ChaCha20-Poly1305": true,
+  "generateKey:Ed25519": true
+ }
+}

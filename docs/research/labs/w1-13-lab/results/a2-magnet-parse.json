@@ -1,0 +1,346 @@
+{
+ "constants": {
+  "hex40": "0123456789abcdef0123456789abcdef01234567",
+  "base32": "AERUKZ4JVPG66AJDIVTYTK6N54ASGRLH"
+ },
+ "hexLower": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "hexUpper": {
+  "xt": "urn:btih:0123456789ABCDEF0123456789ABCDEF01234567",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "base32Upper": {
+  "xt": "urn:btih:AERUKZ4JVPG66AJDIVTYTK6N54ASGRLH",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "base32Lower": {
+  "xt": "urn:btih:aerukz4jvpg66ajdivtytk6n54asgrlh",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "nonHex40chars": {
+  "xt": "urn:btih:zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+  "infoHash": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "hex41chars_trailingGarbage": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567ZZ",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "hex39chars": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef0123456",
+  "infoHash": "fff5be77dfffc0110c85fff5be77dfffc0110c85",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "v2only_btmh": {
+  "xt": "urn:btmh:1220aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "infoHashV2": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "hybrid_btih_btmh": {
+  "xt": [
+   "urn:btih:0123456789abcdef0123456789abcdef01234567",
+   "urn:btmh:1220aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "infoHashV2": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "btmh_unknown_multihash_code_sha3": {
+  "xt": "urn:btmh:1620aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "uppercase_scheme_and_keys_(QR_alphanumeric_mode)": {
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "uppercase_scheme_only": {
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "stream-magnet_prefix": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "dn_plus_and_percent": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "dn": "My Site é",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "name": "My Site é",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "dn_malformed_percent": {
+  "THROWS": "URIError: URI malformed"
+ },
+ "tr_malformed_percent": {
+  "THROWS": "URIError: URI malformed"
+ },
+ "tr_encoded_two_dupe": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "tr": [
+   "wss://a.example/announce",
+   "wss://b.example",
+   "wss://a.example/announce"
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [
+   "wss://a.example/announce",
+   "wss://b.example"
+  ],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "tr_unencoded_with_query_&": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "x": "2",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "xs_unencoded_url_with_equals": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "xs_encoded_url_with_equals": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "xs": "https://h.example/a.torrent?v=1",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "xs_two_values": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "xs": [
+   "https://a.example/a.torrent",
+   "https://b.example/a.torrent"
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "xs_btpk_BEP46": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "xs": "urn:btpk:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "s": "abcd",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "publicKey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "ws_and_as_both_to_urlList": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "ws": "https://w.example/base/",
+  "as": "https://as.example/x",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [
+   "https://as.example/x",
+   "https://w.example/base/"
+  ],
+  "peerAddresses": []
+ },
+ "so_BEP53": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "so": [
+   0,
+   2,
+   4,
+   5,
+   6
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "so_percent_encoded_commas": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "so": [
+   0,
+   2,
+   4,
+   5,
+   6
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "x.pe_two": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "x.pe": [
+   "192.0.2.1:6881",
+   "%5B2001:db8::1%5D:6881"
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": [
+   "192.0.2.1:6881",
+   "%5B2001:db8::1%5D:6881"
+  ]
+ },
+ "kt_keywords": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "kt": [
+   "a",
+   "b",
+   "c"
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "keywords": [
+   "a",
+   "b",
+   "c"
+  ],
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "empty_value_xs": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "xs": "",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "no_xt": {
+  "dn": "x",
+  "name": "x",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "repeated_dn": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "dn": [
+   "a",
+   "b"
+  ],
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "name": [
+   "a",
+   "b"
+  ],
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "fragment_after_magnet": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "dn": "x#frag",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "name": "x#frag",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "pt_hex40": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "pt_hex40_upper": {
+  "xt": "urn:btih:0123456789ABCDEF0123456789ABCDEF01234567",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "pt_base32_32chars": {
+  "xt": "urn:btih:AERUKZ4JVPG66AJDIVTYTK6N54ASGRLH",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "pt_base32_lower": {
+  "xt": "urn:btih:aerukz4jvpg66ajdivtytk6n54asgrlh",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "pt_raw20bytes": {
+  "xt": "urn:btih:0123456789abcdef0123456789abcdef01234567",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "announce": [],
+  "urlList": [],
+  "peerAddresses": []
+ },
+ "pt_arraybuffer_not_view": {
+  "THROWS": "Error: Invalid torrent identifier"
+ },
+ "pt_v2only_magnet": {
+  "THROWS": "Error: Invalid torrent identifier"
+ },
+ "pt_uppercase_magnet": {
+  "THROWS": "Error: Invalid torrent identifier"
+ },
+ "pt_http_url_string": {
+  "THROWS": "Error: Invalid torrent identifier"
+ },
+ "roundTrip": {
+  "parsedKeys": [
+   "announce",
+   "dn",
+   "infoHash",
+   "infoHashBuffer",
+   "name",
+   "peerAddresses",
+   "so",
+   "tr",
+   "urlList",
+   "ws",
+   "x.pe",
+   "xs",
+   "xt"
+  ],
+  "toMagnetURI": "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=My+Site&tr=wss%3A%2F%2Ft.example%2Fannounce&ws=https%3A%2F%2Fw.example%2Fbase%2F&xs=https%3A%2F%2Fh.example%2Fa.torrent&so=1,3-4&x.pe=192.0.2.1:6881"
+ },
+ "encodeFromObject": "magnet:?xs=https%3A%2F%2Fh.example%2Fa.torrent%3Fv%3D1&xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=a+b%26c&tr=wss%3A%2F%2Ft.example%2Fannounce%3Fx%3D1%26y%3D2&ws=https%3A%2F%2Fw.example%2Fbase%2F"
+}

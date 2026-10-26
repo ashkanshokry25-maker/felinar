@@ -1,0 +1,80 @@
+{
+ "node": "v24.22.0",
+ "baselineRssMB": 68,
+ "levels": [
+  {
+   "connections": 1000,
+   "connectSeconds": 0.3,
+   "rssMB": 101,
+   "heapUsedMB": 20,
+   "externalMB": 8,
+   "kbPerConnectionAllIn": 33.5,
+   "swarms": 100,
+   "idleCpuMsPerSecond": 0,
+   "throughput": []
+  },
+  {
+   "connections": 5000,
+   "connectSeconds": 2,
+   "rssMB": 164,
+   "heapUsedMB": 42,
+   "externalMB": 22,
+   "kbPerConnectionAllIn": 19.6,
+   "swarms": 100,
+   "idleCpuMsPerSecond": 0,
+   "throughput": []
+  },
+  {
+   "connections": 10000,
+   "connectSeconds": 4.5,
+   "rssMB": 235,
+   "heapUsedMB": 87,
+   "externalMB": 39,
+   "kbPerConnectionAllIn": 17.1,
+   "swarms": 100,
+   "idleCpuMsPerSecond": 0,
+   "throughput": [
+    {
+     "offeredAnnouncesPerSec": 200,
+     "achievedAnnouncesPerSec": 198,
+     "serverCpuPct": 4,
+     "rttMsP50": 0.73,
+     "rttMsP95": 410.25,
+     "rttMsP99": 749.9,
+     "offersForwardedToClientsPerSec": 832,
+     "repliesReceivedPct": 100
+    },
+    {
+     "offeredAnnouncesPerSec": 1000,
+     "achievedAnnouncesPerSec": 981,
+     "serverCpuPct": 13,
+     "rttMsP50": 2.74,
+     "rttMsP95": 7.3,
+     "rttMsP99": 12.66,
+     "offersForwardedToClientsPerSec": 4132,
+     "repliesReceivedPct": 100
+    },
+    {
+     "offeredAnnouncesPerSec": 3000,
+     "achievedAnnouncesPerSec": 2925,
+     "serverCpuPct": 31,
+     "rttMsP50": 7.73,
+     "rttMsP95": 13.53,
+     "rttMsP99": 16.32,
+     "offersForwardedToClientsPerSec": 12316,
+     "repliesReceivedPct": 100
+    },
+    {
+     "offeredAnnouncesPerSec": 6000,
+     "achievedAnnouncesPerSec": 5888,
+     "serverCpuPct": 54,
+     "rttMsP50": 11.69,
+     "rttMsP95": 25.15,
+     "rttMsP99": 41.13,
+     "offersForwardedToClientsPerSec": 24789,
+     "repliesReceivedPct": 100
+    }
+   ]
+  }
+ ]
+}

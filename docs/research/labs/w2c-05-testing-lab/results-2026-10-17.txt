@@ -1,0 +1,158 @@
+# w2c-05 lab results, run 2026-10-17T21:35:08Z
+# host: Darwin mba 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:05:41 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8122 arm64
+# node: v24.22.0  playwright: 1.64.1
+
+################ wycheproof-run.mjs
+Node v24.22.0 + src/chain/crypto.js verify(): 262 vectors, mismatches: 0 []
+chromium 156.0.8078.4 raw WebCrypto: {"total":262,"mismatches":0,"thrown":0,"sample":[]}
+webkit 27.2 raw WebCrypto: {"total":262,"mismatches":0,"thrown":0,"sample":[]}
+
+################ jcs-run.mjs
+arrays      MATCH
+french      MATCH
+structures  MATCH
+unicode     MATCH
+values      MATCH
+weird       MATCH
+
+################ pbt-parsers.mjs
+PASS  parseRange never throws; result is null|416|{start<=end<size} => 47 ms
+PASS  parseRange("bytes=a-b") = {a, min(b,size-1)} for 0<=a<=b, a<size => 195 ms
+PASS  parseRange suffix "bytes=-n" = last n bytes (clamped) => 25 ms
+PASS  normalizeBtih(hex)=lowercase hex; normalizeBtih(base32(hex))=hex (both cases) => 456 ms
+PASS  formatMagnet -> parseMagnet round-trips btih/dn/tr/ws/xs (after trim+dedupe) => 389 ms
+PASS  parseMagnet never throws on arbitrary strings => 42 ms
+PASS  splitSitePath never throws; btih is 40 lowercase hex; entryFor never throws => 104 ms
+PASS  canonicalize == manual sorted-key serializer (differential oracle; naive JSON.stringify(sorted object) is WRONG for integer-like keys) => 315 ms
+PASS  canonicalize idempotent: canonicalize(JSON.parse(canonicalize(v))) === canonicalize(v) => 282 ms
+PASS  canonicalize is independent of object key insertion order (incl. __proto__ keys) => 205 ms
+PASS  canonicalize(lone surrogate strings) matches JSON.stringify (well-formed JSON.stringify) => 61 ms
+
+################ wire-oversize.mjs
+chunk=16KiB fed=4MiB wall=40ms cpu(user+sys)=71ms rssDelta=341MiB bufferSize=4MiB destroyed=false handshakeSeen=true
+chunk=16KiB fed=16MiB wall=640ms cpu(user+sys)=1027ms rssDelta=884MiB bufferSize=16MiB destroyed=false handshakeSeen=true
+chunk=16KiB fed=32MiB wall=2751ms cpu(user+sys)=4231ms rssDelta=1096MiB bufferSize=32MiB destroyed=false handshakeSeen=true
+chunk=16KiB fed=64MiB wall=10902ms cpu(user+sys)=15205ms rssDelta=2240MiB bufferSize=64MiB destroyed=false handshakeSeen=true
+chunk=63.9990234375KiB fed=64MiB wall=2691ms cpu(user+sys)=3732ms rssDelta=-162MiB bufferSize=64MiB destroyed=false handshakeSeen=true
+
+################ wire-debug.mjs
+after handshake: parserSize 4 bufferSize 0 handshake? (n/a)
+after 0xffffffff prefix: parserSize 4 bufferSize 0
+after 16KiB zero filler: parserSize 4 bufferSize 0
+after 16KiB 0x01 filler: parserSize 16843009 bufferSize 16380
+
+################ webseed-chaos.mjs
+{"mode":"honors-range","done":true,"elapsedMs":48,"progress":1,"requests":12,"MiBServed":3,"statuses":{"206":12},"uniqueWarnings":[],"warningCount":0}
+{"mode":"ignores-range","done":false,"elapsedMs":15002,"progress":0,"requests":1,"MiBServed":3,"statuses":{"200":1},"uniqueWarnings":[],"warningCount":0}
+{"mode":"forbidden-403","done":false,"elapsedMs":15001,"progress":0,"requests":24,"MiBServed":0,"statuses":{"403":24},"uniqueWarnings":[],"warningCount":0}
+{"mode":"corrupt-bytes","done":false,"elapsedMs":15002,"progress":0,"requests":27474,"MiBServed":6868.5,"statuses":{"206":27474},"uniqueWarnings":["Piece 11 failed verification","Piece 0 failed verification","Piece 1 failed verification"],"warningCount":27474}
+{"mode":"short-body-206","done":false,"elapsedMs":15003,"progress":0,"requests":1,"MiBServed":0.1,"statuses":{"206":1},"uniqueWarnings":[],"warningCount":0}
+
+################ ndc-loopback.mjs
+node-datachannel polyfill: 20/20 loopback data-channel pairs connected in 1064 ms (rss 85 MiB)
+
+################ chromium-node-peer.mjs
+Chromium 156.0.8078.4
+{"chromiumToNodeDatachannel":{"open":true,"setupMs":184,"nodeReceived":"hello-from-chromium","chromiumGotReplyMs":1.1,"pair":["host/udp -> host/udp addr=192.168.18.5"]}}
+
+################ cdp-webrtc-throttle.mjs
+Chromium 156.0.8078.4
+{"name":"baseline (no emulation)","open":[true,true],"setupMs":189,"pair":["host/udp -> host/udp addr=192.168.18.5"],"ping":{"median":0.3,"p90":0.4,"max":0.7},"tp":{"ms":4763,"MBps":0.84,"bytes":4000000}}
+{"name":"byRule latency=100ms on A only","open":[true,true],"setupMs":980,"pair":["host/udp -> host/udp addr=192.168.18.5"],"ping":{"median":204.9,"p90":206.2,"max":206.4},"tp":{"ms":26647,"MBps":0.15,"bytes":4000000}}
+{"name":"byRule latency=100ms on A and B","open":[true,true],"setupMs":1772,"pair":["host/udp -> host/udp addr=192.168.18.5"],"ping":{"median":404.9,"p90":406.6,"max":407.2},"tp":{"ms":41055,"MBps":0.1,"bytes":4000000}}
+{"name":"byRule packetLoss=10% on A only","open":[true,true],"setupMs":175,"pair":["host/udp -> host/udp addr=192.168.18.5"],"ping":{"median":0.2,"p90":405.7,"max":411.1},"tp":{"ms":226,"MBps":17.74,"bytes":4000000}}
+{"name":"byRule bandwidth=250000 B/s up+down on A only","open":[true,true],"setupMs":191,"pair":["host/udp -> host/udp addr=192.168.18.5"],"ping":{"median":0.9,"p90":1.3,"max":1.3},"tp":{"ms":2143,"MBps":0.23,"bytes":500000}}
+{"name":"legacy emulateNetworkConditions latency=100ms on A only","open":[true,true],"setupMs":966,"pair":["host/udp -> host/udp addr=192.168.18.5"],"ping":{"median":202.6,"p90":204.1,"max":204.9},"tp":{"ms":20658,"MBps":0.19,"bytes":4000000}}
+{"name":"legacy emulateNetworkConditions packetLoss=10% on A only","open":[true,true],"setupMs":189,"pair":["host/udp -> host/udp addr=192.168.18.5"],"ping":{"median":0.1,"p90":0.3,"max":0.5},"tp":{"ms":3778,"MBps":1.06,"bytes":4000000}}
+
+################ cdp-webrtc-throttle2.mjs
+Chromium 156.0.8078.4
+{"name":"baseline","open":[true,true],"setupMs":194,"MBps_runs":[0.48,31.75,34.07],"ping":{"median":0.1,"p90":0.2,"max":0.3}}
+{"name":"byRule loss=2%","open":[true,true],"setupMs":184,"MBps_runs":[22.35,20.86,22.12],"ping":{"median":0.2,"p90":0.4,"max":411.4}}
+{"name":"byRule loss=5%","open":[true,true],"setupMs":178,"MBps_runs":[17.73,16.96,16.6],"ping":{"median":0.2,"p90":405.6,"max":408.8}}
+{"name":"byRule loss=10%","open":[true,true],"setupMs":179,"MBps_runs":[17.05,1.5,17.45],"ping":{"median":0.2,"p90":407,"max":1217.5}}
+{"name":"byRule loss=20%","open":[true,true],"setupMs":844,"MBps_runs":[0.02,0.23,0.03],"ping":{"median":1.2,"p90":1218.5,"max":5001.1}}
+{"name":"byRule loss=5% + latency=50ms","open":[true,true],"setupMs":621,"MBps_runs":[0.06,0.06,0.05],"ping":{"median":103.6,"p90":514.7,"max":517.9}}
+{"name":"byRule packetReordering=true latency=50","open":[true,true],"setupMs":608,"MBps_runs":[0.5,0.46,0.48],"ping":{"median":104.2,"p90":105,"max":105.8}}
+{"name":"byRule packetQueueLength=5 bw=500000","open":[true,true],"setupMs":186,"MBps_runs":[0.39,0.37,0.36],"ping":{"median":0.7,"p90":0.8,"max":0.9}}
+{"name":"legacy loss=20%","open":[true,true],"setupMs":174,"MBps_runs":[2.12,29.33,31.25],"ping":{"median":0.1,"p90":0.2,"max":0.3}}
+{"name":"byRule offline=true on A after connect","open":[true,true],"setupMs":176,"MBps_runs":[0.47,29.24,33.22],"ping":{"median":0.1,"p90":0.2,"max":0.3},"offlineResult":"pings completed while offline"}
+
+################ cdp-webrtc-throttle3.mjs
+Chromium 156.0.8078.4
+blackhole: pings completed under packetLoss=100
+state transitions after blackhole (ms since blackhole start): []
+final states A: {"ice":"connected","conn":"connected","dc":"open"}
+no emulation   : {"wsEchoMedianMs":0.2,"fetchMedianMs":0.5}
+latency=100 byRule: {"wsEchoMedianMs":0.3,"fetchMedianMs":107.2}
+
+################ setoffline-dc.mjs
+Chromium 156.0.8078.4
+open: true
+context.setOffline(true) on page A after connect: pings completed while context.setOffline(true): median 0.3 ms
+fetch while offline: fetch FAILED: Failed to fetch
+
+################ cdp-webrtc-throttle4.mjs
+Chromium 156.0.8078.4
+T1 open: true
+T1: pings STALLED after flipping loss 0->100
+T2 data channel opened under loss=100 before connect? false | events: [["ice:checking",248],["ice:disconnected",15309]] | final ice: disconnected | elapsed s 60
+
+################ cdp-webrtc-throttle5.mjs
+Chromium 156.0.8078.4
+open: true
+A (impaired side) events: [["ice:disconnected",5056],["conn:disconnected",5056],["conn:failed",15057]] {"ice":"disconnected","conn":"failed","dc":"open"}
+B (remote side)  events: [["ice:disconnected",5025],["conn:disconnected",5025],["conn:failed",15025]] {"ice":"disconnected","conn":"failed","dc":"open"}
+
+################ mem-flags.mjs
+A) default flags, no COI               {"crossOriginIsolated":false,"hasGc":"undefined","perfMemory":true,"mUASM":"undefined","h0":10000000,"h1":10000000,"h2":10000000} | CDP JSHeapUsedSize 11440364 | getHeapUsage(after GC) 674856 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+B) --js-flags=--expose-gc, no COI       {"crossOriginIsolated":false,"hasGc":"function","perfMemory":true,"mUASM":"undefined","h0":10000000,"h1":10000000,"h2":10000000} | CDP JSHeapUsedSize 696884 | getHeapUsage(after GC) 675452 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+C) +--enable-precise-memory-info        {"crossOriginIsolated":false,"hasGc":"function","perfMemory":true,"mUASM":"undefined","h0":1031589,"h1":11381289,"h2":658918} | CDP JSHeapUsedSize 696884 | getHeapUsage(after GC) 675452 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+D) +COOP/COEP headers (COI)             {"crossOriginIsolated":true,"hasGc":"function","perfMemory":true,"mUASM":"function","h0":689831,"h1":11064547,"h2":659070,"uasmErr":"SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."} | CDP JSHeapUsedSize 711488 | getHeapUsage(after GC) 682496 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+E) +COI +ForceEagerMeasureMemory        {"crossOriginIsolated":true,"hasGc":"function","perfMemory":true,"mUASM":"function","h0":689831,"h1":11136795,"h2":659070,"uasmErr":"SecurityError: Failed to execute 'measureUserAgentSpecificMemory' on 'Performance': performance.measureUserAgentSpecificMemory is not available."} | CDP JSHeapUsedSize 711488 | getHeapUsage(after GC) 682496 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+
+################ mem-flags-newheadless.mjs
+A) default flags, no COI               {"crossOriginIsolated":false,"hasGc":"undefined","perfMemory":true,"mUASM":"undefined","h0":1150021,"h1":1150021,"h2":1150021} | CDP JSHeapUsedSize 11578996 | getHeapUsage(after GC) 763788 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+B) --js-flags=--expose-gc, no COI       {"crossOriginIsolated":false,"hasGc":"function","perfMemory":true,"mUASM":"undefined","h0":1151776,"h1":1151776,"h2":1151776} | CDP JSHeapUsedSize 785920 | getHeapUsage(after GC) 764488 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+C) +--enable-precise-memory-info        {"crossOriginIsolated":false,"hasGc":"function","perfMemory":true,"mUASM":"undefined","h0":1153256,"h1":11523132,"h2":747968} | CDP JSHeapUsedSize 785920 | getHeapUsage(after GC) 764488 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+D) +COOP/COEP headers (COI)             {"crossOriginIsolated":true,"hasGc":"function","perfMemory":true,"mUASM":"function","h0":794274,"h1":11119958,"h2":748120,"uasmBytes":518212,"uasmMs":15015,"uasmBreakdown":4} | CDP JSHeapUsedSize 785720 | getHeapUsage(after GC) 765712 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+E) +COI +ForceEagerMeasureMemory        {"crossOriginIsolated":true,"hasGc":"function","perfMemory":true,"mUASM":"function","h0":794274,"h1":11164858,"h2":748120,"uasmBytes":519280,"uasmMs":14,"uasmBreakdown":4} | CDP JSHeapUsedSize 785720 | getHeapUsage(after GC) 765712 | DOMCounters {"documents":1,"nodes":7,"jsEventListeners":0}
+
+################ pw-gotchas.mjs
+1) page.clock.setFixedTime(2030-01-01):  {"pageNow":"2030-01-01T00:00:00.000Z","workerNow":"2026-10-17T21:49:07.097Z","swNow":"2026-10-17T21:49:07.102Z"} | real now: 2026-10-17T21:49:07.102Z
+2) page.routeWebSocket mock answers MOCK:*, real server answers REAL:* => {"page":"MOCK:from-page","worker":"REAL:from-worker","sw":"REAL:from-sw"} | mock handler invocations 1
+2b) context.routeWebSocket typeof = function => {"worker":"REAL:from-worker","sw":"REAL:from-sw"} | invocations 0
+3) SW global state across stopAllWorkers: boot before 1792273747264:011myw after 1792273747771:vtj17m => DIFFERENT (SW restarted, in-memory state lost) | runningStatus events: running/activated,stopping/activated,stopped/activated,starting/activated
+
+################ idb-pow-bench.mjs
+chromium 156.0.8078.4 {"put50kMs":842,"approxBytesMB":33.3,"openMs":0,"getAll50kMs":235,"count":50000,"webcryptoSha256PerSec":529387,"bits14MeanSec":0.03}
+webkit 27.2 {"put50kMs":1829,"approxBytesMB":33.3,"openMs":0,"getAll50kMs":172,"count":50000,"webcryptoSha256PerSec":65727,"bits14MeanSec":0.25}
+
+################ engine-probe.mjs
+
+=== chromium 156.0.8078.4
+FEATURES {"isSecureContext":true,"crossOriginIsolated":false,"Uint8Array.toHex":"function","Uint8Array.fromHex":"function","Uint8Array.toBase64":"function","Uint8Array.fromBase64":"function","AbortSignal.timeout":"function","AbortSignal.any":"function","structuredClone":"function","Array.at":"function","Promise.withResolvers":"function","BigInt64Array":"function","ReadableStream":"function","Blob.arrayBuffer":"function","navigator.storage.getDirectory(OPFS)":"function","createWritable":"function","navigator.storage.persist":"function","navigator.connection":"object","navigator.locks":"object","measureUserAgentSpecificMemory":"undefined","performance.memory":"object","RTCPeerConnection":"function","RTCDataChannel transferable-ish(MessagePort)":"function","Worker":"function","SharedWorker":"function","serviceWorker":"object","caches":"object","indexedDB":"object","crypto.subtle":"object","Intl.DurationFormat":"function","ecdsa_p256":{"sigLen":64,"verify":true,"rawPubLen":65},"cryptokey_in_idb":{"restored":true,"signsAfterRestore":64},"sw":{"controllerOnTop":true,"iframeText":"sw-ok","iframeControlled":true}}
+RTC {"label":"chromium: 2 contexts, 1 browser","open":[true,true],"setupMs":256,"offerHasMdns":false,"info":{"pair":["host/udp -> host/udp addr=192.168.18.5"],"maxMessageSize":262144},"rttMedianMs":0.2,"MBps":0.92}
+RTC {"label":"chromium: 2 separate browser launches","open":[true,true],"setupMs":483,"offerHasMdns":false,"info":{"pair":["host/udp -> host/udp addr=192.168.18.5"],"maxMessageSize":262144},"rttMedianMs":0.3,"MBps":0.93}
+ENGINE firefox ERROR Error: browserType.launch: Failed to launch the browser process.
+Browser logs:
+
+<launching> $HOME/Library/Caches/ms-playwright/firefox-1555/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/hh/ykkbmvdx1kx_g9lbhm6qr8gh0000gn/T/playwright_firefoxdev_p
+
+=== webkit 27.2
+FEATURES {"isSecureContext":true,"crossOriginIsolated":false,"Uint8Array.toHex":"function","Uint8Array.fromHex":"function","Uint8Array.toBase64":"function","Uint8Array.fromBase64":"function","AbortSignal.timeout":"function","AbortSignal.any":"function","structuredClone":"function","Array.at":"function","Promise.withResolvers":"function","BigInt64Array":"function","ReadableStream":"function","Blob.arrayBuffer":"function","navigator.storage.getDirectory(OPFS)":"function","createWritable":"function","navigator.storage.persist":"function","navigator.connection":"undefined","navigator.locks":"object","measureUserAgentSpecificMemory":"undefined","performance.memory":"undefined","RTCPeerConnection":"function","RTCDataChannel transferable-ish(MessagePort)":"function","Worker":"function","SharedWorker":"function","serviceWorker":"object","caches":"object","indexedDB":"object","crypto.subtle":"object","Intl.DurationFormat":"function","ecdsa_p256":{"sigLen":64,"verify":true,"rawPubLen":65},"cryptokey_in_idb":{"restored":true,"signsAfterRestore":64},"sw":{"controllerOnTop":true,"iframeText":"sw-ok","iframeControlled":true}}
+RTC {"label":"webkit: 2 contexts, 1 browser","open":[false,false],"setupMs":40825,"offerHasMdns":false}
+RTC {"label":"webkit: 2 separate browser launches","open":[false,false],"setupMs":41046,"offerHasMdns":false}
+
+################ webkit-rtc.mjs
+{"label":"webkit default","open":[false,false],"ms":40019,"offerCandidates":0,"sample":[]}
+{"label":"webkit permissions camera+microphone at context creation","open":[false,false],"ms":40021,"offerCandidates":0,"sample":[]}
+{"label":"webkit grantPermissions after creation","open":[false,false],"ms":40020,"offerCandidates":0,"sample":[]}
+
+################ webkit-rtc2.mjs
+{"label":"webkit: permissions + getUserMedia(audio)","gumRes":"gUM ok tracks=1","trickleCandidates":1,"trickleSample":["candidate:3827113727 1 udp 2113937151 192.168.18.5 64585 typ host generation 0 ufrag 9WYr network-cost 999"],"gatherState":"complete","open":[false,false]}
+
+################ webkit-inpage.mjs
+chromium in-page {"connected":true,"got":"hello","ms":8,"candidates":["192.168.18.5 61931 typ host"],"ice1":"connected","ice2":"connected"}
+webkit in-page (no gUM) {"connected":false,"got":null,"ms":10006,"candidates":[],"ice1":"new","ice2":"new"}
+webkit in-page (perm + gUM) {"connected":false,"got":null,"ms":10008,"candidates":["192.168.18.5 65461 typ host"],"ice1":"checking","ice2":"checking"}

@@ -1,0 +1,15 @@
+# Same body as production, but local CA + high ports so it can run unprivileged and be probed with curl --resolve.
+{
+	local_certs
+	skip_install_trust
+	http_port 18080
+	https_port 18443
+	admin off
+}
+
+import hub-sites.caddy
+
+*.hub-sites.example, hub-sites.example {
+	tls internal
+	import hub_sites_body
+}

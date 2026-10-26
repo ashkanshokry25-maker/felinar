@@ -1,0 +1,90 @@
+{"engine":"chromium","version":"156.0.8078.4"}
+=== WebSocket API (events seen by script) ===
+- ok-open-then-clean-close-1000
+    ctorThrew=null  csp=[]
+    events: open@1.6ms -> close(code=1000,reason="bye",wasClean=true)@2.4ms
+    devtoolsConsole(not readable by page script): []
+- ok-open-then-app-close-4001
+    ctorThrew=null  csp=[]
+    events: open@1.4ms -> close(code=4001,reason="app-reason",wasClean=true)@1.7ms
+    devtoolsConsole(not readable by page script): []
+- ok-open-then-server-abrupt-tcp-drop
+    ctorThrew=null  csp=[]
+    events: open@1.9ms -> close(code=1006,reason="",wasClean=false)@2ms
+    devtoolsConsole(not readable by page script): []
+- tcp-connection-refused
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@2.8ms -> close(code=1006,reason="",wasClean=false)@2.9ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:54969/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"]
+- dns-unresolvable-host
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@105.3ms -> close(code=1006,reason="",wasClean=false)@105.3ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://no-such-host-7f3a91.invalid/' failed: Error in connection establishment: net::ERR_NAME_NOT_RESOLVED"]
+- non-websocket-server-200
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@2.1ms -> close(code=1006,reason="",wasClean=false)@2.1ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:54970/non-ws-200' failed: Error during WebSocket handshake: Unexpected response code: 200"]
+- http-403-on-upgrade
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@3.5ms -> close(code=1006,reason="",wasClean=false)@3.6ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:54970/http-403' failed: Error during WebSocket handshake: Unexpected response code: 403"]
+- http-500-on-upgrade
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@2.4ms -> close(code=1006,reason="",wasClean=false)@2.5ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:54970/http-500' failed: Error during WebSocket handshake: Unexpected response code: 500"]
+- http-302-on-upgrade
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@2.2ms -> close(code=1006,reason="",wasClean=false)@2.3ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:54970/redirect-302' failed: Error during WebSocket handshake: Unexpected response code: 302"]
+- bad-Sec-WebSocket-Accept
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@4.3ms -> close(code=1006,reason="",wasClean=false)@4.4ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:54970/bad-accept' failed: Error during WebSocket handshake: Incorrect 'Sec-WebSocket-Accept' header value"]
+- unoffered-subprotocol
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@4.7ms -> close(code=1006,reason="",wasClean=false)@4.7ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:54970/unoffered-subprotocol' failed: Error during WebSocket handshake: Response must not include 'Sec-WebSocket-Protocol' header if not present in request: chat"]
+- tls-selfsigned-cert (wss)
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@27.2ms -> close(code=1006,reason="",wasClean=false)@27.2ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'wss://127.0.0.1:54971/' failed: Error in connection establishment: net::ERR_CERT_AUTHORITY_INVALID"]
+- wss-to-plain-http-port (TLS handshake fails)
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@20.2ms -> close(code=1006,reason="",wasClean=false)@20.2ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'wss://127.0.0.1:54970/ok-close-1000' failed: Error in connection establishment: net::ERR_CONNECTION_CLOSED"]
+- restricted-port-6000 (browser port block list)
+    ctorThrew=null  csp=[]
+    events: error[Event,ownKeys=1]@1.1ms -> close(code=1006,reason="",wasClean=false)@1.2ms
+    devtoolsConsole(not readable by page script): ["[error] WebSocket connection to 'ws://127.0.0.1:6000/' failed: Error in connection establishment: net::ERR_UNSAFE_PORT"]
+- invalid-url-with-fragment
+    ctorThrew={"name":"SyntaxError","message":"Failed to construct 'WebSocket': The URL contains a fragment identifier ('frag'). Fragment identifiers are not allowed in WebSocket URLs."}  csp=[]
+    events: (none)
+    devtoolsConsole(not readable by page script): []
+- blackhole-192.0.2.1 (env-dependent, 5s window)
+    ctorThrew=null STILL-PENDING-after-5000ms(readyState=0) csp=[]
+    events: (none)
+    devtoolsConsole(not readable by page script): []
+- csp-connect-src-none
+    ctorThrew=null STILL-PENDING-after-4000ms(readyState=3) csp=[{"t":0.3,"directive":"connect-src","blocked":"ws://127.0.0.1:54970/ok-close-1000"}]
+    events: error[Event,ownKeys=1]@0.3ms
+    devtoolsConsole(not readable by page script): ["[error] Connecting to 'ws://127.0.0.1:54970/ok-close-1000' violates the following Content Security Policy directive: \"connect-src 'none'\". The action has been blocked."]
+- mixed-content (https page -> ws://non-loopback)
+    ctorThrew={"name":"SecurityError","message":"Failed to construct 'WebSocket': An insecure WebSocket connection may not be initiated from a page loaded over HTTPS."}  csp=[]
+    events: (none)
+    devtoolsConsole(not readable by page script): []
+=== WebSocketStream API ===
+- {"label":"ok-open-then-clean-close-1000","opened":true,"closed":{"code":1000,"reason":"bye"},"ms":1}
+- {"label":"ok-open-then-app-close-4001","opened":true,"closed":{"code":4001,"reason":"app-reason"},"ms":13}
+- {"label":"ok-open-then-server-abrupt-tcp-drop","opened":true,"closedErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":1006,"reason":"","message":"WebSocket was not cleanly closed."},"ms":15}
+- {"label":"tcp-connection-refused","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":0}
+- {"label":"dns-unresolvable-host","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":103}
+- {"label":"non-websocket-server-200","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":1}
+- {"label":"http-403-on-upgrade","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":13}
+- {"label":"http-500-on-upgrade","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":13}
+- {"label":"http-302-on-upgrade","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":14}
+- {"label":"bad-Sec-WebSocket-Accept","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":15}
+- {"label":"unoffered-subprotocol","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":12}
+- {"label":"tls-selfsigned-cert (wss)","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":2}
+- {"label":"wss-to-plain-http-port (TLS handshake fails)","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":24}
+- {"label":"restricted-port-6000 (browser port block list)","openErr":{"name":"WebSocketError","ctor":"WebSocketError","closeCode":null,"reason":"","message":"WebSocket closed before handshake complete."},"ms":2}
+- {"label":"invalid-url-with-fragment","openErr":{"name":"SyntaxError","ctor":"DOMException","message":"Failed to construct 'WebSocketStream': The URL contains a fragment identifier ('frag'). Fragment ide"},"ms":0}
