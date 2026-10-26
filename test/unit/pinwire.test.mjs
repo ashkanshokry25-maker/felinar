@@ -32,6 +32,21 @@ const ROGUE = await keypair()
 const settle = async (n = 12) => { for (let i = 0; i < n; i++) await new Promise((resolve) => setImmediate(resolve)) }
 /** until(fn, ms): fn() polled until it is truthy (code review v0.3, round 2: the signatures run on the thread pool, so a loaded run needs more than settle()). */
 const until = async (fn, ms = 3000) => { const end = Date.now() + ms; for (;;) { const v = fn(); if (v || Date.now() > end) return v; await new Promise((resolve) => setTimeout(resolve, 5)) } }
+/**
+ * waitFor(cond, what): polls cond() in real time until it is truthy and returns that value; past 10 s it throws, naming
+ * what it waited for (until() above returns what it last saw). WebCrypto runs on the thread pool, so on a loaded machine
+ * (the Linux CI runner, the whole unit suite in parallel) the ECDSA signing and verifying of hello and rcpt can land
+ * after any fixed number of settle() turns: a test that needs the result waits for it.
+ */
+async function waitFor (cond, what, deadlineMs = 10000) {
+  const end = Date.now() + deadlineMs
+  for (;;) {
+    const v = cond()
+    if (v) return v
+    if (Date.now() > end) throw new Error('timed out after ' + deadlineMs + ' ms waiting for ' + what)
+    await new Promise((resolve) => setTimeout(resolve, 2))
+  }
+}
 
 class Emitter {
   constructor () { this._l = new Map() }
@@ -193,6 +208,8 @@ describe('a verifier page and the pin page on fake wires', () => {
   test('chal once per wire, hello from _mw.cfg.pin authenticates and anchors the pin wire; the receipt follows completion', async () => {
     const s = setup()
     const { bw, pw } = await connect(s)
+    // connect() waits a fixed number of turns; the hello is signed and verified with WebCrypto on the thread pool.
+    await waitFor(() => s.browser.isPinWire(bw), 'the pin wire to authenticate (hello signed and verified)')
     const chals = bw.frames.filter((f) => f.t === 'chal')
     assert.equal(chals.length, 1, 'one chal per wire')
     assert.equal(b64url.decode(chals[0].n).length, 16)
@@ -203,8 +220,7 @@ describe('a verifier page and the pin page on fake wires', () => {
     assert.equal(s.browser.receipt(IH), null, 'no receipt before the pin holds every piece')
     assert.deepEqual(s.signLog, ['mw-pin1-hello'])
     s.ptm.complete(IH, 65536)
-    await settle()
-    const r = await until(() => s.browser.receipt(IH))
+    const r = await waitFor(() => s.browser.receipt(IH), 'the receipt (rcpt signed and verified)')
     assert.deepEqual(s.signLog, ['mw-pin1-hello', 'mw-pin1-receipt'], 'the bridge signed only the two forms')
     assert.equal(r.total, 65536)
     assert.equal(r.key, PIN.pub)
@@ -213,7 +229,8 @@ describe('a verifier page and the pin page on fake wires', () => {
     assert.equal(ev.configured, true)
     assert.equal(ev.receipt.at, NOW)
     assert.equal(s.btm._pinSource, s.browser, 'attach() makes it the pin source')
-    // The pin page also challenged the browser, which is no responder: no hello comes back.
+    // The pin page also challenged the browser, which is no responder: no hello comes back. A fixed bound is right for this
+    // negative check: the browser's handling of that chal involves no WebCrypto and was over within connect()'s settle().
     assert.equal(bw.frames.filter((f) => f.t === 'hello').length, 0)
   })
 
@@ -221,10 +238,12 @@ describe('a verifier page and the pin page on fake wires', () => {
     for (const [codec, pinCodec] of [[null, null], [SZ_CODEC, null], [null, SZ_CODEC]]) {
       const s = setup({ codec, pinCodec })
       const { bw } = await connect(s)
+      // connect() waits a fixed number of turns; the hello is signed and verified with WebCrypto on the thread pool.
+      await waitFor(() => s.browser.isPinWire(bw), 'the pin wire to authenticate (hello signed and verified)')
       assert.equal(s.browser.isPinWire(bw), true)
       s.ptm.complete(IH, 32768)
-      await settle()
-      assert.equal((await until(() => s.browser.receipt(IH))).total, 32768)
+      const receipt = await waitFor(() => s.browser.receipt(IH), 'the receipt (rcpt signed and verified)')
+      assert.equal(receipt.total, 32768)
     }
   })
 
@@ -300,11 +319,15 @@ describe('a verifier page and the pin page on fake wires', () => {
     btm.wire(bw, 'file', IH, true)
     assert.equal(bw.resent, 1, 'the handshake is sent again with mw_pin1 in it')
     await pin.ready
+    // A negative check, so a fixed bound is right: there is no condition to wait for, and every path that could wrongly send
+    // a chal here (the late wire's handshake, the reply to the pin's own chal, which arrives a setImmediate later) is
+    // synchronous or microtask work without WebCrypto, so these turns cover it.
     await settle()
     assert.equal(bw.frames.filter((f) => f.t === 'chal').length, 0, 'no _mw.cfg.pin: no chal')
     key = PIN.pub
     await browser.refresh()
-    await settle()
+    // The pin signs its hello and this page verifies it with WebCrypto on the thread pool: wait for that, not for turns.
+    await waitFor(() => browser.isPinWire(bw), 'the pin wire to authenticate (hello signed and verified)')
     assert.equal(bw.frames.filter((f) => f.t === 'chal').length, 1)
     assert.equal(browser.isPinWire(bw), true)
   })
@@ -313,6 +336,8 @@ describe('a verifier page and the pin page on fake wires', () => {
     const s = setup()
     s.btm.local.set(IH, { complete: true, length: 4 * 16384, pieces: 4 })
     const { bw } = await connect(s)
+    // connect() waits a fixed number of turns; the hello is signed and verified with WebCrypto on the thread pool.
+    await waitFor(() => s.browser.isPinWire(bw), 'the pin wire to authenticate (hello signed and verified)')
     bw.peerPieces = { get: (i) => i < 3 }
     assert.equal(s.browser.pinProgress(IH), 75)
     assert.equal(s.browser.pinProgress(OTHER_IH), null)

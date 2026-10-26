@@ -131,7 +131,13 @@ describe('Social in a browser, media, messages, alerts and groups', { skip: pw ?
     await page.$eval('#viewer video', (v) => { v.currentTime = 2.5; });
     await page.waitForFunction(() => { const v = document.querySelector('#viewer video'); return !v.seeking && v.readyState >= 2 && Math.abs(v.currentTime - 2.5) < 0.6; }, null, { timeout: 20000 });
     const ranged = env.srv.hits.slice(before).filter((h) => h.path === '/_mw/media/v-m2' && !h.search);
-    assert.ok(ranged.length > 0 && ranged.every((h) => h.status === 206));
+    if (process.platform === 'linux') {
+      // WebKit on Linux (GStreamer) first asks for the whole file without a Range header, then seeks with Range; on macOS every
+      // request carries Range. The seek above proves the 206 route; here only the pattern of the first request differs.
+      assert.ok(ranged.some((h) => h.status === 206) && ranged.every((h) => h.status === 200 || h.status === 206), 'WebKit requested the video: ' + JSON.stringify(ranged));
+    } else {
+      assert.ok(ranged.length > 0 && ranged.every((h) => h.status === 206));
+    }
     await context.close();
   });
 

@@ -338,7 +338,13 @@ describe('Peer Guestbook in a browser', { skip: pw ? false : 'playwright is not 
       await page.$eval('#clip', (v) => { v.currentTime = 2.5; });
       await page.waitForFunction(() => { const v = document.querySelector('#clip'); return !v.seeking && v.readyState >= 2 && Math.abs(v.currentTime - 2.5) < 0.6; }, null, { timeout: 15000 });
       const ranged = srv.hits.slice(before).filter((h) => h.path === '/media/clip.mp4');
-      assert.ok(ranged.length > 0 && ranged.every((h) => h.status === 206), engine + ' requested the clip with Range: ' + JSON.stringify(ranged));
+      if (engine === 'webkit' && process.platform === 'linux') {
+        // WebKit on Linux (its GStreamer media engine) first asks for the whole clip without a Range header, then seeks with Range;
+        // WebKit on macOS asks with Range from the first request. The seek above proves the 206 route works on both.
+        assert.ok(ranged.some((h) => h.status === 206) && ranged.every((h) => h.status === 200 || h.status === 206), engine + ' requested the clip: ' + JSON.stringify(ranged));
+      } else {
+        assert.ok(ranged.length > 0 && ranged.every((h) => h.status === 206), engine + ' requested the clip with Range: ' + JSON.stringify(ranged));
+      }
       await context.close();
     });
   }

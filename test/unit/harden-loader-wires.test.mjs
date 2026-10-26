@@ -82,6 +82,19 @@ class FakeClock {
 
 function flush () { return new Promise((resolve) => setImmediate(resolve)) }
 
+/**
+ * untilJoinScheduled(tm): waits in real time until addRendezvous has scheduled the jittered join (or holds a torrent).
+ * The rendezvous infohash is a WebCrypto digest on the thread pool: a fixed number of setImmediate turns is not enough
+ * when the whole suite runs on a loaded machine (the first CI run on Linux hung here), so this waits up to 10 s of wall time.
+ */
+async function untilJoinScheduled (tm, deadlineMs = 10000) {
+  const until = Date.now() + deadlineMs
+  while (!(tm.rendezvous && (tm.rendezvous.joinTimer || tm.rendezvous.torrent))) {
+    if (Date.now() > until) throw new Error('the rendezvous join was not scheduled within ' + deadlineMs + ' ms')
+    await new Promise((resolve) => setTimeout(resolve, 2))
+  }
+}
+
 const deps = {
   MemoryChunkStore: class { constructor (c, o) { this.chunkLength = c; this.length = o.length } put (i, b, cb) { cb(null) } get (i, o, cb) { cb(null, new Uint8Array(1)) } close (cb) { cb && cb(null) } destroy (cb) { cb && cb(null) } },
   BlobChunkStore: class {},
@@ -114,7 +127,7 @@ async function siteTorrent (tm) {
 async function rendezvousTorrent (tm, clock) {
   const p = tm.addRendezvous('mw1:abc', ['wss://own.example'])
   // The rendezvous infohash is a WebCrypto digest: wait until the jittered join is scheduled.
-  for (let i = 0; i < 200 && !(tm.rendezvous && tm.rendezvous.joinTimer); i++) await flush()
+  await untilJoinScheduled(tm)
   await clock.advance(CONFIG.ledger.joinJitterMs + 1)
   return p
 }
