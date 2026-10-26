@@ -93,6 +93,22 @@ function wire(win, idp, { origin = SITE } = {}) {
 const ready = (win, extra = {}) => win.deliver(Object.assign({ source: win.popup, origin: IDP, data: { v: 1, t: 'mw-idp-ready', build: '0.3.0-test' } }, extra));
 const tick = () => new Promise((r) => setImmediate(r));
 
+/**
+ * waitFor(cond, what): polls cond() in real time until it is truthy and returns that value; past 10 s it throws, naming
+ * what it waited for. WebCrypto runs on the thread pool, so on a loaded machine (the Linux CI runner, the whole unit
+ * suite in parallel) the ECDH key generation and export before a redirect can land after any fixed number of
+ * setImmediate turns: a test waits for the state it needs instead of counting turns.
+ */
+async function waitFor(cond, what, deadlineMs = 10000) {
+  const end = Date.now() + deadlineMs;
+  for (;;) {
+    const v = cond();
+    if (v) return v;
+    if (Date.now() > end) throw new Error('timed out after ' + deadlineMs + ' ms waiting for ' + what);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+  }
+}
+
 test('the window opens inside the click (before any await) and the request goes to the identity origin only after its ready message', async () => {
   client.resetCooldown();
   const { idp } = await newIdo();
@@ -166,12 +182,14 @@ test('answers for another request, from another window or malformed are not take
   const win = siteWindow();
   const p = client.signIn({ win });
   ready(win);
-  await tick();
-  await tick();
+  // The request goes out once the page key is made and exported (WebCrypto, on the thread pool).
+  await waitFor(() => win.popup.posts.length, 'the sign-in request to the identity origin');
   const requestId = win.popup.posts[0].msg.requestId;
   win.deliver({ source: win.popup, origin: IDP, data: { v: 1, t: 'mw-signin-res', requestId: 'X'.repeat(22), ok: true } });
   win.deliver({ source: { other: true }, origin: IDP, data: { v: 1, t: 'mw-signin-res', requestId, ok: false, code: 'E_USER_CANCELLED' } });
   win.deliver({ source: win.popup, origin: SITE, data: { v: 1, t: 'mw-signin-res', requestId, ok: false, code: 'E_USER_CANCELLED' } });
+  // A negative check, so a fixed bound is right: the three answers above are refused synchronously on delivery, and one taken
+  // by mistake would settle the sign-in at once, without WebCrypto (there is no bundle to open).
   await tick();
   win.deliver({ source: win.popup, origin: IDP, data: { v: 1, t: 'mw-signin-res', requestId, ok: true, bundle: { v: 1, epk: 'nope' } } });
   await assert.rejects(p, (e) => e.code === 'E_BAD_REQUEST');
@@ -225,7 +243,8 @@ test('redirect round trip: the pending key survives the navigation, the answer o
   const { idp } = await newIdo();
   const win = siteWindow({ href: SITE + '/shop/cart?x=1' });
   client.signIn({ win, redirect: true });
-  for (let i = 0; i < 20 && !win.location.assigned.length; i++) await tick();
+  // startRedirect generates and exports ECDH keys (WebCrypto, on the thread pool) before it navigates.
+  await waitFor(() => win.location.assigned.length, 'the redirect to the identity origin (location.assign)');
   assert.equal(win.location.assigned.length, 1);
   const [base, frag] = win.location.assigned[0].split('#');
   assert.equal(base, IDP + '/signin');
@@ -256,7 +275,8 @@ test('drop-in redirect: the encrypted answer waits in this tab for the page; a p
   const { idp } = await newIdo();
   const win = siteWindow({ href: SITE + '/blog/post' });
   client.signIn({ win, redirect: true });
-  for (let i = 0; i < 20 && !win.location.assigned.length; i++) await tick();
+  // startRedirect generates and exports ECDH keys (WebCrypto, on the thread pool) before it navigates.
+  await waitFor(() => win.location.assigned.length, 'the redirect to the identity origin (location.assign)');
   const req = client.decodeFragment(win.location.assigned[0].split('#')[1]);
   const clean = Object.assign({}, req);
   delete clean.origin;

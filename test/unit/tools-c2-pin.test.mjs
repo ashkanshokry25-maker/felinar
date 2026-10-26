@@ -70,6 +70,25 @@ function cli(args) {
   return spawnSync(process.execPath, ['tools/pin.mjs', ...args], { cwd: ROOT, encoding: 'utf8' });
 }
 
+/**
+ * withLoopAlive(promise, what): awaits promise while a ref'd timer holds the event loop open, for at most 10 s; past that it
+ * throws, naming what it waited for. Node 22's test runner cancels every pending test of a file as soon as its event loop is
+ * empty ("Promise resolution is still pending but the event loop has already resolved"); Node 24's runner holds the loop open
+ * itself. So an await whose only pending handle is an unref'd timer passes on Node 24 and is cancelled on Node 22, together
+ * with every later test in the file.
+ */
+async function withLoopAlive(promise, what, deadlineMs = 10000) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out after ' + deadlineMs + ' ms waiting for ' + what)), deadlineMs);
+  });
+  try {
+    return await Promise.race([promise, deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------- the command line
 
 test('parsePinArgs: the C2 flags and their defaults; --pin-key alone is the key printout; moderation and help are unchanged', () => {
@@ -543,7 +562,10 @@ test('test/fixtures/pin: only 127.0.0.1 URLs; it runs the pin headless with a te
   assert.ok(pin.profileDir.startsWith(pin.dir) && existsSync(pin.profileDir));
   assert.deepEqual(pin.host(), { fake: true });
   assert.equal(await pin.waitFor(/^opening /), 'opening http://127.0.0.1:9/');
-  await assert.rejects(pin.waitFor(/never/, 50), /no log line matched/);
+  // The fixture's waitFor timer is unref'd (test/fixtures/pin/start-pin.mjs) and nothing else is pending here (the fake run only
+  // waits for its abort signal), so Node 22's runner would find the event loop empty and cancel this test and the two after it.
+  // withLoopAlive holds a ref'd timer until the 50 ms rejection.
+  await assert.rejects(withLoopAlive(pin.waitFor(/never/, 50), 'the 50 ms timeout of pin.waitFor'), /no log line matched/);
   assert.equal((await pin.readStatus()).reason, 'no-file');
   // a heartbeat signed with the fixture's key verifies through readStatus and waitForStatus
   const host = createPinHost({ profileDir: profile(), pinKey: await loadPinKey(pin.keyFile) });

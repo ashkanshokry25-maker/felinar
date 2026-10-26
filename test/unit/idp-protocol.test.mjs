@@ -82,6 +82,22 @@ async function request({ want = ['keys'], purpose = 'site', extra = {} } = {}) {
 
 const tick = () => new Promise((r) => setImmediate(r));
 
+/**
+ * waitFor(cond, what): polls cond() in real time until it is truthy and returns that value; past 10 s it throws, naming
+ * what it waited for. WebCrypto runs on the thread pool, so on a loaded machine (the Linux CI runner, the whole unit
+ * suite in parallel) the unlock and the key derivations of a sign-in can land after any fixed number of setImmediate
+ * turns: a test waits for the state it needs instead of counting turns.
+ */
+async function waitFor(cond, what, deadlineMs = 10000) {
+  const end = Date.now() + deadlineMs;
+  for (;;) {
+    const v = cond();
+    if (v) return v;
+    if (Date.now() > end) throw new Error('timed out after ' + deadlineMs + ' ms waiting for ' + what);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+  }
+}
+
 test('the popup posts mw-idp-ready to its opener, ignores messages from any other source and answers only event.origin', async () => {
   const op = opener();
   const win = idoWindow({ openerWin: op });
@@ -247,7 +263,8 @@ test('rounds: the "Found N posts" question goes to event.origin and only the ope
   await tick();
   const { req } = await request();
   win.deliver({ source: op, origin: SITE, data: req });
-  for (let i = 0; i < 50 && !op.posts.some((p) => p.msg.t === 'mw-idp-count'); i++) await tick();
+  // The question follows the unlock and the key derivations (WebCrypto, on the thread pool).
+  await waitFor(() => op.posts.some((p) => p.msg.t === 'mw-idp-count'), 'the IdO to ask the site for the post count (mw-idp-count)');
   const ask = op.posts.find((p) => p.msg.t === 'mw-idp-count');
   assert.ok(ask, 'the IdO asked the site for the post count');
   assert.equal(ask.target, SITE);

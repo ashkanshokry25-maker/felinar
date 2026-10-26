@@ -9,6 +9,25 @@ const te = new TextEncoder();
 const hexOf = (u8) => impl.toHex.call(u8);
 const b64Of = (u8, o) => impl.toBase64.call(u8, o);
 
+/**
+ * withLoopAlive(promise, what): awaits promise while a ref'd timer holds the event loop open, for at most 10 s; past that it
+ * throws, naming what it waited for. Node 22's test runner cancels every pending test of a file as soon as its event loop is
+ * empty ("Promise resolution is still pending but the event loop has already resolved"); Node 24's runner holds the loop open
+ * itself. So an await whose only pending handle is an unref'd timer passes on Node 24 and is cancelled on Node 22, together
+ * with every later test in the file.
+ */
+async function withLoopAlive(promise, what, deadlineMs = 10000) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out after ' + deadlineMs + ' ms waiting for ' + what)), deadlineMs);
+  });
+  try {
+    return await Promise.race([promise, deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 test('toHex and fromHex round trip, accept both cases, reject bad input', () => {
   const bytes = new Uint8Array([0, 1, 127, 128, 254, 255]);
   assert.equal(hexOf(bytes), '00017f80feff');
@@ -61,7 +80,9 @@ test('fromBase64: vectors, whitespace, alphabets and every lastChunkHandling mod
 test('timeout(): an AbortSignal that aborts with a TimeoutError after the delay', async () => {
   const signal = impl.timeout(15);
   assert.equal(signal.aborted, false);
-  await new Promise((resolve) => signal.addEventListener('abort', resolve, { once: true }));
+  // timeout() unrefs its timer (src/dropin/polyfills.js, on purpose), so while this waits for the abort nothing holds the event
+  // loop open: Node 22's runner then cancels this test and the three after it. withLoopAlive holds a ref'd timer meanwhile.
+  await withLoopAlive(new Promise((resolve) => signal.addEventListener('abort', resolve, { once: true })), 'the abort from timeout(15)');
   assert.equal(signal.aborted, true);
   assert.equal(signal.reason && signal.reason.name, 'TimeoutError');
   assert.throws(() => impl.timeout(-1), TypeError);
