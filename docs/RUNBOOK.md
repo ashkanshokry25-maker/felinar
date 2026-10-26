@@ -37,7 +37,7 @@ Firefox 115, except `boot.js`, which is built at ES5 so that older browsers can 
 | `npm test` | post-floor API lint of `src/` + every non-browser unit test | 2,314 tests: 2,305 pass, 0 fail, 1 skipped, 8 todo (publish preparation runs of 2026-10-26) |
 | `npm run test:browser` | `*-browser` unit files in Chromium and WebKit (127.0.0.1 only) | 42 tests: 41 pass, 1 skipped (`sw-browser`, v0.1), after `npm run build`; before a build `tools-v03-pin-browser` skips too |
 | `npm run test:example` | the example sites' own checks (Chromium and WebKit) | 186 pass |
-| `npm run test:e2e` | `node test/e2e/run.mjs`: ARCHITECTURE section 12 end to end in Playwright Chromium, plus the v0.2.1, v0.3, C2 and review-round scenarios | 102 scenarios, 102 PASS, 1,189.6 s with the WebKit and Firefox runs on the same machine |
+| `npm run test:e2e` | `node test/e2e/run.mjs`: ARCHITECTURE section 12 end to end in Playwright Chromium, plus the v0.2.1, v0.3, C2 and review-round scenarios (the media and files rows need `ffmpeg` on PATH for their fixtures: `brew install ffmpeg`; the CI workflow installs it) | 102 scenarios, 102 PASS, 1,189.6 s with the WebKit and Firefox runs on the same machine |
 | `npm run test:e2e:webkit` | the same plus W7 (cold start in WebKit) and the WebKit variants | 107 scenarios, 107 PASS after one alone rerun (E-MD-6), 1,137.4 s with the other two runs |
 | `npm run test:e2e:firefox` | the same plus F7, the Firefox variants and 33 scenarios in a Firefox context | 140 scenarios, 140 PASS, 1,445.9 s with the other two runs |
 

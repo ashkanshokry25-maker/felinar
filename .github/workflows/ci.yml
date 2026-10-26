@@ -78,6 +78,10 @@ jobs:
           node build.mjs --check-lock 2>&1 | tee -a ci-logs/build.log
       # Chromium for most suites; WebKit too, because end-to-end scenario 14 and the browser unit tests
       # load the site in WebKit (127.0.0.1 only).
+      # The media and files rows of the end-to-end suite build their MP4 fixtures with ffmpeg (test/e2e/scenarios-v03.mjs); the
+      # runner image does not put it on PATH.
+      - name: Install ffmpeg for the media fixtures
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg && ffmpeg -version | head -1
       - name: Install Playwright Chromium, WebKit and Firefox
         run: npx playwright install --with-deps chromium webkit firefox
       - name: Browser unit tests
