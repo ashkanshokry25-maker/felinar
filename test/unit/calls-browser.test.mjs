@@ -146,13 +146,20 @@ async function fullCall(A, B, pubA, pubB, relayed, { screen = false } = {}) {
   await A.evaluate((i) => window.__mwCalls.svc.methods['calls.camera']({ id: i, on: false }, { activation: false }), id);
   await waitFor(B, () => window.__mwCalls.events.peer.some((p) => p.camera === false), null, { label: 'camera off at B' });
   let shared = null;
+  let screenUnavailable = false;
   if (screen) {
     await B.evaluate((i) => window.__mwCalls.svc.methods['calls.camera']({ id: i, on: true }, { activation: false }), id).catch(() => {});
     await A.click('#share');
     shared = await waitFor(A, () => { const s = window.__mwCalls.share(); return s && s !== 'pending' ? s : null; }, null, { label: 'screen share' });
-    assert.deepEqual(shared, { id, screen: true }, 'getDisplayMedia from the trusted click');
-    await waitFor(B, () => window.__mwCalls.events.peer.some((p) => p.screen === true), null, { label: 'screen at B' });
-    await waitFor(B, async () => { const m = await window.__mwCalls.inboundByMid(); return (m['2'] || 0) > 0; }, null, { label: 'screen bytes at B', timeoutMs: 15000 });
+    if (shared && shared.error === 'E_USER_CANCELLED' && process.platform === 'linux') {
+      // Playwright's headless WebKit on Linux has no screen capture: getDisplayMedia refuses even from a trusted click (seen on the
+      // first CI run, 2026-10-26). The rest of the call is still checked here; the share itself is covered by WebKit on macOS.
+      screenUnavailable = true;
+    } else {
+      assert.deepEqual(shared, { id, screen: true }, 'getDisplayMedia from the trusted click');
+      await waitFor(B, () => window.__mwCalls.events.peer.some((p) => p.screen === true), null, { label: 'screen at B' });
+      await waitFor(B, async () => { const m = await window.__mwCalls.inboundByMid(); return (m['2'] || 0) > 0; }, null, { label: 'screen bytes at B', timeoutMs: 15000 });
+    }
   }
   // Hang up: both connections close; every capture track ends.
   const before = await A.evaluate((i) => window.__mwCalls.keep(i), id);
@@ -172,7 +179,7 @@ async function fullCall(A, B, pubA, pubB, relayed, { screen = false } = {}) {
   const sdpSize = (k) => Math.max(0, ...relayed.filter((r) => r.body && r.body.k === k && r.body.sdp).map((r) => Buffer.byteLength(r.body.sdp)));
   const sizes = { offerBody: size('offer'), answerBody: size('answer'), offerSdp: sdpSize('offer'), answerSdp: sdpSize('answer'), iceBody: size('ice') };
   assert.ok(sizes.offerBody > 0 && sizes.offerBody <= 15000 && sizes.answerBody <= 15000, JSON.stringify(sizes));
-  return { id, ms, certificate, shared, sizes };
+  return { id, ms, certificate, shared, sizes, screenUnavailable };
 }
 
 test('calls in Chromium (fake devices): connect, media both ways, the certificate check, a relay that alters the fingerprint fails the call, mute, camera, hang up', {
@@ -236,6 +243,7 @@ test('calls in WebKit (mock devices, one browser per participant): the same call
     const p = await twoPeople([await b1.newContext({ permissions: ['camera', 'microphone'] }), await b2.newContext({ permissions: ['camera', 'microphone'] })], srv.url);
     const r = await fullCall(p.A, p.B, p.pubA, p.pubB, p.relayed, { screen: true });
     t.diagnostic('WebKit ' + b1.version() + ' certificate check: ' + r.certificate + '; connected in ' + r.ms + ' ms; SIG sizes ' + JSON.stringify(r.sizes));
+    if (r.screenUnavailable) t.diagnostic('screen share not exercised: headless WebKit on Linux refuses getDisplayMedia (checked on macOS)');
   } finally {
     if (b1) await b1.close();
     if (b2) await b2.close();
