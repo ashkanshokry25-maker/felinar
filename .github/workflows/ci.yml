@@ -88,8 +88,23 @@ jobs:
         run: npm run test:browser 2>&1 | tee ci-logs/browser.log
       - name: Example site checks
         run: npm run test:example 2>&1 | tee ci-logs/example.log
+      # The integration rule of docs/INTEGRATION-STATUS.md: a scenario that misses a wait in the full run (the runner's four cores
+      # carry every browser of a scenario at once) counts as a failure only when it fails alone too. The alone run uses --only
+      # with the ids the summary names.
       - name: End-to-end
-        run: npm run test:e2e -- --keep 2>&1 | tee ci-logs/e2e.log
+        run: |
+          set +e
+          npm run test:e2e -- --keep 2>&1 | tee ci-logs/e2e.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            ids=$(grep -E '^ *[0-9.]+s FAIL ' ci-logs/e2e.log | sed -E 's/^ *[0-9.]+s FAIL ([^ ]+).*/\1/' | sort -u | paste -sd, -)
+            if [ -n "$ids" ]; then
+              echo "::notice::re-running alone the scenarios that failed in the full run: $ids"
+              node test/e2e/run.mjs --only "$ids" 2>&1 | tee ci-logs/e2e-alone.log
+              rc=${PIPESTATUS[0]}
+            fi
+          fi
+          exit "$rc"
       - name: End-to-end, WebKit cold start (W7)
         if: matrix.node == 24
         run: node test/e2e/run.mjs --webkit --only W7 2>&1 | tee ci-logs/e2e-webkit.log

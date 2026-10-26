@@ -673,7 +673,7 @@ found and its fixer fixed, with its id, its severity as reported and the fixer a
   down to the minute, so posts within one minute are ordered by hash. E-MD-4 (a private video played with a seek) fails
   now and then with "no loadeddata", and E-MD-3 and E-MD-5 with it because they need it: in two of the full end-to-end
   runs of 2026-10-21 (once in a `--webkit` run, once in a Chromium run while another build ran), each time passing again right after;
-  the cause is not found. With three end-to-end suites running at once on one machine, E-MD-6 and E-CH-5 can miss a wait E-CH-5 also missed once when run right after E-CL-1 in a single `--only` run (2026-10-26), and passed 3 of 3 by itself.
+  the cause is not found. With three end-to-end suites running at once on one machine, E-MD-6 and E-CH-5 can miss a wait E-CH-5 also missed once when run right after E-CL-1 in a single `--only` run (2026-10-26), and passed 3 of 3 by itself. The CI workflow re-runs such misses alone before it fails (`.github/workflows/ci.yml`, step End-to-end).
   (the final full runs of 2026-10-24: E-MD-6 in the Chromium and WebKit runs, E-CH-5 in the WebKit run; the independence
   round of 2026-10-25: E-MD-6 in the WebKit run) and pass alone.
 - The drop-in bundle `_mw/mw.js` was 738,816 bytes in the sdk lane's build and 859,284 bytes (275,547 with `gzip -9`) in
