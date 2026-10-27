@@ -139,6 +139,10 @@ jobs:
           node build.mjs --strict
           node build.mjs --check-lock
           npm run build:idp
+      # The media and files rows of the end-to-end suite build their MP4 fixtures with ffmpeg (test/e2e/scenarios-v03.mjs); the
+      # runner image does not put it on PATH. Without it the v0.3.0 release run failed at End-to-end before packaging (run 40504731089).
+      - name: Install ffmpeg for the media fixtures
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg && ffmpeg -version | head -1
       - name: Install Playwright Chromium and WebKit
         run: npx playwright install --with-deps chromium webkit
       - name: End-to-end

@@ -17,6 +17,10 @@ F36) is a finding of code review round 1, in the table of section 7 of
 
 ## [Unreleased]
 
+### Fixed
+
+- The release workflow (`.github/workflows/release.yml`) installs ffmpeg before its end-to-end step, as CI already did. The v0.3.0 release run failed at that step without it (16 media and files rows), so the 0.3.0 release files were built by hand from the tagged commit, with per-file hash lists byte-identical to the three-OS rebuild run's; the release notes say so, and that release carries no build provenance attestation.
+
 ## [0.3.0] - 2026-10-26
 
 Pre-release, and the first public release: 0.2.1 was never published, because the red team of the v0.3 design review found seven defects in it that work today (MF-27, MF-28, MF-30 and MF-73 to MF-76). 0.3.0 fixes MF-27, MF-28 and MF-73 to MF-76, and fixes MF-30 in part: its signed `minSeq` is proposed, and the withdrawal expiry and two-source disagreement cover the cold-device replay meanwhile. The review round of the v0.3 design review (Part 5.3, the judges and the red-team attackers against the built code) ran on 2026-10-24, and its blockers are fixed. Of the other steps a release needs, the release gate on real devices has not run beyond the desktop parts of six rows, in a Brave browser on loopback ([docs/DEMO-RESULTS.md](docs/DEMO-RESULTS.md)), Firefox ran only in the automated harness, and the outside review of the new cryptographic code that R 2.19 asks for before 1.0 has not happened. No lawyer has reviewed the privacy texts (the cards, the v0.3 sections of [docs/PRIVACY.md](docs/PRIVACY.md) and the safe harbour of [SECURITY.md](SECURITY.md)): the owner decided against it, and AI research agents checked them against the code and against published law and regulator guidance in its place, in a review that ended on 2026-10-24. That review is research, not legal advice. Every test below ran on loopback only (Apple M3, Playwright Chromium 156, WebKit 27.2 and Firefox 157.0).
