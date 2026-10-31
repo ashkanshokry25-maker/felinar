@@ -159,7 +159,7 @@ notice ([PRIVACY.md](../../docs/PRIVACY.md)).
 
 ## What was tested
 
-In 0.3.0, as since the 0.2.1 work, CI (`.github/workflows/ci.yml`, job `deploy`; it has not run on GitHub yet) builds the tracker image, starts both containers with
+In 0.3.0, as since the 0.2.1 work, CI (`.github/workflows/ci.yml`, job `deploy`) builds the tracker image, starts both containers with
 `TRACKER_DOMAIN=localhost` (Caddy's internal certificate authority, so no ACME and no DNS), and checks through
 Caddy that `/healthz` answers, that `/stats.json` is not exposed, that an allowed infohash is accepted and another
 is refused, and that a renamed allow file takes effect. The Caddyfile is checked with `caddy validate`. Not

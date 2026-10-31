@@ -1,6 +1,6 @@
 # Security model
 
-This is felinar's threat model for 0.3.0, the release being prepared: what it protects, from whom, how, how that is
+This is felinar's threat model for 0.3.0: what it protects, from whom, how, how that is
 tested, and what it does not protect. The normative summary is section 13 of [ARCHITECTURE.md](ARCHITECTURE.md). The
 sections before "v0.3" cover the parts that 0.3.0 kept from 0.2.1 (which was never published). The section at the
 end, "v0.3", is the short model of what v0.3 adds, as built and as reviewed in the review round of the v0.3 design
@@ -179,7 +179,7 @@ Each of these bounds what a stranger can make a visitor's browser store, downloa
 > ([review/V03-DESIGN-REVIEW.md](review/V03-DESIGN-REVIEW.md), cited "R"; a number after R is its section). The code has
 > landed with unit tests, the integrators' end-to-end runs on loopback, the code review of the v0.3 and C2 code and the
 > review round of R 5.3 (2026-10-22 to 2026-10-24; its results are R 5.4, and the guarantees it changed name the finding
-> below), and 0.3.0, the release being prepared, carries it; the real-device gate has not run.
+> below), and 0.3.0 carries it; the real-device gate has not run.
 > The sections above stay true in 0.3.0. The long tables (what each observer sees before and after, every red-team attack and its status, the honest
 > limits) are in [THREAT-MODEL.md](THREAT-MODEL.md). The "Planned test" column names the test ids of R Part 4;
 > [INTEGRATION-STATUS.md](INTEGRATION-STATUS.md) says which of them exist and pass on loopback, and none is a real-device result.

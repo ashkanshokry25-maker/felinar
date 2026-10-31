@@ -2,7 +2,7 @@
 
 Living document: updated after every milestone so the next integrator can resume. Newest first.
 
-**Release status (2026-10-24):** the tree is 0.3.0, the release being prepared and the first public one (0.2.1 was never
+**Release status (2026-10-27):** 0.3.0 is released, the first public one (0.2.1 was never
 published: [PUBLISH-CHECKLIST.md](PUBLISH-CHECKLIST.md), section 0). It runs the v0.3 and C2 code. The review round of the v0.3
 design review (R 5.3) ran from 2026-10-22 to 2026-10-24; the independence round of 2026-10-25 (the project holds no domain and
 runs no service) is the newest section below, with the latest counts; the release gate on real devices

@@ -3,7 +3,7 @@
 How to build, test and demo felinar, publish a site, put its pointer in DNS, deploy in the right order, switch
 it off, and move an existing static site to drop-in mode. ARCHITECTURE.md says what the system does and why;
 this file says what to type. Everything here was checked on macOS with Node 24.22 on 2026-10-19, before v0.3, unless
-marked otherwise; the test counts below are those of 0.3.0, the release being prepared (2026-10-21).
+marked otherwise; the test counts below are those of 0.3.0 (2026-10-21).
 
 What felinar needs, said plainly: an HTTPS static host (it serves the loader on every visit, it is the trust
 root, and its files are the web seed that keeps the site loading when no visitor is online), WebSocket trackers and

@@ -6,7 +6,7 @@ notices, legal requests and privacy requests. Everything here works with the too
 few free services; nothing requires a server of your own beyond the static host.
 
 > [!NOTE]
-> This page describes 0.3.0, the release being prepared (0.2.1 was never published). The section "v0.3: operating the
+> This page describes 0.3.0 (0.2.1 was never published). The section "v0.3: operating the
 > new parts" near the end covers what v0.3 adds: owner settings, moderation caps and undo, the file lanes, takedown with
 > `_deny/`, hub safeguards and the runbooks for the identity origin.
 >
@@ -727,7 +727,7 @@ of 2026-02-25. Not legal advice, and no lawyer has reviewed it.
 
 > **Status: v0.3, built and reviewed.** This section is for owners and hub operators of v0.3
 > ([review/V03-DESIGN-REVIEW.md](review/V03-DESIGN-REVIEW.md), cited "R"; a number after R is its section). The
-> commands named here are in this tree's tools, and 0.3.0, the release being prepared, carries them (it is the
+> commands named here are in this tree's tools, and 0.3.0 carries them (it is the
 > freeze-group release); where this page and a tool differ, its `--help` is the reference. The review round of R 5.3 ran
 > from 2026-10-22 to 2026-10-24. Everything above stays true in 0.3.0, and this section adds to it. Not legal advice, and no lawyer has reviewed
 > it. Before you turn on public uploads or a hub list, write down the assessments that this page and

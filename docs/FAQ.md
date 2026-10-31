@@ -33,7 +33,7 @@ why it isn't one explain the choice ([README](../README.md)).
 
 ### Is it production-ready?
 
-Not yet. Version 0.3.0, the release being prepared, is a pre-release (0.2.1 was never published): every automated
+Not yet. Version 0.3.0 is a pre-release (0.2.1 was never published): every automated
 suite passes on one development machine, loopback only (the counts are in [INTEGRATION-STATUS.md](INTEGRATION-STATUS.md)),
 but the release gate on real phones and browsers has not run ([DEMO-RESULTS.md](DEMO-RESULTS.md)). The review round of
 the v0.3 design review ran from 2026-10-22 to 2026-10-24. Start with a pilot ([ONBOARDING.md](ONBOARDING.md)).
@@ -384,7 +384,7 @@ text, and take new comments on the ledger ([CRUD.md](CRUD.md), the guestbook rec
 ## Identity, sign-in and private content (v0.3)
 
 > **Status: v0.3, built and reviewed.** These answers describe v0.3 as designed in
-> [review/V03-DESIGN-REVIEW.md](review/V03-DESIGN-REVIEW.md) (cited "R") and built in this tree: the code of 0.3.0, the release being prepared. "Reviewed"
+> [review/V03-DESIGN-REVIEW.md](review/V03-DESIGN-REVIEW.md) (cited "R") and built in this tree: the code of 0.3.0. "Reviewed"
 > means that the review round of R 5.3 ran (2026-10-22 to 2026-10-24); what it left open is in the CHANGELOG's known gaps. Every answer above stays true in 0.3.0 unless one here says otherwise. Numbers are labelled
 > chosen, arithmetic or measured with their source in the pages linked.
 

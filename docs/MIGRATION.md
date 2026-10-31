@@ -10,7 +10,7 @@ No backend means there's no application server or database for you to run. You s
 which serves the loader on every visit and keeps the site loading when nobody else is online. Visitors find each
 other through WebSocket trackers and STUN servers, public ones or your own.
 
-**Status (0.3.0, the release being prepared, a pre-release).** Drop-in mode passes its end-to-end checks in Playwright Chromium and WebKit on one
+**Status (0.3.0, a pre-release).** Drop-in mode passes its end-to-end checks in Playwright Chromium and WebKit on one
 machine, loopback only (scenarios 9, 10 and 10B in [INTEGRATION-STATUS.md](INTEGRATION-STATUS.md), listed in
 `examples/existing-site-dropin/EXPECTED.md`). It has not run on real phones, on real hosts or in Firefox and Safari
 ([DEMO-RESULTS.md](DEMO-RESULTS.md)). Try it on a staging host first.
