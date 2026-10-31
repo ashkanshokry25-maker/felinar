@@ -66,7 +66,7 @@ env:
   # felinar, pinned. The commit is checked after the clone, so a moved tag cannot change the code.
   FELINAR_REPO: https://github.com/ashkanshokry25-maker/felinar.git # CHANGE-ME: the felinar repository
   FELINAR_REF: v0.3.0 # CHANGE-ME: a release tag
-  FELINAR_COMMIT: 0000000000000000000000000000000000000000 # CHANGE-ME: git rev-parse 'v0.3.0^{commit}'
+  FELINAR_COMMIT: 9148cd18bc540364562d261d0c5dd183d059cb6b # CHANGE-ME: git rev-parse 'v0.3.0^{commit}'
   # The felinar release key, as pinned in felinar's SECURITY.md and its second places (never from the release itself).
   # The loader built below must match the signed per-file list of FELINAR_REF before the owner key is read.
   FELINAR_RELEASE_KEY: p256:CHANGE-ME # CHANGE-ME: the pinned release key
