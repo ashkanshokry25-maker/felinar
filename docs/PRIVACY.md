@@ -1,7 +1,7 @@
 # Privacy: who receives what
 
 What a visitor's browser sends to whom when it opens a felinar site, what it keeps, what the visitor is told
-and when, and a privacy-notice template for site owners. It describes the code of 0.3.0, the release being prepared
+and when, and a privacy-notice template for site owners. It describes the code of 0.3.0
 (the first public one; 0.2.1 was never published). The sections up to "Children" cover loading a site and its site
 ledger; the sections headed "v0.3" cover what 0.3.0 adds (identity and sign-in, chat, files, private media, seeding,
 calls and doors), which runs in 0.3.0. No lawyer has reviewed these texts; the review round of the v0.3 design review
@@ -353,7 +353,7 @@ it, and it is not legal advice.
 
 > **Status: v0.3, built and reviewed.** Everything in the sections that follow describes v0.3 as designed and built
 > ([review/V03-DESIGN-REVIEW.md](review/V03-DESIGN-REVIEW.md), cited "R"; a number after R is its section): the code that
-> 0.3.0, the release being prepared, runs. "Reviewed" means that the review round of R 5.3 ran (2026-10-22 to 2026-10-24,
+> 0.3.0 runs. "Reviewed" means that the review round of R 5.3 ran (2026-10-22 to 2026-10-24,
 > after the code review of the v0.3 and C2 code); it does not mean a lawyer reviewed these texts, and none has. R 2.14.3 and MF-59 asked for a
 > lawyer's review before 0.3.0 is published; the owner decided against it, and AI research agents checked the texts
 > against the code and against published law and regulator guidance in its place (research on 2026-10-22, synthesis on

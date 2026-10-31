@@ -218,7 +218,7 @@ for the site (`npx felinar check-site https://example.com/` prints the seeders p
 
 ## What was tested
 
-In 0.3.0, as since the 0.2.1 work, CI (`.github/workflows/ci.yml`, job `deploy`; it has not run on GitHub yet) builds this image, checks that it exits with status 2
+In 0.3.0, as since the 0.2.1 work, CI (`.github/workflows/ci.yml`, job `deploy`) builds this image, checks that it exits with status 2
 without `PIN_URL`, and runs it with `--network host` against the local demo (`npm run demo`): it must log
 "consent given" and "render: ok". On a development machine (macOS, Node 24, 2026-10-19) the same files outside
 Docker kept the local demo open for 35 s, logged a status line every 5 s, wrote the snapshot and exited on SIGTERM.

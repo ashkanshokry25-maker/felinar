@@ -5,7 +5,7 @@ content, whoever signs off on privacy, and whoever runs the hosting. It takes yo
 live site in three stages, with the questions to answer first, the people and keys you need, and the checks
 that say each stage is done.
 
-felinar 0.3.0, the release being prepared, is a pre-release (0.2.1 was never published). Every automated suite
+felinar 0.3.0 is a pre-release (0.2.1 was never published). Every automated suite
 passes on a development machine, but the release gate on real phones and browsers has not run
 ([DEMO-RESULTS.md](DEMO-RESULTS.md)); the review round of the v0.3 design review ran from 2026-10-22 to 2026-10-24. Plan a pilot, not a
 cutover, and run the gate rows that match your audience yourself.

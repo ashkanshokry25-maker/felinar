@@ -2,7 +2,7 @@
 
 The living threat model of the felinar v0.3 design: who can see or do what before and after the design, which
 attacks the red team found, what the design does about each, and what stays open. [SECURITY-MODEL.md](SECURITY-MODEL.md)
-is the short model (assets, trust, protections, non-protections) of 0.3.0, the release being prepared: its first sections
+is the short model (assets, trust, protections, non-protections) of 0.3.0: its first sections
 cover the parts that 0.3.0 kept from 0.2.1 (never published), and a v0.3 section at its end covers what v0.3 adds;
 this page holds the long tables. It is built from sections 2.16 and 2.17 of the v0.3 design review
 ([review/V03-DESIGN-REVIEW.md](review/V03-DESIGN-REVIEW.md), cited "R"; a number after R is its section) and from the
@@ -10,7 +10,7 @@ notes of the lanes that have built parts of it. To report a problem, follow [SEC
 a public issue for anything exploitable.
 
 > **Status: v0.3, built and reviewed in the review round of R 5.3.** Every "after" column below describes the design as
-> built, which is the code that 0.3.0, the release being prepared, runs, except where a row says "not built". The code has
+> built, which is the code that 0.3.0 runs, except where a row says "not built". The code has
 > landed with unit tests, the integrators' end-to-end runs on loopback, the code review of the v0.3 and C2 code
 > ([INTEGRATION-STATUS.md](INTEGRATION-STATUS.md)) and the review round of R 5.3, which ran from 2026-10-22 to 2026-10-24
 > and re-read the rows against the code (R 5.4, [deviations/review-round.md](deviations/review-round.md)); the rows it

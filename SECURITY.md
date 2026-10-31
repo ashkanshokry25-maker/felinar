@@ -121,7 +121,7 @@ and announced in `CHANGELOG.md` and GitHub advisories.
 > **Status: v0.3, partly built; reviewed in the review round of R 5.3 (2026-10-22 to 2026-10-24).** This is the program that R 2.19 of the v0.3 design review
 > (`docs/review/V03-DESIGN-REVIEW.md`) requires before a 1.0 release. The parts that are code are in the tree
 > (`build.lock.json`, the fuzzers in `test/fuzz/`, `tools/verify-release.mjs`, the CI, release and rebuild
-> workflows), and 0.3.0, the release being prepared, is the first release to be cut with them: its workflow attests
+> workflows), and 0.3.0 is the first release to be cut with them: its workflow attests
 > the files and leaves a draft, and the owner signs the per-file hash lists offline before publishing it. The
 > repository settings are the owner's steps (`docs/PUBLISH-CHECKLIST.md`, section 16.7). The parts that need people
 > (two-person review, the independent audit, the real-device rows) have not happened. The identity origin makes the

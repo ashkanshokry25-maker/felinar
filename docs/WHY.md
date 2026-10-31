@@ -6,7 +6,7 @@ from the economics model are model outputs, not measurements, and say so.
 
 ## The short version
 
-> This page describes 0.3.0, the release being prepared (0.2.1 was never published). The section "v0.3: sign-in for
+> This page describes 0.3.0 (0.2.1 was never published). The section "v0.3: sign-in for
 > any site and the honest ceiling" near the end covers what v0.3 adds: one identity for many sites, private messages and
 > media, and a social network of personal sites, with what each can and cannot do.
 > Its last part, "Readers who agree help carry the site, and calls", covers phase C2: sharing from phones, sites

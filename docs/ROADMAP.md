@@ -4,7 +4,7 @@ What comes after 0.3.0, in order. It is a list of work, not a schedule: no item 
 someone needs it and down when evidence says it matters less. To propose a change, open a feature request or a pull
 request against this file (see [CONTRIBUTING.md](../CONTRIBUTING.md) and [GOVERNANCE.md](../GOVERNANCE.md)).
 
-Version 0.3.0, the release being prepared, is the first public release (0.2.1 was never published). It carries the
+Version 0.3.0 is the first public release (0.2.1 was never published). It carries the
 v0.3 and C2 code. It is not called production-ready. That label waits for the release gate
 on real devices ([DEMO-RESULTS.md](DEMO-RESULTS.md), item 25 of [review/DESIGN-REVIEW.md](review/DESIGN-REVIEW.md)),
 and passing that gate is what "1.0" means here.

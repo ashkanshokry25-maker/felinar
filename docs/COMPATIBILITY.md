@@ -1,6 +1,6 @@
 # Compatibility
 
-Which browsers, hosts, frameworks, features and networks work with felinar 0.3.0, the release being prepared, and how
+Which browsers, hosts, frameworks, features and networks work with felinar 0.3.0 and how
 well we know it. Read the status column of every table: the release gate on real devices has not run
 ([DEMO-RESULTS.md](DEMO-RESULTS.md)), so most cells are design and research, not field results. The section "v0.3" near
 the end covers identity, chat and media as 0.3.0 builds them (the review round of the v0.3 design review ran from

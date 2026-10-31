@@ -3,7 +3,7 @@
 This is the map of the felinar documentation. The project page is the [README](../README.md). This page says
 which document answers which question and in which order to read them.
 
-The documents describe version 0.3.0, the release being prepared: a pre-release, and the first public one (0.2.1 was
+The documents describe version 0.3.0: a pre-release, and the first public one (0.2.1 was
 never published). The release gate on real devices has not run ([DEMO-RESULTS](DEMO-RESULTS.md)), so nothing here
 calls felinar production-ready.
 

@@ -8,7 +8,7 @@ privacy requests) is in [OPERATIONS.md](OPERATIONS.md). The rules behind all of 
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 > [!IMPORTANT]
-> No recipe on this page has been run end to end against a real account, for 0.3.0 (the release being prepared)
+> No recipe on this page has been run end to end against a real account, for 0.3.0
 > or before it. The release gate on real hosts and devices ([DEMO-RESULTS.md](DEMO-RESULTS.md)) hasn't run yet. The recipes follow vendor
 > documentation as read for the research digests (dates are given) and the behaviour of the tools in this
 > repository. Whatever host you choose, `check-webseed` and `check-site` are the test: run them before you
@@ -1170,7 +1170,7 @@ visitors redistribute.
 > **Status: v0.3, built and reviewed.** This section describes the parts a v0.3 deployment adds to the ones
 > above: central storage for a hub, a relay that stays off by default, an identity origin you can host yourself, and
 > the sign-in widget. Source: [review/V03-DESIGN-REVIEW.md](review/V03-DESIGN-REVIEW.md), cited "R"; a number after R
-> is its section. The tools it names are in this tree, and 0.3.0, the release being prepared, carries them; where
+> is its section. The tools it names are in this tree, and 0.3.0 carries them; where
 > this page and a tool differ, its `--help` is the reference. Everything above stays true in 0.3.0.
 
 ### Central storage: the hub pin and snapshot service
