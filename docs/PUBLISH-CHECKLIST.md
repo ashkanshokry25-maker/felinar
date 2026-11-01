@@ -1491,7 +1491,8 @@ git grep -n -i -E 'project hosts no identity page|no default (identity origin )?
   table "v0.3 C2: rows to add" of [DEMO-RESULTS.md](DEMO-RESULTS.md), cited from SZ). Rows G-PS-1 to G-PS-4 and G-CL-2 run on one
   iPhone and one Android phone before any card or document says what phones do in the background; nothing is quoted before
   its row has run, and failures are published too. Phone rows need HTTPS (the demo's `--tls` tier with the mkcert root on the
-  phone) and a Node peer that logs when each wire closes (`tools/seed.mjs` with the optional `node-datachannel`).
+  phone) and a peer on the LAN (the demo's headless seeder, or `tools/seed.mjs` with the optional `node-datachannel`); no shipped seeder logs when a
+  wire closes yet, so the wire-close timings come from a packet capture.
 
 | Hardware or setup | Rows |
 |---|---|

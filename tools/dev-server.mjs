@@ -26,6 +26,7 @@
 // - /ws/ is a CORS web seed for --webseed <dir>: OPTIONS answered with Allow-Headers *, every
 //   response with Access-Control-Allow-Origin *, Expose-Headers Content-Range, Content-Length,
 //   Accept-Ranges, ETag, and Range answered with 206.
+// - /_mw/door.json gets Access-Control-Allow-Origin * (DEPLOY.md, "What a door must serve"), so another door's probe can read it.
 // - --pointer stamps <meta name="mw-pointer"> into every HTML document served from --root, --dev
 //   adds <meta name="mw-dev" content="1"> (boot.js then relaxes the CSP for ws://127.0.0.1:*,
 //   ws://localhost:* and wss://<lan-ip>:*), --hub adds <meta name="mw-hub">, --doh adds <meta name="mw-doh">.
@@ -385,13 +386,13 @@ export async function createDevServer(options = {}) {
     log('[dev-server] ' + req.method + ' ' + req.url + ' ' + status);
   }
 
-  function serveFile(req, res, abs, st, { status = 200, cors = false, inject = false } = {}) {
+  function serveFile(req, res, abs, st, { status = 200, cors = false, inject = false, anyOrigin = false } = {}) {
     const type = contentTypeFor(abs);
     const headers = Object.assign({
       'content-type': type,
       'cache-control': 'no-cache',
       'last-modified': new Date(st.mtimeMs).toUTCString(),
-    }, cors ? WEBSEED_CORS : {});
+    }, cors ? WEBSEED_CORS : anyOrigin ? { 'access-control-allow-origin': '*' } : {});
     if (inject && metas.length && /^text\/html/.test(type)) {
       const raw = readFileSync(abs);
       const body = isUtf16(raw) ? raw : Buffer.from(injectMeta(raw.toString('latin1'), metas).html, 'latin1');
@@ -498,7 +499,7 @@ export async function createDevServer(options = {}) {
       st = statOrNull(abs);
       if (st && !containedIn(root, abs)) st = null;
     }
-    if (st && st.isFile()) return serveFile(req, res, abs, st, { inject: true });
+    if (st && st.isFile()) return serveFile(req, res, abs, st, { inject: true, anyOrigin: pathname === '/_mw/door.json' });
 
     if (!isReserved(pathname)) {
       if (spa) {
