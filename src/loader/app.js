@@ -5492,6 +5492,9 @@ function installObs (A, block, { buildId = '' } = {}, deps = {}) {
     try { if (typeof ident.state === 'function' && ident.state() === 'signed-in') noteAuth(A, { state: 'signed-in', info: ident.info() }) } catch (_) { /* a guest */ }
   }
   watchConsole(A)
+  // What the visitor already decided applies now, and the identity client gets this page's session id while the choice is still open: a
+  // door page leaves run() before the later syncReports calls, and its sign-in comes before the first yes.
+  syncReports(A)
   return reporter
 }
 
