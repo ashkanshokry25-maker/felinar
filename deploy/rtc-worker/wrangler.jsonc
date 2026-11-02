@@ -1,0 +1,19 @@
+// deploy/rtc-worker/wrangler.jsonc: the Worker's settings. Deploy from a copy of this folder outside the repository (README.md).
+{
+  "name": "felinar-rtc",
+  "main": "worker.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+  "durable_objects": { "bindings": [{ "name": "RTC", "class_name": "Rendezvous" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Rendezvous"] }],
+  "vars": {
+    // The infohashes this rendezvous serves: 40 hex each, separated by spaces or commas (publish prints btih and
+    // rendezvousBtih; add the chat lane of each site, README.md says how). The word "uploads" adds uploads mode.
+    "ALLOW": "",
+    "UPLOADS": "0",
+    "OPEN": "0",
+    "INTERVAL_S": "120",
+    // Set a long random value to read /stats.json?token=<value>; empty keeps the counts private.
+    "STATS_TOKEN": ""
+  }
+}

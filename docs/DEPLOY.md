@@ -832,6 +832,11 @@ still loads from its web seed but its visitors stop meeting, so the ledger stops
   pointer under 450 bytes.
 - `deploy/tracker/` has a Docker Compose setup with Caddy in front for TLS; its
   [README](../deploy/tracker/README.md) covers the allow list, sizing, monitoring and upgrades.
+- Without a server or a domain, `deploy/rtc-worker/` runs the same job as a Cloudflare Worker with one Durable Object on
+  the Workers Free plan, at `rtc-<name>.<your subdomain>.workers.dev`: a neutral name on a suffix that ordinary applications
+  use, so the block lists above do not match it. Its [README](../deploy/rtc-worker/README.md) has the deploy steps, the
+  allow list (the same infohashes, passed as a variable), the caps and what the Free plan covers. Tested under `wrangler dev`
+  and with unit tests, not yet on Cloudflare itself.
 
 ```sh
 npx felinar tracker --host 127.0.0.1 --port 8000 --allow /srv/magnet/summary.json
@@ -1040,7 +1045,7 @@ home Wi-Fi, and the 0.3.0 door kit on Cloudflare Pages did not work until the tw
 | Host (S4 F5) | Loader door | Full door | Door settings |
 |---|---|---|---|
 | GitHub Pages | yes | yes | no custom headers: other doors see this door as "answering, not checked"; `/mw-sw.js` is cached for up to 10 minutes |
-| Cloudflare Pages | yes with the fix of 0.3.1, **not with the 0.3.0 kit** (tried 2026-11-01: Pages answers `/_mw/open.html` with a 308 to `/_mw/open`, where loader 0.3.0 does not enter door mode, and it applies every matching `_headers` rule, so the 0.3.0 kit's `/_mw/door.json` rule and its `/_mw/*` rule together sent `Access-Control-Allow-Origin: *, *`, which browsers reject; the loader now enters door mode at `/_mw/open` and the kit sets each header once per path) | no (Range gives 200) | `_headers` and `_redirects` are read; the door page answers at `/_mw/open` |
+| Cloudflare Pages | yes with the fix of 0.3.1, **not with the 0.3.0 kit** (tried 2026-11-01: Pages answers `/_mw/open.html` with a 308 to `/_mw/open`, where loader 0.3.0 does not enter door mode, and it applies every matching `_headers` rule, so the 0.3.0 kit's `/_mw/door.json` rule and its `/_mw/*` rule together sent `Access-Control-Allow-Origin: *, *`, which browsers reject; the loader now enters door mode at `/_mw/open` and the kit sets each header once per path; re-run the same day with a kit from the fixed build: `check-site --door` passed and a headless Chromium opened a light link there into the door view, [DEMO-RESULTS.md](DEMO-RESULTS.md), the Doors note) | no (Range gives 200) | `_headers` and `_redirects` are read; the door page answers at `/_mw/open` |
 | Netlify | yes | yes | `_headers` and `_redirects` are read |
 | Vercel | not tried | not tried | the kit writes `vercel.json` |
 | A rented server | yes | yes | the kit's Caddyfile |
@@ -1285,6 +1290,10 @@ configured for this site"), so visitors cannot sign in to write. Servers choose 
 
 None of these hosts costs money. None was tried with a passkey on a real device: the passkey column follows from how a
 passkey is bound to the host name (`src/idp/passkey.js` takes the RP ID from the page's host name), not from a measurement.
+A host with clean URLs (Cloudflare Pages) answers `signin/index.html` with a redirect to `/signin/`; the 0.3.0 bundle's Service
+Worker cached that redirected response and every sign-in after the first on a device failed with `ERR_FAILED` (2026-11-01,
+[DEMO-RESULTS.md](DEMO-RESULTS.md), the Doors note); a bundle built from the fix of 0.3.1 (the changelog's "Unreleased" entry) stores
+plain copies, and the first sign-in on a device was never affected.
 
 | Host | The headers of `dist-idp/_headers` | Passkeys | What it costs you |
 |---|---|---|---|

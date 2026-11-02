@@ -380,7 +380,7 @@ number (for example 5 s for G-SC-1, "chosen"), record against it.
 | G-ID-4 | Full flow, in a normal window and a private window | desktop Firefox | not yet run | 2026-10-22 (harness only) | Firefox 157.0 (Playwright build firefox-1555); headless, Playwright, loopback only | Harness only, in a normal context: F:E-SI-1W signed in through the real identity origin; F:E-ID-5, F:E-ID-6, F:E-ID-7 and F:E-ID-10 passed. The passphrase sign-in with "Stay signed in" and the sign-out (F:E-ID-2, F:E-ID-2B) did not run (a harness timeout, [deviations/firefox.md](deviations/firefox.md)); no restore; no private window (a new context is not private browsing) | |
 | G-ID-5 | Device link by QR, phone to laptop; decoder bundle size; camera-denied path | phone and laptop | not yet run | | | | |
 | G-ID-6 | Argon2id time; PBKDF2 time | low-end Android; iOS 15.4 | not yet run | | | | |
-| G-ID-7 | Popup and opener behaviour, redirect fallback | iOS Safari, Android Chrome, two in-app browsers | not yet run | | | | |
+| G-ID-7 | Popup and opener behaviour, redirect fallback | iOS Safari, Android Chrome, two in-app browsers | partial | 2026-11-01 | Brave (Chromium), Android 16, Samsung Galaxy Z Flip, home Wi-Fi, loader 0.3.0 build 976caba51866, identity page build 9d6a24e3eb7f on Cloudflare Pages | The popup opened from the site on the public tier; the first sign-in (passphrase) completed and the popup closed; a later sign-in on the same phone showed `ERR_FAILED` in the popup (the identity worker defect of the Doors note, fixed on the branch of pull request #7, re-run headless only). Not run: iOS Safari, Android Chrome, in-app browsers, the redirect fallback | filed and fixed (the changelog's "Unreleased" entry) |
 | G-ID-8 | Sign-in at the floor with every fallback | Safari and iOS 15.4, Chromium 110, Firefox 115 | not yet run | | | | |
 | G-ID-9 | Comprehension test with 5 to 8 people of the sign-in, recovery-kit, restore, link and same-identity cards (P0) | any | not yet run | | | | |
 | G-SI-1 | Server sign-in against a verifier on a real host | any desktop browser | not yet run | | | | |
@@ -544,6 +544,22 @@ address booted as a site page and said "Could not find this site's address", bec
 door page path. Two things to file (release-gate): the kit's duplicate header, and door mode at the clean URL. The identity page bundle
 on a second Cloudflare Pages project served every header of its `_headers` file. The host table of [DEPLOY.md](DEPLOY.md#doors) now
 says so.
+
+The same evening, both were fixed on the branch of pull request #7 (the changelog's "Unreleased" entry) and tried again on the same
+Cloudflare Pages project with a kit made from that branch's build (db4d70ab34b3; a test build, not a signed release): `check-site --door`
+passed (the clean-URL info line for `/_mw/open.html`, one `Access-Control-Allow-Origin: *` on `/_mw/door.json`, 16 files byte for byte),
+and a headless Chromium opened the example site's light link at that door: the 308 to `/_mw/open`, the gate, then the door view with the
+guestbook rendered in a frame with `sandbox="allow-scripts"`. Not run there: a phone, a desktop browser by hand.
+
+Also on 2026-11-01, with the public tier: the phone (Brave, home Wi-Fi) and a desktop Brave each signed in through the identity page
+on Cloudflare Pages and posted, but the second sign-in on each device failed with `ERR_FAILED` on the popup. Reproduced in headless
+Chromium without Brave: the identity page's Service Worker had cached the redirected `signin/index.html` (Pages answers it with a 308 to
+`/signin/`), and a browser refuses a redirected cached response for a navigation. Fixed on the same branch (`src/idp/sw.js`); the
+bundle with the fixed worker (same build id, `idp.js` byte-identical) was deployed, and the second visit loads from the worker again.
+The two devices did not meet each other: the desktop Brave never connected to a tracker (a headless visitor on the same computer, which
+reached `tracker.openwebtorrent.com` and `tracker.novage.com.ua`, received the phone's post but never the desktop's), while this computer's
+DNS filter answers 0.0.0.0 for `tracker.webtorrent.dev` and `open.ftorrent.com`; the desktop Brave's tracker connections were not
+diagnosed further. Posts only travel between devices that are connected, so each device showed its own posts only.
 
 ### What to record in each C2 row
 
