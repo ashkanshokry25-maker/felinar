@@ -53,6 +53,8 @@ npx wrangler pages secret put READ_TOKEN --project-name felinar-obs < ../obs-rea
 npx wrangler pages deploy public --project-name felinar-obs --branch main
 ```
 
+On `wrangler` 4.156 step 2 failed as written, because `wrangler pages project create` is now handed to Workers: the project was created once with `--force` added, and only then (the commands after it ran directly).
+
 The address is `https://felinar-obs.pages.dev` (the project name is the first label; Cloudflare adds a suffix when the name is taken).
 Check it, then give it to the site:
 
@@ -136,7 +138,7 @@ them. What follows is computed from the code, not measured.
   it connects and 20 messages from it count as one; the frames the object sends it are outgoing messages, which are not counted. Reads
   (`/events.json`, `/summary.json`) read up to 5000 rows each.
 - The cap is on batches, not on visits. A reporter sends a batch every 2 seconds at most, while it has something queued, with at most 50
-  events in it (and a few batches at once when the page is hidden); how many batches a visit sends has not been measured. A reporter
+  events in it (and a few batches at once when the page is hidden); how many batches a visit sends was measured only for a headless visitor (9 batches in a 1-minute probe of a site, 2026-11-02; [docs/OBSERVABILITY.md](../../docs/OBSERVABILITY.md), "What was tested live"), not for a visit by a person. A reporter
   tries a batch that fails three times at most.
 - Beyond the cap the endpoint answers 429 until midnight UTC, without reading the batch, and the reports of that day are lost. A script can send any
   `Origin` header, so the allow list does not stop it: it can use up the day's 100,000 requests, after which Cloudflare stops serving requests to
@@ -193,10 +195,11 @@ them. What follows is computed from the code, not measured.
 
 ## What was tested
 
-On 2026-11-02, unit tests only, all passing: `test/unit/deploy-obs-core.test.mjs` (39 tests: the masks, the rules of a batch, the keys, the limiter, the
+On 2026-11-02, unit tests, all passing: `test/unit/deploy-obs-core.test.mjs` (39 tests: the masks, the rules of a batch, the keys, the limiter, the
 log over an in-memory store, and the masks held against the reporters' own `safeField`) and `test/unit/deploy-obs-worker.test.mjs` (34 tests: the front and
 the object through a fake platform, with the batches the two reporters really write; the origin rules, the token gate, 413, 415, 400, 429, the rows, the
 tail frames, the alarm sweep, a spy over the headers it reads, and a scan of the source for the names it must never touch). The cost of reading one body (`parseBatchText`, over a
 body of at most 32,768 bytes) was timed in Node on one laptop, not on Cloudflare: 32 KB of text made of "#1" took 10.4 ms before the fix of the fragment rule and 1.5 ms after it (ordinary
-text of that size, 0.6 ms), and the slowest of 710 shapes of text tried since took 2.2 ms. Not tested: a deployment on Cloudflare, the Pages binding to the object, `wrangler dev`, hibernation on the real platform, the
-Free plan's counting of rows and requests (the arithmetic above is from the code), the CPU time of a request there, a real browser sending to it, and load.
+text of that size, 0.6 ms), and the slowest of 710 shapes of text tried since took 2.2 ms.
+
+**Live, on Cloudflare, 2026-11-02 (times ET).** Deployed at 09:46: the Worker `felinar-obs-do`, version 9bbd3352 (a SQLite-backed Durable Object, no `workers.dev` address), behind the Pages project `felinar-obs` at `https://felinar-obs.pages.dev`, with `ALLOW_ORIGINS` naming the demo site, the demo door, the demo identity page and the lab door, and `READ_TOKEN` set as a Pages secret. The Pages project was created with `--force`, once: `wrangler` 4.156 hands `wrangler pages project create` to Workers and the plain command fails (the commands after it ran directly). A smoke from a Mac: `/healthz` answered `ok`; `/summary.json` answered 404 without the token and JSON with it; `POST /e` answered 403 from a foreign origin, 403 with `Origin: null` and 403 with no `Origin`, 400 for a session id of 13 characters and 204 for a valid batch; a stored row had `10.0.0.7` and `[2001:db8::1]:443` masked to `x.x.x.x`; the live tail connected and printed the hello frame. Later that day headless browsers sent reports to it from a lab door and from the demo tier, and one phone from the lab door; a scan of all 53 stored rows of the day (945 events) found no IP address, no full pair code and no name or email address. The phone's reports were refused, because a beacon carries `Origin: null` under the door's `Referrer-Policy: no-referrer`; the loader now sends by `fetch` first ([docs/OBSERVABILITY.md](../../docs/OBSERVABILITY.md), "What was tested live"). Not tested, in the unit tests or live: `wrangler dev`, hibernation on the real platform, the Free plan's counting of rows and requests (the arithmetic above is from the code), the CPU time of a request there, the daily cap, the 7-day sweep, the Cloudflare rules of [Privacy](#privacy), and load.

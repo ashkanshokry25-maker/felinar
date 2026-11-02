@@ -946,7 +946,7 @@ and the times of requests) in the tracker row of the template, and, if the door 
 ### Usage reports (unreleased)
 
 > **Status: built on 2026-11-02, not yet reviewed (unreleased); not in 0.3.0.** [OBSERVABILITY.md](OBSERVABILITY.md) and ARCHITECTURE 15.22. Tested with unit tests on
-> loopback only; no real host has served it yet. No lawyer has reviewed these sentences.
+> loopback and, on 2026-11-02, live: the endpoint on Cloudflare, the project's own headless browsers at a lab door and on the demo tier, and one phone ([OBSERVABILITY.md](OBSERVABILITY.md#what-was-tested-live)). No lawyer has reviewed these sentences.
 
 A site owner can turn on usage reports. The visitor's browser then sends what the loader did on the page to an endpoint the owner runs. The owner names the endpoint in
 the `obs` block of the host's `/_mw/door.json` (`publish --obs`), and whoever runs an identity page names one in its build (`tools/build-idp.mjs --obs`). Without a block

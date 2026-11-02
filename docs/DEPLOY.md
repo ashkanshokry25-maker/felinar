@@ -1149,7 +1149,7 @@ Check any of it with `node tools/check-site.mjs <url> --door`.
 
 ### Usage reports
 
-> **Status: the tools below write, serve and read the block, with unit tests on loopback; no real host has served it yet.** This section covers
+> **Status: the tools below write, serve and read the block, with unit tests on loopback; on 2026-11-02 real hosts served it (a lab door and the demo door on Cloudflare Pages, the demo site on GitHub Pages), and `check-site` found 0 failures at each, with one known warning at the demo site ([OBSERVABILITY.md](OBSERVABILITY.md#what-was-tested-live)).** This section covers
 > the flag, the block and the address; the Worker has its own deploy steps in its folder.
 
 A site, a door or an identity page can send **usage reports** to an endpoint you run: what the loader does on the page (the steps of a load,
@@ -1177,6 +1177,8 @@ the Workers Free plan and put behind a Pages project so that no account name sho
 other origin is refused and is lost. By default it keeps reports for 7 days and stores at most 20,000 batches a day, a cap sized for the Free plan's
 daily limits: a very busy site can outgrow it, and the Worker's README lists what happens at each limit. Name the endpoint, and Cloudflare as its
 host, in your privacy notice, as you do the other recipients ([Owner duties](#owner-duties)).
+
+**Creating the Pages project.** The steps are in the Worker's [README](../deploy/obs-worker/README.md). `wrangler` 4.156 hands `wrangler pages project create` to Workers, and the plain command failed on 2026-11-02: the project was created with `--force` added, once, which was only needed that once (later commands ran directly).
 
 **What the visitor sees.** With the block in place, the consent card, which already appears before anything leaves the device, gets one more line
 that names the host. The stored choice covers that host: a visitor who agreed before the block existed, or to another endpoint, is asked again. "Load from host
