@@ -1091,7 +1091,7 @@ block the door page cannot use is a warning. Nothing in the block is contacted.
 
 ### Apps at a door
 
-> **Status: the tools below write, serve and read the block, with unit tests on loopback. No real host has served it.** What the apps
+> **Status: the tools below write, serve and read the block, with unit tests on loopback. A Cloudflare Pages door and a GitHub Pages site have served it since 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4, headless Chromium only).** What the apps
 > do, and how visitors use them, is in [APPS](APPS.md); this section covers the block and the servers it names.
 
 A door can offer apps on its bare door page: people who have signed in at the door message each other, or meet in a room, by a short

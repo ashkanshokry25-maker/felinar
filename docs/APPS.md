@@ -1,9 +1,11 @@
 # Apps on the door page
 
 > **Status: built, not yet reviewed (unreleased).** Written on 2026-11-01 for the code that adds the apps ([CHANGELOG](../CHANGELOG.md),
-> "Unreleased"). Tested with unit tests on loopback (fakes, the real pairing core, and the Node tracker with real WebSocket clients) and in
-> two scripted Chromium runs on loopback, one with two visitors and one with a room of four. Not run: the Cloudflare Worker with pairing
-> on, a real phone, Safari, Firefox, a screen reader, two separate networks. The new cryptographic code has had no outside review, and no
+> "Unreleased"). Tested with unit tests on loopback (fakes, the real pairing core, and the Node tracker with real WebSocket clients), in
+> two scripted Chromium runs on loopback, one with two visitors and one with a room of four, and, on 2026-11-02, in headless Chromium
+> against the public tier: a rendezvous Worker on Cloudflare, a door and an identity page on Cloudflare Pages, harness only
+> ([What was tested](#what-was-tested)). Not run: a real phone, a real Safari, pairing in WebKit or Firefox, a screen reader, two separate
+> networks. The new cryptographic code has had no outside review, and no
 > lawyer has reviewed the privacy sentences ([PRIVACY](PRIVACY.md)). A review of the protocol and the privacy claims on 2026-11-02, which
 > wrote 18 adversary tests (`test/unit/apps-adversary.test.mjs`), found one blocker and eight smaller defects; all are fixed, and what
 > remains is under "Known limits". Treat the apps as a first build.
@@ -280,6 +282,34 @@ of a code, a message, or which identity talks to which, unless it records a box 
 member can connect to every other member. A connection to a lane that was never accepted (the rendezvous minted the lane, so it can join
 it like a member) sees only sealed frames: it can count the people in a room by the number of key boxes, and it reads no name, no key and
 no message. Details: [PRIVACY](PRIVACY.md) and [ARCHITECTURE](ARCHITECTURE.md) 15.21.
+
+## What was tested
+
+Everything in the table below was measured on 2026-11-02, between 03:55 and 04:05 ET, in headless Chromium 156 driven by Playwright, against
+the public tier: the demo site on a GitHub Pages user site, the demo door and the identity page on Cloudflare Pages projects, and the demo's
+own rendezvous on Cloudflare (a Pages front over a Worker with a Durable Object). That is the harness only: it records facts about the code
+and makes no release-gate row pass. The rows are G-AP-1 to G-AP-4 in [DEMO-RESULTS](DEMO-RESULTS.md). The demo site and the demo door run
+the apps as a test build (loader build bbcb82098cda), not a signed release, until 0.3.1 is released.
+
+| What | What was measured |
+|---|---|
+| The demo site, republished from the apps build | Its pointer names the demo's own rendezvous first, beside two public trackers, a STUN server (Cloudflare's), the identity page, `org=` naming the site's own address and two signed doors. `check-site` found 0 failures and 1 warning (the GitHub Pages 600 s cache). All three trackers connected: `check-site` now reads a tracker that closes the socket after a scrape as connected. |
+| The demo door | It serves the same build with the apps block: rendezvous 1, STUN 1, identity page. `check-site --door` found 0 failures. |
+| Pairing at the demo door: one conversation (Messages) between two separate browser processes with fresh profiles | Both visitors signed in for the visit through the identity page. The code was read from the first page's screen, the second page knocked with it, and the first page showed the request. Before the accept, the count of `RTCPeerConnection` objects was 0 in both pages, and the rendezvous had counted the knock and no lane and no peer. After the accept, both sides connected in 0.5 s (`RTCPeerConnection` counts 4 and 3), and the rendezvous counted one lane and two peers. A formatted message with a link crossed each way, the sender saw "delivered" and then "read", and the pages logged no errors. The same pairing ran earlier on the lab tier, a second door and rendezvous with the same build. |
+| An operator probe outside this repository | At the demo door with its pairing check, the probe passed 5 of 5 checks: the page loaded in 0.3 s, it rendered in 0.6 s, a tracker was reachable, sign-in took 1.3 s (median), and pairing passed (code 1.4 s, knock 1.7 s, accept 1.3 s, both connected 0.5 s, a message each way 0.1 s). At the demo site it passed 4 of 4: the page loaded, it rendered in 0.7 s, 3 of 3 trackers connected, and peers met in 1 of 1 pairs, the first peer after 0.4 s. |
+
+The counts before the accept are the measured form of one claim of this page: until the owner accepts, no connection offer has moved
+("Using the apps", Messages, step 3). They show what this page's code and this rendezvous did in one run in one engine, and they do not
+cover a rendezvous that misbehaves ("Known limits").
+
+**Not yet run.**
+
+- No real phone has run the apps, neither an iPhone nor an Android phone.
+- No real Safari has run them, on a desktop or on an iPhone.
+- No pairing has run in WebKit or Firefox: the harness paired only in Chromium.
+- Both browsers ran on one computer, so no run has connected two separate networks, and the door's STUN server has not been tried between two homes.
+- No screen reader has been used on the apps.
+- The demo runs an unsigned test build until 0.3.1 is released: no signed release carries the apps yet.
 
 ## Known limits
 
