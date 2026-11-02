@@ -265,6 +265,11 @@ export function computeSource ({ fromCache = false, peerBytes = 0, webseedBytes 
   return null
 }
 
+/** The host name of a tracker URL (what a usage report names: never the port, the path or anything after them), or null. */
+function trackerHostOf (url) {
+  try { return new URL(String(url)).hostname || null } catch (_) { return null }
+}
+
 /** State of one bittorrent-tracker WebSocketTracker (socket pooled per URL). */
 export function trackerStateOf (t) {
   if (!t) return 'closed'
@@ -1064,13 +1069,17 @@ function defaultLifecycle () {
  * 'rendezvous'), 'wire' { wire, torrent, kind } (synchronous), 'progress', 'peers' { count, webseeds },
  * 'done' { manifest }, 'error' { error }, 'status' { code, ... }, 'warning' { code, ... },
  * 'tracker' { url, state }, 'sync' { failures }.
+ * report(name, fields) (optional): the page's usage reporter (docs/OBSERVABILITY.md, only on a site whose door.json names an endpoint). The
+ * manager reports 'peer.ice' { kind, ice, gathering } (a peer connection's ICE states), 'peer.wire' { kind, ev: 'open' | 'close', web },
+ * 'peers.count' { count, webseeds } and 'tracker.state' { host, state }: states, counts and host names, never a peer's address, id or port.
  */
 export class TorrentManager extends EventTarget {
-  constructor ({ WebTorrent, config = CONFIG, policy = null, consent = null, deps = null, timers = null, fetch: fetchImpl = null, baseUrl = null, lifecycle = undefined, random = null } = {}) {
+  constructor ({ WebTorrent, config = CONFIG, policy = null, consent = null, deps = null, timers = null, fetch: fetchImpl = null, baseUrl = null, lifecycle = undefined, random = null, report = null } = {}) {
     super()
     if (typeof WebTorrent !== 'function') throw new TypeError('TorrentManager needs the WebTorrent class')
     this.WebTorrent = WebTorrent
     this.config = config
+    this._report = typeof report === 'function' ? report : null
     this.policy = Object.assign({ maxConns: config.policy.desktop.maxConns, uploadsEnabled: true, uploadLimit: config.policy.desktop.uploadLimit, hostOnly: false, leaveVersionSwarm: false }, policy || {})
     this.consent = consent
     this._injected = deps || {}
@@ -1248,6 +1257,12 @@ export class TorrentManager extends EventTarget {
     }
   }
 
+  /** _rep(name, fields): one usage-report event; without the report option it does nothing, and a report never breaks the engine. */
+  _rep (name, fields) {
+    if (!this._report) return
+    try { this._report(name, fields) } catch (_) { /* a report never breaks the engine */ }
+  }
+
   _status (code, extra) { this._emit('status', Object.assign({ code }, extra || {})) }
   _warning (code, extra) { this._emit('warning', Object.assign({ code }, extra || {})) }
 
@@ -1412,7 +1427,7 @@ export class TorrentManager extends EventTarget {
     if (OWN_STUN_SET.has(kind) && ownStun !== false) this._useLaneRtc(torrent)
     // Synchronous on purpose: wire extensions must be registered before any extended handshake.
     torrent.on('wire', (wire) => this._onWire(wire, torrent, kind))
-    torrent.on('peer', (peer) => this._onPeer(peer))
+    torrent.on('peer', (peer) => this._onPeer(peer, kind))
     torrent.on('warning', (err) => this._onTorrentWarning(torrent, kind, err))
     torrent.on('download', () => this._scheduleProgress())
     torrent.on('upload', () => this._scheduleProgress())
@@ -1552,6 +1567,7 @@ export class TorrentManager extends EventTarget {
     wire.once('close', () => {
       const had = this._wireInfo.get(wire)
       this._wireInfo.delete(wire)
+      if (had && had.opened) this._rep('peer.wire', { kind, ev: 'close', web })
       this._recount()
       if (had && !had.web && had.kind === 'rendezvous') this._onRendezvousWireClosed()
       if (had && !had.web && this._seed) this._applyUploadThrottle() // C2 seed-engine: a lane may have no open wire now
@@ -1655,6 +1671,8 @@ export class TorrentManager extends EventTarget {
       for (const ext of this._extensions.values()) if (ext.swarms.has(kind)) this._callExtension(ext, wire, info, false)
     }
     this._recount()
+    info.opened = true
+    this._rep('peer.wire', { kind, ev: 'open', web })
     this._emit('wire', { wire, torrent, kind })
   }
 
@@ -2599,11 +2617,16 @@ export class TorrentManager extends EventTarget {
     return dropped
   }
 
-  _onPeer (peer) {
+  _onPeer (peer, kind = null) {
     // WebRTC peers arrive as simple-peer objects; web seeds as URL strings (ignored).
     if (!peer || typeof peer !== 'object' || typeof peer.once !== 'function' || !peer.id) return
     const id = peer.id
     this._pendingPeers.set(id, peer)
+    // Usage reports: the ICE states of this peer connection (simple-peer emits iceStateChange(iceConnectionState, iceGatheringState)),
+    // with the swarm kind it was made for. States only: never the peer's id, address or port.
+    if (this._report && typeof peer.on === 'function') {
+      peer.on('iceStateChange', (ice, gathering) => this._rep('peer.ice', { kind, ice: typeof ice === 'string' ? ice : null, gathering: typeof gathering === 'string' ? gathering : null }))
+    }
     peer.once('error', (err) => { this._failures.lastIceError = (err && (err.code || err.message)) || 'error' })
     peer.once('close', () => {
       if (this._pendingPeers.get(id) !== peer) return
@@ -2626,6 +2649,7 @@ export class TorrentManager extends EventTarget {
       this._peerCount = count
       this._webseedCount = webseeds
       this._emit('peers', { count, webseeds })
+      this._rep('peers.count', { count, webseeds })
       this._scheduleProgress()
       this._failuresChanged()
     }
@@ -2748,6 +2772,7 @@ export class TorrentManager extends EventTarget {
     for (const url of Object.keys(states)) {
       if (prev[url] === states[url]) continue
       this._emit('tracker', { url, state: states[url] })
+      this._rep('tracker.state', { host: trackerHostOf(url), state: states[url] })
     }
     const changed = Object.keys(states).length !== Object.keys(prev).length || Object.keys(states).some((u) => prev[u] !== states[u])
     this._failures.trackers = states

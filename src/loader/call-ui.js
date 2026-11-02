@@ -133,7 +133,8 @@ export function noticesOf (st, lang = 'en', { phone = false } = {}) {
  * createCallUi(opts) -> { attach, prompt, inspect, rectOf, destroy }
  * opts: { win, doc, nav, lang, cssHref ('/_mw/ui.css'), now, setTimeout, clearTimeout, setInterval, clearInterval,
  *   MediaStream, AudioContext, strict (redress checks fail closed, default true), minVisibleMs (500), MutationObserverCtor,
- *   log(line), phone (boolean or () -> boolean: a phone, which shows call.keepOpen while the platform notes wait) }
+ *   log(line), phone (boolean or () -> boolean: a phone, which shows call.keepOpen while the platform notes wait),
+ *   observe(event): the loader's usage-report observer, handed every click, change and submit inside the panel's closed root }
  */
 export function createCallUi (opts = {}) {
   const win = opts.win || globalWin()
@@ -151,6 +152,7 @@ export function createCallUi (opts = {}) {
   const cssHref = typeof opts.cssHref === 'string' ? opts.cssHref : '/_mw/ui.css'
   const guardOpts = { strict: opts.strict !== false, now, minVisibleMs: opts.minVisibleMs === undefined ? 500 : opts.minVisibleMs, MutationObserverCtor: opts.MutationObserverCtor }
   const log = typeof opts.log === 'function' ? opts.log : () => {}
+  const observe = typeof opts.observe === 'function' ? (ev) => { try { opts.observe(ev) } catch (_) { /* a report never breaks the panel */ } } : null
   const isPhone = () => { try { return typeof opts.phone === 'function' ? Boolean(opts.phone()) : opts.phone === true } catch (_) { return false } }
   const C = (key, params) => callText(key, lang, params)
   const U = (key, params) => uiText(key, lang, params)
@@ -237,6 +239,9 @@ export function createCallUi (opts = {}) {
     if (host) return
     host = make('div', null, { 'data-mw-call': '', 'data-nosnippet': '' })
     root = typeof host.attachShadow === 'function' ? host.attachShadow({ mode: 'closed' }) : host
+    // Usage reports: the page sees the host for a click inside this closed root, so one delegated capture listener here hands it to the
+    // loader's observer. It reads and changes nothing (no preventDefault, no stopPropagation, no attribute: the card guards watch those).
+    if (observe && typeof root.addEventListener === 'function') for (const type of ['click', 'change', 'submit']) root.addEventListener(type, observe, true)
     const inline = cssHref ? shellCssText() : null
     if (inline) {
       root.appendChild(make('style', null, null, inline))

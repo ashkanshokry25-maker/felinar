@@ -5,12 +5,17 @@
 //   node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] [--tls] [--webseed <dir>]
 //                             [--pointer "<record>"|@file] [--dev] [--hub shared|subdomain] [--doh <template>]
 //                             [--spa|--no-spa] [--idp-port <n> [--idp-root dist-idp]] [--tracker-proxy <port>]
-//                             [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--quiet] [--json]
+//                             [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--obs <origin>] [--quiet] [--json]
 //
 // - Apps at a door (docs/DEPLOY.md "Apps at a door"): --apps-rendezvous, --apps-stun and --apps-idp (the
 //   first two repeat, the third names one origin) add the apps block { rendezvous, stun, idp } to the /_mw/door.json this server sends, so the
 //   bare door page offers the apps against a rendezvous you started (tools/tracker.mjs) and an identity page you serve (--idp-port). The file
 //   under --root is not changed; a block already in it is replaced. A server without these flags sends door.json as built.
+//
+// - Usage reports (docs/DEPLOY.md "Usage reports"): --obs <origin> adds the obs block { endpoint } to the same /_mw/door.json, beside the apps
+//   block when there is one, so the loader sends its reports to an endpoint you started (http: on a loopback host is allowed here, as the
+//   endpoint of a test collector). It needs none of the --apps-* flags. The file under --root is not changed; a block already in it is
+//   replaced; nothing here contacts the endpoint.
 //
 // - v0.3 C2 (SEEDING-AND-ZERO-SETUP-DESIGN 3.2, S2 rung 1): --tracker-proxy <port> passes WebSocket upgrades on /tracker to a tracker
 //   listening on ws://127.0.0.1:<port> (tools/tracker.mjs), so the tracker answers on the page's own origin: wss://<host>:<port>/tracker
@@ -57,13 +62,13 @@ import { parsePointer } from '../src/common/pointer.js';
 import {
   parseCli, runMain, isMain, devCerts, lanAddresses, injectMeta, isUtf16, ToolError, UsageError, out, warn, ROOT,
 } from './lib.mjs';
-import { makeAppsBlock, withAppsBlock, appsBlockLine } from './apps-block.mjs';
+import { makeAppsBlock, withAppsBlock, appsBlockLine, makeObsBlock, withObsBlock, obsBlockLine } from './apps-block.mjs';
 
 const USAGE = `
 Usage: node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] [--tls [--cert f --key f]]
                                 [--webseed <dir>] [--pointer "<record>"|@file] [--dev] [--hub shared|subdomain]
                                 [--doh <url template>] [--spa|--no-spa] [--idp-port <n> [--idp-root <dir>]] [--tracker-proxy <port>]
-                                [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--quiet] [--json]
+                                [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--obs <origin>] [--quiet] [--json]
 
 --idp-port <n>  also serve the identity page (--idp-root, default dist-idp, built by npm run build:idp) with its _headers on
                 http://127.0.0.1:<n>/ (0 = a free port): a second origin, loopback only
@@ -73,6 +78,8 @@ Usage: node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] 
                 loopback host) of a tracker or Worker with the pair protocol; repeat for spares (at most 8); needs --apps-idp
 --apps-stun <url>  a stun: or stuns: URL for the apps block (repeat; at most 8; none: browsers on one network connect with host candidates)
 --apps-idp <origin>  the identity origin the visitor signs in at (https:, or http: for a loopback host such as the --idp-port page)
+--obs <origin>  the obs block of /_mw/door.json (docs/DEPLOY.md, "Usage reports"): the endpoint the loader sends usage reports to, an https:
+                origin (http: for a loopback host, such as a collector you started); needs none of the --apps-* flags
 `;
 
 const MIME_EXTRA = { torrent: 'application/x-bittorrent' };
@@ -327,8 +334,10 @@ function proxyTrackerUpgrade(req, socket, head, upstreamPort, proxied, log) {
  * doh = null, spa = null (auto), idpPort = null (a number, 0 = ephemeral, serves idpRoot on 127.0.0.1), idpRoot = 'dist-idp',
  * trackerProxy = null (the port of a tracker on 127.0.0.1: WebSocket upgrades on /tracker are passed to it), quiet = false, log = console line writer,
  * appsRendezvous = [] (wss: or loopback ws: URLs), appsStun = [] (stun: URLs), appsIdp = null (one origin): the apps block of /_mw/door.json, each a
- * string or a list; give any of them and appsRendezvous and appsIdp must be given too }
- * v0.3 C2: the result also holds trackerProxy (the port, or null). Apps at a door: it also holds apps (the block served, or null).
+ * string or a list; give any of them and appsRendezvous and appsIdp must be given too,
+ * obs = null (one origin, or a list holding one): the obs block of /_mw/door.json, on its own or beside the apps block }
+ * v0.3 C2: the result also holds trackerProxy (the port, or null). Apps at a door: it also holds apps (the block served, or null), and
+ * obs (the usage reports block served, or null).
  */
 export async function createDevServer(options = {}) {
   const o = Object.assign({ root: 'dist', port: 8080, host: '127.0.0.1', tls: false, webseed: null, pointer: null, dev: false, hub: null, doh: null, spa: null, trackerProxy: null, quiet: false }, options);
@@ -356,6 +365,9 @@ export async function createDevServer(options = {}) {
   // Apps at a door: the block is made (and refused when it is not usable) before the server listens.
   const appsGiven = [o.appsRendezvous, o.appsStun, o.appsIdp].some((v) => v !== undefined && v !== null && v !== '' && (!Array.isArray(v) || v.length));
   const apps = appsGiven ? makeAppsBlock({ rendezvous: o.appsRendezvous, stun: o.appsStun, idp: o.appsIdp }) : null;
+  // Usage reports: the same, made before the server listens, from one origin; an empty value (the command line gives null) is no request.
+  const obsGiven = o.obs !== undefined && o.obs !== null && o.obs !== '' && !(Array.isArray(o.obs) && !o.obs.length);
+  const obs = obsGiven ? makeObsBlock(o.obs) : null;
   const metas = [];
   if (pointer) metas.push({ name: 'mw-pointer', content: pointer });
   if (o.dev) metas.push({ name: 'mw-dev', content: '1' });
@@ -500,17 +512,20 @@ export async function createDevServer(options = {}) {
       const ost = statOrNull(file);
       if (ost && ost.isFile()) return serveFile(req, res, file, ost, {});
     }
-    // Apps at a door: door.json from --root with the apps block set, read again on every request (a rebuild shows at once). A file that
-    // is not a JSON object is served as it is, so the problem shows where check-site --door looks, not here.
-    if (apps && pathname === '/_mw/door.json') {
+    // Apps at a door and usage reports: door.json from --root with the apps and obs blocks set, read again on every request (a rebuild shows at
+    // once). A file that is not a JSON object is served as it is, so the problem shows where check-site --door looks, not here.
+    if ((apps || obs) && pathname === '/_mw/door.json') {
       const file = join(root, '_mw', 'door.json');
       const dst = statOrNull(file);
       if (dst && dst.isFile() && containedIn(root, file)) {
         let body = null;
         try {
-          body = withAppsBlock(readFileSync(file), apps);
+          body = readFileSync(file);
+          if (apps) body = withAppsBlock(body, apps);
+          if (obs) body = withObsBlock(body, obs);
         } catch (err) {
-          log('[dev-server] /_mw/door.json: ' + err.message + '; served without the apps block');
+          body = null;
+          log('[dev-server] /_mw/door.json: ' + err.message + '; served without the ' + [apps && 'apps', obs && 'obs'].filter(Boolean).join(' and ') + (apps && obs ? ' blocks' : ' block'));
         }
         if (body) return send(req, res, 200, { 'content-type': contentTypeFor(file), 'cache-control': 'no-cache', 'access-control-allow-origin': '*' }, body);
       }
@@ -594,6 +609,7 @@ export async function createDevServer(options = {}) {
     spa,
     idp,
     apps,
+    obs,
     trackerProxy: o.trackerProxy === undefined ? null : o.trackerProxy,
     setPointer,
     override,
@@ -631,6 +647,7 @@ async function main(argv) {
     'apps-rendezvous': { type: 'list' },
     'apps-stun': { type: 'list' },
     'apps-idp': { type: 'list' },
+    obs: { type: 'string' },
     quiet: { type: 'boolean' },
     json: { type: 'boolean' },
   });
@@ -648,7 +665,7 @@ async function main(argv) {
   const stop = () => srv.close().then(() => process.exit(0));
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
-  if (flags.json) out(JSON.stringify(Object.assign({ url: srv.url, urls: srv.urls, port: srv.port, spa: srv.spa }, srv.idp ? { idp: { url: srv.idp.url, urls: srv.idp.urls, port: srv.idp.port } } : {}, srv.trackerProxy !== null ? { trackerProxy: srv.trackerProxy } : {}, srv.apps ? { apps: srv.apps } : {})));
+  if (flags.json) out(JSON.stringify(Object.assign({ url: srv.url, urls: srv.urls, port: srv.port, spa: srv.spa }, srv.idp ? { idp: { url: srv.idp.url, urls: srv.idp.urls, port: srv.idp.port } } : {}, srv.trackerProxy !== null ? { trackerProxy: srv.trackerProxy } : {}, srv.apps ? { apps: srv.apps } : {}, srv.obs ? { obs: srv.obs } : {})));
   else {
     out('felinar dev-server: ' + flags.root + (srv.spa ? ' (SPA fallback on)' : '') + (flags.webseed ? ', web seed ' + flags.webseed + ' at /ws/' : ''));
     for (const u of srv.urls) out('  ' + u);
@@ -658,6 +675,7 @@ async function main(argv) {
     }
     if (srv.trackerProxy !== null) out('  tracker proxy: WebSocket upgrades on /tracker go to ws://127.0.0.1:' + srv.trackerProxy + ' (on this origin: ' + srv.url.replace(/^http/, 'ws') + 'tracker)');
     if (srv.apps) out('  apps block in /_mw/door.json: ' + appsBlockLine(srv.apps) + ' (the door page offers the apps)');
+    if (srv.obs) out('  obs block in /_mw/door.json: ' + obsBlockLine(srv.obs) + ' (the loader sends reports there once a visitor agrees)');
     if (flags.pointer) out('  pointer meta injected into HTML pages');
     if (flags.dev) out('  dev mode: <meta name="mw-dev" content="1">, seeder at ' + srv.url + '_dev/seeder.html');
   }

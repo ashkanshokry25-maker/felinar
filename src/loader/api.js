@@ -1231,14 +1231,19 @@ export class IdentityBinding {
  *  activation: an ActivationTracker (or () -> boolean): the only source of ctx.activation.
  *  tab: () -> 'leader' | 'follower'. hostOnly: () -> boolean. cfg: () -> _mw.cfg (default: the ledger's).
  *  prompt: the services' prompt (default: promptAdapter(ui)).
+ *  report: optional (name, fields) -> void, the page's usage reporter (docs/OBSERVABILITY.md; only on a site whose door.json names an
+ *    endpoint). The API reports 'api.request' { method, outcome } for every request (the method name only when it is one of this
+ *    table's, never its parameters or its result), and the sign-in steps 'signin.start' { how }, 'signin.result' { code, ms } and
+ *    'signin.fallback' { kind }.
  */
 export class MwApi {
   constructor ({
     node = null, torrentManager = null, consent = null, ui = null, info = {}, identity = null, limits = {}, now = () => Date.now(),
     setTimeoutFn = null, clearTimeoutFn = null, activation = null, tab = null, hostOnly = null, cfg = null, prompt = null,
-    lang = 'en', log = null, mod = true, readOnly = null
+    lang = 'en', log = null, mod = true, readOnly = null, report = null
   } = {}) {
     this.node = node
+    this._report = typeof report === 'function' ? report : null
     this.tm = torrentManager
     this.consent = consent
     this.ui = ui
@@ -1488,6 +1493,7 @@ export class MwApi {
     let res
     try { res = await ui.prompt('signin', { method: 'signIn', options }) } catch (_) { return false }
     if (res && typeof res === 'object' && res.fallback === 'redirect') {
+      this._rep('signin.fallback', { kind: 'redirect' })
       // The sign-in window could not open even inside the click (E_POPUP_BLOCKED), or it lost its link to this page and
       // never answered (E_IDP_UNREACHABLE: in-app browsers, iOS Home Screen apps; R 2.3.1, G-ID-7): the redirect round
       // trip, from the loader's own "Continue in this tab" card (code review v0.3, browser).
@@ -1504,9 +1510,16 @@ export class MwApi {
   async signInFromCard (options = {}) {
     const svc = this.services.identity
     if (!svc || !svc.methods || typeof svc.methods['auth.signIn'] !== 'function') throw Object.assign(new Error('sign-in is not available in this loader'), { code: 'E_UNSUPPORTED' })
+    const t0 = this.now()
+    this._rep('signin.start', { how: 'card' })
+    let code = 'ok'
     try {
       return await svc.methods['auth.signIn'](stripActivationFlags(options) || {}, { activation: true, tab: this.tab() })
+    } catch (err) {
+      code = (err && typeof err.code === 'string' && err.code) || 'failed'
+      throw err
     } finally {
+      this._rep('signin.result', { code, ms: Math.max(0, this.now() - t0) })
       await this.identity.refresh().catch(() => {})
     }
   }
@@ -1545,8 +1558,30 @@ export class MwApi {
    * opts (writes only, code review round 1): { signal, onProgress } as ChainNode's writes take them:
    * onProgress({ hashes, bits }) while the fee is computed; an aborted signal fails the write with
    * E_POW_ABORTED and nothing is published.
+   * Usage reports: with a report option each request is one 'api.request' event: the method (only when it is one of this table's) and
+   * the outcome ('ok' or the reason above), never its params or its result; a site's sign-in call is also 'signin.start' and
+   * 'signin.result'. Without the option this is the plain call.
    */
-  async request (method, params, opts) {
+  request (method, params, opts) {
+    if (!this._report) return this._request(method, params, opts)
+    const known = typeof method === 'string' && METHOD_SET.has(method)
+    const signIn = method === 'auth.signIn'
+    const t0 = this.now()
+    if (signIn) this._rep('signin.start', { how: 'sdk' })
+    return this._request(method, params, opts).then((res) => {
+      this._rep('api.request', { method: known ? method : 'unknown', outcome: res && res.ok ? 'ok' : (res && res.reason) || 'failed' })
+      if (signIn) this._rep('signin.result', { code: res && res.ok ? 'ok' : (res && res.error && typeof res.error.code === 'string' && res.error.code) || 'failed', ms: Math.max(0, this.now() - t0) })
+      return res
+    })
+  }
+
+  /** _rep(name, fields): one usage-report event; without the report option it does nothing, and a report never breaks a request. */
+  _rep (name, fields) {
+    if (!this._report) return
+    try { this._report(name, fields) } catch (_) { /* a report never breaks the API */ }
+  }
+
+  async _request (method, params, opts) {
     this.stats.requests++
     if (typeof method !== 'string' || !METHOD_SET.has(method)) {
       this.stats.rejected++
@@ -1771,6 +1806,7 @@ export class MwApi {
       return await this.callService('identity', 'auth.signIn', params, ctx)
     } catch (err) {
       if (!(err && err.code === 'E_POPUP_BLOCKED') || !this.ui || typeof this.ui.prompt !== 'function') throw err
+      this._rep('signin.fallback', { kind: 'card' })
       const ok = await this.openSignInCard(params)
       if (!ok) throw Object.assign(new Error('sign-in was cancelled'), { code: 'E_USER_CANCELLED' })
       const id = this.identityInfo()

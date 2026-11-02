@@ -237,6 +237,8 @@ const EN = {
   extraWordMismatch: 'The two extra words differ.',
   extraWordText: 'An extra word protects you if someone sees your 12 words: without it they cannot rebuild your identity or find your sites. You must type it with the 12 words to restore.',
   frameRefused: 'This page works only in a window of its own. Open {idp} directly.',
+  // Usage reports (docs/OBSERVABILITY.md): shown on the cards only while the build names a report host and no button was pressed yet.
+  obsDisclosure: 'Usage reports: when you press a button on this page, it sends {host} a report of the steps you take and how long they take. The report holds no keys, no site address and nothing you type. To send nothing, close this window without pressing one.',
 };
 
 const FR = {
@@ -435,6 +437,7 @@ const FR = {
   extraWordMismatch: 'Les deux mots supplémentaires diffèrent.',
   extraWordText: 'Un mot supplémentaire vous protège si quelqu\'un voit vos 12 mots : sans lui, il ne peut ni reconstruire votre identité ni trouver vos sites. Vous devrez le taper avec les 12 mots pour restaurer.',
   frameRefused: 'Cette page ne fonctionne que dans sa propre fenêtre. Ouvrez {idp} directement.',
+  obsDisclosure: 'Rapports d\'utilisation : quand vous appuyez sur un bouton de cette page, elle envoie à {host} un rapport des étapes que vous suivez et de leur durée. Le rapport ne contient ni clés, ni adresse de site, ni rien de ce que vous saisissez. Pour ne rien envoyer, fermez cette fenêtre sans appuyer sur un bouton.',
 };
 
 const ERRORS = {

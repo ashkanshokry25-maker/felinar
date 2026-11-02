@@ -338,6 +338,10 @@ export function trustedOnly (handler) {
 /**
  * createUI(root, strings) → { setStatus, setProgress, setPeers, setLedger, setIdentity, setSource,
  *   setPointerInfo, showNotice, showGate, showError, hideError, setBanner, settings, diagnostics, ... }
+ * uiOpts (all optional): { actions, lang, strict, now, minVisibleMs, report, observe }. Usage reports (docs/OBSERVABILITY.md): report(name,
+ * fields) hears the banners shown and hidden and the diagnostics rows that appear and go; observe(event) hears the clicks, changes and form
+ * submits inside the closed root of the cards. Both are late-bound by the loader (they read the reporter when they run), so a page without a
+ * report block never reaches them, and neither is ever given what a person typed.
  */
 export function createUI (root, strings = STRINGS, uiOpts = {}) {
   if (!root || !root.ownerDocument) throw new TypeError('createUI needs a DOM element')
@@ -366,6 +370,8 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
   const clear = (node) => { while (node && node.firstChild) node.removeChild(node.firstChild) }
   const button = (label, onClick, cls) => el('button', { type: 'button', class: 'mw-btn' + (cls ? ' ' + cls : ''), text: label, onclick: onClick })
   const safe = (fn) => (...args) => { try { if (typeof fn === 'function') return fn(...args) } catch (err) { if (win && win.console) win.console.error('[mw ui]', err) } }
+  // Usage reports: one event for the loader's reporter, if the page has one; a report never breaks the interface.
+  const rep = (name, fields) => { try { if (typeof uiOpts.report === 'function') uiOpts.report(name, fields) } catch (_) { /* a report never breaks the interface */ } }
   // v0.2.1 (DIGEST-AMENDMENTS A4; INTERFACES "src/loader/ui.js"): the consent decision and the identity
   // export/import act only on the visitor's own input. A click a script made (el.click(), dispatchEvent:
   // event.isTrusted === false), for example by the same-origin site frame, is ignored.
@@ -487,12 +493,16 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
   // dnsUpdate (post-wave fix B): this page asks DNS-over-HTTPS for updates once the visitor chooses Load, so the
   // gate names the service; dohHost replaces the loader's resolvers when the page carries <meta name="mw-doh">.
   // C2 doors: note (the door view's limits, doorText 'door.gateNote') is one more line under the gate's text.
-  const showGate = ({ hasWebseed = false, onLoad, onHostOnly, onCancel, details = null, sharedOrigin = false, dnsUpdate = false, dohHost = null, note = null } = {}) => {
+  // reportsHost: the host name of this site's usage-report endpoint (door.json obs block), or null; the gate then says that "Load" also
+  // sends the reports there, before anything is sent.
+  const showGate = ({ hasWebseed = false, onLoad, onHostOnly, onCancel, details = null, sharedOrigin = false, dnsUpdate = false, dohHost = null, note = null, reportsHost = null } = {}) => {
+    const redrawn = !gateO.box.hidden // the loader draws the open gate again when the site's size becomes known: one gate.shown for it
     clear(gateO.box)
     gateO.box.appendChild(el('h2', { id: 'mw-gate-title', text: sharedOrigin ? S.hubDetailsTitle : S.gateLoad }))
     gateO.box.appendChild(el('p', { text: S.gateText }))
     if (note) gateO.box.appendChild(el('p', { class: 'mw-note mw-gate-door', text: note }))
     if (dnsUpdate) gateO.box.appendChild(el('p', { class: 'mw-consent-dns', text: S.dohNamed(S.gateDnsUpdate, dohHost) }))
+    if (reportsHost) gateO.box.appendChild(el('p', { class: 'mw-consent-reports', text: fmt(S.gateReports, { host: reportsHost }) }))
     if (details) {
       const dl = el('dl', { class: 'mw-details' })
       const add = (term, value) => { dl.appendChild(el('dt', { text: term })); dl.appendChild(el('dd', { text: value })) }
@@ -505,13 +515,14 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     }
     const actions = el('div', { class: 'mw-actions' })
     const hide = () => closeOverlay(gateO)
-    const load = decision(sharedOrigin ? S.hubSharedLoad : S.gateLoad, safe(() => { hide(); if (onLoad) onLoad() }), 'mw-primary')
+    const load = decision(sharedOrigin ? S.hubSharedLoad : S.gateLoad, safe(() => { hide(); rep('gate.choice', { choice: 'accepted' }); if (onLoad) onLoad() }), 'mw-primary')
     actions.appendChild(load)
-    if (hasWebseed) actions.appendChild(decision(S.gateHostOnly, safe(() => { hide(); if (onHostOnly) onHostOnly() })))
-    actions.appendChild(decision(S.gateCancel, safe(() => { hide(); if (onCancel) onCancel() })))
+    if (hasWebseed) actions.appendChild(decision(S.gateHostOnly, safe(() => { hide(); rep('gate.choice', { choice: 'host-only' }); if (onHostOnly) onHostOnly() })))
+    actions.appendChild(decision(S.gateCancel, safe(() => { hide(); rep('gate.choice', { choice: 'cancel' }); if (onCancel) onCancel() })))
     gateO.box.appendChild(actions)
     if (sharedOrigin) gateO.box.appendChild(el('p', { class: 'mw-note', text: S.hubSharedBanner }))
     openOverlay(gateO, load)
+    if (!redrawn) rep('gate.shown', { kind: 'gate', host: reportsHost || null })
     return hide
   }
 
@@ -596,8 +607,8 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
   const consentO = overlay('mw-gate mw-consent', 'mw-consent-title')
   let hideConsentCard = null
   // dns: only DNS can find the site, so the lookup comes before the site (both choices allow it); dnsUpdate (post-wave
-  // fix B): the page has a page tag but asks DNS-over-HTTPS for updates after "Share and load"; dohHost: see showGate.
-  const showConsentCard = ({ hasWebseed = true, mobile = false, dns = false, dnsUpdate = false, dohHost = null, blocking = false, onShare, onHostOnly, onCancel, onSettings } = {}) => {
+  // fix B): the page has a page tag but asks DNS-over-HTTPS for updates after "Share and load"; dohHost, reportsHost: see showGate.
+  const showConsentCard = ({ hasWebseed = true, mobile = false, dns = false, dnsUpdate = false, dohHost = null, reportsHost = null, blocking = false, onShare, onHostOnly, onCancel, onSettings } = {}) => {
     if (hideConsentCard) hideConsentCard()
     const box = blocking ? consentO.box : noticeBox
     clear(box)
@@ -617,19 +628,21 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     } else if (dnsUpdate) {
       box.appendChild(el('p', { class: 'mw-notice-text mw-consent-dns', text: S.dohNamed(S.consentDnsUpdate, dohHost) }))
     }
+    if (reportsHost) box.appendChild(el('p', { class: 'mw-notice-text mw-consent-reports', text: fmt(S.consentReports, { host: reportsHost }) }))
     if (mobile) box.appendChild(el('p', { class: 'mw-notice-text mw-consent-mobile', text: S.consentMobile }))
     if (hasWebseed) box.appendChild(el('p', { class: 'mw-notice-text', text: S.consentChoice }))
     const actions = el('div', { class: 'mw-actions' })
     // Equal weight on purpose: both choices are primary buttons on the same layer.
-    const share = decision(S.consentShare, safe(() => { hide(); if (onShare) onShare() }), 'mw-primary mw-consent-share')
+    const share = decision(S.consentShare, safe(() => { hide(); rep('gate.choice', { choice: 'accepted' }); if (onShare) onShare() }), 'mw-primary mw-consent-share')
     actions.appendChild(share)
-    if (hasWebseed) actions.appendChild(decision(S.consentHostOnly, safe(() => { hide(); if (onHostOnly) onHostOnly() }), 'mw-primary mw-consent-host'))
-    if (!hasWebseed || blocking) actions.appendChild(decision(blocking ? S.gateCancel : S.consentNoHost, safe(() => { hide(); if (onCancel) onCancel() }), 'mw-consent-cancel'))
-    if (!blocking) actions.appendChild(button(S.consentSettings, safe(() => { if (onSettings) onSettings(); else openSettings() }), 'mw-link'))
+    if (hasWebseed) actions.appendChild(decision(S.consentHostOnly, safe(() => { hide(); rep('gate.choice', { choice: 'host-only' }); if (onHostOnly) onHostOnly() }), 'mw-primary mw-consent-host'))
+    if (!hasWebseed || blocking) actions.appendChild(decision(blocking ? S.gateCancel : S.consentNoHost, safe(() => { hide(); rep('gate.choice', { choice: 'cancel' }); if (onCancel) onCancel() }), 'mw-consent-cancel'))
+    if (!blocking) actions.appendChild(button(S.consentSettings, safe(() => { rep('gate.choice', { choice: 'settings' }); if (onSettings) onSettings(); else openSettings() }), 'mw-link'))
     box.appendChild(actions)
     if (blocking) openOverlay(consentO, share)
     else { noticeBox.hidden = false; setCollapsed(false, false) }
     hideConsentCard = hide
+    rep('gate.shown', { kind: dns ? 'dns' : 'consent', host: reportsHost || null }) // usage reports: the card is up (kind 'dns': the one before a DNS lookup)
     return hide
   }
 
@@ -723,6 +736,7 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     if (!text) {
       if (existing && existing.parentNode) existing.parentNode.removeChild(existing)
       bannerEls.delete(id)
+      if (existing) rep('banner', { id, ev: 'hide' })
       return
     }
     const box = existing || el('div', { class: 'mw-banner', role: kind === 'error' || kind === 'warn' ? 'alert' : 'status' })
@@ -734,7 +748,7 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     for (const a of actions) if (a && a.label) acts.appendChild(button(a.label, safe(a.onClick), 'mw-small' + (a.primary ? ' mw-primary' : '')))
     if (dismissible) acts.appendChild(button(S.dismiss, () => setBanner(id, null), 'mw-small mw-link'))
     box.appendChild(acts)
-    if (!existing) { banners.appendChild(box); bannerEls.set(id, box) }
+    if (!existing) { banners.appendChild(box); bannerEls.set(id, box); rep('banner', { id, ev: 'show' }) }
     if (kind === 'warn' || kind === 'error') setCollapsed(false, false)
   }
 
@@ -782,8 +796,10 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
   const toggle = (id, label, note, onChange) => {
     const input = el('input', { type: 'checkbox', id, class: 'mw-switch', role: 'switch' })
     input.addEventListener('change', () => onChange(input.checked))
-    const lab = el('label', { class: 'mw-toggle', for: id }, [input, el('span', { text: label })])
-    return { input, node: el('div', { class: 'mw-field' }, [lab, el('p', { class: 'mw-note', text: note })]) }
+    const text = el('span', { text: label })
+    const lab = el('label', { class: 'mw-toggle', for: id }, [input, text])
+    const noteEl = el('p', { class: 'mw-note', text: note })
+    return { input, text, note: noteEl, node: el('div', { class: 'mw-field' }, [lab, noteEl]) }
   }
 
   const consentAgainBtn = decision(S.settingsConsentAgain, () => { closeSettings(); fire('consent') }, 'mw-link')
@@ -801,6 +817,13 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
   const dockRow = el('div', { class: 'mw-field mw-dock-row', hidden: true }, [dockBtn])
   const seedLine = el('p', { class: 'mw-note mw-seed-line', hidden: true })
   for (const t of [declareWifiT, declarePluggedT, keeperT]) { t.node.hidden = true; t.input.disabled = true }
+  // Usage reports (docs/OBSERVABILITY.md): the switch and the Diagnostics line exist only on a site whose door.json names a report
+  // endpoint (setReports below); its label and note name the host. Off means the loader stops them at once (app.js changeSetting).
+  const reportsLang = pickLang(uiOpts.lang || (win && win.navigator && win.navigator.language) || 'en')
+  const reportsT = toggle('mw-reports', '', '', (on) => fire('reports', { on }))
+  reportsT.node.hidden = true
+  reportsT.input.disabled = true
+  const reportsLine = el('p', { class: 'mw-note mw-reports-line', hidden: true })
   // Until the loader hands over the stored settings (setModel), the switches show the defaults and
   // cannot be changed: nobody should turn off a switch that only looked off.
   shareT.input.checked = true
@@ -849,7 +872,7 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
 
   const section = (title, children) => el('section', { class: 'mw-section' }, [el('h3', { text: title })].concat(children))
   settingsO.box.appendChild(el('h2', { id: 'mw-settings-title', text: S.settingsTitle }))
-  settingsO.box.appendChild(section(S.settingsSharing, [shareT.node, hostT.node, networkT.node,
+  settingsO.box.appendChild(section(S.settingsSharing, [shareT.node, hostT.node, networkT.node, reportsT.node,
     declareWifiT.node, declarePluggedT.node, keeperT.node, dockRow, seedLine, meterSlot, // C2 wire-ui; the carry meter (C2 integrator)
     consentAgainBtn, noteEl('sharing')]))
   settingsO.box.appendChild(section(S.settingsStorage, [usageEl, persistedEl, iosHint, forgetBtn, noteEl('storage')]))
@@ -862,7 +885,7 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     noteEl('identity')]))
   settingsO.box.appendChild(section(S.settingsModerator, [moderatorLine, moderatorText, el('div', { class: 'mw-row' }, [moderatorBtn, moderatorRemove]), noteEl('moderator')]))
   settingsO.box.appendChild(section(S.settingsLedger, [el('p', { class: 'mw-note', text: S.ledgerInfo }), ledgerLine, exportLedgerBtn, noteEl('ledger')]))
-  settingsO.box.appendChild(section(S.settingsDebug, [diagEmpty, diagList, logEl]))
+  settingsO.box.appendChild(section(S.settingsDebug, [diagEmpty, diagList, reportsLine, logEl]))
   settingsO.box.appendChild(el('div', { class: 'mw-dialog-foot' }, [versionEl, noteEl('general'), closeBtn]))
 
   const openSettings = () => { openOverlay(settingsO, closeBtn); fire('open') }
@@ -874,6 +897,25 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     if (!settingsO.box.hidden) closeSettings()
     else if (!errorO.box.hidden) hideError()
   })
+
+  /**
+   * setReports(info): the usage-report switch and the Diagnostics line. info: { host, on, state, sent, queued, dropped } or null (this site
+   * has no report endpoint: both stay hidden). host is the endpoint's host name; on is the switch; state is 'sending' (the visitor agreed
+   * and the reports go), 'waiting' (nothing is sent before the visitor's choice) or 'off'; the three counts are the reporter's own.
+   */
+  const setReports = (info) => {
+    const m = info && typeof info === 'object' && typeof info.host === 'string' && info.host ? info : null
+    reportsT.node.hidden = !m
+    reportsLine.hidden = !m
+    reportsT.input.disabled = !m
+    if (!m) { reportsLine.textContent = ''; return }
+    reportsT.text.textContent = uiText('settingsReportsLabel', reportsLang, { host: m.host })
+    reportsT.note.textContent = uiText('settingsReportsNote', reportsLang, { host: m.host })
+    reportsT.input.checked = m.on !== false
+    const state = m.state === 'sending' ? 'reportsStateSending' : m.state === 'off' ? 'reportsStateOff' : 'reportsStateWaiting'
+    const n = (v) => Math.max(0, Math.floor(Number(v) || 0))
+    reportsLine.textContent = uiText('reportsDebug', reportsLang, { host: m.host, state: uiText(state, reportsLang), sent: n(m.sent), queued: n(m.queued), dropped: n(m.dropped) })
+  }
 
   const setModel = (m = {}) => {
     shareT.input.checked = m.share !== false
@@ -950,11 +992,20 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
   }
   const diagnostics = {
     set (row, detail) {
+      const had = diagRows.has(row)
       if (detail === null || detail === undefined || detail === false) diagRows.delete(row)
       else diagRows.set(row, detail)
       renderDiag()
+      // Usage reports: a row appearing or going is one event; a row that only changes its text is not (it is set every 2 s).
+      const has = diagRows.has(row)
+      if (had !== has) rep('diag.row', { row, ev: has ? 'set' : 'clear' })
     },
-    clear () { diagRows.clear(); renderDiag() },
+    clear () {
+      const had = Array.from(diagRows.keys())
+      diagRows.clear()
+      renderDiag()
+      for (const row of had) rep('diag.row', { row, ev: 'clear' })
+    },
     rows () { return Array.from(diagRows.keys()) },
     log (line) {
       const stamp = new Date().toISOString().slice(11, 23)
@@ -994,7 +1045,7 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
 
   let cardsInstance = null
   const getCards = () => {
-    if (!cardsInstance) cardsInstance = createCards({ win, doc, actions: uiOpts.actions, lang: uiOpts.lang, strict: uiOpts.strict, now: uiOpts.now, minVisibleMs: uiOpts.minVisibleMs })
+    if (!cardsInstance) cardsInstance = createCards({ win, doc, actions: uiOpts.actions, lang: uiOpts.lang, strict: uiOpts.strict, now: uiOpts.now, minVisibleMs: uiOpts.minVisibleMs, observe: uiOpts.observe })
     return cardsInstance
   }
 
@@ -1039,6 +1090,7 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     download,
     settings: {
       setModel,
+      setReports,
       onChange: onSettingsChange,
       open: openSettings,
       close: closeSettings,
@@ -1119,6 +1171,8 @@ export function createCards (opts = {}) {
   const strict = opts.strict !== false
   let lang = pickLang(opts.lang || (win && win.navigator && win.navigator.language) || 'en')
   const guardOpts = { strict, now: opts.now, minVisibleMs: opts.minVisibleMs, MutationObserverCtor: opts.MutationObserverCtor }
+  // opts.observe(event): the loader's usage-report observer (see createUI); a throw in it never reaches a card.
+  const observe = typeof opts.observe === 'function' ? (ev) => { try { opts.observe(ev) } catch (_) { /* a report never breaks a card */ } } : null
   let dark = false
   try { dark = Boolean(win && typeof win.matchMedia === 'function' && win.matchMedia('(prefers-color-scheme: dark)').matches) } catch (_) { dark = false }
   const C = dark ? CARD_THEMES.dark : CARD_THEMES.light
@@ -1168,6 +1222,9 @@ export function createCards (opts = {}) {
     css(host, { all: ['initial', 'important'], position: ['fixed', 'important'], left: ['0', 'important'], right: ['0', 'important'], bottom: ['0', 'important'], 'z-index': ['2147483000', 'important'], 'pointer-events': ['none', 'important'], display: ['block', 'important'] })
     root = typeof host.attachShadow === 'function' ? host.attachShadow({ mode: 'closed' }) : host
     if (root !== host) adoptFocusRing(root, C.accent) // a visible focus ring despite the inline all: initial (WCAG 2.4.7)
+    // Usage reports: the clicks inside this closed root are not seen from outside it (the page sees the host), so one delegated capture
+    // listener here hands them to the loader's observer. It reads and changes nothing: no preventDefault, no stopPropagation.
+    if (observe && typeof root.addEventListener === 'function') for (const type of ['click', 'change', 'submit']) root.addEventListener(type, observe, true)
     // The bottom padding keeps the cards above the home indicator of phones without a home button (safe area).
     wrap = h('div', Object.assign({}, BASE, { width: '100%', padding: '12px 12px calc(4px + env(safe-area-inset-bottom, 0px))', 'pointer-events': 'none' }))
     wrap.setAttribute('lang', lang) // the cards' language inside a page in another one (WCAG 3.1.2, accessibility lane)

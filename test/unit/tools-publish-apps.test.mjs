@@ -215,6 +215,28 @@ test('withAppsBlock / withoutAppsBlock: apps is the last key, nothing else moves
   assert.throws(() => withoutAppsBlock(Buffer.from('null')), ToolError);
 });
 
+test('withAppsBlock / withoutAppsBlock leave the obs block of the usage reports where it is: last, behind apps, whichever block was written first', () => {
+  const dist = fakeDist();
+  const built = readFileSync(join(dist, '_mw', 'door.json'));
+  const OBS = { endpoint: 'https://obs.example.org' };
+  const plain = JSON.parse(built.toString('utf8'));
+  const withObs = Buffer.from(JSON.stringify(Object.assign({}, plain, { obs: OBS }), null, 2) + '\n');
+  // apps is set into a file that already has obs: it goes in front of it
+  const both = withAppsBlock(withObs, BLOCK);
+  const parsed = JSON.parse(both.toString('utf8'));
+  assert.deepEqual(Object.keys(parsed), ['v', 'kind', 'name', 'version', 'buildId', 'page', 'pageAlias', 'files', 'apps', 'obs']);
+  assert.deepEqual(parsed.apps, BLOCK);
+  assert.deepEqual(parsed.obs, OBS);
+  assert.equal(both.equals(Buffer.from(JSON.stringify(Object.assign({}, plain, { apps: BLOCK, obs: OBS }), null, 2) + '\n')), true, 'the same bytes as apps written first');
+  // a block that is already there is replaced without the obs block moving, and removing it leaves the obs file as it was
+  const other = { rendezvous: ['wss://other.example'], stun: [], idp: 'https://other-id.example.org' };
+  assert.deepEqual(Object.keys(JSON.parse(withAppsBlock(both, other).toString('utf8'))).slice(-2), ['apps', 'obs']);
+  assert.equal(withoutAppsBlock(both).equals(withObs), true);
+  // without an obs block nothing is different: apps is the last key and removing it gives the build's own bytes
+  assert.equal(Object.keys(JSON.parse(withAppsBlock(built, BLOCK).toString('utf8'))).pop(), 'apps');
+  assert.equal(withoutAppsBlock(withAppsBlock(built, BLOCK)).equals(built), true);
+});
+
 // ---------------------------------------------------------------------------------------------- publish
 
 test('publish with --tracker, --stun and --idp: summary.json and the result hold the apps block; without --shell no shell is written', async () => {

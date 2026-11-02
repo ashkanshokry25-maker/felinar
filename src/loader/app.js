@@ -53,11 +53,13 @@ import { parseLinkFragment, normalizeRecordText, formatLightLink, parseLightLink
 import {
   doorCandidates, createDoorHealth, probeDoor, fetchFirst, doorTorrentUrls, doorWebseeds, readLedgerDoors, enforceDoorBudget, byteDoors,
   doorsPanelModel, doorsBannerModel, doorLinkFor, doorFiles, mountDoorView, hintAllowed, DOOR_TIMING, DOOR_HEALTH_PREF, appsBlockOf, appsBlockProblem,
-  DOOR_LAST_GOOD_PREF, DOOR_LEDGER_PREF, DOOR_FRAME_PATH
+  obsBlockOf, obsBlockProblem, obsHostOf, DOOR_LAST_GOOD_PREF, DOOR_LEDGER_PREF, DOOR_FRAME_PATH
 } from './doors.js'
 import { doorText, appsText } from './strings.js'
 // Apps on the door page (ARCHITECTURE 15.21): the view of src/loader/apps-ui.js; the service it draws, src/loader/apps.js, is imported in runDoorApps.
 import { createAppsUi } from './apps-ui.js'
+// Usage reports (docs/OBSERVABILITY.md): the reporter exists only on a page whose door.json names an endpoint (installObs below).
+import { createReporter, describeTarget, wrapPeerConnection } from './obs.js'
 import { xsUrls, webseedBases } from './torrent.js'
 import { DEGRADED_RELOAD_KEY } from './render.js'
 import {
@@ -1049,17 +1051,32 @@ async function run (options) {
       signIn: (o) => A.api.signInFromCard(o || {}),
       openIdentity: () => A.api.openIdentityFromCard()
     },
-    lang: (win.navigator && win.navigator.language) || 'en'
+    lang: (win.navigator && win.navigator.language) || 'en',
+    // Usage reports: late-bound, so they do nothing until the page has a reporter (A.obs).
+    report: (name, fields) => rep(A, name, fields),
+    observe: (ev) => watchEvent(A, ev)
   })
   const A = {
     win, doc, boot, ui, config,
     origin: win.location.origin,
-    log: (line) => { try { ui.diagnostics.log(line) } catch (_) { /* ignore */ } },
+    // The log ring is also mirrored line by line to the usage reporter, when there is one (scrubbed first: reportableText). A line that
+    // names a file of the site (a path is not a word the masks know) gives the text to report as opts.report: the ring keeps the whole line
+    // for the person who reads it, and the report gets the line without the file. Until the reporter exists the texts wait in earlyLog.
+    log: (line, opts) => {
+      try { ui.diagnostics.log(line) } catch (_) { /* ignore */ }
+      const text = opts && typeof opts.report === 'string' ? opts.report : line
+      if (A.obs) rep(A, 'log', { m: reportableText(text) })
+      else if (A.earlyLog) { A.earlyLog.push(String(text)); if (A.earlyLog.length > 300) A.earlyLog.shift() }
+    },
+    earlyLog: [], // the report text of each line logged before the reporter exists (at most 300, like the ring); replayed by installObs, then null
+    obs: null, // the usage reporter (src/loader/obs.js), or null: this host's door.json has no usable obs block
+    obsHost: null, // the host name of its endpoint, which the consent card and the gate name
+    report: () => {}, // report(name, fields): one usage event; a no-op until installObs
     consentState: 'pending',
     consentListeners: new Set(),
     consentWaiters: new ConsentWaiters(),
     tabCalls: new Map(), // writes forwarded by follower tabs: from + ' ' + id -> AbortController
-    prefs: { share: true, hostOnly: false, shareOnNetwork: false },
+    prefs: { share: true, hostOnly: false, shareOnNetwork: false, reports: 'on' },
     node: null,
     nodeStore: null,
     tm: null,
@@ -1072,11 +1089,11 @@ async function run (options) {
   // the call state the calls service reports (onSeedYield), and the loader-owned call panel (SZ 3.1.3, 3.1.4, 3.5).
   Object.assign(A.prefs, { declaredWifi: false, declaredPlugged: false, seedAsked: false, keeper: false })
   A.callYield = null
-  A.callUi = createCallUi({ win, doc, lang: (win.navigator && win.navigator.language) || 'en', cssHref: ((config.paths && config.paths.assets) || '/_mw/') + 'ui.css', log: (line) => A.log('call panel: ' + line), phone: () => Boolean(A.env && A.env.isMobile) })
+  A.callUi = createCallUi({ win, doc, lang: (win.navigator && win.navigator.language) || 'en', cssHref: ((config.paths && config.paths.assets) || '/_mw/') + 'ui.css', log: (line) => A.log('call panel: ' + line), phone: () => Boolean(A.env && A.env.isMobile), observe: (ev) => watchEvent(A, ev) })
   A.tracker = new ActivationTracker({ nav: win.navigator || null })
   A.api = createPageApi(A)
-  win.addEventListener('error', (e) => A.log('error: ' + (e.message || e.type)))
-  win.addEventListener('unhandledrejection', (e) => A.log('unhandled: ' + errMessage(e.reason)))
+  win.addEventListener('error', (e) => { A.log('error: ' + (e.message || e.type)); rep(A, 'error', { kind: 'error', m: reportableText(e.message || e.type) }) })
+  win.addEventListener('unhandledrejection', (e) => { A.log('unhandled: ' + errMessage(e.reason)); rep(A, 'error', { kind: 'rejection', m: reportableText(errMessage(e.reason)) }) })
   // Diagnostics handle for tests and support (the drop-in runtime has window.__mwDropin): read-only. rectOf(label)
   // is the rectangle of a button of the open loader card (its root is closed), as __mwDropin.rectOf: a test clicks
   // it with a real mouse event, since script clicks are ignored (isTrusted). Geometry only, never content.
@@ -1123,8 +1140,12 @@ async function run (options) {
     if (!back) return A
     A.mode = resolveMode(win.location, { metaPointer, hubMeta: metaContent(doc, 'mw-hub') || null, dev: !!boot.dev })
     A.log('sign-in answer taken; mode ' + A.mode.mode)
+    A.resumedMode = true
   }
 
+  // Usage reports: this host's door.json is read once, beside the loader's own modules, and a page whose door.json has no usable obs block
+  // gets no reporter at all (startObs never rejects). Everything below that reports goes through rep(), which does nothing without one.
+  const obsReady = startObs(A, options)
   try {
     A.deps = await loadDeps()
   } catch (err) {
@@ -1132,6 +1153,8 @@ async function run (options) {
     ui.showError({ title: STRINGS.engineMissingTitle, detail: STRINGS.engineMissing + '\n' + errMessage(err), actions: [{ label: STRINGS.reload, primary: true, onClick: () => win.location.reload() }] })
     return A
   }
+  await obsReady
+  A.earlyLog = null // the page has its reporter by now, or has none: there is nothing more to keep for it
   if (A.mode.mode === 'hub-root') return runHubRoot(A, metaPointer)
   // C2 doors: the door page without a link offers "Open a link" (S4 D6: iOS and Firefox have no web+felinar: handler).
   // Apps on the door page (ARCHITECTURE 15.21): when this address's /_mw/door.json names an apps block, the page shows the apps
@@ -1158,17 +1181,18 @@ async function run (options) {
         const d = e && e.data
         if (!d || typeof d !== 'object' || d.proto !== config.proto || d.type !== 'mw-site-invalid') return
         if (!A.btih || d.btih !== A.btih) return
-        A.log('service worker: stored copy unusable (' + (d.reason || 'invalid') + (d.path ? ' at ' + d.path : '') + ')')
+        A.log('service worker: stored copy unusable (' + (d.reason || 'invalid') + (d.path ? ' at ' + d.path : '') + ')', { report: 'service worker: stored copy unusable (' + (codeWord(d.reason) || 'invalid') + ')' })
         handleCorruptCache(A)
       })
     } catch (_) { /* no message channel to the worker */ }
   }
   A.swPromise.then((sw) => {
     A.log('service worker ok=' + sw.ok + ' controlled=' + sw.controlled + (sw.error ? ' ' + sw.error : ''))
+    rep(A, 'sw.register', { ok: !!sw.ok, controlled: !!sw.controlled, degraded: !!sw.degraded, reloaded: !!sw.reloaded, error: codeWord(sw.error) })
     if (sw.ok) {
-      watchController({ proto: config.proto, onMismatch: () => ui.setBanner('sw', STRINGS.swOutdated, { kind: 'warn', actions: [{ label: STRINGS.reload, onClick: () => win.location.reload() }] }) })
+      watchController({ proto: config.proto, onMismatch: () => { rep(A, 'sw.outdated', {}); ui.setBanner('sw', STRINGS.swOutdated, { kind: 'warn', actions: [{ label: STRINGS.reload, onClick: () => win.location.reload() }] }) } })
       pingServiceWorker({ proto: config.proto }).then((pong) => {
-        if (pong && pong.proto !== config.proto) ui.setBanner('sw', STRINGS.swOutdated, { kind: 'warn', actions: [{ label: STRINGS.reload, onClick: () => win.location.reload() }] })
+        if (pong && pong.proto !== config.proto) { rep(A, 'sw.outdated', {}); ui.setBanner('sw', STRINGS.swOutdated, { kind: 'warn', actions: [{ label: STRINGS.reload, onClick: () => win.location.reload() }] }) }
       })
     }
   })
@@ -1177,6 +1201,7 @@ async function run (options) {
   A.env = detectEnvironment({ battery: A.battery })
   await setupSeeding(A) // C2 wire-ui: dock mode, the seed meters and the mw.net control
   await loadPrefs(A)
+  syncReports(A) // a visitor who turned usage reports off keeps them off: what waited in memory is dropped
   await setupDoors(A) // C2 doors: the health memory of doors (a pref), read before anything is fetched
   // v0.3 (MF-30): pins and key-change refusals are signed by this device's non-extractable key.
   await loadDeviceKey(A)
@@ -1210,6 +1235,8 @@ async function run (options) {
   A.scope = r.scope
   A.ledgerId = r.ledgerId
   A.log('pointer ' + r.source + ' btih=' + A.btih + ' ledger=' + A.ledgerId)
+  rep(A, 'pointer.resolved', { source: r.source, firstTime: !!r.firstTime, keyChanged: !!r.keyChanged, rotated: !!r.rotated, tried: Array.isArray(r.tried) ? r.tried.length : 0 })
+  if (A.obs && typeof A.obs.setSite === 'function') A.obs.setSite(String(A.btih).slice(0, 8)) // the first 8 hex characters of the infohash, nothing more of the site
   // v0.3 (SC-6): a loader older than the pointer's ml= floor refuses to mount and offers the update.
   if (!loaderFloorOk(r.record.ml, A.config.version)) {
     presentLoaderTooOld(A, r.record.ml)
@@ -1273,6 +1300,7 @@ async function run (options) {
   A.consentState = await readConsent(A)
   recomputePolicy(A)
   updateSubline(A)
+  syncReports(A) // a returning visitor's stored choice decides whether the usage reports that waited in memory may go
   if (peersAllowed(A)) startProbe(A)
 
   // ---- one engine per origin (§5.9) ----
@@ -1281,6 +1309,7 @@ async function run (options) {
   A.link = new TabLink(A.ledgerId)
   installTabLink(A)
   A.log(A.isLeader ? 'engine tab' : 'follower tab')
+  rep(A, 'tab.role', { leader: !!A.isLeader })
 
   // ---- v0.3: identity, chat, files, media and (hub mode) followed ledgers (R 2.11; the SVC contract) ----
   await setupV03(A)
@@ -1371,8 +1400,15 @@ function inspectShell (A) {
     doors: doorsInfo(A), // C2 doors (read-only): candidates, health memory, the last probe, the banner, the door view
     apps: appsInfo(A), // apps on the door page (read-only): { view, code, conversations, rooms, link, ... }, null on any other page
     pin: pinInfo(A), // C2 integrator (read-only): _mw.cfg.pin, whether this page is the pin node, authenticated pin wires, receipts
+    obs: obsInfo(A), // usage reports (read-only): the reporter's counts and the host name of its endpoint, null on a page without a report block
     log: lines
   }
+}
+
+/** obsInfo(A) → the reporter's inspect() ({ host, enabled, allowed, queued, sent, dropped, batches, lastOk }), or null on a page without usage reports. */
+function obsInfo (A) {
+  if (!A.obs) return null
+  try { return A.obs.inspect() } catch (_) { return null }
 }
 
 /** pinInfo(A) -> read-only mw_pin1 state for window.__mwShell.inspect() (tests and support); no key material beyond the public key. */
@@ -1456,6 +1492,8 @@ async function loadPrefs (A) {
   // C2 wire-ui: the seed.ask card was answered on this origin (SZ-1), and the desktop keeper tab ("Keep this site").
   A.prefs.seedAsked = (await get('seedAsked:' + A.origin, false)) === true
   A.prefs.keeper = (await get('keeper:' + A.origin, false)) === true
+  // Usage reports: the Settings switch of this origin. Anything but 'off' is on, and on still sends nothing before the visitor's yes.
+  A.prefs.reports = (await get('reports', 'on')) === 'off' ? 'off' : 'on'
 }
 
 async function readConsentRecord (A, key) {
@@ -1478,7 +1516,12 @@ async function readConsent (A) {
   }
   const rec = key === consentKeyFor(consentModeOf(A), null) && A.consentRecord ? A.consentRecord : await readConsentRecord(A, key)
   A.consentRecord = rec
-  return consentFromRecord(rec, { rcpt: recipientsKey(A.record, A.config), config: A.config })
+  return consentFromRecord(rec, { rcpt: rcptOf(A), config: A.config })
+}
+
+/** rcptOf(A) → the recipients a "Share and load" covers on this page: the trackers and STUN servers, and the usage-report host when there is one. */
+function rcptOf (A) {
+  return recipientsKey(A.record, A.config, { obsHost: A.obsHost || null })
 }
 
 async function saveConsentRecord (A, choice, { dns = false } = {}) {
@@ -1492,7 +1535,7 @@ async function saveConsentRecord (A, choice, { dns = false } = {}) {
     choice,
     dns: dns || inherited,
     scope: consentModeOf(A) === 'hub-shared' ? (A.ledgerId || null) : A.origin, // C2 doors: a door keeps one choice per site
-    rcpt: A.record ? recipientsKey(A.record, A.config) : '',
+    rcpt: A.record ? rcptOf(A) : '',
     config: A.config
   })
   A.consentRecord = rec
@@ -1519,6 +1562,7 @@ function askBeforeDns (A) {
       blocking: true,
       dns: true,
       dohHost: dohOverrideHost(A),
+      reportsHost: A.obsHost || null,
       hasWebseed: true,
       mobile: !!(A.env && A.env.isMobile),
       onShare: () => { persistFromGesture(A); resolve('accepted') },
@@ -1595,6 +1639,9 @@ function requestConsent (A) {
 async function setConsent (A, state, { broadcast = true } = {}) {
   if (A.consentState === state) return
   A.consentState = state
+  // Usage reports: the visitor's yes lets what waited in memory go; "Load from host only" drops it and nothing more is sent.
+  syncReports(A)
+  rep(A, 'consent.set', { choice: state, scope: consentModeOf(A) === 'hub-shared' ? 'site' : 'origin' })
   if (state !== 'pending') await saveConsentRecord(A, state)
   if (A.hideNotice) { A.hideNotice(); A.hideNotice = null }
   recomputePolicy(A)
@@ -1631,6 +1678,7 @@ function startProbe (A) {
     const row = connectivityRow(report)
     if (row) A.ui.diagnostics.set(row.row, { info: true, text: STRINGS.connectivity(report.cls) + ' (' + row.text + ')' })
     A.log('connectivity ' + report.cls + ' in ' + report.tDone + ' ms, ' + report.answered.length + ' STUN answered, ICE servers ' + stunUrlsOf(A.iceServers).join(' '))
+    rep(A, 'connectivity', { cls: report.cls, answered: report.answered.length, ms: Number(report.tDone) || 0 }) // the class and a count: never a mapped address
   }).catch((err) => A.log('connectivity probe failed: ' + errMessage(err)))
 }
 
@@ -1694,6 +1742,7 @@ function showConsentCard (A) {
     mobile: !!(A.env && A.env.isMobile),
     dnsUpdate: dnsUpdatesPlanned(A),
     dohHost: dohOverrideHost(A),
+    reportsHost: A.obsHost || null, // usage reports: the card names the host, and reports gate.shown and gate.choice itself
     onShare: () => { A.hideNotice = null; persistFromGesture(A); setConsent(A, 'accepted') },
     onHostOnly: () => { A.hideNotice = null; setConsent(A, 'host-only') },
     onCancel: () => { A.hideNotice = null; A.ui.setStatus(STRINGS.consentNotNow, 'warn'); A.consentWaiters.settle('pending') },
@@ -1725,6 +1774,7 @@ function openGate (A) {
         note: door ? doorText('door.gateNote', langOf(A)) : null,
         dnsUpdate: dnsUpdatesPlanned(A),
         dohHost: dohOverrideHost(A),
+        reportsHost: A.obsHost || null, // usage reports: the gate names the host, and reports gate.shown and gate.choice itself
         onLoad: () => { A.refreshGate = null; persistFromGesture(A); setConsent(A, 'accepted'); if (A.stripFragment) A.stripFragment(); resolve('load') },
         onHostOnly: () => { A.refreshGate = null; setConsent(A, 'host-only'); if (A.stripFragment) A.stripFragment(); resolve('host-only') },
         onCancel: () => {
@@ -1865,6 +1915,7 @@ async function presentPointer (A) {
  * publisher's reason and contact (only https: and mailto: links, withdrawalNotice).
  */
 async function presentWithdrawal (A, { askFirst = false, binding = true } = {}) {
+  rep(A, 'pointer.withdrawn', {})
   const notice = withdrawalNotice(A.record)
   if (!binding) {
     // v0.3 (MF-30): older than 30 days and not signed again: nothing is deleted; nothing is served either.
@@ -1932,6 +1983,7 @@ async function withdrawNow (A, record) {
 }
 
 function presentPointerError (A, err) {
+  rep(A, 'pointer.error', { code: codeWord(err && err.code) || 'error' })
   const scope = (A.mode && (A.mode.scope || (A.mode.fragment && A.mode.fragment.host))) || A.win.location.hostname
   const lines = [STRINGS.pointerNotFound(scope)]
   if (err && err.dohError) {
@@ -1948,32 +2000,34 @@ function presentPointerError (A, err) {
 
 async function lookupCache (A) {
   const { cache, verify, torrentFile } = A.deps
+  // Usage reports: whether a stored copy was used and, when not, why (a word, never the copy's name).
+  const found = (res, reason) => { rep(A, 'site.cache', { hit: !!res, reason }); return res }
   let site = null
-  try { site = await cache.getSite(A.btih) } catch (err) { A.log('cache: ' + errMessage(err)); return null }
-  if (!site || !site.complete || !(site.torrentFile instanceof Uint8Array) || !Array.isArray(site.files)) return null
+  try { site = await cache.getSite(A.btih) } catch (err) { A.log('cache: ' + errMessage(err)); return found(null, 'error') }
+  if (!site || !site.complete || !(site.torrentFile instanceof Uint8Array) || !Array.isArray(site.files)) return found(null, 'absent')
   // The expected btih comes from the resolved pointer, never from IndexedDB alone (§7.3).
   let ok = false
   try { ok = await verify.verifyInfoHash(site.torrentFile, A.btih) } catch (_) { ok = false }
   if (!ok) {
     A.log('cached torrent does not hash to ' + A.btih + '; removed')
     try { await cache.deleteSite(A.btih) } catch (_) { /* ignore */ }
-    return null
+    return found(null, 'hash')
   }
   const blobs = new Map()
   for (const f of site.files) {
     let blob = null
     try { blob = await cache.getFile(A.btih, f.path) } catch (_) { blob = null }
     if (!blob || typeof blob.size !== 'number' || blob.size !== f.length) {
-      A.log('cached copy incomplete at ' + f.path)
-      return null
+      A.log('cached copy incomplete at ' + f.path, { report: 'cached copy incomplete' })
+      return found(null, 'incomplete')
     }
     blobs.set(f.path, blob)
   }
   let parsed
-  try { parsed = await torrentFile.parseTorrentFile(site.torrentFile) } catch (_) { return null }
+  try { parsed = await torrentFile.parseTorrentFile(site.torrentFile) } catch (_) { return found(null, 'parse') }
   try { await cache.touchSite(A.btih) } catch (_) { /* ignore */ }
   A.knownSize = parsed.length
-  return { manifest: site, blobs, parsed, fromCache: true }
+  return found({ manifest: site, blobs, parsed, fromCache: true }, 'ok')
 }
 
 /**
@@ -2003,7 +2057,7 @@ async function persistSite (A, res) {
     A.persistFailed = false
   } catch (err) {
     A.persistFailed = true
-    A.log('saveSite failed: ' + errMessage(err))
+    A.log('saveSite failed: ' + errMessage(err), { report: 'saveSite failed' }) // the message can name a file of the site (cache.js: "no data for <path>")
     const quota = err && (err.name === 'QuotaExceededError' || /quota/i.test(errMessage(err)))
     A.ui.setBanner('storage', quota ? STRINGS.storageFull : STRINGS.storageFullTitle + ': ' + errMessage(err), { kind: 'warn' })
     return false
@@ -2092,7 +2146,7 @@ async function serveNeededVersion (A, btih) {
     A.link.send('site', { btih })
     A.log('stored ' + btih + ' for another tab')
   } catch (err) {
-    A.log('could not fetch ' + btih + ' for another tab: ' + errMessage(err))
+    A.log('could not fetch ' + btih + ' for another tab: ' + errMessage(err), { report: 'could not fetch ' + btih + ' for another tab' }) // the engine's and the cache's messages can name a file
   } finally {
     A.servingVersion = null
   }
@@ -2206,13 +2260,16 @@ function ensureTorrentManager (A) {
 
 async function createTorrentManager (A) {
   const url = A.config.assets.webtorrent
+  // Usage reports: the peer connection wrapper (ICE states and candidate types, never an address) goes in before the offer-timeout wrapper,
+  // so that one sits on top of it; the calls, which take the browser's own constructor, find it through both (nativeRtc).
+  wrapRtc(A)
   // B7: the bundle captures window.RTCPeerConnection when it is imported, so the offer-timeout wrapper
   // (a non-trickle offer leaves 1.5 s after the first candidate instead of 5 s) goes in first.
   try { if (A.webrtc) installOfferTimeout(A.win, { timeoutMs: A.config.ice.offerTimeoutMs }) } catch (err) { A.log('offer timeout wrapper: ' + errMessage(err)) }
   const mod = await import(/* webpackIgnore: true */ url)
   const WebTorrent = mod && (mod.default || mod.WebTorrent)
   if (typeof WebTorrent !== 'function') throw new Error('webtorrent.min.js has no default export')
-  const tm = new TorrentManager({ WebTorrent, config: A.config, policy: A.policy, consent: consentApi(A) })
+  const tm = new TorrentManager(Object.assign({ WebTorrent, config: A.config, policy: A.policy, consent: consentApi(A) }, A.obs ? { report: (name, fields) => rep(A, name, fields) } : {}))
   A.tmCount = (A.tmCount || 0) + 1
   A.tm = tm
   if (A.iceServers) tm.setIceServers(A.iceServers)
@@ -2234,6 +2291,13 @@ async function createTorrentManager (A) {
     if (d.total && A.knownSize === undefined) {
       A.knownSize = d.total
       if (A.refreshGate) A.refreshGate()
+    }
+    if (A.obs) {
+      repThrottled(A, 'site.progress', (A.config.obs && A.config.obs.progressEveryMs) || 10000, {
+        pct: d.total ? Math.max(0, Math.min(100, Math.round(((Number(d.downloaded) || 0) / d.total) * 100))) : null,
+        peers: Number(d.peers) || (A.tm ? A.tm.peers : 0),
+        source: typeof d.source === 'string' ? d.source : null
+      })
     }
   })
   tm.addEventListener('peers', (e) => {
@@ -2276,10 +2340,13 @@ function onTorrentStatus (A, d) {
   const text = map[d.code]
   if (text && (!A.mount || d.code === 'seeding' || d.code === 'host-only')) ui.setStatus(text, d.code === 'seeding' ? 'ok' : 'info')
   A.log('status ' + d.code + (d.url ? ' ' + d.url : ''))
+  if (d.code === 'fetching-torrent') fetchStep(A, 'torrent')
+  else if (d.code === 'downloading' || d.code === 'webseed-only') fetchStep(A, 'download')
 }
 
 function onTorrentWarning (A, d) {
-  A.log('warning ' + d.code + (d.message ? ': ' + d.message : '') + (d.reason ? ' (' + d.reason + ')' : ''))
+  // The engine's messages are the texts of libraries and of this loader's own errors, and some name a file of the site: the report gets the code and a code-like reason.
+  A.log('warning ' + d.code + (d.message ? ': ' + d.message : '') + (d.reason ? ' (' + d.reason + ')' : ''), { report: 'warning ' + (codeWord(d.code) || 'error') + (d.reason ? ' (' + (codeWord(d.reason) || 'error') + ')' : '') })
   if (d.code === 'webseed-broken') {
     A.ui.setBanner('webseed', d.reason === 'no-range' ? STRINGS.webseedBroken : STRINGS.webseedUnreachable, { kind: 'warn', dismissible: true })
   } else if (d.code === 'webseed-backoff') {
@@ -2333,9 +2400,11 @@ async function downloadSite (A) {
     ui.showError({ title: STRINGS.engineMissingTitle, detail: STRINGS.engineMissing + '\n' + errMessage(err), actions: [{ label: STRINGS.reload, primary: true, onClick: () => A.win.location.reload() }] })
     return null
   }
+  fetchStep(A, 'start')
   // The ledger's wire extension must be ready before the first wire (bounded wait).
   if (A.ledgerPromise) await withTimeout(A.ledgerPromise, A.config.ledger.nodeOpenMs, null)
   if (A.isLeader) addRendezvous(A) // ledger gossip across versions runs while the site downloads
+  fetchStep(A, 'rendezvous')
   ui.setStatus(hasHttpSource(A.record) ? STRINGS.fetchingTorrent : STRINGS.connecting)
   ui.setProgress({ downloaded: 0, total: 0 })
   A.abort = new AbortController()
@@ -2353,7 +2422,9 @@ async function downloadSite (A) {
         return null
       }
     }
+    fetchStep(A, 'persist')
     await persistSite(A, res)
+    fetchStep(A, 'done')
     return { manifest: res.manifest, blobs: res.blobs, parsed: res.parsed, fromCache: false }
   } catch (err) {
     presentDownloadError(A, err)
@@ -2361,10 +2432,24 @@ async function downloadSite (A) {
   }
 }
 
+/**
+ * fetchStep(A, step): the usage report of one step of the site download: 'start', 'torrent' (the .torrent is being fetched), 'rendezvous',
+ * 'download', 'persist' or 'done', with the milliseconds since 'start'. Each step once per download (the status codes repeat).
+ */
+function fetchStep (A, step) {
+  if (!A.obs) return
+  if (step === 'start' || !A.fetchSeen) { A.fetchT0 = Date.now(); A.fetchSeen = new Set() }
+  if (A.fetchSeen.has(step)) return
+  A.fetchSeen.add(step)
+  rep(A, 'site.fetch', { step, ms: Math.max(0, Date.now() - A.fetchT0) })
+}
+
 function presentDownloadError (A, err) {
   const { ui } = A
   const code = err && err.code
-  A.log('download failed: ' + code + ' ' + errMessage(err))
+  // The message can name a file of the site ("Could not read the downloaded files: file missing from the torrent: <path>"): the report gets the code.
+  A.log('download failed: ' + code + ' ' + errMessage(err), { report: 'download failed: ' + (codeWord(code) || 'error') })
+  rep(A, 'site.error', { code: codeWord(code) || 'error' })
   if (code === 'E_ABORTED') return
   const retry = { label: STRINGS.retry, primary: true, onClick: () => A.win.location.reload() }
   if (code === 'E_TOO_LARGE') {
@@ -2449,7 +2534,7 @@ async function renderSite (A, site) {
         let good = false
         try { good = await A.deps.verify.verifyFile(A.parsed, A.blobs, f.path, verified) } catch (_) { good = false }
         if (!good) {
-          A.log('cached file failed verification: ' + f.path)
+          A.log('cached file failed verification: ' + f.path, { report: 'cached file failed verification' })
           try { await A.deps.cache.deleteSite(A.btih) } catch (_) { /* ignore */ }
           ui.setBanner('corrupt', STRINGS.cachedCorrupt, { kind: 'warn' })
           const fresh = await downloadSite(A)
@@ -2476,6 +2561,7 @@ async function renderSite (A, site) {
   if (doc.title === 'Loading site' && A.record.dn) doc.title = String(A.record.dn)
   refreshCarry(A) // C2 wire-ui: the carry meter after load (SZ 3.1.5 meter.visit, meter.tracker)
   pinTick(A) // C2 integrator: the first heartbeat read after load (then every seed tick, at PinWire's 10-minute pace)
+  rep(A, 'render.done', { mode: A.mode.mode === 'door' ? 'door' : A.degraded ? 'degraded' : 'site', ms: Math.max(0, Date.now() - A.startedAt) })
   return true
 }
 
@@ -2538,7 +2624,7 @@ async function startEngine (A) {
     try {
       await tm.seedFromCache({ manifest: A.manifest, blobs: A.blobs, parsed: A.parsed, record: A.record })
     } catch (err) {
-      A.log('seedFromCache failed: ' + errMessage(err))
+      A.log('seedFromCache failed: ' + errMessage(err), { report: 'seedFromCache failed' }) // the chunk store's message can name a file ("missing file data for <path>")
     }
   }
   addRendezvous(A)
@@ -2663,6 +2749,7 @@ async function openLedger (A) {
       if (A.tm.rendezvous && A.tm.rendezvous.torrent) attachLedger(A, A.tm.rendezvous.torrent)
     }
     A.log('ledger open, height ' + node.height)
+    rep(A, 'ledger.open', { height: Number(node.height) || 0 })
     return node
   } catch (err) {
     A.nodeSettled = true
@@ -2697,6 +2784,7 @@ function onLedgerChange (A) {
   const entries = (snap && typeof snap.height === 'number') ? snap.height : (node.height || 0)
   const peers = typeof node.peers === 'number' ? node.peers : (A.tm ? A.tm.peers : 0)
   A.ui.setLedger({ entries, inSync: node.inSyncPeers || 0, peers })
+  reportLedger(A, entries, node.inSyncPeers || 0, peers)
   if (A.identityInfo && snap && snap.profiles) {
     const name = snap.profiles instanceof Map ? snap.profiles.get(A.identityInfo.pub) : snap.profiles[A.identityInfo.pub]
     if (typeof name === 'string' && name !== A.identityInfo.name) {
@@ -2730,7 +2818,7 @@ function installTabLink (A) {
         // Code review round 1: a message on the tab channel is not a choice by itself; it is adopted
         // only when the stored per-origin record (the sending tab stored it first) says the same.
         const rec = await readConsentRecord(A, consentKeyFor(A.mode.mode, A.ledgerId))
-        const stored = consentFromRecord(rec, { rcpt: recipientsKey(A.record, A.config), config: A.config })
+        const stored = consentFromRecord(rec, { rcpt: rcptOf(A), config: A.config })
         if (stored !== m.state) { A.log('ignored a sharing choice from another tab that the stored choice does not confirm'); return }
         A.consentRecord = rec
         if (A.hideGate) { A.hideGate(); A.hideGate = null }
@@ -2818,7 +2906,7 @@ async function fetchSnapshot (A) {
   // Review round R 5.3 (PTR-8): cs= is fetched only from this page's origin or https on a public host. Integrator: a page that
   // itself runs on a loopback host (local development, the e2e hub of *.localhost) may also read a loopback cs=; a page on a
   // public host never reaches a loopback address this way.
-  if (!isPublicHttpsUrl(cs, { base: A.win.location.href, origin: A.origin || A.win.location.origin }) && !loopbackPair(A.win.location.href, cs)) { A.log('snapshot (cs=) refused: not this origin and not a public https host'); return }
+  if (!isPublicHttpsUrl(cs, { base: A.win.location.href, origin: A.origin || A.win.location.origin }) && !loopbackPair(A.win.location.href, cs)) { A.log('snapshot (cs=) refused: not this origin and not a public https host'); rep(A, 'snapshot', { result: 'refused', blocks: 0 }); return }
   try {
     const url = new URL(cs, A.win.location.href).href
     // Code review round 1: a capped read with a timeout; gzip inflates with a cap, without
@@ -2834,8 +2922,10 @@ async function fetchSnapshot (A) {
     })
     await A.node.importSnapshot(blocks)
     A.log('snapshot: ' + blocks.length + ' blocks offered')
+    rep(A, 'snapshot', { result: 'ok', blocks: blocks.length })
   } catch (err) {
     A.log('snapshot (cs=) failed: ' + errMessage(err))
+    rep(A, 'snapshot', { result: 'failed', blocks: 0 })
   }
 }
 
@@ -2866,6 +2956,7 @@ async function checkPageTagUpdate (A, reason) {
   if (A.destroyed || A.checkingTag || !A.mode || A.mode.mode !== 'shell' || !A.hasSw || !A.record || !A.record.signed || !A.resolved) return
   A.checkingTag = true
   A.lastTagCheck = Date.now()
+  let result = 'none' // usage reports: update.check { reason, result }, the reason prefixed 'tag-' for the page tag (the DNS check has its own)
   try {
     const reply = await requestServiceWorker('mw-shell-check', {}, { proto: A.config.proto, timeoutMs: A.config.timeouts.xsMs || 10000 })
     const text = reply && reply.ok && typeof reply.pointer === 'string' ? reply.pointer : null
@@ -2877,8 +2968,9 @@ async function checkPageTagUpdate (A, reason) {
     const cand = await vetCandidate(text, 'meta', ctx, deps)
     if (!ctx.pin) await anchorCandidate(cand, A.record, A.scope, deps)
     await guardUpdate(cand, A.record, ctx.now)
-    if (cand.status === 'rejected' && cand.reason) A.log('page tag update refused: ' + cand.reason)
+    if (cand.status === 'rejected' && cand.reason) { A.log('page tag update refused: ' + cand.reason); result = 'refused' }
     if (!isUpdate(A.record, cand)) return
+    result = 'update'
     A.log('update (page tag, ' + reason + '): ' + cand.record.btih + ' seq ' + cand.record.seq)
     try { await deps.cache.savePointer(A.scope, { record: cand.record, raw: cand.raw, source: 'meta', savedAt: Date.now(), ttlUntil: null }) } catch (_) { /* ignore */ }
     if (cand.ledgerId) await noteLedger(deps.cache, cand.ledgerId, cand.record, cand.lineage)
@@ -2891,8 +2983,10 @@ async function checkPageTagUpdate (A, reason) {
     if (A.link) A.link.send('version', { btih: cand.record.btih })
   } catch (err) {
     A.log('page tag check failed: ' + errMessage(err))
+    result = 'error'
   } finally {
     A.checkingTag = false
+    rep(A, 'update.check', { reason: 'tag-' + reason, result })
   }
 }
 
@@ -2949,6 +3043,7 @@ async function checkForUpdate (A, reason) {
   A.checkingUpdate = true
   A.lastUpdateCheck = Date.now()
   let nextMs = A.config.pointer.minTtlMs
+  let result = 'none' // usage reports: update.check { reason, result }
   try {
     // Review round R 5.3 (PTR-3, MF-28): the rendered record is the previous record, so nx= binds updates too.
     const ctx = updateContext(A, { now: Date.now(), blockOnDns: true, dohAllowed: dnsAllowedBy(A.consentRecord, A.config) })
@@ -2959,8 +3054,9 @@ async function checkForUpdate (A, reason) {
     const cand = r.candidate
     if (cand && !ctx.pin) await anchorCandidate(cand, A.record, A.scope, deps)
     if (cand) await guardUpdate(cand, A.record, ctx.now)
-    if (cand && cand.status === 'rejected' && cand.reason) A.log('DNS update refused: ' + cand.reason)
+    if (cand && cand.status === 'rejected' && cand.reason) { A.log('DNS update refused: ' + cand.reason); result = 'refused' }
     if (cand && isUpdate(A.record, cand)) {
+      result = 'update'
       A.log('update (' + reason + '): ' + cand.record.btih + ' seq ' + cand.record.seq)
       try { await deps.cache.savePointer(A.scope, { record: cand.record, raw: cand.raw, source: 'dns', savedAt: Date.now(), ttlUntil: r.answer.ttlUntil }) } catch (_) { /* ignore */ }
       if (cand.ledgerId) await noteLedger(deps.cache, cand.ledgerId, cand.record, cand.lineage)
@@ -2974,8 +3070,10 @@ async function checkForUpdate (A, reason) {
     }
   } catch (err) {
     A.log('update check failed: ' + errMessage(err))
+    result = 'error'
   } finally {
     A.checkingUpdate = false
+    rep(A, 'update.check', { reason, result })
     scheduleUpdateCheck(A, nextMs)
   }
 }
@@ -3032,6 +3130,7 @@ function installLifecycle (A) {
   }
   const apply = (event, extra = {}) => {
     const plan = lifecyclePlan(event, Object.assign({ policy: A.policy, suspended: !!(A.tm && A.tm.suspended) }, extra))
+    rep(A, 'lifecycle', { ev: event, hiddenS: extra.hiddenFor ? Math.round(extra.hiddenFor / 1000) : null })
     if (plan.flush) flush()
     if (plan.clearBatteryTimer && A.hiddenTimer) { clearTimeout(A.hiddenTimer); A.hiddenTimer = null }
     if (!A.tm) return plan
@@ -3050,7 +3149,7 @@ function installLifecycle (A) {
   }
   // Code review round 1: the network class is detected again on every change of network (Wi-Fi to
   // mobile data and back), on 'online' and when the page becomes visible, not only once.
-  A.stopNetwork = watchNetwork({ nav: A.win.navigator, onChange: () => { refreshEnvironment(A); callsNetwork(A) } }) // C2 wire-ui: calls restart ICE
+  A.stopNetwork = watchNetwork({ nav: A.win.navigator, onChange: () => { refreshEnvironment(A); callsNetwork(A); noteNetwork(A) } }) // C2 wire-ui: calls restart ICE
   A.stopLifecycle = watchLifecycle({
     onHidden: () => { A.hiddenAt = Date.now(); apply('hidden'); callsVisible(A, false) }, // C2 wire-ui
     onVisible: (hiddenFor) => {
@@ -3069,7 +3168,7 @@ function installLifecycle (A) {
       refreshEnvironment(A)
       apply('online')
     },
-    onOffline: () => A.ui.setStatus(STRINGS.offline, 'warn'),
+    onOffline: () => { rep(A, 'lifecycle', { ev: 'offline', hiddenS: null }); A.ui.setStatus(STRINGS.offline, 'warn') },
     onFreeze: () => apply('freeze'),
     onResume: () => apply('resume')
   }, { doc: A.doc, win: A.win })
@@ -3083,6 +3182,7 @@ function installLifecycle (A) {
 
 function installSettings (A) {
   A.ui.settings.onChange((action, payload) => changeSetting(A, action, payload))
+  refreshReportsUi(A) // usage reports: the switch appears once something answers it (only on a page whose door.json names an endpoint)
 }
 
 /**
@@ -3132,8 +3232,9 @@ async function refreshSettings (A) {
 async function changeSetting (A, action, payload = {}) {
   const { ui, deps } = A
   const notify = ui.settings.notify
+  noteSetting(A, action, payload)
   switch (action) {
-    case 'open': return refreshSettings(A)
+    case 'open': refreshReportsUi(A); return refreshSettings(A)
     case 'consent':
       // "Change your sharing choice" (Settings) and ui.openConsent(): the same first-run card again.
       if (A.record && !A.hideNotice && !A.hideGate) showConsentCard(A)
@@ -3179,6 +3280,15 @@ async function changeSetting (A, action, payload = {}) {
     case 'keeper':
       try { await setKeeper(A, !!payload.on) } catch (err) { notify('sharing', errMessage(err), 'error') }
       break
+    case 'reports':
+      // Usage reports (docs/OBSERVABILITY.md): the visitor's own switch. Off stops them at once and drops what waited in memory; on lets them go
+      // again only when the visitor has also agreed at the card (syncReports decides). A door page stores nothing, so there it lasts for this visit.
+      A.prefs.reports = payload.on ? 'on' : 'off'
+      if (!A.appsUi && deps && deps.cache) { try { await deps.cache.setPref('reports', A.prefs.reports) } catch (_) { /* kept for this page view */ } }
+      syncReports(A)
+      refreshReportsUi(A)
+      if (A.prefs.reports === 'on') rep(A, 'settings.change', { name: 'reports', value: true }) // after the switch took effect: turning them off is never reported
+      return
     case 'forget':
       try {
         if (A.tm) A.tm.destroy()
@@ -3312,7 +3422,8 @@ function newPageApi (A) {
     hostOnly: () => !!(A.policy && A.policy.hostOnly),
     readOnly: () => !!A.readOnlyLedger,
     lang: (A.win.navigator && A.win.navigator.language) || 'en',
-    log: (line) => A.log(line)
+    log: (line) => A.log(line),
+    report: (name, fields) => rep(A, name, fields) // usage reports: api.request, signin.*; a no-op until the page has a reporter
   })
 }
 
@@ -4434,12 +4545,27 @@ function afterServices (A) {
   if (!A.offSeedPush) A.offSeedPush = A.api.addPushListener((event, data) => onSeedPush(A, event, data))
 }
 
+/**
+ * nativeRtc(R) → the browser's own RTCPeerConnection under the wrappers this loader puts on it: the usage-report wrapper of obs.js (its original is
+ * __mwNative) and the offer-timeout wrapper of connectivity.js (its original is its prototype), in either order; R itself when it has neither.
+ * __mwNative is read through the prototype chain too: a wrapper that sits on top of the usage-report one inherits it.
+ */
+export function nativeRtc (R) {
+  let cur = R
+  for (let i = 0; cur && i < 8; i++) {
+    if (cur.__mwNative) cur = cur.__mwNative
+    else if (cur.__mwOfferTimeout) cur = Object.getPrototypeOf(cur)
+    else break
+  }
+  return cur
+}
+
 /** callDeps(A): what mountV03Services hands the calls service (SZ 3.5), beside the chat service's SIG seam. */
 function callDeps (A) {
   const nav = A.win.navigator || {}
-  // The calls connect with the browser's own RTCPeerConnection, not the offer-timeout wrapper WebTorrent gets (B7).
+  // The calls connect with the browser's own RTCPeerConnection, not the offer-timeout wrapper WebTorrent gets (B7), nor the usage-report one.
   const R = A.webrtc ? A.win.RTCPeerConnection : null
-  const base = R && R.__mwOfferTimeout ? Object.getPrototypeOf(R) : R
+  const base = nativeRtc(R)
   return {
     mode: sdkMode(A.mode.mode),
     policy: () => callPolicyOf(A.policy),
@@ -4729,16 +4855,15 @@ function openLinkBox (A) {
 /**
  * readAppsBlock(A) -> the apps block of this address's /_mw/door.json (doors.js appsBlockOf: { rendezvous, stun, idp }), or null: no block, a bad
  * one, or a door.json that cannot be read. One request to this origin that skips the HTTP cache, with the door probe's size cap and its
- * time limit (probeDoor, sameOrigin). Nothing else is asked before the visitor signs in.
+ * time limit (probeDoor, sameOrigin), shared with the usage-report block (readDoorJson: the page reads the file once). Nothing else is asked
+ * before the visitor signs in.
  */
 async function readAppsBlock (A) {
   try {
-    const fetchFn = typeof A.win.fetch === 'function' ? A.win.fetch.bind(A.win) : undefined
-    if (!fetchFn) return null
-    const r = await probeDoor(A.origin, { fetch: fetchFn, sameOrigin: true, timeoutMs: DOOR_TIMING.firstByteMs })
-    if (!r || !r.json) return null
-    const apps = appsBlockOf(r.json)
-    if (!apps && r.json.apps) A.log('door.json has an apps block this loader cannot use (' + (appsBlockProblem(r.json) || 'invalid') + '): showing the paste box')
+    const d = await readDoorJson(A)
+    if (!d) return null
+    const apps = appsBlockOf(d.json)
+    if (!apps && d.json.apps) A.log('door.json has an apps block this loader cannot use (' + (appsBlockProblem(d.json) || 'invalid') + '): showing the paste box')
     return apps
   } catch (err) {
     A.log('apps block: ' + errMessage(err))
@@ -4755,6 +4880,7 @@ async function readAppsBlock (A) {
  */
 function loadAppsTm (A, apps) {
   if (!A.webrtc) return Promise.reject(Object.assign(new Error('WebRTC is not available in this browser'), { code: 'E_UNSUPPORTED' }))
+  wrapRtc(A) // usage reports: the peer connections of the apps' lanes are seen from their first one (idempotent; createTorrentManager does it too)
   A.lanesOnly = true
   A.consentState = 'accepted'
   A.env = A.env || detectEnvironment({ battery: null })
@@ -4812,6 +4938,7 @@ async function runDoorApps (A, apps, deps = {}) {
     A.identityInfo = snap && snap.state === 'signed-in' && snap.info ? { pub: snap.info.pub, short: snap.info.short, name: snap.info.name } : null
     try { ui.setIdentity(A.identityInfo) } catch (_) { /* no UI */ }
   })
+  wrapRtc(A) // usage reports: the peer connection wrapper is on before loadAppsTm can run (idempotent; loadAppsTm and createTorrentManager do it too)
   const mount = deps.mountServices || mountV03Services
   const res = await mount(A.api, {
     modules: { identity },
@@ -4833,36 +4960,46 @@ async function runDoorApps (A, apps, deps = {}) {
   try {
     // config is the door's apps block; the same three fields are also passed by name.
     // log: what the service notes (a settings frame dropped for its time, an accept without a valid proof) goes to the loader log, as words and numbers only
-    service = mod.createApps({
+    // report, linkOptions: usage reports (docs/OBSERVABILITY.md), only on a page that has them: the service's transitions as 'apps.' + name and
+    // the pair socket's own as 'link.' + name (appsReports)
+    service = mod.createApps(Object.assign({
       api: A.api, config: apps, rendezvous: apps.rendezvous.slice(), stun: apps.stun.slice(), idp: apps.idp, loadTm: () => loadAppsTm(A, apps), lang,
       log: (...parts) => A.log('apps: ' + parts.map((x) => (x && x.message) || String(x)).join(' '))
-    })
+    }, appsReports(A)))
   } catch (err) {
     A.log('apps: the service did not start (' + errMessage(err) + ')')
     return false
   }
   let view = null
+  // Usage reports on the door page: nothing leaves before the apps' first explicit yes (the Continue of a price card, which names the host; the loader's
+  // sign-in card names no host, so a sign-in alone is not one): until then the events wait in memory. A.firstYes being a boolean is what tells syncReports that this page is the apps page.
+  if (A.obs) A.firstYes = false
   try {
-    view = (deps.createUi || createAppsUi)({
+    view = (deps.createUi || createAppsUi)(Object.assign({
       root: A.doc.getElementById('mw-root') || A.doc.body,
       ui,
       service,
       lang,
-      actions: {
+      actions: Object.assign({
         signIn: () => A.api.openSignInCard(),
         signOut: () => signOutFromHeader(A, false),
         openLink: () => openLinkBox(A),
         log: (line) => A.log('apps ui: ' + line)
-      }
-    })
+      }, A.obs ? { firstYes: () => firstYes(A) } : {})
+    }, A.obs ? { report: (name, fields) => rep(A, 'apps.' + name, fields), reportsHost: () => (A.prefs && A.prefs.reports === 'off' ? '' : A.obsHost || '') } : {}))
   } catch (err) {
     // The view is the last thing made: when it cannot start the page keeps its paste box, as for every other step above.
     A.log('apps: the view did not start (' + errMessage(err) + ')')
+    delete A.firstYes // no apps page after all: nothing waits for a first yes
     try { if (typeof service.destroy === 'function') service.destroy() } catch (_) { /* gone */ }
     return false
   }
   A.appsService = service
   A.appsUi = view
+  if (A.obs) {
+    if (view && typeof view.onFirstYes === 'function') { try { view.onFirstYes(() => firstYes(A)) } catch (_) { /* actions.firstYes covers it */ } }
+    installDoorSettings(A)
+  }
   ui.setStatus(appsText('apps.title', lang))
   A.log('apps on the door page: rendezvous ' + apps.rendezvous.length + ', stun ' + apps.stun.length + ', identity origin set')
   return true
@@ -5186,6 +5323,376 @@ function doorsInfo (A) {
     ledgerDoors: A.ledgerDoors ? A.ledgerDoors.hosts.slice() : []
   }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Usage reports (docs/OBSERVABILITY.md)
+// ---------------------------------------------------------------------------------------------
+// A site owner turns usage reports on with an `obs` block in the host's /_mw/door.json ({ endpoint }). The page then reports what the loader
+// does (steps, controls pressed, state changes, errors, timings, WebRTC states by candidate type) to that endpoint and to nothing else. The reporter
+// (src/loader/obs.js) keeps the events in memory until the visitor's yes, which the card, the gate and Settings name the host for; "Load from host
+// only" and the Settings switch drop them and stop. What reaches it is a name of the catalogue and fields that are words, counts, timings and short
+// ids: no IP address, port, name, message or text a person typed (the reporter masks again, and so does the endpoint). Without the block there is no
+// reporter, the page reads door.json once as before, and rep() is a function call that returns.
+
+/** rep(A, name, fields): one usage event. Nothing happens on a page without a reporter, and a report never breaks the page. */
+function rep (A, name, fields) {
+  if (!A || typeof A.report !== 'function') return
+  try { A.report(name, fields) } catch (_) { /* a report never breaks the page */ }
+}
+
+/**
+ * reportableText(text) → text fit for a usage report, before the reporter masks it again: a URL keeps its scheme and host name (no userinfo, port,
+ * path, query or fragment: a path can name a file of a site), a host name or an address keeps no port, an infohash or a hash of 64 characters keeps
+ * its first 8, a base32 hub label too, a ledger id or a public key keeps its tag and 4 characters, and the whole is cut at 300. The loader's own log
+ * lines hold the full infohash and ledger id; the report must not.
+ */
+function reportableText (text) {
+  return String(text === undefined || text === null ? '' : text)
+    .replace(/\b([a-z][a-z0-9+.-]*):\/\/([^\s/?#'"<>()]*)[^\s'"<>()]*/gi, (m, scheme, authority) => scheme + '://' + authority.replace(/^[^@]*@/, '').replace(/:\d{1,5}$/, ''))
+    .replace(/\b((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}|(?:\d{1,3}\.){3}\d{1,3}):\d{1,5}\b/g, '$1')
+    .replace(/\b[0-9a-f]{40}(?:[0-9a-f]{24})?\b/gi, (h) => h.slice(0, 8) + '...')
+    .replace(/\b[a-z2-7]{32}\b/g, (h) => h.slice(0, 8) + '...')
+    .replace(/\b(mw1|p256):([A-Za-z0-9_-]{4})[A-Za-z0-9_-]{4,}/g, '$1:$2...')
+    .slice(0, 300)
+}
+
+/** codeWord(x) → x when it already is a short code (letters, digits, dot, dash, underscore), 'error' for any other text, null for nothing. */
+function codeWord (x) {
+  if (x === null || x === undefined || x === '') return null
+  const s = String(x)
+  return /^[A-Za-z0-9._-]{1,40}$/.test(s) ? s : 'error'
+}
+
+/**
+ * readDoorJson(A) → Promise<{ json, buildId } | null>: this address's /_mw/door.json, read once per page (the promise is kept on A): one request
+ * to this origin that skips the HTTP cache, with the door probe's size cap and its time limit (probeDoor, sameOrigin). The apps block of the
+ * door page and the usage-report block of every page come from this one read. null: it could not be read, or it is not a door.json. Never rejects.
+ */
+function readDoorJson (A) {
+  if (!A.doorJsonRead) {
+    A.doorJsonRead = (async () => {
+      try {
+        const fetchFn = typeof A.win.fetch === 'function' ? A.win.fetch.bind(A.win) : undefined
+        if (!fetchFn) return null
+        const r = await probeDoor(A.origin, { fetch: fetchFn, sameOrigin: true, timeoutMs: DOOR_TIMING.firstByteMs })
+        return r && r.json ? { json: r.json, buildId: typeof r.buildId === 'string' ? r.buildId : '' } : null
+      } catch (err) {
+        A.log('door.json: ' + errMessage(err))
+        return null
+      }
+    })()
+  }
+  return A.doorJsonRead
+}
+
+/** readObsBlock(A) → { block, buildId } when this host's door.json has a usable obs block, else null (no block, a bad one, or nothing to read). */
+async function readObsBlock (A) {
+  const d = await readDoorJson(A)
+  if (!d) return null
+  // The page's own host decides whether an http endpoint on a loopback host may be used: only a page that is itself on one may send to it.
+  const here = { pageHost: A.win.location && typeof A.win.location.host === 'string' ? A.win.location.host : '' }
+  const block = obsBlockOf(d.json, here)
+  const why = block ? null : obsBlockProblem(d.json, here)
+  if (why) A.log('door.json has a usage-report block this loader cannot use (' + why + '): no usage reports')
+  return block ? { block, buildId: d.buildId } : null
+}
+
+/** startObs(A, options) → a promise, never rejected, that settles once this page's reporter exists or it is clear that the page has none. */
+function startObs (A, options) {
+  return readObsBlock(A).then((found) => {
+    if (found) installObs(A, found.block, { buildId: found.buildId }, (options && options.obs) || {})
+  }).catch((err) => { A.log('usage reports: ' + errMessage(err)) })
+}
+
+/** randomUnit(win) → a function giving a number in [0, 1) from the browser's own random source (Math.random where there is none). */
+function randomUnit (win) {
+  const c = win && win.crypto
+  if (c && typeof c.getRandomValues === 'function') return () => c.getRandomValues(new Uint32Array(1))[0] / 4294967296
+  return Math.random
+}
+
+/** hideWatcher(win, doc) → the reporter's visibility option: onHide(fn) runs fn when the page is hidden or leaves, so the last batch can go. */
+function hideWatcher (win, doc) {
+  return {
+    onHide (fn) {
+      try { if (win && typeof win.addEventListener === 'function') win.addEventListener('pagehide', () => fn()) } catch (_) { /* no window events */ }
+      try { if (doc && typeof doc.addEventListener === 'function') doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'hidden') fn() }) } catch (_) { /* no document events */ }
+    }
+  }
+}
+
+/** netOf(win) → { type, effectiveType } as coarse words from navigator.connection (Chromium), or null where the browser has none. */
+function netOf (win) {
+  const nav = win && win.navigator
+  const c = nav && nav.connection && typeof nav.connection === 'object' ? nav.connection : null
+  if (!c) return null
+  const word = (v) => (typeof v === 'string' && /^[a-z0-9-]{1,16}$/.test(v) ? v : null)
+  return { type: word(c.type), effectiveType: word(c.effectiveType) }
+}
+
+/** noteNetwork(A): the network changed (watchNetwork): the reporter's coarse network type and one net.change event. */
+function noteNetwork (A) {
+  if (!A.obs) return
+  const net = netOf(A.win)
+  if (!net) return
+  try { if (typeof A.obs.setNet === 'function') A.obs.setNet(net) } catch (_) { /* a report never breaks the page */ }
+  rep(A, 'net.change', net)
+}
+
+/**
+ * installObs(A, block, { buildId }, deps) → the page's reporter. block: the checked obs block (doors.js obsBlockOf). It creates the reporter with
+ * the endpoint, the page kind ('door', 'hub' or 'site'), the door's build id and the loader version; raises what happened before it existed (the
+ * boot.* events from window.__mwBoot, run.start, and the lines of the log ring); and hooks the page: the delegated click, change and submit
+ * listeners on the root, the identity (auth.change and the reporter's short id), the coarse network type and the console. The cards, the gate and
+ * Settings name the endpoint's host from here on (A.obsHost). deps (tests): { createReporter, wrapPeerConnection, send, now, random }.
+ */
+function installObs (A, block, { buildId = '' } = {}, deps = {}) {
+  if (A.obs) return A.obs
+  const { win, doc } = A
+  const mode = A.mode ? String(A.mode.mode) : ''
+  const opts = {
+    endpoint: block.endpoint,
+    page: mode === 'door' ? 'door' : mode.indexOf('hub') === 0 ? 'hub' : 'site',
+    build: buildId || '',
+    loader: A.config.version,
+    site: '',
+    now: deps.now || (() => Date.now()),
+    random: deps.random || randomUnit(win),
+    visibility: hideWatcher(win, doc)
+  }
+  if (win && win.navigator) opts.env = { navigator: win.navigator } // the browser family comes from this page's own window (in a browser, the global one)
+  if (typeof deps.send === 'function') opts.send = deps.send
+  const earlier = Array.isArray(A.earlyLog) ? A.earlyLog : [] // what was logged before this, as it is to be reported (a line that names a file of the site has its report text)
+  A.earlyLog = null
+  const reporter = (deps.createReporter || createReporter)(opts)
+  // A reporter that cannot use the endpoint is inert (inspect().enabled is false): then the page has none, and the card does not name a host that
+  // would never hear from it.
+  let usable = true
+  try { const seen = reporter.inspect(); usable = !(seen && seen.enabled === false) } catch (_) { usable = true }
+  if (!usable) { A.log('usage reports: the reporter did not accept the endpoint: no usage reports'); return null }
+  A.obs = reporter
+  A.obsHost = obsHostOf(block)
+  A.obsDeps = deps
+  A.reportsBlocked = false
+  // Events pass while the visitor has not chosen yet (they wait in memory) and while they agreed; after a no, or the Settings switch off, none.
+  A.report = (name, fields) => { if (!A.reportsBlocked) reporter.event(name, fields) }
+  const net = netOf(win)
+  if (net && typeof reporter.setNet === 'function') reporter.setNet(net)
+  bootEvents(A)
+  rep(A, 'run.start', { mode, hasSw: !!A.hasSw, webrtc: !!A.webrtc })
+  if (A.resumedMode) rep(A, 'run.mode', { mode }) // the page came back from the sign-in redirect and resolved its mode again
+  for (const text of earlier) rep(A, 'log', { m: reportableText(text) })
+  // One delegated capture listener per event type on the root sees the bar, the banners, every overlay and the whole apps view; the two closed
+  // shadow roots (the cards, the call panel) hand theirs over through the observe option they were made with.
+  const root = A.ui && A.ui.root
+  if (root && typeof root.addEventListener === 'function') for (const type of ['click', 'change', 'submit']) root.addEventListener(type, (ev) => watchEvent(A, ev), true)
+  const ident = A.api && A.api.identity
+  if (ident && typeof ident.onChange === 'function') {
+    ident.onChange((snap) => noteAuth(A, snap))
+    try { if (typeof ident.state === 'function' && ident.state() === 'signed-in') noteAuth(A, { state: 'signed-in', info: ident.info() }) } catch (_) { /* a guest */ }
+  }
+  watchConsole(A)
+  return reporter
+}
+
+/** bootEvents(A): boot.start, boot.features, boot.stage and (when the probe answers) boot.sw, from window.__mwBoot (src/loader/boot.js). */
+function bootEvents (A) {
+  const b = A.boot || {}
+  const soft = b.soft || {}
+  const limits = []
+  if (soft.webrtc === false) limits.push('webrtc')
+  if (soft.serviceWorker === false) limits.push('serviceWorker')
+  if (soft.lockdown) limits.push('lockdown')
+  rep(A, 'boot.start', { t0ms: typeof b.t0 === 'number' ? Math.max(0, Date.now() - b.t0) : null, dev: !!b.dev, degraded: !!b.degraded, forced: !!b.forcedDegraded, cspKind: typeof b.cspKind === 'string' ? b.cspKind : null })
+  rep(A, 'boot.features', { missing: (Array.isArray(b.missing) ? b.missing : []).map((m) => m && m.id).filter(Boolean).join(','), polyfilled: Array.isArray(b.polyfilled) ? b.polyfilled.length : 0, soft: limits.join(',') })
+  rep(A, 'boot.stage', { stage: typeof b.stage === 'string' ? b.stage : null })
+  if (b.swProbe && typeof b.swProbe.then === 'function') b.swProbe.then((p) => rep(A, 'boot.sw', { ok: !!(p && p.ok), error: codeWord(p && p.error) }), () => {})
+}
+
+/**
+ * noteAuth(A, { state, info }): the sign-in changed: one auth.change event, and the reporter learns the short id the header shows (null for a guest).
+ * The identity announces one sign-in twice on the door page (the same state, the same short id, in the same millisecond), so a notice that leaves
+ * both as the last one had them raises no second event; the first notice always does, and a different short id while signed in is a change.
+ */
+function noteAuth (A, snap) {
+  const signedIn = !!snap && snap.state === 'signed-in'
+  const short = signedIn && snap.info && typeof snap.info.short === 'string' && /^[a-km-np-z2-9]{4}-[a-km-np-z2-9]{4}$/.test(snap.info.short) ? snap.info.short : null
+  try { if (A.obs && typeof A.obs.setWho === 'function') A.obs.setWho(short) } catch (_) { /* a report never breaks the page */ }
+  const last = A.obsAuth
+  if (last && last.signedIn === signedIn && last.short === short) return
+  A.obsAuth = { signedIn, short }
+  rep(A, 'auth.change', { signedIn })
+}
+
+/** controlOf(d) → one short word for what describeTarget found: the first of role, fk, app, view, banner, dialog, row, card, id, tag. */
+function controlOf (d) {
+  const o = d && typeof d === 'object' ? d : {}
+  for (const k of ['role', 'fk', 'app', 'view', 'banner', 'dialog', 'row', 'card', 'id', 'tag']) if (typeof o[k] === 'string' && o[k]) return o[k]
+  return 'unknown'
+}
+
+/**
+ * watchEvent(A, ev): the delegated listener's work. A click or a submit is ui.click through the reporter (which names the control by its role, id or
+ * tag and, for a button or a link, the first characters of its label: never an input's value). A change is ui.change with the control and, for a
+ * checkbox, a radio button or a select only, its value; what a person typed in a field is never read here.
+ */
+function watchEvent (A, ev) {
+  const r = A && A.obs
+  if (!r || !ev || !ev.target) return
+  try {
+    if (ev.type === 'change') {
+      const t = ev.target
+      const f = { control: controlOf(describeTarget(t)) }
+      const kind = String(t.type || '').toLowerCase()
+      if (kind === 'checkbox' || kind === 'radio') f.value = !!t.checked
+      else if (String(t.tagName || '').toLowerCase() === 'select') f.value = String(t.value === undefined || t.value === null ? '' : t.value)
+      rep(A, 'ui.change', f)
+      return
+    }
+    if (A.reportsBlocked) return
+    r.click(ev.target, { trusted: ev.isTrusted === true, type: String(ev.type) })
+  } catch (_) { /* a report never breaks the page */ }
+}
+
+/** watchConsole(A): the page's own console.error and console.warn are also usage events ('error' with kind 'console'), whoever calls them. */
+function watchConsole (A) {
+  const c = A.win && A.win.console
+  if (!c) return
+  for (const level of ['error', 'warn']) {
+    const orig = c[level]
+    if (typeof orig !== 'function' || orig.__mwObs) continue
+    const wrapped = function (...args) {
+      try { rep(A, 'error', { kind: 'console', m: reportableText(args.slice(0, 3).map((a) => (a && a.message) || (typeof a === 'string' ? a : typeof a)).join(' ')) }) } catch (_) { /* a report never breaks the console */ }
+      return orig.apply(this, args)
+    }
+    Object.defineProperty(wrapped, '__mwObs', { value: true })
+    try { c[level] = wrapped } catch (_) { /* a frozen console */ }
+  }
+}
+
+/** wrapRtc(A) → true when the peer connection wrapper of obs.js is on (it goes in before the webtorrent bundle is imported; idempotent). */
+function wrapRtc (A) {
+  if (!A.obs || !A.webrtc) return false
+  const wrap = (A.obsDeps && A.obsDeps.wrapPeerConnection) || wrapPeerConnection
+  try { return !!wrap(A.win, A.obs) } catch (err) { A.log('usage reports: peer connection wrapper: ' + errMessage(err)); return false }
+}
+
+/**
+ * syncReports(A): lets the reporter send, or stops it, from what the visitor decided. Switched off in Settings: stop, and drop what waited. On a page
+ * with the apps (A.firstYes is a boolean): send after the first explicit yes. Elsewhere: send after "Share and load" or "Load" (consentState
+ * 'accepted'), stop after "Load from host only"; before a choice nothing is decided and the events wait in memory.
+ */
+function syncReports (A) {
+  const r = A && A.obs
+  if (!r) return
+  const off = !!(A.prefs && A.prefs.reports === 'off')
+  let go = null // true: send. false: stop and drop. null: not decided, wait in memory
+  if (off) go = false
+  else if (typeof A.firstYes === 'boolean') go = A.firstYes ? true : null
+  else if (A.consentState === 'accepted') go = true
+  else if (A.consentState === 'host-only') go = false
+  if (go === null) { A.reportsBlocked = false; return }
+  A.reportsBlocked = !go
+  try { r.allow(go) } catch (_) { /* a report never breaks the page */ }
+  // The identity page joins its timeline to this page's through the session id (the ref of its request event); null once reports stop.
+  import('../identity/client.js').then((c) => { if (c && typeof c.configure === 'function') c.configure({ obsSid: go ? r.sid : null }) }).catch(() => {})
+  refreshReportsUi(A)
+}
+
+/** firstYes(A): the apps' first explicit yes, the Continue of a price card that names the host (a sign-in alone is not one): the usage reports of the door page may go now. */
+function firstYes (A) {
+  if (!A.obs || A.firstYes === true) return
+  A.firstYes = true
+  syncReports(A)
+}
+
+/**
+ * refreshReportsUi(A): the Settings switch and the Diagnostics line of usage reports, from the reporter's own counts. They exist only on a page whose
+ * door.json names an endpoint.
+ */
+function refreshReportsUi (A) {
+  if (!A || !A.obs || !A.ui || !A.ui.settings || typeof A.ui.settings.setReports !== 'function') return
+  let s = null
+  try { s = A.obs.inspect() } catch (_) { s = null }
+  const off = !!(A.prefs && A.prefs.reports === 'off')
+  const stopped = off || (typeof A.firstYes !== 'boolean' && A.consentState === 'host-only')
+  try {
+    A.ui.settings.setReports({
+      host: A.obsHost,
+      on: !off,
+      state: stopped ? 'off' : s && s.allowed ? 'sending' : 'waiting',
+      sent: s ? s.sent : 0,
+      queued: s ? s.queued : 0,
+      dropped: s ? s.dropped : 0
+    })
+  } catch (_) { /* a report never breaks the page */ }
+}
+
+/** installDoorSettings(A): the door page has no Settings handler of its own; this one answers the usage-report switch (and nothing else) there. */
+function installDoorSettings (A) {
+  if (!A.obs || A.doorSettings || !A.ui || !A.ui.settings || typeof A.ui.settings.onChange !== 'function') return
+  A.doorSettings = true
+  A.ui.settings.onChange((action, payload) => {
+    if (action === 'reports') return changeSetting(A, 'reports', payload)
+    if (action === 'open') refreshReportsUi(A)
+    return undefined
+  })
+  refreshReportsUi(A)
+}
+
+/** appsReports(A) → the usage-report options of the apps service: report ('apps.' + name) and linkOptions (the pair socket's own report, 'link.' + name); {} without usage reports. */
+function appsReports (A) {
+  if (!A.obs) return {}
+  return {
+    report: (name, fields) => rep(A, 'apps.' + name, fields),
+    linkOptions: { report: (name, fields) => rep(A, 'link.' + name, fields) }
+  }
+}
+
+/** repThrottled(A, name, everyMs, fields): an event that would repeat on every tick: at once the first time, then at most once per everyMs (the latest fields). */
+function repThrottled (A, name, everyMs, fields) {
+  if (!A.obs) return
+  if (!A.repSlots) A.repSlots = new Map()
+  let slot = A.repSlots.get(name)
+  if (!slot) { slot = { at: 0, timer: null, pending: null }; A.repSlots.set(name, slot) }
+  const now = Date.now()
+  if (now - slot.at >= everyMs) { slot.at = now; slot.pending = null; rep(A, name, fields); return }
+  slot.pending = fields
+  if (slot.timer) return
+  slot.timer = setTimeout(() => {
+    slot.timer = null
+    if (!slot.pending) return
+    const f = slot.pending
+    slot.pending = null
+    slot.at = Date.now()
+    rep(A, name, f)
+  }, Math.max(0, slot.at + everyMs - now))
+  if (slot.timer && typeof slot.timer.unref === 'function') slot.timer.unref()
+}
+
+/** reportLedger(A, entries, inSync, peers): ledger.sync, when the counts changed, and at most once every ledgerEveryMs. */
+function reportLedger (A, entries, inSync, peers) {
+  if (!A.obs) return
+  const fields = { entries: Number(entries) || 0, inSync: Number(inSync) || 0, peers: Number(peers) || 0 }
+  const key = fields.entries + ',' + fields.inSync + ',' + fields.peers
+  if (A.ledgerKey === key) return
+  A.ledgerKey = key
+  repThrottled(A, 'ledger.sync', (A.config.obs && A.config.obs.ledgerEveryMs) || 5000, fields)
+}
+
+const SETTING_NAMES = new Set(['share', 'hostOnly', 'shareOnNetwork', 'declareWifi', 'declarePlugged', 'keeper', 'dock', 'forget', 'consent', 'openIdentity', 'exportIdentity', 'importIdentity', 'importModerator', 'removeModerator', 'exportLedger', 'copyDoorLink'])
+
+/**
+ * noteSetting(A, action, payload): settings.change with the setting's name and, for a switch, its new value; never the rest of a payload (a passphrase,
+ * a key file). The usage-report switch is reported by its own case of changeSetting, after it took effect.
+ */
+function noteSetting (A, action, payload) {
+  if (!A.obs || !SETTING_NAMES.has(action)) return
+  rep(A, 'settings.change', { name: action, value: payload && typeof payload.on === 'boolean' ? payload.on : null })
+}
+
+// Usage reports: the steps above, exported for test/unit/loader-app-obs.test.mjs only; not an API.
+export const __obs = { onTorrentWarning, persistSite, readDoorJson, readObsBlock, startObs, installObs, syncReports, firstYes, refreshReportsUi, watchEvent, reportableText, codeWord, rcptOf, noteSetting, repThrottled, nativeRtc, wrapRtc, appsReports, installDoorSettings, fetchStep, reportLedger, setConsent, changeSetting, inspectShell, loadPrefs, noteNetwork, noteAuth, installSettings, lookupCache, presentDownloadError, presentPointerError, presentWithdrawal, onTorrentStatus, installLifecycle, startProbe }
 
 // C2 doors: the steps above, exported for test/unit/loader-doors.test.mjs only; not an API.
 export const __c2Doors = { guardActivationWatch, sharedFragment, consentModeOf, doorCspReload, pastedFragment, runDoorPaste, setupDoors, loadDoorMemory, isPortable, doorCandidatesOf, lightFragment, doorShareLink, showDoorViewBanner, refreshDoors, probeThisDoor, showNotAnswering, doorDownloadPlan, mountDoorFrame, refreshLedgerDoors, copyDoorLink, doorsInfo, persistSite, needsGate }

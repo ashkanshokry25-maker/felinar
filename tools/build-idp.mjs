@@ -3,13 +3,20 @@
 // project publishes, reproducible and hash-pinned; ARCHITECTURE 15.1). esbuild only, as build.mjs.
 //
 //   node tools/build-idp.mjs [--out dist-idp] [--no-minify] [--quiet] [--json]
-//                            [--hub-suffix <suffix>]... [--shared-origin <origin>]...
+//                            [--hub-suffix <suffix>]... [--shared-origin <origin>]... [--obs <https origin>]
 //   node tools/build-idp.mjs --test --test-psl localhost [--test-psl <suffix>]...   (loopback test builds only)
 //
 // --hub-suffix <suffix> (code review v0.3, round 2): a single-operator hub whose labels may share one hub identity (src/idp/psl.js
 // MW_HUB_SUFFIXES): only a suffix the operator runs alone and has on the Public Suffix List, never a shared platform suffix such as
 // github.io. A normal build has none, so every hub gets per-site keys until its operator is listed. --shared-origin <origin>: a
 // shared-origin hub (MW_SHARED_ORIGINS): keys there are for this visit only. Both are part of the build id.
+//
+// --obs <origin> (usage reports, docs/OBSERVABILITY.md): the endpoint of a report host the site owner runs. The origin is written as
+// data-mw-obs on <html> in both pages (data, not code: script-src stays 'self' 'wasm-unsafe-eval', so no inline script is needed, and
+// idp.js is the same bytes with or without it) and added to connect-src in _headers. It is part of the build id. The pages then show
+// one disclosure line naming the host on the first card, and report only after the first press of a card button (src/idp/idp.js).
+// Without --obs nothing changes: the pages, _headers and build.json are byte for byte what they were, and the page makes no request
+// but its own.
 //
 // Outputs (below the output directory):
 //   index.html, signin/index.html   src/idp/index.html with SRI on the script and the stylesheet and
@@ -34,6 +41,7 @@ import * as esbuild from 'esbuild';
 
 import { parseCli, runMain, isMain, ROOT, UsageError, ToolError, out } from './lib.mjs';
 import { collectBundledPackages, checkPackages, LOCK_FILE } from '../build.mjs';
+import { isLoopbackDoorHost } from '../src/common/pointer.js';
 
 export const TARGETS = Object.freeze(['es2020', 'safari15.4', 'chrome110', 'firefox115']);
 const MARKER = 'build.json';
@@ -41,13 +49,15 @@ export const PRECACHE = Object.freeze(['./', './index.html', './signin/', './sig
 
 const USAGE = `
 Usage: node tools/build-idp.mjs [--out <dir>] [--no-minify] [--quiet] [--json] [--test [--test-psl <suffix>]...]
-                                [--hub-suffix <suffix>]... [--shared-origin <origin>]... [--hub-template <40-hex btih>]...
+                                [--hub-suffix <suffix>]... [--shared-origin <origin>]... [--hub-template <40-hex btih>]... [--obs <https origin>]
 Builds the identity origin bundle (default dist-idp/, dist-idp-test/ for --test) and prints the bundle sha256 and
 the build id. --test-psl <suffix> adds a Public Suffix List entry for loopback hub tests and needs --test.
 --hub-suffix <suffix>: a single-operator hub (on the Public Suffix List, run by you alone) whose labels may share one
 hub identity. --shared-origin <https origin>: a hub that serves many publishers on one origin (this visit only there).
 --hub-template <btih>: the infohash of the hub operator's own page code (review round R 5.3, PHISH-1, HUB-3); the hub identity
 goes only to pages that run one of these templates. Part of the build id.
+--obs <https origin>: the usage report endpoint of a site owner who runs one (http only on a loopback host). Both pages name it in
+data-mw-obs, _headers lets connect-src reach it, and the first card names the host. Part of the build id. Left out, the build is unchanged.
 `;
 
 export function sha256Hex(bytes) {
@@ -90,8 +100,36 @@ export function checkSharedOrigin(s, { test = false } = {}) {
   return s;
 }
 
-/** pageFor(html, { prefix, buildMeta, sriJs, sriCss }) -> the page with asset paths, SRI and the build meta. */
-export function pageFor(html, { prefix, buildMeta, sriJs, sriCss }) {
+/** The longest report endpoint, the apps block's own limit for an origin (src/loader/doors.js APPS_URL_MAX). */
+export const OBS_ORIGIN_MAX = 300;
+
+/**
+ * checkObsOrigin(s) -> s: the usage report endpoint as the apps block takes its identity origin (src/loader/doors.js checkAppsBlock): an
+ * exact origin, https, or http on a loopback host, no path, user name, query or fragment, no space, at most 300 characters. It is
+ * also held to the characters of a host name, so nothing in it can reach the attribute or the header as markup or as another directive.
+ */
+export function checkObsOrigin(s) {
+  const bad = () => new UsageError('--obs takes an exact https origin such as https://obs.example.org (http only on a loopback host; no path, user name, query, fragment or trailing slash; at most ' + OBS_ORIGIN_MAX + ' characters), got ' + JSON.stringify(s));
+  if (typeof s !== 'string' || !s || s.length > OBS_ORIGIN_MAX || !/^https?:\/\/[a-z0-9.:[\]-]+$/.test(s)) throw bad();
+  let u = null;
+  try { u = new URL(s); } catch (_) { u = null; }
+  if (!u || u.origin !== s || !u.hostname || u.username || u.password || u.hash) throw bad();
+  if (u.protocol === 'http:' && !isLoopbackDoorHost(u.host)) throw bad();
+  return s;
+}
+
+/** headersWithObs(text, origin) -> the _headers text with origin added to the one connect-src 'self' directive; anything else in it is left alone. */
+export function headersWithObs(text, origin) {
+  const needle = "connect-src 'self';";
+  if (String(text).split(needle).length !== 2) throw new Error("src/idp/_headers has no single connect-src 'self'; directive");
+  return String(text).replace(needle, () => "connect-src 'self' " + origin + ';');
+}
+
+/**
+ * pageFor(html, { prefix, buildMeta, sriJs, sriCss, obs }) -> the page with asset paths, SRI and the build meta; with obs (a checked
+ * origin) also data-mw-obs on the root element, which src/idp/idp.js reads (readObsEndpoint).
+ */
+export function pageFor(html, { prefix, buildMeta, sriJs, sriCss, obs }) {
   let outHtml = html;
   const swap = (re, replacement, what) => {
     if (!re.test(outHtml)) throw new Error('src/idp/index.html has no ' + what);
@@ -100,6 +138,7 @@ export function pageFor(html, { prefix, buildMeta, sriJs, sriCss }) {
   swap(/<meta name="mw-idp-build" content="[^"]*">/, '<meta name="mw-idp-build" content="' + buildMeta + '">', 'mw-idp-build meta');
   swap(/<link rel="stylesheet" href="\.\/idp\.css">/, '<link rel="stylesheet" href="' + prefix + 'idp.css" integrity="' + sriCss + '">', 'stylesheet link');
   swap(/<script type="module" src="\.\/idp\.js"><\/script>/, '<script type="module" src="' + prefix + 'idp.js" integrity="' + sriJs + '"></script>', 'module script');
+  if (obs) swap(/<html lang="en" data-mw-idp="1">/, '<html lang="en" data-mw-idp="1" data-mw-obs="' + obs + '">', 'root element');
   return outHtml;
 }
 
@@ -129,11 +168,12 @@ export function checkIdpPackages(root, inputs) {
 }
 
 /**
- * buildIdp(options) -> { outDir, buildId, bundleSha256, qrGzipBytes, files, test, testPsl, hubSuffixes, sharedOrigins, hubTemplates }
- * options: { root = repository, outDir, minify = true, test = false, testPsl = [], hubSuffixes = [], sharedOrigins = [], hubTemplates = [], quiet = false }
+ * buildIdp(options) -> { outDir, buildId, bundleSha256, qrGzipBytes, files, test, testPsl, hubSuffixes, sharedOrigins, hubTemplates, obs }
+ * options: { root = repository, outDir, minify = true, test = false, testPsl = [], hubSuffixes = [], sharedOrigins = [], hubTemplates = [], obs = null, quiet = false }
+ * obs: the usage report origin (checkObsOrigin); null or left out builds exactly what it did before the option existed.
  */
 export async function buildIdp(options = {}) {
-  const o = Object.assign({ root: ROOT, minify: true, test: false, testPsl: [], hubSuffixes: [], sharedOrigins: [], hubTemplates: [], quiet: false }, options);
+  const o = Object.assign({ root: ROOT, minify: true, test: false, testPsl: [], hubSuffixes: [], sharedOrigins: [], hubTemplates: [], obs: null, quiet: false }, options);
   const testPsl = Array.from(o.testPsl || []).map(checkSuffix);
   if (testPsl.length && o.test !== true) throw new UsageError('--test-psl is for loopback test builds only: add --test');
   const hubSuffixes = Array.from(new Set(Array.from(o.hubSuffixes || []).map(checkHubSuffix))).sort();
@@ -143,6 +183,7 @@ export async function buildIdp(options = {}) {
     if (!/^[0-9a-f]{40}$/.test(b)) throw new UsageError('--hub-template is a 40-hex infohash: ' + JSON.stringify(x));
     return b;
   }))).sort();
+  const obs = o.obs === null || o.obs === undefined ? null : checkObsOrigin(o.obs);
   const root = resolve(o.root);
   const outDir = o.outDir ? (isAbsolute(o.outDir) ? o.outDir : resolve(root, o.outDir)) : resolve(root, o.test ? 'dist-idp-test' : 'dist-idp');
   const say = o.quiet ? () => {} : (line) => out(line);
@@ -158,7 +199,7 @@ export async function buildIdp(options = {}) {
   const qr = await bundle(src('qr.js'), { format: 'esm', minify: true });
   const idpPackages = checkIdpPackages(root, [].concat(js.inputs, sw.inputs, qr.inputs));
   const css = Buffer.from(esbuild.transformSync(readFileSync(src('idp.css'), 'utf8'), { loader: 'css', minify: o.minify, target: Array.from(TARGETS), logLevel: 'silent', charset: 'utf8' }).code);
-  const headers = readFileSync(src('_headers'));
+  const headers = obs ? Buffer.from(headersWithObs(readFileSync(src('_headers'), 'utf8'), obs)) : readFileSync(src('_headers'));
   for (const w of js.warnings.concat(sw.warnings)) say('warning: ' + w.text);
 
   const bundleSha256 = sha256Hex(js.bytes);
@@ -167,6 +208,7 @@ export async function buildIdp(options = {}) {
   if (hubSuffixes.length) pinned.push({ path: 'hub-suffixes', sha256: sha256Hex(Buffer.from(JSON.stringify(hubSuffixes))) });
   if (sharedOrigins.length) pinned.push({ path: 'shared-origins', sha256: sha256Hex(Buffer.from(JSON.stringify(sharedOrigins))) });
   if (hubTemplates.length) pinned.push({ path: 'hub-templates', sha256: sha256Hex(Buffer.from(JSON.stringify(hubTemplates))) });
+  if (obs) pinned.push({ path: 'obs', sha256: sha256Hex(Buffer.from(JSON.stringify(obs))) });
   const buildId = (o.test ? 'test-' : '') + computeBuildId(pinned);
   const buildMeta = IDP_VERSION + ' ' + buildId + ' ' + bundleSha256;
   const html = readFileSync(src('index.html'), 'utf8');
@@ -176,8 +218,8 @@ export async function buildIdp(options = {}) {
   outputs.set('idp.js', js.bytes);
   outputs.set('idp.css', css);
   outputs.set('_headers', headers);
-  outputs.set('index.html', Buffer.from(pageFor(html, { prefix: './', buildMeta, sriJs, sriCss })));
-  outputs.set('signin/index.html', Buffer.from(pageFor(html, { prefix: '../', buildMeta, sriJs, sriCss })));
+  outputs.set('index.html', Buffer.from(pageFor(html, { prefix: './', buildMeta, sriJs, sriCss, obs })));
+  outputs.set('signin/index.html', Buffer.from(pageFor(html, { prefix: '../', buildMeta, sriJs, sriCss, obs })));
   let swCode = sw.bytes.toString('utf8');
   const buildRe = /\bself\.__MW_IDP_BUILD__\b/g;
   const listRe = /\bself\.__MW_IDP_PRECACHE__\b/g;
@@ -191,6 +233,7 @@ export async function buildIdp(options = {}) {
     targets: Array.from(TARGETS), esbuild: esbuild.version, minified: Boolean(o.minify),
     qr: { minifiedBytes: qr.bytes.length, gzipBytes: qrGzipBytes }, precache: Array.from(PRECACHE), files,
   };
+  if (obs) info.obs = obs; // only when named, so a build without it writes the build.json it always wrote
   outputs.set(MARKER, Buffer.from(JSON.stringify(info, null, 2) + '\n'));
 
   // Write next to outDir and swap it in (build.mjs does the same): a reader never sees a half-written bundle.
@@ -214,18 +257,19 @@ export async function buildIdp(options = {}) {
   say('built the identity origin into ' + outDir + (o.test ? ' (TEST BUILD, PSL additions: ' + testPsl.join(', ') + ')' : ''));
   say('npm packages in the bundles, checked against ' + LOCK_FILE + ': ' + (idpPackages.length ? idpPackages.join(', ') : 'none'));
   say('hub suffixes: ' + (hubSuffixes.length ? hubSuffixes.join(', ') : 'none (every hub gets per-site keys)') + '; shared origins: ' + (sharedOrigins.length ? sharedOrigins.join(', ') : 'none'));
+  if (obs) say('usage reports: the pages name ' + obs + ' and connect-src reaches it');
   say('bundle sha256 ' + bundleSha256);
   say('build id ' + buildId);
   say('QR encoder and decoder: ' + qr.bytes.length + ' bytes minified, ' + qrGzipBytes + ' bytes gzip');
   for (const f of files) say('  ' + f.path.padEnd(20) + String(f.bytes).padStart(9) + ' bytes');
-  return { outDir, buildId, bundleSha256, qrGzipBytes, files, test: o.test === true, testPsl, hubSuffixes, sharedOrigins, hubTemplates };
+  return { outDir, buildId, bundleSha256, qrGzipBytes, files, test: o.test === true, testPsl, hubSuffixes, sharedOrigins, hubTemplates, obs };
 }
 
 async function main(argv) {
   const { flags } = parseCli(argv, {
     out: { type: 'string' }, minify: { type: 'boolean', default: true }, quiet: { type: 'boolean' }, json: { type: 'boolean' },
     test: { type: 'boolean' }, 'test-psl': { type: 'list' }, 'hub-suffix': { type: 'list' }, 'shared-origin': { type: 'list' },
-    'hub-template': { type: 'list' },
+    'hub-template': { type: 'list' }, obs: { type: 'string' },
   });
   if (flags.help) {
     out(USAGE.trim());
@@ -233,9 +277,9 @@ async function main(argv) {
   }
   const r = await buildIdp({
     outDir: flags.out || undefined, minify: flags.minify, test: flags.test, testPsl: flags.testPsl,
-    hubSuffixes: flags.hubSuffix || [], sharedOrigins: flags.sharedOrigin || [], hubTemplates: flags.hubTemplate || [], quiet: flags.quiet || flags.json,
+    hubSuffixes: flags.hubSuffix || [], sharedOrigins: flags.sharedOrigin || [], hubTemplates: flags.hubTemplate || [], obs: flags.obs, quiet: flags.quiet || flags.json,
   });
-  if (flags.json) out(JSON.stringify({ outDir: r.outDir, buildId: r.buildId, bundleSha256: r.bundleSha256, qrGzipBytes: r.qrGzipBytes, test: r.test, testPsl: r.testPsl, hubSuffixes: r.hubSuffixes, sharedOrigins: r.sharedOrigins, hubTemplates: r.hubTemplates }));
+  if (flags.json) out(JSON.stringify(Object.assign({ outDir: r.outDir, buildId: r.buildId, bundleSha256: r.bundleSha256, qrGzipBytes: r.qrGzipBytes, test: r.test, testPsl: r.testPsl, hubSuffixes: r.hubSuffixes, sharedOrigins: r.sharedOrigins, hubTemplates: r.hubTemplates }, r.obs ? { obs: r.obs } : {})));
   return 0;
 }
 

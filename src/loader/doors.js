@@ -261,6 +261,8 @@ export function doorJsonFor ({ name = 'felinar', version, buildId, files = [] } 
  * Apps on the door page (ARCHITECTURE 15.21): a door.json may carry an optional `apps` block. It never decides `ok` (a door with a
  * bad block still serves the loader); only when the block is present the result gains `apps` (appsBlockOf: the checked block, or null)
  * and, for a null, `appsReason` (appsBlockProblem). Without a block the result has exactly the five fields above.
+ * Usage reports follow the same rule: an optional `obs` block never decides `ok`; only when it is present the result gains `obs`
+ * (obsBlockOf: the checked block, or null) and, for a null, `obsReason` (obsBlockProblem).
  */
 export function checkDoorJson (json, ownJson = null) {
   const out = { ok: false, sameBuild: false, buildId: null, version: null, reason: null }
@@ -281,6 +283,11 @@ export function checkDoorJson (json, ownJson = null) {
     const a = checkAppsBlock(json.apps)
     out.apps = a.block
     if (!a.block) out.appsReason = a.reason
+  }
+  if (own(json, 'obs') && json.obs !== null && json.obs !== undefined) {
+    const o = checkObsBlock(json.obs)
+    out.obs = o.block
+    if (!o.block) out.obsReason = o.reason
   }
   if (ownJson && ownJson.files && typeof ownJson.files === 'object') {
     const mine = Object.keys(ownJson.files)
@@ -349,6 +356,51 @@ export function appsBlockOf (json) {
 export function appsBlockProblem (json) {
   if (!json || typeof json !== 'object' || Array.isArray(json) || !own(json, 'apps') || json.apps === null || json.apps === undefined) return null
   return checkAppsBlock(json.apps).reason
+}
+
+// ---------------------------------------------------------------------------------------------
+// Usage reports: the `obs` block of /_mw/door.json (docs/OBSERVABILITY.md)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * checkObsBlock(obs) → { block, reason }: the checks behind obsBlockOf. A block is { endpoint: <origin> }: the exact origin of the usage-report
+ * endpoint the site owner runs, an https origin or http on a loopback host (local development and the e2e stack). As for the apps block's
+ * idp, the string must be written as an origin (no path, no userinfo, no fragment, no spaces, at most 300 characters), so that the host the
+ * card names and the address the page posts to are one and the same. Unknown keys are ignored. block is a frozen copy, or null; reason is
+ * 'obs-shape' (not an object), 'obs-endpoint' (missing, too long, or not an origin as written) or 'obs-endpoint-insecure' (http on a host
+ * that is not loopback).
+ * opts.pageHost is the host of the page that would send the reports (the loader gives its own location.host; the tools, which only check
+ * what they write, leave it out). When it is given, http on a loopback host is accepted only for a page that is itself on a loopback
+ * host (as hintAllowed does for a door hint), so a door's door.json cannot aim a visitor's reports at a service on the visitor's own
+ * machine (localhost:6379, 127.0.0.1:9200): that is 'obs-endpoint-insecure' too.
+ */
+export function checkObsBlock (obs, opts) {
+  const bad = (reason) => ({ block: null, reason })
+  const pageHost = opts && typeof opts.pageHost === 'string' ? opts.pageHost : null
+  if (!obs || typeof obs !== 'object' || Array.isArray(obs)) return bad('obs-shape')
+  const endpoint = obs.endpoint
+  const u = typeof endpoint === 'string' && endpoint.length <= APPS_URL_MAX ? appsUrlOf(endpoint, ['https:', 'http:']) : null
+  if (!u || u.origin !== endpoint) return bad('obs-endpoint')
+  if (u.protocol === 'http:' && (!isLoopbackDoorHost(u.host) || (pageHost !== null && !isLoopbackDoorHost(pageHost)))) return bad('obs-endpoint-insecure')
+  return { block: Object.freeze({ endpoint }), reason: null }
+}
+
+/** obsBlockOf(json, opts) → the checked obs block of a parsed door.json ({ endpoint }), or null (no block, or a bad one: the page sends no reports). opts: see checkObsBlock. */
+export function obsBlockOf (json, opts) {
+  if (!json || typeof json !== 'object' || Array.isArray(json) || !own(json, 'obs') || json.obs === null || json.obs === undefined) return null
+  return checkObsBlock(json.obs, opts).block
+}
+
+/** obsBlockProblem(json, opts) → why the obs block of a door.json is bad ('obs-shape', 'obs-endpoint', 'obs-endpoint-insecure'), or null (no block, or a good one). */
+export function obsBlockProblem (json, opts) {
+  if (!json || typeof json !== 'object' || Array.isArray(json) || !own(json, 'obs') || json.obs === null || json.obs === undefined) return null
+  return checkObsBlock(json.obs, opts).reason
+}
+
+/** obsHostOf(block) → the host name of a checked obs block's endpoint (what the card names and the consent record keeps), or null. */
+export function obsHostOf (block) {
+  if (!block || typeof block.endpoint !== 'string') return null
+  try { return new URL(block.endpoint).hostname || null } catch (_) { return null }
 }
 
 function timeoutSignal (ms, outer, setT, clearT) {

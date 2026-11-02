@@ -76,7 +76,8 @@ the trackers and the STUN servers see it too, together with the fact that the vi
 site, and anyone who knows the site's infohash can join and see who is online. A shell page on a public
 hostname then also asks a DNS-over-HTTPS resolver for a newer pointer, whether or not you publish one in DNS,
 and the resolver sees the visitor's IP address and the site's name; drop-in pages never query DNS
-([PRIVACY.md](PRIVACY.md)).
+([PRIVACY.md](PRIVACY.md)). If you turn on usage reports, the host that runs their endpoint sees the IP address too, and only after the
+visitor has agreed on a card that names it ([PRIVACY.md](PRIVACY.md#usage-reports-unreleased)).
 
 ### Is there a private or anonymous mode?
 

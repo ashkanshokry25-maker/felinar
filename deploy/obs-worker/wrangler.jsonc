@@ -1,0 +1,27 @@
+// deploy/obs-worker/wrangler.jsonc: the settings of the Worker that holds the object (class ObsLog) and its rows. Deploy it from a
+// copy of this folder outside the repository (README.md). It has no public address: workers_dev is off and no route is set, so the
+// only way in is the binding that the Pages front (pages/wrangler.toml) makes to its class. The same file also runs alone, as one
+// Worker with a workers.dev address, when you turn workers_dev on, add the two front vars below and want no Pages project.
+{
+  "name": "felinar-obs-do",
+  "main": "worker.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": false,
+  // The Worker logs nothing itself; this keeps the platform from logging invocations either (README.md, Privacy).
+  "observability": { "enabled": false },
+  "durable_objects": { "bindings": [{ "name": "OBS", "class_name": "ObsLog" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ObsLog"] }],
+  "vars": {
+    // Read by the front, so they matter here only when this Worker runs alone; with the Pages front they live in pages/wrangler.toml
+    // and in the Pages project's secrets. ALLOW_ORIGINS: the exact origins whose pages may send reports, comma separated, no
+    // wildcard; empty refuses every report. READ_TOKEN: a long random value that opens /events.json, /summary.json and /tail; empty
+    // keeps them closed. Put the token in your copy only, never in the repository, or leave this line out of your copy and set it
+    // with "wrangler secret put READ_TOKEN" (never both: a var of the same name would replace the secret).
+    "ALLOW_ORIGINS": "",
+    "READ_TOKEN": "",
+    // Read by the object. RETENTION_DAYS: rows older than this are deleted by the sweep (1 to 30). MAX_BATCHES_PER_DAY: the most
+    // batches stored in a UTC day, all pages together; one row each, so 20000 stays under the Free plan's 100,000 row writes a day.
+    "RETENTION_DAYS": "7",
+    "MAX_BATCHES_PER_DAY": "20000"
+  }
+}

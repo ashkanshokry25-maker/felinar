@@ -69,20 +69,22 @@ To build a site on the SDK instead, read [CRUD](CRUD.md), then [SDK](SDK.md), th
 1. [DEPLOY](DEPLOY.md): deploy order, your own tracker, a pin node and publishing from CI.
 2. [deploy/](../deploy/): the tracker, pin node and GitHub Actions templates.
 3. [OPERATIONS](OPERATIONS.md): monitoring without a backend, capacity, the incident runbook, the notice-and-action runbook and privacy operations.
-4. [RUNBOOK](RUNBOOK.md): the kill switch (section 11) and troubleshooting.
-5. [PRIVACY](PRIVACY.md) and [SECURITY-MODEL](SECURITY-MODEL.md): who sees what, and what is and is not protected.
-6. [A pin node for a hub](recipes/hub-pin.md) and [DEPLOY](DEPLOY.md#central-storage-the-hub-pin-and-snapshot-service): central storage, and what it costs and sees (v0.3, proposed).
-7. [deploy/one-box](../deploy/one-box/README.md): one rented server with a `nip.io` name and automatic HTTPS, started by `npx felinar ship` (v0.3 C2; not yet run against a real server).
+4. [OBSERVABILITY](OBSERVABILITY.md): the optional usage reports (unreleased): turning them on, what they hold, the endpoint and how to read them.
+5. [RUNBOOK](RUNBOOK.md): the kill switch (section 11) and troubleshooting.
+6. [PRIVACY](PRIVACY.md) and [SECURITY-MODEL](SECURITY-MODEL.md): who sees what, and what is and is not protected.
+7. [A pin node for a hub](recipes/hub-pin.md) and [DEPLOY](DEPLOY.md#central-storage-the-hub-pin-and-snapshot-service): central storage, and what it costs and sees (v0.3, proposed).
+8. [deploy/one-box](../deploy/one-box/README.md): one rented server with a `nip.io` name and automatic HTTPS, started by `npx felinar ship` (v0.3 C2; not yet run against a real server).
 
 ### I am reviewing it (security, privacy, product, due diligence)
 
 1. [CRITIQUE](CRITIQUE.md): where the design is weakest, and what would make it fail.
 2. [SECURITY-MODEL](SECURITY-MODEL.md): assets, actors, protections and explicit non-protections, and [THREAT-MODEL](THREAT-MODEL.md): the long tables of the v0.3 design, every red-team attack and the honest limits.
 3. [PRIVACY](PRIVACY.md): the recipients register. It is not legal advice.
-4. [ARCHITECTURE](ARCHITECTURE.md) section 13 and the [design review](review/DESIGN-REVIEW.md): why the rules are what they are. For v0.3, the [v0.3 design review](review/V03-DESIGN-REVIEW.md).
-5. [DEMO-RESULTS](DEMO-RESULTS.md): what has and has not been tested on real devices.
-6. [Research index](research/README.md): the evidence, with the four digests first.
-7. [CHANGELOG](../CHANGELOG.md) and [ROADMAP](ROADMAP.md): what exists and what is known to be missing.
+4. [OBSERVABILITY](OBSERVABILITY.md): what the optional usage reports send and never send, how they are asked for, and where they are kept.
+5. [ARCHITECTURE](ARCHITECTURE.md) section 13 and the [design review](review/DESIGN-REVIEW.md): why the rules are what they are. For v0.3, the [v0.3 design review](review/V03-DESIGN-REVIEW.md).
+6. [DEMO-RESULTS](DEMO-RESULTS.md): what has and has not been tested on real devices.
+7. [Research index](research/README.md): the evidence, with the four digests first.
+8. [CHANGELOG](../CHANGELOG.md) and [ROADMAP](ROADMAP.md): what exists and what is known to be missing.
 
 ## All documents
 
@@ -120,6 +122,7 @@ To build a site on the SDK instead, read [CRUD](CRUD.md), then [SDK](SDK.md), th
 | [DEPLOY](DEPLOY.md) | What the host must do, host recipes, the DNS record, deploy order, updates, rollback, the kill switch, takedown, your own tracker, a pin node, CI/CD, hubs and owner duties |
 | [APPS](APPS.md) | The apps on a door page (unreleased): direct messages and rooms by a short code, what a door owner runs for them, how visitors use them, the feature table with what is built, next and not planned, and the prior art behind the design |
 | [OPERATIONS](OPERATIONS.md) | Day-2 work: monitoring without a backend, capacity, the incident runbook (key compromise included), abuse and legal operations with the notice-and-action runbook, privacy operations and recurring tasks |
+| [OBSERVABILITY](OBSERVABILITY.md) | The optional usage reports (unreleased): what a site owner can turn on, what a visitor is asked, the batch and its field rules, every event, the endpoint on the Workers Free plan, and how to read the reports |
 | [RUNBOOK](RUNBOOK.md) | Build, test, demo, publish, deploy order, the kill switch and troubleshooting, command by command |
 | [deploy/](../deploy/) | Templates: a tracker with Caddy, a pin node image, a GitHub Actions workflow for site owners and, as v0.3 C2, [one-box](../deploy/one-box/README.md): a rented server with a `nip.io` name and automatic HTTPS for a site with no domain |
 

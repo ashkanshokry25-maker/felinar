@@ -120,6 +120,11 @@ export const CONFIG = deepFreeze({
   // aud= tokens that make the consent gate the default (code review round 1: the one table; ARCHITECTURE
   // §4 and §8 and src/common/pointer.js say the same). 'general' is the only token without that effect.
   consent: { version: 2, gateAudiences: ['personal', 'eea', 'eu', 'uk', 'qc', 'quebec', 'sensitive', 'kids'] },
+  // Usage reports (docs/OBSERVABILITY.md; they exist only on a site whose door.json has an obs block): how often the loader raises the
+  // events that would otherwise repeat on every tick (site.progress, ledger.sync). The reporter's own limits (batch size, flush
+  // interval, queue length) are OBS_LIMITS in src/loader/obs.js. consent.version above is NOT raised for them: a site without the
+  // block must not ask again; a site with it asks again through the recipients (src/loader/consent.js recipientsKey).
+  obs: { progressEveryMs: 10000, ledgerEveryMs: 5000 },
 
   // ---- v0.3 hardening (harden-loader; V03-DESIGN-REVIEW 2.7.1, 2.8.8, 2.16.4, MF-30, MF-39, MF-74 to MF-76;
   // ARCHITECTURE 15.10). "chosen" = a design parameter a gate row confirms or tunes. -------------------------
