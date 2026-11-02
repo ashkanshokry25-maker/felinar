@@ -118,6 +118,7 @@ To build a site on the SDK instead, read [CRUD](CRUD.md), then [SDK](SDK.md), th
 | Document | What it covers |
 |---|---|
 | [DEPLOY](DEPLOY.md) | What the host must do, host recipes, the DNS record, deploy order, updates, rollback, the kill switch, takedown, your own tracker, a pin node, CI/CD, hubs and owner duties |
+| [APPS](APPS.md) | The apps on a door page (unreleased): direct messages and rooms by a short code, what a door owner runs for them, how visitors use them, the feature table with what is built, next and not planned, and the prior art behind the design |
 | [OPERATIONS](OPERATIONS.md) | Day-2 work: monitoring without a backend, capacity, the incident runbook (key compromise included), abuse and legal operations with the notice-and-action runbook, privacy operations and recurring tasks |
 | [RUNBOOK](RUNBOOK.md) | Build, test, demo, publish, deploy order, the kill switch and troubleshooting, command by command |
 | [deploy/](../deploy/) | Templates: a tracker with Caddy, a pin node image, a GitHub Actions workflow for site owners and, as v0.3 C2, [one-box](../deploy/one-box/README.md): a rented server with a `nip.io` name and automatic HTTPS for a site with no domain |

@@ -28,12 +28,15 @@
 // is a door list (kind felinar-door) that other origins may read (Access-Control-Allow-Origin, else other doors see this one as
 // "answering, not checked": --allow-no-cors makes that a warning, for GitHub Pages); and every /_mw/* file it lists, and /mw-sw.js,
 // has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). No pointer is read.
+// Apps at a door: an apps block in door.json (docs/DEPLOY.md, "Apps at a door") gets an info line (rendezvous, STUN and identity origin
+// counted) and a shape check; the addresses in it are read, never contacted.
 
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 
 import { parsePointer, verifyPointer, verifyRotation, pickRecord, ledgerIdFor, normalizeScope, EXP_WARN_DAYS, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../src/common/pointer.js';
 import { checkDoorJson } from '../src/loader/doors.js';
+import { appsBlockProblems, appsBlockLine } from './apps-block.mjs';
 import { parseTorrentFile } from '../src/common/torrent-file.js';
 import { resolveTxt, shouldSkipDoh, isWildcardDnsName, isNoTxtPlatformName, magnetTxtName, dohOverrideFromMeta, RESOLVERS } from '../src/loader/doh.js';
 import { isShellHtml } from '../src/sw/lib.js';
@@ -141,6 +144,12 @@ export async function checkDoor(urlText, options = {}) {
         else {
           door = json;
           add('ok', '/_mw/door.json', 'build ' + check.buildId + (check.version ? ', loader ' + check.version : '') + ', ' + Object.keys(json.files).length + ' files listed');
+          // Apps at a door: named when the door offers them; a block the door page cannot use is a warning (the page keeps its paste box).
+          if (json.apps !== undefined && json.apps !== null) {
+            const problems = appsBlockProblems(json.apps);
+            if (!problems.length) add('info', 'apps', appsBlockLine(json.apps));
+            else add('warn', 'apps', 'door.json has an apps block the door page cannot use (' + problems[0] + (problems.length > 1 ? '; ' + (problems.length - 1) + ' more' : '') + '): the bare door page keeps its paste box');
+          }
         }
         const acao = res.headers.get('access-control-allow-origin');
         if (acao === '*' || acao === DOOR_CHECK_ORIGIN) add('ok', 'cors', 'Access-Control-Allow-Origin: ' + acao + ' (other doors can check this one)');
@@ -784,7 +793,7 @@ async function main(argv) {
   if (flags.door) {
     // v0.3 C2 doors: a door, not a site (no pointer, no DNS, no trackers).
     log('check-site --door ' + positionals[0]);
-    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; the door page also at /_mw/open when the host redirects there). Each target is printed before it is contacted.');
+    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; the door page also at /_mw/open when the host redirects there; the addresses of an apps block are read, never contacted). Each target is printed before it is contacted.');
     const result = await checkDoor(positionals[0], { timeoutMs: flags.timeout, allowNoCors: flags.allowNoCors, log });
     if (flags.json) out(JSON.stringify({ url: positionals[0], door: true, ok: result.ok, failures: result.failures, warnings: result.warnings, results: result.results }, null, 2));
     else out((result.ok ? 'OK' : 'FAILED') + ': ' + result.failures + ' failure(s), ' + result.warnings + ' warning(s).');

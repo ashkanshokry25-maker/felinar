@@ -1,4 +1,7 @@
 // deploy/rtc-worker/wrangler.jsonc: the Worker's settings. Deploy from a copy of this folder outside the repository (README.md).
+// The pairing and room protocol of the apps (pair.js, README.md, "Pairing") keeps a few rows in the object's own storage (a code's
+// details, a lane's expiry). The SQLite-backed class below is what provides that storage, so pairing needs no new binding and no
+// new migration.
 {
   "name": "felinar-rtc",
   "main": "worker.js",
@@ -9,10 +12,14 @@
   "vars": {
     // The infohashes this rendezvous serves: 40 hex each, separated by spaces or commas (publish prints btih and
     // rendezvousBtih; add the chat lane of each site, README.md says how). The word "uploads" adds uploads mode.
+    // The private lanes that pairing mints are served as well, each for 24 hours; they are not listed here.
     "ALLOW": "",
     "UPLOADS": "0",
     "OPEN": "0",
     "INTERVAL_S": "120",
+    // "1" serves the pairing and room protocol of the apps on a door page: anyone who can open a WebSocket here can open a code and,
+    // once its owner accepts a knock, get a private lane served for 24 hours. "0" turns it off and the Worker is a tracker only.
+    "PAIRING": "1",
     // Set a long random value to read /stats.json?token=<value>; empty keeps the counts private.
     "STATS_TOKEN": ""
   }

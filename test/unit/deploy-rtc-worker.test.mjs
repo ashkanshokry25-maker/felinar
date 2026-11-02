@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 
 import { createRendezvous, parseAllow, messageProblem, bin2hex, hex2bin, INTERVAL_S, MAX_OFFERS, MAX_SWARMS_PER_SOCKET, PEER_TTL_S } from '../../deploy/rtc-worker/rtc.js';
 import worker, { Rendezvous, coreFromEnv } from '../../deploy/rtc-worker/worker.js';
+import { LANE_TTL_MS, CHANNEL_TTL_MS, KNOCK_TTL_MS, MIXED } from '../../deploy/rtc-worker/pair.js';
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -61,7 +62,7 @@ test('announce: the counts come back, offers reach other peers of the swarm, an 
   assert.deepEqual(b.take(), [{ action: 'announce', answer: { type: 'answer', sdp: 'v=0 answer' }, offer_id: 'o2', peer_id: peer('a'), info_hash: bin(A) }]);
   r.message(a, announce(A, peer('a'), { event: 'update', answer: { sdp: 'x' }, offer_id: 'o9', to_peer_id: peer('z') }));
   assert.deepEqual(b.take(), [], 'an answer to an unknown peer goes nowhere');
-  assert.deepEqual(r.stats(), { open: false, uploads: false, allowed: 1, swarms: 1, unlisted: 0, peers: 2, sockets: 2, interval: INTERVAL_S });
+  assert.deepEqual(r.stats(), { open: false, uploads: false, allowed: 1, swarms: 1, unlisted: 0, peers: 2, sockets: 2, interval: INTERVAL_S, codes: 0, knocks: 0, lanes: 0 });
   r.message(b, announce(A, peer('b'), { event: 'stopped' }));
   assert.deepEqual(b.take(), [{ action: 'announce', interval: INTERVAL_S, info_hash: bin(A), complete: 1, incomplete: 0 }], 'stopped is answered with the counts');
   assert.equal(r.stats().peers, 1);
@@ -93,7 +94,7 @@ test('the allow list: an unlisted infohash is refused; uploads mode serves it un
   const d = conn('d');
   u.message(d, announce(B, peer('d')));
   assert.equal(d.last()['failure reason'], undefined, 'an unlisted swarm that exists takes another peer');
-  assert.deepEqual(u.stats(), { open: false, uploads: true, allowed: 1, swarms: 2, unlisted: 1, peers: 3, sockets: 2, interval: INTERVAL_S });
+  assert.deepEqual(u.stats(), { open: false, uploads: true, allowed: 1, swarms: 2, unlisted: 1, peers: 3, sockets: 2, interval: INTERVAL_S, codes: 0, knocks: 0, lanes: 0 });
   u.close(c);
   u.close(d);
   assert.deepEqual([u.stats().swarms, u.stats().unlisted, u.stats().peers, u.stats().sockets], [1, 0, 0, 0], 'a closed connection takes its peers; an empty unlisted swarm goes, a listed one stays');
@@ -143,9 +144,23 @@ test('malformed messages are answered with a failure reason and change nothing; 
 function fakeWs(name) {
   return { name, sent: [], closed: null, attachment: null, send(t) { this.sent.push(JSON.parse(t)); }, close(code, reason) { this.closed = { code, reason }; }, serializeAttachment(v) { this.attachment = JSON.parse(JSON.stringify(v)); }, deserializeAttachment() { return this.attachment; } };
 }
-function fakeCtx(sockets = []) {
+/** The Durable Object storage of the fake platform: rows are cloned in and out like structured clones, list() filters by prefix. */
+function fakeStorage(rows = new Map()) {
   let alarm = null;
-  return { sockets, accepted: [], getWebSockets: () => sockets.slice(), acceptWebSocket(ws) { this.accepted.push(ws); sockets.push(ws); }, storage: { async getAlarm() { return alarm; }, async setAlarm(t) { alarm = t; } }, alarmAt: () => alarm };
+  const clone = (v) => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
+  return {
+    rows,
+    async get(key) { return clone(rows.get(key)); },
+    async put(key, value) { rows.set(key, clone(value)); },
+    async delete(key) { return rows.delete(key); },
+    async list({ prefix = '' } = {}) { const out = new Map(); for (const k of Array.from(rows.keys()).sort()) if (k.startsWith(prefix)) out.set(k, clone(rows.get(k))); return out; },
+    async getAlarm() { return alarm; },
+    async setAlarm(t) { alarm = t; },
+    alarmAt: () => alarm,
+  };
+}
+function fakeCtx(sockets = [], storage = fakeStorage()) {
+  return { sockets, accepted: [], storage, getWebSockets: () => sockets.slice(), acceptWebSocket(ws) { this.accepted.push(ws); sockets.push(ws); }, blockConcurrencyWhile: (fn) => Promise.resolve().then(fn), alarmAt: () => storage.alarmAt() };
 }
 const ENV = { ALLOW: A + ' ' + B, UPLOADS: '0', OPEN: '0', INTERVAL_S: '60', STATS_TOKEN: 's3cret', RTC: null };
 
@@ -168,6 +183,7 @@ test('worker fetch: /healthz, a plain GET of / gets 426, unknown paths 404, /sta
 test('the object: messages go through the core, the state is kept on the socket, a close drops the peer, the sweep closes idle sockets, a restart restores', async () => {
   const ctx = fakeCtx();
   const obj = new Rendezvous(ctx, ENV);
+  await obj.ready;
   const ws1 = fakeWs('1');
   const ws2 = fakeWs('2');
   ctx.sockets.push(ws1, ws2);
@@ -191,6 +207,7 @@ test('the object: messages go through the core, the state is kept on the socket,
   // a restart (hibernation): the new object rebuilds the connections from the sockets' attachments
   const ctx2 = fakeCtx([ws1]);
   const obj2 = new Rendezvous(ctx2, ENV);
+  await obj2.ready;
   assert.deepEqual([obj2.core.stats().peers, obj2.core.stats().sockets], [1, 1]);
   const ws3 = fakeWs('3');
   ctx2.sockets.push(ws3);
@@ -201,6 +218,7 @@ test('the object: messages go through the core, the state is kept on the socket,
   ws1.attachment.t = Math.floor(Date.now() / 1000) - PEER_TTL_S - 60;
   const ctx3 = fakeCtx([ws1, ws3]);
   const obj3 = new Rendezvous(ctx3, ENV);
+  await obj3.ready;
   await obj3.alarm();
   assert.deepEqual(ws1.closed, { code: 1001, reason: 'idle' });
   assert.equal(ws3.closed, null);
@@ -209,4 +227,358 @@ test('the object: messages go through the core, the state is kept on the socket,
   const env2 = Object.assign({}, ENV, { ALLOW: 'uploads ' + A, INTERVAL_S: '5' });
   const core = coreFromEnv(env2);
   assert.deepEqual([core.stats().uploads, core.stats().allowed, core.stats().interval], [true, 1, INTERVAL_S], 'INTERVAL_S below 10 falls back to the default');
+});
+
+// ---------------------------------------------------------------------------------------------- review findings (rtc-worker-lane report)
+
+const countsOf = (r, c, hex) => {
+  r.message(c, JSON.stringify({ action: 'scrape', info_hash: bin(hex) }));
+  const f = c.last().files[bin(hex)];
+  return [f.complete, f.incomplete];
+};
+
+test('rtc-worker-lane-1: an answer does not turn a seeder into a leecher; only left === 0 promotes a peer and nothing demotes one', () => {
+  const r = createRendezvous({ allow: new Set([A]) });
+  const a = conn('a');
+  const b = conn('b');
+  const watcher = conn('w');
+  r.message(a, announce(A, peer('a')));
+  r.message(b, announce(A, peer('b'), { left: 100, offers: [offer(1)] }));
+  assert.deepEqual(countsOf(r, watcher, A), [1, 1]);
+  a.take();
+  // what the loader's client sends to answer an offer: no left and no event
+  const answer = JSON.stringify({ action: 'announce', info_hash: bin(A), peer_id: peer('a'), answer: { type: 'answer', sdp: 'v=0 answer' }, offer_id: 'o1', to_peer_id: peer('b') });
+  const res = r.message(a, answer);
+  assert.equal(res.changed, false, 'an answer moves nothing the socket would have to store');
+  assert.equal(b.last().offer_id, 'o1', 'the answer reached the peer it names');
+  assert.deepEqual(countsOf(r, watcher, A), [1, 1], 'the seeder is still a seeder (it was counted as a leecher: 0 and 2)');
+  assert.deepEqual(r.attachmentOf(a).s, [[A, 1]]);
+  // only left === 0 promotes, and nothing demotes (bittorrent-tracker's swarm does the same)
+  r.message(b, announce(A, peer('b'), { event: 'update', left: 40 }));
+  assert.deepEqual(countsOf(r, watcher, A), [1, 1], 'still downloading');
+  r.message(b, announce(A, peer('b'), { event: 'update', left: 0 }));
+  assert.deepEqual(countsOf(r, watcher, A), [2, 0], 'done');
+  r.message(b, announce(A, peer('b'), { event: 'update', left: 50 }));
+  assert.deepEqual(countsOf(r, watcher, A), [2, 0], 'an update does not demote');
+  r.message(b, announce(A, peer('b'), { event: 'started', left: 50 }));
+  assert.deepEqual(countsOf(r, watcher, A), [2, 0], 'nor does a second started (the library treats it as an update)');
+  // an answer from a peer the swarm has never seen registers it as a leecher, as the library does
+  const c = conn('c');
+  r.message(c, JSON.stringify({ action: 'announce', info_hash: bin(A), peer_id: peer('c'), answer: { sdp: 'x' }, offer_id: 'o9', to_peer_id: peer('z') }));
+  assert.deepEqual(countsOf(r, watcher, A), [2, 1]);
+  // a peer that stops and comes back starts over
+  r.message(b, announce(A, peer('b'), { event: 'stopped' }));
+  r.message(b, announce(A, peer('b'), { left: 9 }));
+  assert.deepEqual(countsOf(r, watcher, A), [1, 2]);
+});
+
+test('rtc-worker-lane-3: a scrape names its infohashes; a bare scrape answers files: {} so nobody can list the swarms, unlisted ones included', () => {
+  const r = createRendezvous({ allow: new Set([A, B]), uploads: true });
+  const a = conn('a');
+  r.message(a, announce(A, peer('a')));
+  r.message(a, announce(C, peer('a')));
+  assert.equal(r.stats().unlisted, 1, 'an unlisted file swarm exists');
+  for (const msg of [{ action: 'scrape' }, { action: 'scrape', info_hash: [] }, { action: 'scrape', info_hash: null }]) {
+    assert.equal(r.message(a, JSON.stringify(msg)).problem, null);
+    assert.deepEqual(a.last(), { action: 'scrape', files: {}, flags: { min_request_interval: INTERVAL_S } }, JSON.stringify(msg));
+  }
+  r.message(a, JSON.stringify({ action: 'scrape', info_hash: [bin(A), bin(C)] }));
+  assert.deepEqual(Object.keys(a.last().files).sort(), [bin(A), bin(C)].sort(), 'asked for by name, counted');
+  r.message(a, JSON.stringify({ action: 'scrape', info_hash: bin(A) }));
+  assert.deepEqual(a.last().files, { [bin(A)]: { complete: 1, incomplete: 0, downloaded: 1 } });
+});
+
+test('rtc-worker-lane-2: a periodic announce keeps the stored time of a socket fresh, so an object rebuilt after a wake does not close a live socket as idle', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 1700000000000 });
+  const storage = fakeStorage();
+  const live = fakeWs('live');
+  const silent = fakeWs('silent');
+  const ctx = fakeCtx([live, silent], storage);
+  const obj = new Rendezvous(ctx, ENV);
+  await obj.ready;
+  await join(obj, live);
+  await join(obj, silent);
+  await obj.webSocketMessage(live, announce(A, peer('1')));
+  await obj.webSocketMessage(silent, announce(A, peer('2')));
+  const joined = live.attachment.t;
+  assert.equal(joined, 1700000000);
+  // the loader announces again every 2 minutes (the interval it is told); none of these changes the swarms it is in
+  for (let i = 0; i < 10; i++) {
+    t.mock.timers.tick(2 * 60 * 1000);
+    await obj.webSocketMessage(live, announce(A, peer('1'), { event: 'update' }));
+  }
+  const now = Math.floor(Date.now() / 1000);
+  assert.ok(now - live.attachment.t <= 5 * 60 + 2 * 60, 'the stored time is at most a sweep period (and one announce) behind: ' + (now - live.attachment.t) + ' s');
+  assert.ok(live.attachment.t > joined, 'it was rewritten without a change of membership');
+  assert.equal(silent.attachment.t, joined, 'a socket that sent nothing keeps its old time');
+  t.mock.timers.tick(60 * 1000);
+  // 21 minutes after both joined: the object is rebuilt from the attachments (a wake, an eviction, a deployment) and the sweep runs
+  const woken = new Rendezvous(fakeCtx([live, silent], storage), ENV);
+  await woken.ready;
+  await woken.alarm();
+  assert.equal(live.closed, null, 'announced a minute ago: not idle');
+  assert.deepEqual(silent.closed, { code: 1001, reason: 'idle' }, 'silent for 21 minutes: idle');
+  assert.equal(woken.core.stats().sockets, 1);
+});
+
+// ---------------------------------------------------------------------------------------------- pairing through the object
+
+const frame = (msg) => JSON.stringify(Object.assign({ v: 1 }, msg));
+const BOX = { iv: 'A'.repeat(16), ct: 'B'.repeat(160) };
+// the owner's proof of an accept: 86 base64url characters; the object checks the shape and passes it on
+const PROOF = 'P'.repeat(86);
+const T0 = 1700000000000;
+const MIN = 60 * 1000;
+const take = (ws) => ws.sent.splice(0);
+const clocked = new WeakSet();
+
+/** join(obj, ws): what Rendezvous.fetch() does once the platform has the upgraded socket (WebSocketPair does not exist in Node). */
+async function join(obj, ws) {
+  if (!obj.ctx.sockets.includes(ws)) obj.ctx.sockets.push(ws);
+  const c = obj.connFor(ws);
+  obj.core.attach(c, null);
+  obj.keep(ws, c);
+  await obj.ensureAlarm();
+  return c;
+}
+
+/** An object with an owner socket and a requester socket, at T0 on a mocked clock (set again to T0 each time it is called in one test). */
+async function pairedObject(t) {
+  if (!clocked.has(t)) { t.mock.timers.enable({ apis: ['Date'], now: T0 }); clocked.add(t); } else t.mock.timers.setTime(T0);
+  const storage = fakeStorage();
+  const owner = fakeWs('owner');
+  const req = fakeWs('req');
+  const ctx = fakeCtx([], storage);
+  const obj = new Rendezvous(ctx, ENV);
+  await obj.ready;
+  await join(obj, owner);
+  await join(obj, req);
+  return { storage, owner, req, ctx, obj };
+}
+
+test('the object: a pairing code lives in storage and on its socket, a knock on the requester socket, a lane in storage; nothing about a knock is written to a row', async (t) => {
+  const { storage, owner, req, ctx, obj } = await pairedObject(t);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-open', channel: 'abcd', box: BOX, rid: 'o' }));
+  assert.deepEqual(take(owner), [{ action: 'pair-open', channel: 'abcd', rid: 'o' }]);
+  assert.deepEqual(Array.from(storage.rows), [['chan:abcd', { kind: 'pair', box: BOX, lane: null, exp: T0 + CHANNEL_TTL_MS }]]);
+  assert.deepEqual(owner.attachment, { k: 'pair', c: [['abcd', 'pair']], q: [], t: T0 / 1000 });
+
+  await obj.webSocketMessage(req, frame({ action: 'pair-knock', channel: 'abcd', box: { iv: 'C'.repeat(16), ct: 'D'.repeat(100) }, rid: 'k' }));
+  const knock = take(req)[0].knock;
+  const request = take(owner)[0];
+  assert.deepEqual(Object.keys(request), ['action', 'knock', 'channel', 'box']);
+  assert.equal(request.knock, knock);
+  assert.deepEqual(req.attachment, { k: 'pair', c: [], q: [[knock, 'abcd', T0 / 1000, 'pair']], t: T0 / 1000 }, 'the pending knock rides on the requester socket');
+  assert.deepEqual(Array.from(storage.rows.keys()), ['chan:abcd'], 'no row for a knock');
+  assert.ok(JSON.stringify(req.attachment).length < 2048 && JSON.stringify(owner.attachment).length < 2048);
+  assert.equal(ctx.alarmAt(), T0 + 5 * MIN, 'the sweep alarm is the next thing to run');
+
+  // before the owner accepts there is no lane, so no offer can move
+  const stranger = fakeWs('stranger');
+  await join(obj, stranger);
+  await obj.webSocketMessage(stranger, announce('9'.repeat(40), peer('s')));
+  assert.match(take(stranger)[0]['failure reason'], /not allowed/);
+
+  await obj.webSocketMessage(owner, frame({ action: 'pair-accept', proof: PROOF, knock, rid: 'a' }));
+  const accepted = take(owner)[0];
+  const got = take(req)[0];
+  assert.match(accepted.lane, /^[0-9a-f]{40}$/);
+  assert.deepEqual(accepted, { action: 'pair-accepted', knock, lane: accepted.lane, rid: 'a' });
+  assert.deepEqual(got, { action: 'pair-accepted', knock, lane: accepted.lane, channel: 'abcd', box: BOX, proof: PROOF });
+  assert.deepEqual(storage.rows.get('lane:' + accepted.lane), T0 + LANE_TTL_MS, 'the lane is allowed for 24 hours, durably');
+  assert.deepEqual(req.attachment.q, [], 'the requester socket forgot the knock: the object rewrote its attachment although it sent nothing');
+  assert.deepEqual(await (await obj.fetch(new Request('https://rtc.example/stats.json'))).json(), {
+    open: false, uploads: false, allowed: 2, swarms: 0, unlisted: 0, peers: 0, sockets: 3, interval: 60, codes: 1, knocks: 0, lanes: 1,
+  });
+
+  // the lane is served now, to anybody who announces it (the rendezvous cannot tell them from the pair)
+  await obj.webSocketMessage(stranger, announce(accepted.lane, peer('s')));
+  assert.equal(take(stranger)[0]['failure reason'], undefined);
+});
+
+test('the object: a wake loses nothing; a knock made before it can be accepted after it, and the lane survives another wake', async (t) => {
+  const { storage, owner, req, obj } = await pairedObject(t);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-open', channel: 'abcd', box: BOX }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  const knock = take(req)[0].knock;
+  take(owner);
+  // the object sleeps (nobody reads the request for a while) and is rebuilt from the rows and the attachments
+  t.mock.timers.tick(45 * 1000);
+  const woken = new Rendezvous(fakeCtx([owner, req], storage), ENV);
+  await woken.ready;
+  const st = woken.core.stats();
+  assert.deepEqual([st.sockets, st.codes, st.knocks, st.lanes], [2, 1, 1, 0]);
+  assert.deepEqual([take(owner), take(req)], [[], []], 'nothing to tell anybody');
+  await woken.webSocketMessage(owner, frame({ action: 'pair-accept', proof: PROOF, knock }));
+  const lane = take(owner)[0].lane;
+  assert.equal(take(req)[0].lane, lane, 'the requester gets the lane of a knock the first object made');
+  assert.deepEqual(req.attachment.q, []);
+
+  // a second wake: the lane is loaded before the first event, so a tracker socket can announce it at once
+  const tracker = fakeWs('tracker');
+  const again = new Rendezvous(fakeCtx([owner, req, tracker], storage), ENV);
+  await again.ready;
+  const st2 = again.core.stats();
+  assert.deepEqual([st2.lanes, st2.codes], [1, 1], 'the owner socket claimed its code back');
+  again.core.attach(again.connFor(tracker), null);
+  await again.webSocketMessage(tracker, announce(lane, peer('t')));
+  assert.equal(take(tracker)[0]['failure reason'], undefined);
+  assert.deepEqual(tracker.attachment.s, [[lane, 1]]);
+  // a tracker socket restored with a lane swarm in its attachment goes back into it
+  const fourth = new Rendezvous(fakeCtx([owner, req, tracker], storage), ENV);
+  await fourth.ready;
+  const st4 = fourth.core.stats();
+  assert.deepEqual([st4.swarms, st4.peers], [1, 1]);
+});
+
+test('the object: if the owner socket is gone when the object wakes, its code is released and the requester is told; closes on either side are answered', async (t) => {
+  const { storage, owner, req, obj } = await pairedObject(t);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-open', channel: 'abcd', box: BOX }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  const knock = take(req)[0].knock;
+  take(owner);
+  assert.equal(storage.rows.has('chan:abcd'), true);
+  t.mock.timers.tick(30 * 1000);
+  const woken = new Rendezvous(fakeCtx([req], storage), ENV);
+  await woken.ready;
+  assert.deepEqual(take(req), [{ action: 'pair-rejected', knock, reason: 'gone' }]);
+  assert.equal(storage.rows.has('chan:abcd'), false, 'the row of a code nobody owns is deleted');
+  assert.deepEqual(req.attachment.q, [], 'and the requester forgets its knock');
+  assert.equal(woken.core.stats().codes, 0);
+
+  // the same, with both sockets alive: the owner closes
+  const second = await pairedObject(t);
+  await second.obj.webSocketMessage(second.owner, frame({ action: 'pair-open', channel: 'wxyz', box: BOX }));
+  await second.obj.webSocketMessage(second.req, frame({ action: 'pair-knock', channel: 'wxyz', box: BOX }));
+  const k2 = take(second.req)[0].knock;
+  await second.obj.webSocketClose(second.owner);
+  assert.deepEqual(take(second.req), [{ action: 'pair-rejected', knock: k2, reason: 'gone' }]);
+  assert.equal(second.storage.rows.size, 0);
+  assert.deepEqual(second.req.attachment.q, []);
+
+  // and the other way round: the requester goes, the owner is told to drop the request
+  const third = await pairedObject(t);
+  await third.obj.webSocketMessage(third.owner, frame({ action: 'pair-open', channel: 'qrst', box: BOX }));
+  await third.obj.webSocketMessage(third.req, frame({ action: 'pair-knock', channel: 'qrst', box: BOX }));
+  const k3 = take(third.req)[0].knock;
+  take(third.owner);
+  await third.obj.webSocketError(third.req);
+  assert.deepEqual(take(third.owner), [{ action: 'pair-request', knock: k3, channel: 'qrst', box: BOX }, { action: 'pair-cancelled', knock: k3 }].slice(1));
+  assert.equal(third.obj.core.stats().knocks, 0);
+});
+
+test('the object: a pair message pulls a far alarm forward; the alarm expires knocks at 10 minutes, codes and lanes at 24 hours, and leaves a socket that owns a code alone', async (t) => {
+  const { storage, owner, req, ctx, obj } = await pairedObject(t);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-open', channel: 'abcd', box: BOX }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  const k1 = take(req)[0].knock;
+  const tracker = fakeWs('tracker');
+  await join(obj, tracker);
+  await obj.webSocketMessage(tracker, announce(A, peer('t')));
+  take(owner);
+  // an alarm set far away is pulled forward by the next pair message (the sweep is every 5 minutes)
+  await ctx.storage.setAlarm(T0 + 180 * MIN);
+  const req2 = fakeWs('req2');
+  await join(obj, req2);
+  await obj.webSocketMessage(req2, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  const k2 = take(req2)[0].knock;
+  take(owner);
+  assert.equal(ctx.alarmAt(), T0 + 5 * MIN);
+  // at 3 minutes: nothing ran out; the next alarm is 5 minutes on
+  t.mock.timers.tick(3 * MIN);
+  await obj.alarm();
+  assert.equal(ctx.alarmAt(), T0 + 8 * MIN);
+  // at 8 minutes: the knocks run out at 10, sooner than the next sweep period, so the alarm is set for them
+  t.mock.timers.tick(5 * MIN);
+  await obj.alarm();
+  assert.equal(ctx.alarmAt(), T0 + KNOCK_TTL_MS, 'pulled forward to the first knock to run out');
+  assert.deepEqual([take(req), take(req2), take(owner)], [[], [], []]);
+  t.mock.timers.tick(2 * MIN);
+  await obj.alarm();
+  assert.deepEqual(take(req), [{ action: 'pair-rejected', knock: k1, reason: 'expired' }]);
+  assert.deepEqual(take(req2), [{ action: 'pair-rejected', knock: k2, reason: 'expired' }]);
+  assert.deepEqual(take(owner).map((m) => m.action), ['pair-cancelled', 'pair-cancelled']);
+  assert.deepEqual([req.attachment.q, req2.attachment.q], [[], []]);
+  assert.deepEqual([tracker.closed, req.closed], [null, null], 'nobody is idle after 10 minutes');
+
+  // 25 more minutes of silence: every socket without a code is idle, the socket that owns a code is left alone
+  t.mock.timers.tick(25 * MIN);
+  await obj.alarm();
+  assert.deepEqual(tracker.closed, { code: 1001, reason: 'idle' });
+  assert.deepEqual(req.closed, { code: 1001, reason: 'idle' });
+  assert.equal(owner.closed, null, 'its code is open, so it may sit there');
+
+  // a lane lasts 24 hours and so does the code: then the alarm deletes the rows and tells the owner
+  const req3 = fakeWs('req3');
+  await join(obj, req3);
+  await obj.webSocketMessage(req3, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  const k3 = take(req3)[0].knock;
+  take(owner);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-accept', proof: PROOF, knock: k3 }));
+  const lane = take(owner)[0].lane;
+  take(req3);
+  assert.equal(storage.rows.has('lane:' + lane), true);
+  const laneExp = storage.rows.get('lane:' + lane);
+  assert.equal(laneExp, T0 + 35 * MIN + LANE_TTL_MS, 'minted at minute 35, so it outlives the code (opened at minute 0) by 35 minutes');
+  t.mock.timers.setTime(T0 + CHANNEL_TTL_MS + MIN);
+  await obj.alarm();
+  assert.equal(storage.rows.has('chan:abcd'), false, 'the code row is deleted when the code runs out');
+  assert.equal(storage.rows.has('lane:' + lane), true, 'the lane is allowed until its own expiry');
+  assert.deepEqual(take(owner), [{ action: 'pair-close', channel: 'abcd', reason: 'expired' }]);
+  assert.deepEqual(owner.closed, { code: 1001, reason: 'idle' }, 'it holds no code now and was silent for a day: idle like any socket, in the same sweep');
+  const mid = obj.core.stats();
+  assert.deepEqual([mid.lanes, mid.codes], [1, 0]);
+  t.mock.timers.setTime(laneExp + 1000);
+  await obj.alarm();
+  assert.equal(storage.rows.has('lane:' + lane), false, 'the lane row is deleted when the lane runs out');
+  assert.equal(storage.rows.size, 0);
+  assert.equal(obj.core.stats().lanes, 0);
+});
+
+test('the object: a woken object drops what ran out while it slept; a frame of the other protocol is refused; PAIRING=0 turns the protocol off', async (t) => {
+  const { storage, owner, req, obj } = await pairedObject(t);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-open', channel: 'abcd', box: BOX }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  const knock = take(req)[0].knock;
+  await obj.webSocketMessage(owner, frame({ action: 'pair-accept', proof: PROOF, knock }));
+  const lane = take(owner).pop().lane;
+  take(owner);
+  // the object sleeps for more than a day; woken, it drops the lane, releases the code (the owner is told) and answers nothing else
+  t.mock.timers.tick(CHANNEL_TTL_MS + 5000);
+  const woken = new Rendezvous(fakeCtx([owner, req], storage), ENV);
+  await woken.ready;
+  assert.equal(storage.rows.has('lane:' + lane), false);
+  assert.equal(storage.rows.has('chan:abcd'), false);
+  assert.deepEqual(take(owner), [{ action: 'pair-close', channel: 'abcd', reason: 'expired' }]);
+  assert.equal(woken.core.stats().lanes, 0);
+
+  // the other protocol on a classified socket
+  const mixed = fakeWs('mixed');
+  await join(woken, mixed);
+  await woken.webSocketMessage(mixed, announce(A, peer('m')));
+  take(mixed);
+  await woken.webSocketMessage(mixed, frame({ action: 'pair-open', channel: 'wxyz', box: BOX }));
+  assert.deepEqual(take(mixed), [{ action: 'pair-open', 'failure reason': MIXED }]);
+  assert.equal(storage.rows.size, 0);
+
+  // PAIRING=0, with the rows an earlier deployment left: the rows of codes are deleted, a lane stays allowed until it expires
+  const leftover = 'c'.repeat(40);
+  const offStorage = fakeStorage(new Map([['chan:abcd', { kind: 'pair', box: BOX, lane: null, exp: Date.now() + 1000000 }], ['lane:' + leftover, Date.now() + 1000000]]));
+  const off = new Rendezvous(fakeCtx([], offStorage), Object.assign({}, ENV, { PAIRING: '0' }));
+  await off.ready;
+  assert.deepEqual(Array.from(offStorage.rows.keys()), ['lane:' + leftover]);
+  assert.equal(off.core.stats().lanes, 1);
+  const lw = fakeWs('lw');
+  await join(off, lw);
+  await off.webSocketMessage(lw, announce(leftover, peer('l')));
+  assert.equal(take(lw)[0]['failure reason'], undefined, 'a lane minted before the switch is still served');
+  const w = fakeWs('w');
+  await join(off, w);
+  await off.webSocketMessage(w, frame({ action: 'pair-open', channel: 'abcd', box: BOX, rid: 'r' }));
+  assert.deepEqual(take(w), [{ action: 'pair-open', rid: 'r', 'failure reason': 'pairing is off on this rendezvous' }]);
+  await off.webSocketMessage(w, announce(A, peer('w')));
+  assert.equal(take(w)[0]['failure reason'], undefined, 'the tracker works');
+  const asked = coreFromEnv({ ALLOW: A, PAIRING: '0' });
+  assert.equal(asked.message(conn('c'), frame({ action: 'pair-open', channel: 'abcd', box: BOX })).problem, 'pairing is off on this rendezvous');
+  assert.equal(coreFromEnv({ ALLOW: A }).message(conn('d'), frame({ action: 'pair-open', channel: 'abcd', box: BOX })).problem, null, 'on by default');
 });

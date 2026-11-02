@@ -481,3 +481,316 @@ textarea.mw-input { width: 100%; resize: vertical; }
 .mw-call-video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; object-fit: cover; }
 .mw-call-audio { display: none; }
 .mw-call-local { width: 96px; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; object-fit: cover; float: right; margin: 4px 0 0 6px; }
+
+/* ---- apps on the door page (src/loader/apps-ui.js; ARCHITECTURE 15.21) -------------------------------------------------
+   #mw-apps is the full view of the apps: fixed over the whole page, below the loader bar in the stacking order, and one scroller.
+   The bar is fixed over it, at the top on computers and at the bottom on phones, so the view keeps that room free in the two
+   custom properties below; the header and the composer stick to the edge the bar leaves. Colours are the tokens above only.
+   Phones: one column, 40 px targets, 16 px fields (the rules at the end of this block). */
+.mw-apps {
+  /* ui.js showApps measures the loader bar and sets --mw-apps-bar on this element (a narrow phone wraps the bar to two rows, a banner or a notice makes it taller); the values after it are the guesses used until then. */
+  --mw-apps-top: var(--mw-apps-bar, 52px);
+  --mw-apps-bottom: 0px;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  inset: 0;
+  z-index: calc(var(--mw-z) - 1);
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--mw-bg);
+  color: var(--mw-fg);
+}
+.mw-has-apps .mw-progress, .mw-has-apps .mw-progress-text { display: none; }
+.mw-apps-view {
+  box-sizing: border-box;
+  max-width: 60rem;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: calc(var(--mw-apps-top) + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right)) calc(var(--mw-apps-bottom) + 14px) max(14px, env(safe-area-inset-left));
+}
+.mw-apps-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  /* The header reaches up under the loader bar (negative margin, equal padding): no strip of scrolled text shows between the two. */
+  margin: calc(-1 * (var(--mw-apps-top) + env(safe-area-inset-top, 0px))) -14px 12px;
+  padding: calc(8px + var(--mw-apps-top) + env(safe-area-inset-top, 0px)) 14px 8px;
+  background: var(--mw-bg);
+  border-bottom: 1px solid var(--mw-border);
+}
+.mw-apps-title { flex: 1 1 8em; min-width: 0; margin: 0; font-size: 20px; line-height: 1.25; overflow-wrap: anywhere; }
+/* The title takes the focus when a view opens (a heading, not a control): no ring around it. */
+.mw-apps-title:focus, .mw-apps-title:focus-visible { outline: none; }
+/* The line under the title in a conversation or a room: status on one side, the buttons that matter while reading on the other; it sticks with the header. */
+.mw-apps-subline { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-width: 0; }
+.mw-apps-subline[hidden] { display: none; }
+.mw-apps-substatus { flex: 1 1 12em; min-width: 0; }
+.mw-apps-substatus p { margin: 0; }
+.mw-apps-subactions { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.mw-apps-subactions:empty { display: none; }
+.mw-apps-who { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.mw-apps-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16em; font-weight: 600; }
+.mw-apps-avatar {
+  display: inline-grid;
+  grid-template-columns: repeat(5, 6px);
+  grid-auto-rows: 6px;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  align-content: center;
+  justify-content: center;
+  border: 1px solid var(--mw-border);
+  border-radius: 6px;
+  background: var(--mw-chip);
+}
+.mw-apps-avatar i { display: block; }
+.mw-apps-avatar i.mw-on { background: var(--mw-accent); }
+.mw-apps-toast {
+  position: fixed;
+  top: calc(var(--mw-apps-top) + 8px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  box-sizing: border-box;
+  max-width: calc(100% - 28px);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--mw-border);
+  background: var(--mw-panel);
+  color: var(--mw-fg);
+  box-shadow: var(--mw-shadow);
+}
+.mw-apps-sub { margin: 0 0 12px; color: var(--mw-muted); }
+.mw-apps-h2 { margin: 0 0 8px; font-size: 16px; }
+.mw-apps-label { display: block; margin: 0 0 4px; font-weight: 600; }
+.mw-apps-field { display: inline-flex; flex-direction: column; min-width: 0; }
+.mw-apps-field .mw-apps-label { font-weight: 400; color: var(--mw-muted); font-size: 12px; }
+.mw-apps-error { color: var(--mw-err); }
+
+/* home: the tiles */
+.mw-apps-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 12px; margin: 0 0 12px; }
+.mw-apps-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  min-height: 7rem;
+  padding: 14px 16px;
+  text-align: left;
+  font: inherit;
+  color: var(--mw-fg);
+  background: var(--mw-panel);
+  border: 1px solid var(--mw-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.mw-apps-tile:hover { border-color: var(--mw-accent); }
+.mw-apps-tile:focus-visible { outline: 2px solid var(--mw-accent); outline-offset: 2px; }
+.mw-apps-tile[aria-disabled="true"] { cursor: default; }
+.mw-apps-tile[aria-disabled="true"] .mw-apps-tile-title, .mw-apps-tile[aria-disabled="true"] .mw-apps-tile-text { opacity: 0.7; }
+.mw-apps-tile[aria-disabled="true"]:hover { border-color: var(--mw-border); }
+.mw-apps-tile-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mw-apps-tile-title { font-size: 16px; font-weight: 700; }
+.mw-apps-tile-text { color: var(--mw-muted); }
+.mw-apps-tile-foot { display: flex; align-items: center; margin-top: auto; padding-top: 6px; color: var(--mw-muted); font-size: 12px; }
+.mw-apps-tile-note:empty { display: none; }
+.mw-apps-lock { position: relative; display: inline-block; flex: 0 0 auto; width: 11px; height: 8px; margin: 7px 8px 0 2px; border: 2px solid currentColor; border-radius: 2px; }
+.mw-apps-lock::before { content: ""; position: absolute; left: 1px; top: -9px; width: 5px; height: 6px; border: 2px solid currentColor; border-bottom: 0; border-radius: 6px 6px 0 0; }
+.mw-apps-badge { display: inline-block; min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--mw-accent); color: var(--mw-accent-fg); font-size: 12px; font-weight: 700; line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
+.mw-apps-visit { margin: 8px 0 0; }
+
+/* messages and rooms: panels, the code, requests, lists */
+.mw-apps-panel { box-sizing: border-box; margin: 0 0 14px; padding: 12px 14px; background: var(--mw-panel); border: 1px solid var(--mw-border); border-radius: 12px; }
+.mw-apps-panel .mw-note { margin: 6px 0; }
+.mw-apps-linknote { margin: 0 0 10px; padding: 6px 10px; border-left: 3px solid var(--mw-warn); background: var(--mw-chip); border-radius: 8px; }
+/* The code is twelve characters shown as xxxx-xxxx-xxxx: fourteen characters on one line at every width. A monospace glyph with this
+   spacing is about 0.64em wide, so 6.6vw keeps the whole code inside a 280 px phone (14 x 0.64 x 18.5 = 166 px) and 32 px caps it. */
+.mw-apps-code {
+  margin: 4px 0 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  font-size: clamp(17px, 6.6vw, 32px);
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  -webkit-user-select: all;
+  user-select: all;
+}
+.mw-apps-codeinput { flex: 1 1 10em; min-width: 0; font-size: 18px; letter-spacing: 0.04em; }
+.mw-apps-list { list-style: none; margin: 0; padding: 0; }
+.mw-apps-row { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--mw-border); }
+.mw-apps-row:first-child { border-top: 0; }
+.mw-apps-rowbtn {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 3.2rem;
+  padding: 8px 4px;
+  text-align: left;
+  font: inherit;
+  color: var(--mw-fg);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.mw-apps-rowbtn:hover { background: var(--mw-chip); }
+.mw-apps-rowbtn:focus-visible { outline: 2px solid var(--mw-accent); outline-offset: -2px; }
+.mw-apps-row-main { display: flex; flex-direction: column; min-width: 0; }
+.mw-apps-row-name { font-weight: 600; overflow-wrap: anywhere; }
+.mw-apps-unread .mw-apps-row-name { font-weight: 800; }
+.mw-apps-row-prev { color: var(--mw-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.mw-apps-row-marks { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.mw-apps-row-side { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: 0 0 auto; color: var(--mw-muted); font-size: 12px; }
+.mw-apps-mark { display: inline-block; padding: 0 6px; border-radius: 999px; background: var(--mw-chip); color: var(--mw-muted); font-size: 11px; line-height: 1.6; }
+.mw-apps-request { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--mw-border); }
+.mw-apps-request:first-child { border-top: 0; }
+.mw-apps-request-text { flex: 1 1 14em; min-width: 0; overflow-wrap: anywhere; }
+.mw-apps-request-actions { display: inline-flex; gap: 8px; }
+.mw-apps-members { display: flex; flex-wrap: wrap; gap: 6px; }
+.mw-apps-member { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--mw-chip); }
+
+/* the price and confirmation cards */
+.mw-apps-cardhost:empty { display: none; }
+.mw-apps-card { box-sizing: border-box; margin: 0 0 14px; padding: 12px 14px; background: var(--mw-panel); border: 1px solid var(--mw-border); border-left: 4px solid var(--mw-accent); border-radius: 12px; box-shadow: var(--mw-shadow); }
+.mw-apps-card-danger { border-left-color: var(--mw-err); }
+.mw-apps-card-title { margin: 0 0 6px; font-size: 16px; }
+.mw-apps-card-text { margin: 0 0 8px; }
+
+/* one conversation or room */
+.mw-apps-conv { display: flex; flex-direction: column; min-height: calc(100vh - var(--mw-apps-top) - var(--mw-apps-bottom) - 70px); min-height: calc(100dvh - var(--mw-apps-top) - var(--mw-apps-bottom) - 70px); }
+.mw-apps-conv[hidden] { display: none; }
+.mw-apps-conv-head { margin: 0 0 8px; }
+.mw-apps-conv-head:empty { display: none; }
+.mw-apps-status { margin: 0; font-weight: 600; }
+.mw-apps-status[data-status="connected"] { color: var(--mw-ok); }
+.mw-apps-status[data-status="rejected"], .mw-apps-status[data-status="blocked"], .mw-apps-status[data-status="left"] { color: var(--mw-err); }
+.mw-apps-typing { margin: 2px 0 0; color: var(--mw-muted); font-style: italic; }
+.mw-apps-verify { margin: 4px 0 0; }
+.mw-apps-toolrow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin: 6px 0; }
+.mw-apps-toolgroup { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.mw-apps-tools, .mw-apps-search { scroll-margin-top: calc(var(--mw-apps-top) + 130px); box-sizing: border-box; margin: 0 0 10px; padding: 10px 12px; background: var(--mw-panel); border: 1px solid var(--mw-border); border-radius: 12px; }
+.mw-apps-tools[hidden], .mw-apps-search[hidden] { display: none; }
+.mw-apps-tools .mw-btn[data-on="1"] { border-color: var(--mw-accent); }
+.mw-apps-tools .mw-btn[aria-pressed="true"] { background: var(--mw-chip); border-color: var(--mw-accent); }
+.mw-apps-check { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; }
+.mw-apps-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--mw-accent); }
+.mw-apps-searchnav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.mw-apps-searchnav:empty { display: none; }
+.mw-apps-result { color: var(--mw-muted); }
+.mw-apps-fs-small .mw-apps-body { font-size: 13px; }
+.mw-apps-fs-large .mw-apps-body { font-size: 18px; }
+.mw-apps-msgs { flex: 1 1 auto; list-style: none; margin: 0; padding: 4px 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.mw-apps-day { align-self: center; margin: 8px 0 4px; color: var(--mw-muted); font-size: 12px; }
+.mw-apps-day span { display: inline-block; padding: 1px 10px; border-radius: 999px; background: var(--mw-chip); }
+/* The width limit sits on the row (a flex item of a list whose width is known): a percentage on the bubble inside a row that is as wide as its content made the bubbles as narrow as their longest word. */
+.mw-apps-msg { display: flex; align-items: flex-start; gap: 6px; max-width: min(38rem, 88%); }
+.mw-apps-mine { align-self: flex-end; flex-direction: row-reverse; }
+.mw-apps-theirs { align-self: flex-start; }
+.mw-apps-selbox { flex: 0 0 auto; width: 20px; height: 20px; margin: 10px 4px 0; accent-color: var(--mw-accent); }
+.mw-apps-bubble { box-sizing: border-box; max-width: 100%; padding: 8px 12px; background: var(--mw-panel); border: 1px solid var(--mw-border); border-radius: 14px; overflow-wrap: anywhere; }
+.mw-apps-mine .mw-apps-bubble { background: var(--mw-accent); border-color: var(--mw-accent); color: var(--mw-accent-fg); }
+.mw-apps-mine .mw-apps-bubble a { color: inherit; }
+.mw-apps-theirs .mw-apps-bubble a { color: var(--mw-accent); }
+.mw-apps-body { white-space: pre-wrap; }
+.mw-apps-body-deleted { font-style: italic; opacity: 0.8; }
+.mw-apps-body code { padding: 0 4px; border-radius: 4px; background: var(--mw-chip); color: var(--mw-fg); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; }
+.mw-apps-from { margin: 0 0 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; color: var(--mw-muted); }
+.mw-apps-quote {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 6px;
+  padding: 4px 8px;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  color: var(--mw-fg);
+  background: var(--mw-chip);
+  border: 0;
+  border-left: 3px solid var(--mw-accent);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.mw-apps-quote-who { display: block; font-weight: 700; }
+.mw-apps-quote-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-apps-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; font-size: 11px; opacity: 0.9; }
+.mw-apps-meta .mw-apps-mark { background: transparent; color: inherit; border: 1px solid currentColor; }
+.mw-apps-meta .mw-btn.mw-link { color: inherit; min-height: 22px; padding: 0 4px; font-size: 11px; }
+.mw-apps-ticks { letter-spacing: -2px; }
+.mw-apps-s-read { color: var(--mw-ok); font-weight: 700; }
+.mw-apps-mine .mw-apps-s-read { color: inherit; text-decoration: underline; }
+.mw-apps-s-failed { color: var(--mw-err); font-weight: 700; }
+.mw-apps-mine .mw-apps-s-failed { color: inherit; text-decoration: underline; }
+.mw-apps-hit .mw-apps-bubble { box-shadow: 0 0 0 2px var(--mw-warn); }
+.mw-apps-hit-current .mw-apps-bubble { box-shadow: 0 0 0 3px var(--mw-ok); }
+.mw-apps-selected .mw-apps-bubble { box-shadow: 0 0 0 2px var(--mw-accent); }
+.mw-apps-reacts, .mw-apps-menu, .mw-apps-reactrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.mw-apps-react { box-sizing: border-box; min-height: 28px; padding: 2px 8px; font: inherit; font-size: 13px; color: var(--mw-fg); background: var(--mw-chip); border: 1px solid var(--mw-border); border-radius: 999px; cursor: pointer; }
+.mw-apps-react-mine { border-color: var(--mw-accent); }
+.mw-apps-menu .mw-btn, .mw-apps-reactrow .mw-btn { color: var(--mw-fg); }
+.mw-apps-emoji { min-width: 34px; font-size: 18px; }
+.mw-apps-details { margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: var(--mw-bg); color: var(--mw-fg); font-size: 12px; }
+.mw-apps-details p { margin: 2px 0; }
+.mw-apps-details .mw-btn.mw-link { color: var(--mw-accent); }
+.mw-apps-jump { position: sticky; bottom: calc(var(--mw-apps-bottom) + 130px); align-self: center; z-index: 2; box-shadow: var(--mw-shadow); }
+.mw-apps-jump[hidden] { display: none; }
+
+/* the composer sticks to the edge the loader bar leaves */
+/* A panel under the text field (emoji, snippets, send later) scrolls inside the composer instead of pushing the messages off a short screen. */
+.mw-apps-composer { position: sticky; bottom: var(--mw-apps-bottom); z-index: 2; box-sizing: border-box; margin: 0 -14px; padding: 8px 14px; background: var(--mw-bg); border-top: 1px solid var(--mw-border); max-height: calc(100vh - var(--mw-apps-top) - var(--mw-apps-bottom) - 150px); max-height: calc(100dvh - var(--mw-apps-top) - var(--mw-apps-bottom) - 150px); overflow-y: auto; }
+.mw-apps-compose-row { display: flex; align-items: flex-end; gap: 8px; }
+.mw-apps-ta { flex: 1 1 auto; box-sizing: border-box; min-height: 44px; max-height: 40vh; resize: none; }
+.mw-apps-send { flex: 0 0 auto; min-width: 5rem; }
+.mw-apps-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.mw-apps-options .mw-btn[aria-pressed="true"] { background: var(--mw-chip); border-color: var(--mw-accent); }
+.mw-apps-bar:empty { display: none; }
+.mw-apps-barline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin: 0 0 6px; padding: 4px 8px; border-left: 3px solid var(--mw-accent); background: var(--mw-chip); border-radius: 8px; font-size: 12px; }
+.mw-apps-composer-panel:empty { display: none; }
+.mw-apps-composer-panel { margin-top: 6px; }
+.mw-apps-emojis { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; max-height: min(12rem, 30vh); overflow-y: auto; }
+.mw-apps-snippets { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-bottom: 6px; }
+.mw-apps-snippet { max-width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-apps-later { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.mw-apps-counter { text-align: right; }
+
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1024px) {
+  .mw-apps { --mw-apps-top: 0px; --mw-apps-bottom: var(--mw-apps-bar, calc(60px + env(safe-area-inset-bottom, 0px))); }
+  .mw-apps-tiles { grid-template-columns: 1fr; }
+  .mw-apps-tile { min-height: 5.5rem; }
+  .mw-apps .mw-btn, .mw-apps .mw-btn.mw-small, .mw-apps-rowbtn, .mw-apps-react, .mw-apps-quote { min-height: 40px; }
+  .mw-apps-meta .mw-btn.mw-link { min-height: 40px; }
+  .mw-apps-check { min-height: 40px; }
+  .mw-apps-ta { font-size: 16px; }
+  .mw-apps-msg { max-width: 94%; }
+  .mw-apps .mw-input { min-height: 40px; }
+  .mw-apps-emojis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .mw-apps-name { max-width: 9em; }
+  /* Inside a conversation or a room the header keeps two short rows (the way back and the title, then the status and the tools): who is signed in waits one step back. */
+  .mw-apps-head-sub .mw-apps-who { display: none; }
+}
+@media (max-height: 500px) {
+  .mw-apps-emojis { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+.mw-apps-back { flex: 0 0 auto; }
+.mw-apps-important { color: var(--mw-warn); }
+.mw-apps-time, .mw-apps-row-time { font-variant-numeric: tabular-nums; }
+.mw-apps-state { font-style: italic; }
+.mw-apps-deleted .mw-apps-bubble { opacity: 0.85; }
+.mw-apps-pinned .mw-apps-bubble { border-style: dashed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-apps * { scroll-behavior: auto !important; }
+}

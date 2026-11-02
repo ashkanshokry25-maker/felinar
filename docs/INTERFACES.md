@@ -1498,7 +1498,7 @@ src/loader/doors.js     DOOR_TIMING = { firstByteMs: 4000, perDoorMs: 12000, sta
                         doorCandidates({ current, lastGood, record, ledgerDoors, hints, pageHost, max }) -> [{ host, origin, kind }]
                         hintAllowed(host, { pageHost }), doorTorrentUrls(candidates, btih), doorWebseeds(candidates, { health, now, max, exclude })
                         createDoorHealth({ load, save, now, backoffMs, max }) -> { ready, get, ok, fail, inBackoff, order, snapshot }
-                        doorJsonFor({ name, version, buildId, files }) (door.json carries pageAlias since 0.3.1), checkDoorJson(json, own) -> { ok, sameBuild, buildId, version, reason }
+                        doorJsonFor({ name, version, buildId, files }) (door.json carries pageAlias since 0.3.1), checkDoorJson(json, own) -> { ok, sameBuild, buildId, version, reason } (+ apps, appsReason when the door.json carries an apps block: see "Apps on the door page")
                         probeDoor(origin, { fetch, own, sameOrigin, timeoutMs, signal }) -> { origin, host, state: up|other-build|opaque|bad|down, buildId, json, ms, reason }
                         fetchFirst(urls, { fetch, verify, staggerMs, inFlight, firstByteMs, perDoorMs, maxBytes, signal, onResult }) -> { ok, url, bytes, results, aborted? }
                         LEDGER_DOORS_KEY = '_doors', LEDGER_DOORS_MAX = 24, LEDGER_DOORS_BYTES = 2048, LEDGER_DOORS_INTERVAL_MS = 3600000
@@ -1511,7 +1511,7 @@ src/loader/doors.js     DOOR_TIMING = { firstByteMs: 4000, perDoorMs: 12000, sta
                                         port -> parent { mwDoor: 'rendered', title, path } | { mwDoor: 'navigate', path } | { mwDoor: 'external', url } | { mwDoor: 'error', message }
                         frameMain(window): sets window.__mwDoor = true before it writes the page
 src/loader/strings.js   DOOR_TEXT { en, fr }, doorText(key, lang, params)
-src/loader/ui.js        createDoorsUi({ doc, lang }) -> { node, setModel, onAction, nodes }; doorStateText(state, lang); createUI(): setDoors(model), showLinkPaste({ onOpen, onCancel, lang }), showGate({ ..., note })
+src/loader/ui.js        createDoorsUi({ doc, lang }) -> { node, setModel, onAction, nodes }; doorStateText(state, lang); createUI(): setDoors(model), showLinkPaste({ onOpen, onCancel, lang }), showGate({ ..., note }), showApps(node), hideApps(), appsSlot (apps on the door page)
 src/sw/core.js          DOOR_PAGE_PATH, DOOR_JSON_PATH; mw-set-current from the door page -> mw-ack { ok: false, error: 'door-page' }
 build.mjs               DOOR_PAGE, DOOR_MANIFEST, DOOR_JSON; doorManifestJson(version), doorPageHtml(shellHtml), doorJson(outputs, { version, buildId })
 tools/publish.mjs       --door <host>... (needs --chain): link.txt, link-card.txt, link-qr.svg, doors.json; summary.link; result.link
@@ -1874,4 +1874,185 @@ tools/verify-release.mjs verify ... (--expect-version <v> | --min-version <v> | 
                       RETIRED_RELEASE_KEYS (SEC-6, SUP-2, SUP-3, SUP-12)
 tools/door-kit-files.mjs doorKitFiles(version) (moved from tools/publish.mjs, which re-exports it; SEC-5)
 build.mjs             --update-lock refuses a provenance package's new release without an attestation; --accept-no-provenance (SUP-11)
+```
+
+## Apps on the door page (contract changes; ARCHITECTURE 15.21)
+
+> **Status: built on 2026-11-01, not yet reviewed (unreleased).** Direct messages and rooms on the bare door page. Tested with unit tests
+> on loopback (`test/unit/deploy-rtc-pair`, `deploy-rtc-worker`, `tools-tracker-pair`, `loader-apps`, `loader-apps-format`,
+> `loader-apps-rooms`, `loader-apps-ui`, `loader-apps-tracker`, `tools-publish-apps`, `tools-dev-server-apps` and the apps cases of
+> `loader-doors` and `tools-check-door`). Not run: the Cloudflare Worker with pairing on, a real phone, Safari, Firefox. The owner-facing
+> description is [APPS.md](APPS.md).
+
+### The apps block of `/_mw/door.json`, and the tools that write it
+```
+door.json "apps"        { "rendezvous": ["wss://..."], "stun": ["stun:host:port"], "idp": "https://origin" }   (optional; the tools write it as the last key)
+                        rendezvous: 1..8 URLs, wss:, or ws: on a loopback host; the page uses the first (the others are not used yet)
+                        stun:       0..8 URLs, stun: or stuns: with a host and an optional port; the shared client gets all of them, the lanes at most 4
+                        idp:        an origin, exactly as written: https:, or http: on a loopback host
+                        each entry as written: at most 300 characters, no spaces around it, no user name or password, no fragment; unknown keys ignored
+src/loader/doors.js     APPS_BLOCK_MAX = 8
+                        checkAppsBlock(apps) -> { block, reason }   block: a frozen copy or null; reason: 'apps-shape' | 'apps-rendezvous' |
+                                                                    'apps-rendezvous-insecure' | 'apps-stun' | 'apps-idp'
+                        appsBlockOf(json) -> block | null           (no block, or a bad one: the page keeps its paste box)
+                        appsBlockProblem(json) -> reason | null
+                        checkDoorJson(json, own) -> { ok, sameBuild, buildId, version, reason } plus apps (block | null) when json.apps is present
+                        and appsReason when that block is bad; the block never changes ok
+tools/apps-block.mjs    APPS_RENDEZVOUS_MAX = 8, APPS_STUN_MAX = 8, APPS_URL_MAX = 300
+                        appsBlockProblems(block) -> [text]          (at least as strict as checkAppsBlock; a test compares them)
+                        makeAppsBlock({ rendezvous, stun, idp }, { flags }) -> block   (lists may hold comma separated values; a UsageError names the flags)
+                        appsBlockLine(block) -> 'rendezvous 1, stun 1, identity https://...'
+                        withAppsBlock(doorJsonBytes, block) -> Buffer      (the build's format, apps as the last key)
+                        withoutAppsBlock(doorJsonBytes) -> Buffer          (the build's own bytes again)
+tools/publish.mjs       --tracker <wss URL>... --stun <stun: URL>... --idp <origin> together: summary.apps, result.apps; --shell also writes the block into
+                        shell/_mw/door.json. No --idp, no block (with --shell a note says why). A drop-in publish records none.
+                        --door-kit <dir> --door-site <publish output>: the FIRST site's block is set in the kit's _mw/door.json after the kit was
+                        checked against the release list; doorKit(...) -> { kit, version, listHash, files, sites, apps }
+tools/dev-server.mjs    --apps-rendezvous <url>... --apps-stun <url>... --apps-idp <origin>; options appsRendezvous, appsStun, appsIdp (string or list each);
+                        result.apps; /_mw/door.json is served with the block, read again on every request, the file under --root unchanged
+tools/check-site.mjs    --door: '[info] apps: rendezvous 1, stun 1, identity <origin>', or a warning when the page cannot use the block; no address is contacted
+tools/demo.mjs          --stun <stun: URL> (repeat, at most 4); demoAppsOptions({ plan, stun, idp }) -> { appsRendezvous, appsStun, appsIdp } | null; runDemo(...).apps
+tools/tracker.mjs       --no-pairing; createTracker({ ..., pairing (undefined: on when deploy/rtc-worker/pair.js is there; false; true: or an error), maxLanes = 10000,
+                        pairSweepMs = 30000, now, random }) -> { ..., pairing: boolean, pairSweep(nowMs) }; loadPairModule(specifier) -> module | null;
+                        stats() and /stats.json gain codes, knocks, lanes
+deploy/rtc-worker       var PAIRING ("1" default, "0" = a tracker only); /stats.json gains codes, knocks, lanes
+```
+
+### The pair protocol, `mw-pair-v1` (`deploy/rtc-worker/pair.js`; the client is `src/loader/apps-link.js`)
+```
+Transport   one WebSocket to the rendezvous URL, JSON text frames of at most 8,192 UTF-8 bytes: { v: 1, action, rid?, ... }; rid is 1..16 characters and echoed in the
+            direct reply; a failure is { action, rid?, 'failure reason': text }. The first message classifies a socket for its life: announce | scrape = tracker
+            socket, any pair-* | room-* action = pair socket; the other kind is answered 'socket already used for another protocol'.
+Code        12 characters of CODE_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'; channel = the first 4 (all the rendezvous sees), secret = the last 8 (never sent).
+Box         { iv: 16 base64url characters, ct: at least 22 base64url characters }, exactly those two keys, at most 2,048 bytes as JSON. The rendezvous
+            checks shape and size and cannot open it.
+Messages    C pair-open   { channel, box, rid }        -> R { action: 'pair-open', channel, rid }. One code per socket (opening again replaces it).
+                                                         Errors: channel taken, box invalid, too many codes, invalid channel
+            C pair-knock  { channel, box, rid }        -> R to the requester { action: 'pair-knock', knock, rid }; to the owner
+                                                         { action: 'pair-request', knock, channel, box }. Errors: unknown code (also for a closed, expired or own
+                                                         code), too many requests, box invalid, invalid channel
+            C pair-accept { knock, proof, rid } (owner) -> R mints lane (40 hex), allows it 24 hours; owner { action: 'pair-accepted', knock, lane, rid };
+                                                         requester { action: 'pair-accepted', knock, lane, channel, box: <the owner's box>, proof }.
+                                                         proof = 86 base64url characters, the owner's signature over "mw-pair-v1\naccept\n" + JCS({ channel, knock });
+                                                         the rendezvous checks the shape (else 'proof invalid') and passes it on, the requester's page checks it
+            C pair-reject { knock, rid }   (owner)     -> requester { action: 'pair-rejected', knock, reason: 'rejected' }; owner { action: 'pair-reject', knock, rid }
+            C pair-cancel { knock, rid? }  (requester) -> owner { action: 'pair-cancelled', knock }; a reply only when rid was sent
+            C pair-close  { channel?, rid? } (owner)   -> pending requests get pair-rejected with reason 'closed'; a reply only when rid was sent
+            rooms       room-open { channel, box, rid } -> { action: 'room-open', channel, lane, rid } (lane minted and allowed at once; at most 4 rooms per socket;
+                        a second open of an owned channel replaces its box); room-knock, room-accept ({ knock, proof, rid }: requester { action: 'room-accepted', knock, lane,
+                        channel, box, proof }, owner { action: 'room-accepted', knock, rid }), room-reject, room-cancel, room-close ({ channel } names the room)
+Pushes      pair-rejected { knock, reason: 'expired' | 'gone' | 'closed' }, pair-cancelled { knock }, pair-close { channel, reason: 'expired' }, and the room- forms
+Other       invalid knock, unknown knock, proof invalid, invalid rid, unsupported version, invalid action, message too large, too many lanes, internal error,
+            'pairing is off on this rendezvous' (PAIRING=0)
+Lifetimes   a request pends 10 minutes; a code lives until closed, its socket closes, or 24 hours; a lane is served 24 hours from the accept (from the open for
+            a room), then it is dead (a member's next announce is refused)
+Caps        16 pending requests per code, 8 per requesting socket, 10 requests and 10 opens a minute per socket, 4,096 codes, 10,000 lanes
+deploy/rtc-worker/pair.js
+            PAIR_VERSION = 1, MAX_PAIR_BYTES = 8192, MAX_BOX_BYTES = 2048, CODE_ALPHABET, CHANNEL_LENGTH = 4, SECRET_LENGTH = 8, CODE_LENGTH = 12,
+            KNOCK_TTL_MS, LANE_TTL_MS, CHANNEL_TTL_MS, MAX_LANES = 10000, CHAN_KEY = 'chan:', LANE_KEY = 'lane:', MIXED, MAX_NAME_CHARS = 32, DEFAULT_CAPS
+            isPairAction(action), normalizeCode(text) -> code | null, formatCode(code) -> 'xxxx-xxxx-xxxx' | null, isChannel(text), boxProblem(box),
+            helloProblem(hello) -> text | null, frameTooLarge(text)
+            createPairing({ random, now, allowLane, persist, caps }) -> { message(conn, msg) -> { replies: [[conn, obj]], changed, problem }, close(conn) -> replies,
+              sweep(nowMs) -> replies, attach(conn, saved) -> replies, attachmentOf(conn) -> { c, q }, load(entries), takeTouched() -> [conn],
+              nextExpiry() -> ms | Infinity, ownsLive(conn), stats() -> { codes, knocks } }
+              persist(ops) gets [['put', key, value] | ['delete', key]] before the replies leave; allowLane(hex, expMs) answers false to refuse another lane
+deploy/rtc-worker/rtc.js
+            createRendezvous({ ..., pairing = true, persist = null, random, pairCaps, maxLanes = 10000 }) -> { attach, attachmentOf, message, close, stale, stats,
+              allowLane(hex, expMs), restore({ chans, lanes }), sweep(nowMs) -> { touched }, nextExpiry() }; close(conn) -> { touched };
+              message(conn, text) -> { changed, problem } and, for a pair frame, touched: [conn] and pair: true
+              attachment { p, s, t } (tracker socket) or { k: 'pair', c: [[channel, kind]], q: [[knock, channel, atSeconds, kind]], t } (pair socket)
+              stats() -> { open, uploads, allowed, swarms, unlisted, peers, sockets, interval, codes, knocks, lanes }
+              a minted lane is served like a listed infohash until it expires, then its swarm goes; a bare scrape answers files: {}; only left === 0 makes
+              a seeder and nothing makes a seeder a leecher again
+deploy/rtc-worker/worker.js
+            coreFromEnv(env, now, extra) (extra adds core options such as persist); the Durable Object keeps chan:<channel> = { kind, box, lane, exp } and
+            lane:<hex> = expiry in ctx.storage, loads them in blockConcurrencyWhile, rewrites a socket's attachment when its stored time is older than the
+            5-minute sweep, and pulls the alarm forward to the first request, code or lane to run out
+```
+
+### The sealing and the frames, `mw-apps-v1` (`src/loader/apps-crypto.js`; the service is `src/loader/apps.js`)
+```
+src/loader/apps-crypto.js
+            PAIR_PREFIX = 'mw-pair-v1', APPS_PREFIX = 'mw-apps-v1', APPS_LEDGER = 'mw-apps/1', EXT_NAME = 'mw_apps1', CODE_LENGTH = 12, CHANNEL_LENGTH = 4,
+            SECRET_LENGTH = 8, PBKDF2_ROUNDS = 100000, HELLO_SKEW_MS = 600000, BOX_MAX_BYTES = 2048, NAME_MAX = 32, FRAME_VERSION = 1, FRAME_MAX = 16384,
+            T = { DM: 0x02, ROOM_KEY: 0x03, ROSTER: 0x04, GROUP: 0x05 }, DM_BODY_MAX = 4064, ROOM_BODY_MAX = 3935, ROSTER_MAX = 16
+            normalizeCode(text), formatCode(code), splitCode(text) -> { code, channel, secret } | null, generateCode(random), isChannel(s)
+            codeKey(secret, channel, rounds) -> Promise<Uint8Array(32)>      K_code, see ARCHITECTURE 15.21
+            sealHello({ keyCode, channel, role, keys, name, now, random }) -> Promise<{ box, hello }>
+            openHello({ keyCode, channel, role, box, now, skewMs, pastMs }) -> Promise<{ ok: true, hello } | { ok: false, reason }>   (never throws)
+            encodeFrame(type, payload) -> Uint8Array | null (over FRAME_MAX), decodeFrame(bytes) -> { type, payload } | null
+            kPairOf(keys, peerEk), compareCode(kPair) -> '12345678', formatCompare(digits) -> '1234 5678', shortIdOf(pub) -> 'xxxx-xxxx'
+            sealDmBody / openDmBody, sealRoomKey / openRoomKey, sealGroupBody / openGroupBody   (thin wrappers over src/chat/seal.js)
+            sealRoster({ keys, secret, lane, seq, members: [{ pub, name }], t, n }) -> Promise<{ payload, id, t, n }>   the roster as a group box under the room secret
+            openRoster({ secret, lane, payload, ownerPub }) -> Promise<{ ok: true, seq, members, t, id } | { ok: false, reason }>   the sender inside must be ownerPub
+            signAccept({ keys, channel, knock }) -> Promise<proof>, verifyAccept({ ownerPub, channel, knock, proof }) -> Promise<boolean>, acceptSigningBytes({ channel, knock })
+Frames      [0x01][type][JSON payload], at most 16,384 bytes
+            0x02 DM        { tag, epk, iv, ct }   sealDm under K_pair, ledger id 'mw-apps/1'; body = JSON { k, ... }
+            0x03 ROOM-KEY  { epk, iv, ct }        sealTo from the owner to one member: the 32-byte room secret, aad "mw-apps-v1\nroomkey\n" + lane + "\n" + owner pub
+            0x04 ROSTER    { tag, epk, iv, ct }   sealGroup under the room secret from the owner (a group box like 0x05); body { k: 'roster', seq, members: [{ pub, name }] },
+                           at most 16 people; opened only with the secret, so a peer that was never accepted reads nothing
+            0x05 GROUP     { tag, epk, iv, ct }   sealGroup under the room secret, epoch id 1, group id = the lane, the sender's signature inside
+Bodies      { k: 'msg', id, t, text, fmt: 'md1', reply?, exp?, prio? }  { k: 'ack', id }  { k: 'read', upTo }  { k: 'typing', on }  { k: 'react', id, emoji | null, t, o? }
+            { k: 'edit', id, text, t, o? }  { k: 'del', id, o? }  { k: 'cfg', exp, receipts, t, o? }  { k: 'name', name }  { k: 'bye' }
+            id is 16 random base64url characters, t is Unix ms, text at most 3,500 characters (rooms 2,000; only 'msg' and 'bye' in a room), emoji at most 8 code points,
+            no spaces and not a name every object has (toString, constructor, ...). exp on a msg is its author's timer; cfg.exp and cfg.receipts say what the sender does
+            (the reader keeps them as peerCfg and never lets them change its own timer); a cfg whose t is more than 5 minutes from the reader's clock is dropped, and a
+            timer a reader receives counts for at least 10 seconds. The reader keeps the last 20 earlier texts of an edited message
+src/loader/apps-format.js
+            TEXT_MAX = 3500, ROOM_TEXT_MAX = 2000, REACTION_MAX = 8, COMMON_EMOJI (32), EXPORT_FORMAT = 'felinar-apps-chat', EXPORT_VERSION = 1
+            sanitizeText(text), parseMd1(text) -> nodes ({ t: 'text' | 'br' | 'code' | 'b' | 'i' | 'u' | 's' | 'a', ... }), plainText(text), previewText(text, max),
+            linksIn(text), hasLink(text), urlAt(s, i), isEmoji(s), foldText(s), searchMessages(messages, { text, exact, from, to, direction, links, saved, pinned,
+            edited, reactions, important }) -> [{ id, index, t, mine, ranges }], exportConversation({ conv, me, now }), exportFileName(conv, now)
+```
+
+### The service, `src/loader/apps.js`
+```
+createApps({ api, config, loadTm, lang, now, random, randomBytes, setTimeoutFn, clearTimeoutFn, limits, createLink, link, WebSocketImpl, log, rendezvous, stun, idp }) -> apps
+  api.identity: info() -> { pub, name }, keys() -> WorkingKeys (sign, chat), onChange(fn); config: the door's apps block (the first rendezvous is the pair socket)
+  loadTm: () -> Promise<TorrentManager>, called once, at the first accept or the arrival of an acceptance; the manager needs joinLane and registerWireExtension
+  Nothing leaves the device until a person acts: createApps opens no socket and loads no manager.
+apps.state() -> { signedIn, me: { pub, short, name } | null, ready, link: 'connecting' | 'open' | 'closed', tm, notice, code: 'xxxx-xxxx-xxxx' | null,
+                  conversations, rooms, requests: [{ knock, kind: 'pair' | 'room', roomId, from: { pub, short, name }, at }], snippets, blocked }
+  conversation { id, peer: { pub, short, name, nick }, status: 'waiting' | 'connecting' | 'connected' | 'rejected' | 'left' | 'blocked', reason, knock, code,
+    incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, cfg: { exp, receipts, typing } (this person's own: exp is the
+    default timer of what this person writes), peerCfg: { exp, receipts } (what the other person told; display only), compare,
+    compareText, draft, note, typingPeer, messages: [{ id, t, mine, text, fmt, reply, status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | null, readAt,
+    edits: [{ t, text }], editedAt, deleted, reactions: { emoji: [pub] }, pinned, saved, important, prio, exp, expAt, sendAt, scheduled }] }
+  room { id, owner, status: 'waiting' | 'open' | 'connecting' | 'connected' | 'rejected' | 'closed', code, codeClosed, ownerPub, members: [{ pub, short, name, you,
+    owner }], messages: [{ id, t, mine, from, text, status: 'queued' | 'sent' | null }], unread, draft }
+Calls       every call that is not marked (sync) returns a Promise that resolves to a result or { error } and never rejects; an error is one of ERRORS (spaced phrases such
+            as 'unknown code', 'rate limited', 'too long', 'no manager')
+            openCode() -> { code }   newCode() -> { code }   closeCode() -> { ok }   knock(codeText) -> { knock, id }   cancelKnock(knock | id)   accept(knock) -> { id }
+            reject(knock)   send(convId, text, { reply, exp, prio, at }) -> { id }   resend(convId, id) / retry   cancelSend(convId, id)   edit(convId, id, text)
+            remove(convId, id, { both })   react(convId, id, emoji | null)   markRead(convId)   markUnread(convId)   typing(convId, on)   setCfg(convId, { exp, receipts, typing })
+            setNickname(convId, name)   setFlags(convId, { muted, pinned, archived, favorite, hidden }) / setFlag   setMessageFlag(convId, id, 'pinned' | 'saved' | 'important', on)
+            block(pub)   unblock(pub)   verifyCode(convId) -> { code }   clear(convId)   leave(convId)   createRoom() -> { id, code }   joinRoom(codeText) -> { knock, id }
+            acceptMember(knock)   rejectMember(knock)   sendRoom(roomId, text) -> { id }   leaveRoom(roomId)   markRoomRead(roomId)
+            (sync) state()   onChange(fn) -> off   destroy()   search(convId, query) -> [{ id, index, t, mine, ranges }]   exportData(convId) -> { ok, fileName, mime, text, data }
+            exportJson(convId) -> the JSON text   setDraft(convId, text)   setNote(convId, text)   addSnippet(text) -> { id }   removeSnippet(id)
+ERRORS, LIMITS (exported): the numbers of APPS.md "Limits"; tests shorten times through createApps({ limits })
+Signing out, or becoming another identity, drops everything: sockets, lanes, conversations, timers. Nothing was stored.
+src/loader/apps-link.js
+            createLink(opts) -> PairLink({ url, WebSocketImpl, setTimeoutFn, clearTimeoutFn, random, backoffMs = [1000, 2000, 4000, 8000, 15000, 30000], knockSilentMs = 30000,
+              knockExpireMs = 600000, requestTimeoutMs = 15000, openWaitMs = 10000, keepaliveMs = 0, log }); url must be wss: (ws: on loopback)
+            link.state 'idle' | 'connecting' | 'open' | 'backoff'; connect(); close(); whenOpen(ms); send(action, fields); request(action, fields, { timeoutMs }) ->
+              { ok: true, reply } | { ok: false, reason } (reason: the failure text as a slug, or link-down | closed | timeout | too-big | bad-reply)
+            link.on(event, fn) -> off: state, open, gone, request, accepted ({ kind, knock, lane, channel, box, proof | null }), rejected, cancelled, closed, silent
+            typed calls (kind 'pair' | 'room'): openCode({ kind, channel, box }), closeCode({ kind, channel }), knock({ kind, channel, box }), accept({ kind, knock, proof }),
+              reject({ kind, knock }), cancel({ kind, knock })
+```
+
+### The view and the hooks in the loader
+```
+src/loader/apps-ui.js   createAppsUi({ root, ui, service, lang, appsText, actions: { signIn, signOut, openLink, copy, log }, now, doc, win })
+                          -> { node, render, show(view, id), back, inspect, destroy, nodes }
+                        a model-driven view: it draws service.state() and calls the service; every handler is trustedOnly, every form is prevented, text from other people goes in
+                        with textContent and createTextNode only, and no storage API is called
+src/loader/strings.js   APPS_TEXT { en, fr } (the same keys in both), appsText(key, lang, params) (English fallback, {param} placeholders, '' for an unknown key)
+src/loader/ui.js        createUI(): showApps(node), hideApps(), appsSlot (#mw-apps, role main, hidden until showApps); while the view is up the bar's height is measured
+                        into --mw-apps-bar
+src/loader/app.js       run(): a door page with no link and an apps block runs runDoorApps(A, apps, deps), else runDoorPaste; readAppsBlock(A) -> block | null;
+                        loadAppsTm(A, apps) -> Promise<TorrentManager>; window.__mwShell.inspect().apps = { view, signedIn, ready, tm, link, code (the channel: the first four characters), current, card, requests,
+                        conversations: [{ id, short, status, unread, messages, lastStatus, pinned, muted, archived, favorite }],
+                        rooms: [{ id, role, status, members, messages, unread }] } (null on any other page; counts, states, short ids and the channel of the visitor's own code, never a message text)
 ```

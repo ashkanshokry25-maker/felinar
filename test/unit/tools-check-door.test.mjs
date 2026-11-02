@@ -29,7 +29,8 @@ function doorFiles() {
 /**
  * A door on 127.0.0.1. opts: { cors, swRedirect, swType, flip: path, noDoorJson, blockPage, cleanUrls (0.3.1: /_mw/open.html answers
  * 308 to /_mw/open and the page is served there, as Cloudflare Pages does), redirectTo (the 308's target), oldLoader (a door.json
- * without pageAlias: a loader that enters door mode only at /_mw/open.html) }.
+ * without pageAlias: a loader that enters door mode only at /_mw/open.html), apps (the value of the "apps" key of door.json, set as
+ * the last key: a door that offers apps) }.
  */
 async function door(opts = {}) {
   const files = doorFiles();
@@ -38,6 +39,11 @@ async function door(opts = {}) {
     const o = JSON.parse(dj.toString('utf8'));
     delete o.pageAlias;
     dj = Buffer.from(JSON.stringify(o));
+  }
+  if (opts.apps !== undefined) {
+    const o = JSON.parse(dj.toString('utf8'));
+    o.apps = opts.apps;
+    dj = Buffer.from(JSON.stringify(o, null, 2) + '\n');
   }
   const served = new Map(files);
   if (opts.flip) {
@@ -141,6 +147,94 @@ test('checkDoor (0.3.1): a host with clean URLs answers the door page at /_mw/op
   res = await checkDoor((await door({ cleanUrls: true, flip: '_mw/open.html' })).url, {});
   assert.equal(res.ok, false);
   assert.ok(res.results.some((r) => r.step === '/_mw/open.html' && r.level === 'fail' && /transformed file/.test(r.message)));
+});
+
+// ---------------------------------------------------------------------------------------------- apps at a door
+
+const APPS_BLOCK = { rendezvous: ['ws://127.0.0.1:8000'], stun: ['stun:127.0.0.1:3478'], idp: 'http://127.0.0.1:8081' };
+
+test('checkDoor (apps at a door): a door.json with an apps block still passes and gets an info line that names it; the addresses in it are never contacted', async () => {
+  const d = await door({ apps: APPS_BLOCK });
+  const calls = [];
+  const res = await checkDoor(d.url, { fetch: (url, init) => { calls.push(String(url)); return fetch(url, init) } });
+  assert.equal(res.ok, true, JSON.stringify(res.results, null, 1));
+  assert.deepEqual(res.results.find((r) => r.step === 'apps'), { level: 'info', step: 'apps', message: 'rendezvous 1, stun 1, identity http://127.0.0.1:8081' });
+  assert.deepEqual(res.door.apps, APPS_BLOCK);
+  assert.equal(levels(res)['/_mw/*'], 'ok', 'every listed file still matches: door.json does not list itself');
+  assert.ok(calls.length > 0 && calls.every((u) => u.startsWith(d.url)), 'only the door: ' + calls.join(' '));
+  assert.ok(d.seen.every((s) => s.path.startsWith('/_mw/') || s.path === '/mw-sw.js'));
+  // counts follow the block: two rendezvous, no STUN, an https identity origin
+  const more = await door({ apps: { rendezvous: ['wss://rtc.example.org', 'wss://spare.example.org/pair'], stun: [], idp: 'https://id.example.org' } });
+  const moreRes = await checkDoor(more.url, {});
+  assert.equal(moreRes.ok, true, JSON.stringify(moreRes.results, null, 1));
+  assert.equal(moreRes.results.find((r) => r.step === 'apps').message, 'rendezvous 2, stun 0, identity https://id.example.org');
+  // the step comes after door.json is read and before the files are compared
+  const steps = moreRes.results.map((r) => r.step);
+  assert.ok(steps.indexOf('apps') > steps.indexOf('/_mw/door.json') && steps.indexOf('apps') < steps.indexOf('/_mw/*'));
+});
+
+test('checkDoor (apps at a door): a door without a block has no apps line', async () => {
+  const res = await checkDoor((await door()).url, {});
+  assert.equal(res.ok, true);
+  assert.equal(res.results.some((r) => r.step === 'apps'), false);
+});
+
+test('checkDoor (apps at a door): a block the door page cannot use is a warning that says the paste box stays; a door that is otherwise good still passes', async () => {
+  const bad = [
+    { rendezvous: ['ws://rtc.example.org'], stun: [], idp: 'https://id.example.org' },
+    { rendezvous: [], stun: [], idp: 'https://id.example.org' },
+    { rendezvous: ['wss://rtc.example.org'], stun: ['turn:t.example'], idp: 'https://id.example.org' },
+    { rendezvous: ['wss://rtc.example.org'], stun: [] },
+    { rendezvous: ['wss://rtc.example.org'], stun: [], idp: 'http://id.example.org' },
+    'yes',
+  ];
+  for (const apps of bad) {
+    const res = await checkDoor((await door({ apps })).url, {});
+    const line = res.results.find((r) => r.step === 'apps');
+    assert.ok(!line || line.level !== 'info', 'never an info line for ' + JSON.stringify(apps));
+    if (res.door) {
+      // this loader's door.json check lets the block through: the tool says it is not usable
+      assert.equal(line.level, 'warn', JSON.stringify(apps));
+      assert.match(line.message, /apps block the door page cannot use \(.+\): the bare door page keeps its paste box/, JSON.stringify(apps));
+      assert.equal(res.ok, true, 'a warning does not fail the door');
+    } else {
+      // a stricter door.json check refuses the whole file: that is a failure of door.json, not a silent pass
+      assert.equal(levels(res)['/_mw/door.json'], 'fail', JSON.stringify(apps));
+    }
+  }
+  const one = await checkDoor((await door({ apps: bad[0] })).url, {});
+  if (one.door) assert.match(one.results.find((r) => r.step === 'apps').message, /rendezvous\[0\] is ws: on a host that is not loopback/);
+  const many = await checkDoor((await door({ apps: { rendezvous: [], stun: ['x'] } })).url, {});
+  if (many.door) assert.match(many.results.find((r) => r.step === 'apps').message, /\(rendezvous is empty: name at least 1; \d+ more\)/);
+});
+
+test('CLI: check-site --door prints the apps line, and says the addresses in a block are never contacted', async () => {
+  const script = [
+    "const http = require('node:http');",
+    "const files = " + JSON.stringify(Array.from(doorFiles()).map(([k, v]) => [k, v.toString('base64')])) + ";",
+    "const o = JSON.parse(Buffer.from(" + JSON.stringify(doorJson(doorFiles(), { version: '0.3.0', buildId: 'abcdef123456' }).toString('base64')) + ", 'base64').toString());",
+    "o.apps = " + JSON.stringify(APPS_BLOCK) + ";",
+    "const dj = Buffer.from(JSON.stringify(o, null, 2) + '\\n');",
+    "const map = new Map(files.map(([k, v]) => [k, Buffer.from(v, 'base64')]));",
+    "const s = http.createServer((q, r) => { const p = new URL(q.url, 'http://x').pathname; if (p === '/_mw/door.json') { r.writeHead(200, { 'access-control-allow-origin': '*' }); return r.end(dj) } const k = p.slice(1); if (!map.has(k)) { r.writeHead(404); return r.end() } r.writeHead(200, { 'content-type': k.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(map.get(k)) });",
+    "s.listen(0, '127.0.0.1', () => { process.stdout.write(String(s.address().port) + '\\n') });",
+  ].join('\n');
+  const { spawn } = await import('node:child_process');
+  const { port, child } = await new Promise((resolve) => {
+    const c = spawn(process.execPath, ['-e', script], { stdio: ['ignore', 'pipe', 'inherit'] });
+    c.stdout.once('data', (d) => resolve({ port: Number(String(d).trim()), child: c }));
+  });
+  try {
+    const r = spawnSync(process.execPath, [join(ROOT, 'tools', 'check-site.mjs'), 'http://127.0.0.1:' + port + '/', '--door'], { encoding: 'utf8', timeout: 60000 });
+    assert.equal(r.status, 0, r.stderr + r.stdout.slice(0, 600));
+    assert.match(r.stdout, /^\[info\] apps: rendezvous 1, stun 1, identity http:\/\/127\.0\.0\.1:8081$/m);
+    assert.match(r.stdout, /the addresses of an apps block are read, never contacted/);
+    assert.match(r.stdout, /^OK: 0 failure\(s\), 0 warning\(s\)\.$/m);
+    const json = spawnSync(process.execPath, [join(ROOT, 'tools', 'check-site.mjs'), 'http://127.0.0.1:' + port + '/', '--door', '--json'], { encoding: 'utf8', timeout: 60000 });
+    assert.deepEqual(JSON.parse(json.stdout).results.find((x) => x.step === 'apps'), { level: 'info', step: 'apps', message: 'rendezvous 1, stun 1, identity http://127.0.0.1:8081' });
+  } finally {
+    child.kill();
+  }
 });
 
 test('CLI: check-site --door --json exits 0 for a good door and 1 for a bad one', async () => {
