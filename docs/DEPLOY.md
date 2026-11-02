@@ -634,8 +634,9 @@ over HTTPS (or localhost)".
 | A tunnel you run yourself | Tailscale Serve, a Cloudflare quick tunnel or ngrok | yes, but a quick tunnel allows 200 requests in flight and gives a new origin each run (every run is a first visit), and ngrok's free plan has a 1 GB and 20,000-request cap and an interstitial page ([RESEARCH-DIGEST](research/RESEARCH-DIGEST.md), 5.2) |
 | A real host | this page | the release gate runs here |
 
-The repository's tools never open tunnels: everything they run stays on 127.0.0.1
-([DEV-NETWORK.md](DEV-NETWORK.md)). A tunnel is something you start yourself, and the address of one belongs to its operator:
+The repository's tools never open tunnels: everything they run stays on this computer, on 127.0.0.1 by default, and on the computer's own
+network addresses only when you ask for it: the LAN tier of the demo (`demo --tls`, for phones on the same network) and the `--host` and
+`--bind` options ([DEV-NETWORK.md](DEV-NETWORK.md)). A tunnel is something you start yourself, and the address of one belongs to its operator:
 
 > This address belongs to the provider of the tunnel. They can see everything sent through it. It changes every time you restart, so each restart is a new site to your visitors. Use it to show a friend, not to publish.
 
@@ -959,9 +960,9 @@ browser origin and can access each other's data.
 
 ## Doors
 
-> **Status: v0.3 C2, written together with its code, tested on loopback only.** The door page, the light link, `publish --door`,
+> **Status: v0.3 C2, written together with its code, tested on loopback, and once on one phone for the guest-door view.** The door page, the light link, `publish --door`,
 > `publish --door-kit` and `check-site --door` are in this tree, with unit tests and a local probe in Chromium 156 and WebKit 27.2 on
-> 127.0.0.1 (two doors, one stopped). No real host, no phone and no installed app has been tried. Two changes outside the doors lane are
+> 127.0.0.1 (two doors, one stopped). No real host and no installed app has been tried; on 2026-11-01 one Android phone opened the guest-door view of a light link at two dev-server doors on one Mac ([DEMO-RESULTS.md](DEMO-RESULTS.md), after the Doors table). Two changes outside the doors lane are
 > pending with the integrator: the SDK's handshake from the door view, and `ledger-admin doors` (until then no tool here writes `_doors`).
 > The research is [S4](research/v03/S4-doors.md), cited here as F1, D3 and so on.
 
@@ -1016,7 +1017,8 @@ only and no storage (the table above); and a door kit is checked against the rel
 `tools/verify-release.mjs`, which the release fills in (a copy of the tools from before that needs `--release-key` by
 hand). No
 release gate row G-DR has run on a real host or phone ([DEMO-RESULTS.md](DEMO-RESULTS.md)): doors are tested on loopback
-only (e2e DOOR-DOWN, DOOR-HASH and DOOR-GUEST).
+only (e2e DOOR-DOWN, DOOR-HASH and DOOR-GUEST), apart from 2026-11-01: a phone opened the guest-door view at a dev-server door on
+home Wi-Fi, and a door kit on Cloudflare Pages did not work (the host table below).
 
 ### What a door must serve
 
@@ -1034,7 +1036,7 @@ only (e2e DOOR-DOWN, DOOR-HASH and DOOR-GUEST).
 | Host (S4 F5) | Loader door | Full door | Door settings |
 |---|---|---|---|
 | GitHub Pages | yes | yes | no custom headers: other doors see this door as "answering, not checked"; `/mw-sw.js` is cached for up to 10 minutes |
-| Cloudflare Pages | yes | no (Range gives 200) | `_headers` and `_redirects` are read |
+| Cloudflare Pages | **not in 0.3.0** (tried 2026-11-01: Pages answers `/_mw/open.html` with a 308 to `/_mw/open`, where the loader does not enter door mode, and it applies every matching `_headers` rule, so the kit's `/_mw/door.json` rule and its `/_mw/*` rule together send `Access-Control-Allow-Origin: *, *`, which browsers reject; both are fixes for 0.3.x) | no (Range gives 200) | `_headers` and `_redirects` are read |
 | Netlify | yes | yes | `_headers` and `_redirects` are read |
 | Vercel | not tried | not tried | the kit writes `vercel.json` |
 | A rented server | yes | yes | the kit's Caddyfile |

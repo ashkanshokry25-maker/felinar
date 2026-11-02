@@ -18,7 +18,7 @@ in a browser. Its weaknesses are the ones every predecessor hit: most of the tim
 won't share, discovery depends on volunteers' trackers, and the static host remains the trust root. For most
 small sites peer-to-peer delivery adds work and saves nothing; what it buys is resilience for returning visitors
 and shared data without a backend, and both come with conditions. It is 0.3.0, a pre-release (0.2.1 was never
-published), tested on one machine over loopback, and has never run on a real phone. This page argues against the
+published), tested on one machine over loopback, and has run only in part on one real phone (an Android phone on home Wi-Fi, 2026-11-01; see [DEMO-RESULTS.md](DEMO-RESULTS.md)). This page argues against the
 delivery and ledger design; the case against what v0.3 adds (one identity origin as a new central trust point, chat,
 calls and private media) is made in [the v0.3 design review](review/V03-DESIGN-REVIEW.md) and
 [THREAT-MODEL.md](THREAT-MODEL.md).

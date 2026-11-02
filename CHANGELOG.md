@@ -17,8 +17,16 @@ F36) is a finding of code review round 1, in the table of section 7 of
 
 ## [Unreleased]
 
+### Changed
+
+- The first real-device rows in [docs/DEMO-RESULTS.md](docs/DEMO-RESULTS.md): on 2026-11-01 one Android phone in Brave on home Wi-Fi ran parts of G11, G17 and G-PS-11 against the demo's `--tls` LAN tier and opened the guest-door view from a light link; each row says what ran and what is still not run, and the door issue and the documented door limit seen on that run are listed after the Doors table; the status lines of docs/README.md, docs/CRITIQUE.md, docs/COMPATIBILITY.md and the Doors section of docs/DEPLOY.md say so. No iPhone, Safari, Edge, real host or mobile data has run.
+- Three doc corrections: docs/DEMO-RESULTS.md and docs/PUBLISH-CHECKLIST.md no longer promise a LAN peer that logs when each wire closes (no shipped seeder does yet); docs/DEPLOY.md says the tools stay on this computer, on the computer's own network addresses for the demo's LAN tier and the `--host` and `--bind` options, not on 127.0.0.1 only; docs/COMPATIBILITY.md lists `adb reverse tcp:8081 tcp:8081` for the identity page, as docs/DEPLOY.md and docs/QUICKSTART.md do.
+
+- First real-host run, 2026-11-01, recorded in [docs/DEMO-RESULTS.md](docs/DEMO-RESULTS.md) (row G-ZS4 and the Doors note) and the Doors host table of [docs/DEPLOY.md](docs/DEPLOY.md): the example site on a GitHub Pages user site passed `check-site`, and two headless browsers signed in through an identity page served from a Cloudflare Pages project, posted and synced the site ledger over a public tracker; a door kit on Cloudflare Pages did not work (Pages sends the kit's `Access-Control-Allow-Origin` twice on `/_mw/door.json`, and its 308 from `/_mw/open.html` to `/_mw/open` leaves the loader outside door mode), so that host table row now says so until 0.3.x fixes both.
+
 ### Fixed
 
+- The dev server (`tools/dev-server.mjs`) sends `Access-Control-Allow-Origin: *` on `/_mw/door.json`, the header a door must send ([docs/DEPLOY.md](docs/DEPLOY.md), "What a door must serve"), so another door's probe can read it and report a dev-server door as answering instead of "answering, not checked". Found while reviewing the first phone run; it is not what made the phone show "not answering".
 - The release workflow (`.github/workflows/release.yml`) installs ffmpeg before its end-to-end step, as CI already did. The v0.3.0 release run failed at that step without it (16 media and files rows), so the 0.3.0 release files were built by hand from the tagged commit, with per-file hash lists byte-identical to the three-OS rebuild run's; the release notes say so, and that release carries no build provenance attestation.
 
 ## [0.3.0] - 2026-10-26

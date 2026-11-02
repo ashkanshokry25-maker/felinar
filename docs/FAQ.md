@@ -275,7 +275,7 @@ legal advice, and no lawyer has reviewed them.
 
 > **Status: v0.3 C2, built and reviewed.** Built and integrated on 2026-10-20, in 0.3.0; these answers come from
 > [SEEDING-AND-ZERO-SETUP-DESIGN](research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md), section 3.4, and its research
-> ([S1](research/v03/S1-smart-phone-seeding.md), [S2](research/v03/S2-zero-setup-hosting.md)). No phone or rented server has been used yet
+> ([S1](research/v03/S1-smart-phone-seeding.md), [S2](research/v03/S2-zero-setup-hosting.md)). No rented server has been used yet, and one Android phone has run only part of G-PS-11
 > (rows G-PS, G-ZS and G-CL of [DEMO-RESULTS.md](DEMO-RESULTS.md)).
 
 ### Can I start without a domain?

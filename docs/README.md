@@ -18,7 +18,7 @@ before 0.3.0 is published. The source of truth for that build is [the v0.3 desig
 A section that opens with the line "Status: v0.3 C2, built and reviewed." describes phase C2 (smart seeding on phones, the pin node's
 receipts and heartbeat, the zero-setup ladder, peer-to-peer calls and doors), built from [the C2 design](research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md)
 and [S4](research/v03/S4-doors.md) and integrated on 2026-10-20 (until then it read "Status: v0.3 C2 (proposed), not yet built.", and until the review round
-"Status: v0.3 C2, built, not yet reviewed."); 0.3.0 carries it. The review round read the C2 code too. It ran on loopback only; no C2 row of [DEMO-RESULTS](DEMO-RESULTS.md) has run on a real device or network.
+"Status: v0.3 C2, built, not yet reviewed."); 0.3.0 carries it. The review round read the C2 code too. It ran on loopback only; of the C2 rows of [DEMO-RESULTS](DEMO-RESULTS.md) only G-PS-11 has run, in part, on one Android phone on home Wi-Fi (2026-11-01).
 
 ## Start here
 

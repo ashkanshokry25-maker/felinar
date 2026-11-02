@@ -1,7 +1,9 @@
 # Release gate results
 
 > [!WARNING]
-> **Mostly not yet run.** No row below has been tested on a phone, in Safari or Edge, or on a real host. The desktop parts
+> **Mostly not yet run.** One Android phone ran parts of G11, G17 and G-PS-11 and opened the guest-door view on 2026-11-01, on
+> home Wi-Fi in Brave, and G-ZS4 ran in part on a GitHub Pages user site the same day; no row below has run in Safari or Edge, on an
+> iPhone, or on mobile data. The desktop parts
 > of G11, G12, G13, G14, G19 and G-CH-8 ran on 2026-10-22 and 2026-10-23 in a Brave browser on a Mac, over loopback
 > only, and each row records what that run covered and what is still not run. Until every row passes,
 > felinar is not called production-ready ([ARCHITECTURE.md](ARCHITECTURE.md), section 12; design review item 25
@@ -27,13 +29,13 @@ that fills in a row, or an issue labelled `release-gate` ([CONTRIBUTING.md](../C
 | G8 | Blocking extensions | desktop Brave, Shields aggressive | not yet run | | | | |
 | G9 | Sleeping tabs | desktop Edge | not yet run | | | | |
 | G10 | Connect rate, both directions | phone on LTE and laptop on home Wi-Fi | not yet run | | | | |
-| G11 | Cold start from the web seed, nobody online | desktop and phone | partial | 2026-10-22 | Brave (Chromium), macOS, loopback, loader 0.3.0 build bf9857a88b6f | Desktop part, loopback, not broadband: the demo with `--seeder none`, no pin node and no other visitor; Brave's first visit rendered from the web seed (`source: "webseed"`, 0 peers, "0 B from peers, 103.5 KB from the web seed"); loader start to seeding 0.15 s, first contentful paint 0.12 s after navigation start (performance API). Broadband and phone: not yet run | |
+| G11 | Cold start from the web seed, nobody online | desktop and phone | partial | 2026-10-22 (desktop); 2026-11-01 (phone) | Brave (Chromium), macOS, loopback, loader 0.3.0 build bf9857a88b6f (desktop); Brave (Chromium), Android 16, Samsung Galaxy Z Flip, home Wi-Fi, loader 0.3.0 build 976caba51866, demo `--tls` LAN tier with a headless Chromium seeder on a Mac on the same network (phone) | Desktop part, loopback, not broadband: the demo with `--seeder none`, no pin node and no other visitor; Brave's first visit rendered from the web seed (`source: "webseed"`, 0 peers, "0 B from peers, 103.5 KB from the web seed"); loader start to seeding 0.15 s, first contentful paint 0.12 s after navigation start (performance API). Phone part, home Wi-Fi, with the Mac seeder online (so not "nobody online"): the phone's first visit rendered from the web seed in shell mode, with 0 B from peers and 108.9 KB from the web seed in the run notes (where on the phone that split was read is not recorded; the phone showed "Site loaded 109 KB"), and the build id and the file count (16 files) were read on the Mac; the test video played through the Service Worker and the site ledger's one entry was read; after "Share and load" one peer, the Mac seeder, connected over WebRTC on the same Wi-Fi. Time to the guestbook heading: not measured. Still not run: broadband (nobody online) and iOS | |
 | G12 | Update flow | any | pass | 2026-10-22 | Brave (Chromium), macOS, loopback, loader 0.3.0 build bf9857a88b6f | Desktop, loopback: deploy started 16:36:37 ET (new heading, higher seq, same key and ledger); "Update available: reload" by 16:36:52, within 4 s of the focus (a dispatched focus and visibilitychange event, not a window switch) and about 15 s after the deploy started, bounded by when focus was given; after the reload the new version rendered and `mw-sites` held one version (sites 1, files 16, pointers 1) | |
 | G13 | Key-change prompt and silent rotation | any | pass | 2026-10-23 | Brave (Chromium), macOS, loopback, loader 0.3.0 build bf9857a88b6f | Scope 127.0.0.1, a fresh scope: the prompt showed both fingerprints (remembered 51f6b736, new 778ea4db); "Keep the remembered key" kept version 1 with "You kept the remembered publisher key, so the new pointer was not used."; with a third key (3f338331, `rot=` signed by K2) the prompt came again and "Confirm new key" mounted that version within 6 s, with the banner "pointer and ledger owner differ"; a version signed with `--prev-key` (the remembered key) showed no prompt, only "Update available: reload", and mounted on reload. Observations: (a) a returning visitor sees the prompt only on the reload after a focus-time shell check, never on the first reload after the change, because the worker serves the precached shell; (b) a refusal is kept per key with no expiry (`keyRefused` preference), so step 4 as written (reload and confirm the same key) cannot be run, and a visitor who kept the old key needs "Forget this site" to accept that key later | |
 | G14 | Kill switch drill (time to recovery) | Chromium, Firefox, Safari, iOS Safari, Android Chrome | partial | 2026-10-22 | Brave (Chromium), macOS, loopback, loader 0.3.0 build bf9857a88b6f | Chromium (Brave), loopback, no CDN to purge: kill deployed 16:37:45.3 ET; after 1 navigation, about 5 s, 0 Service Worker registrations, no controller, the plain page rendered; restore deployed 16:38:15.0 ET; after 1 navigation, about 5 s, 1 registration, controlled, the loader mounted from its saved copy (`source: "cache"`: the kill switch left IndexedDB alone). Chromium part: pass. Firefox, Safari, iOS Safari and Android Chrome: not yet run | |
 | G15 | The drop-in fixture on a real host | desktop Chromium, Firefox, Safari, one phone | not yet run | | | | |
 | G16 | 7-day persistence | iOS Safari, and a Home Screen app | not yet run | | | | |
-| G17 | Phone viewport (no viewport meta, a fixed width, `device-width`) | iOS Safari, Android Chrome | not yet run | | | | checked in Chromium phone emulation only (E2E `VIEWPORT`) |
+| G17 | Phone viewport (no viewport meta, a fixed width, `device-width`) | iOS Safari, Android Chrome | partial | 2026-11-01 | Brave (Chromium), Android 16, Samsung Galaxy Z Flip, home Wi-Fi, loader 0.3.0 build 976caba51866, demo `--tls` LAN tier with a headless Chromium seeder on a Mac on the same network | Android, Brave, by eye: the example site's pages (the demo's peer guestbook) rendered correctly on the phone; not checked over remote debugging. The three-page viewport test site was not used (no page without a viewport meta tag, none with width=1024), no widths were read and there was no comparison with a plain host. iOS Safari and Android Chrome: not run | before 2026-11-01, checked in Chromium phone emulation only (E2E `VIEWPORT`) |
 | G18 | Input focus does not zoom the page | iOS Safari | not yet run | | | | |
 | G19 | Takedown drill (time from notice to effect) | any desktop browser, the drop-in fixture | partial | 2026-10-22 | Brave (Chromium), macOS, loopback, loader 0.3.0 build bf9857a88b6f | Shell part, pass: T0 none (a drill, no notice sent); T1 16:39:28.9 ET (withdrawal live, `--scope localhost`); T2 16:39:51 ET: the card "This content is no longer available here." with the reason and the contact, `withdrawn` set, `mw-sites` sites 0 and files 0 (pointers 1, the withdrawal record); T2 minus T1 about 22 s, 17 s of it waiting for focus. Restore (higher seq): the first navigation still showed the card while the restarted dev server was not answering; the next loaded the republished version. T3 (drop-in): not yet run, no drop-in fixture in this stack | |
 | G20 | Posting fee at 16 bits on phones | a mid-range Android phone, an iPhone | not yet run | | | | |
@@ -465,18 +467,20 @@ section 4; the review renames G-SC-1 to the cap of 250 follows. Row G-SC-9 and G
 
 ## v0.3 C2: rows to add
 
-> **Status: v0.3 C2, built and reviewed; none of these rows has run.** The C2 code was integrated on 2026-10-20 and passed its loopback
-> tests only. These are the real-device rows that phase C2 adds for smart phone seeding (S1 D8), the
-> zero-setup ladder (S2 Rc6) and peer-to-peer calls (SZ 3.5), from
-> [research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md](research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md) ("SZ"). Every one is **not yet run**. No agent
+> **Status: v0.3 C2, built and reviewed; of these rows only G-PS-11 has run, in part (one Android phone, 2026-11-01).** The C2 code was
+> integrated on 2026-10-20 and passed its loopback tests only. These are the real-device rows that phase C2 adds for smart phone seeding
+> (S1 D8), the zero-setup ladder (S2 Rc6) and peer-to-peer calls (SZ 3.5), from
+> [research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md](research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md) ("SZ"). Every other one is **not yet run**. No agent
 > runs a row, and an agent may not reach a public network ([DEV-NETWORK.md](DEV-NETWORK.md)). For a release that includes C2 these rows belong to
 > the gate above. **Rows G-PS-1 to G-PS-4 and G-CL-2 run on one iPhone and one Android phone before any card or document says what phones do in
 > the background**, and nothing is quoted before its row has run; failures are published too.
 
-Phone rows need HTTPS: the demo's `--tls` tier with the mkcert root on the phone ([DEPLOY.md](DEPLOY.md), "HTTPS and phone demos"), and a peer on
-the LAN that logs when each wire closes (S1 D8 calls it a Node pin-light; `tools/seed.mjs` seeds a published site from Node when the optional
-`node-datachannel` is installed). Rows G-ZS1 to G-ZS4 need a rented server or a free host account that the owner provides. How to record a
-result is the same as above. The design gives no pass thresholds for these rows and none is invented here: record the numbers listed in the
+Phone rows need HTTPS: the demo's `--tls` tier with the mkcert root on the phone ([DEPLOY.md](DEPLOY.md), "HTTPS and phone demos"), and a
+peer on the LAN: the demo's headless seeder, or `tools/seed.mjs`, which seeds a published site from Node when the optional
+`node-datachannel` is installed (S1 D8 asks for a Node pin-light on the LAN that logs when each wire closes). No shipped seeder or pin node
+logs when a wire closes yet, so the G-PS wire-close timings need a packet capture until one does. Rows G-ZS1 to G-ZS4 need a rented server
+or a free host account that the owner provides.
+How to record a result is the same as above. The design gives no pass thresholds for these rows and none is invented here: record the numbers listed in the
 second table, and a row passes when the claim it tests is confirmed or the document that states the claim is corrected. Where the design chose a
 target (5 MiB reaches "Kept by the site" in under 60 s median on Wi-Fi, chosen, for G-PS-8), record against it.
 
@@ -492,14 +496,14 @@ target (5 MiB reaches "Kept by the site" in under 60 s median on Wi-Fi, chosen, 
 | G-PS-8 | Hand-off of 5 and 25 MiB, Wi-Fi and LTE, 50 attempts, with and without super-seeding, the page hidden at +10 s | iPhone, Android | not yet run | | | | |
 | G-PS-9 | Label accuracy against synthetic swarms with known holders and liars, 8 wires | a phone, Node peers | not yet run | | | | |
 | G-PS-10 | Echo lane for 14 days on a staging site: copies over time, bytes per added copy | a staging site | not yet run | | | | |
-| G-PS-11 | Candidate pair types on a LAN, a hotspot, a VPN and an IPv6-only network | Safari, Chrome, Firefox | not yet run | | | | |
+| G-PS-11 | Candidate pair types on a LAN, a hotspot, a VPN and an IPv6-only network | Safari, Chrome, Firefox | partial | 2026-11-01 | Brave (Chromium), Android 16, Samsung Galaxy Z Flip, home Wi-Fi, loader 0.3.0 build 976caba51866, demo `--tls` LAN tier with a headless Chromium seeder on a Mac on the same network | LAN part, Brave on Wi-Fi: after "Share and load" the page reached one peer (the Mac seeder); the loader's Diagnostics said "direct connections probably work (easy-probable, first answer 1520 ms, 1 STUN answered)", and of the two default STUN servers (stun.cloudflare.com and global.stun.twilio.com) only stun:stun.cloudflare.com:3478 answered; the candidate pair type was not captured. Hotspot, VPN, IPv6-only, Safari, Chrome and Firefox: not run | to file (release-gate): record the pair type; Brave for Android has no chrome://webrtc-internals |
 | G-PS-12 | Pin node (`tools/pin.mjs`) for 14 days: uptime, recovery after sleep and wake, CPU, RAM | a Mac or a Windows laptop | not yet run | | | | |
 | G-PS-13 | Pieces still kept after 8 days, Safari tab against Home Screen app (extends G16) | iPhone | not yet run | | | | |
 | G-PS-14 | Comprehension of each availability label by 5 to 8 people (as G-ID-9) | any | not yet run | | | | |
 | G-ZS1 | A real server with a nip.io name: `ship` on the Caddy staging authority, then production, and one renewal | a rented server | not yet run | | | | |
 | G-ZS2 | iOS Safari and Android Chrome load the site of G-ZS1 | iPhone, Android phone | not yet run | | | | |
 | G-ZS3 | A returning visitor opens the site with DNS failing | any desktop browser, one phone | not yet run | | | | |
-| G-ZS4 | GitHub Pages end to end with `check-site` | any desktop browser | not yet run | | | | |
+| G-ZS4 | GitHub Pages end to end with `check-site` | any desktop browser | partial | 2026-11-01 | loader 0.3.0 build 976caba51866, the 0.3.0 tools, headless Chromium (Playwright) on macOS, a GitHub Pages user site, an identity page from `felinar-0.3.0-idp.zip` on a Cloudflare Pages project | QUICKSTART A3 and A4 followed (shell at the root, web seed under `/ws/`, `.nojekyll`); `check-site`: loader and integrity attributes ok, page tag signed with 398 days left, web seed PASS (every file answers Range with 206, first and last piece hash), snapshot ok, 1 warning (`/mw-sw.js` cached 600 s, GitHub's limit); 3 of 4 public trackers failed only because the checking machine's DNS filter answers 0.0.0.0 for their names. Then, headless: a first visitor loaded the site from the web seed, signed in through the identity page with a passphrase (Argon2id, the window closed on success), and posted; the post showed within 5 s, the site ledger grew to 3 entries; a second browser with a fresh profile loaded the site, met 1 peer through the one reachable tracker, and showed the post within 5 s with the ledger in sync. Not run: a desktop browser by hand, a phone on this host, passkeys | to file (release-gate): none for the site; see the Doors note below for the door kit on Cloudflare Pages |
 | G-CL-1 | 1:1 audio, a phone on LTE to a laptop on Wi-Fi, 50 attempts: connect rate without a relay, time to connect | phone on LTE and laptop on home Wi-Fi | not yet run | | | | |
 | G-CL-2 | iPhone Safari tab and Home Screen app: audio and video after 5 s, 30 s and 2 minutes hidden, on lock, during a phone call, and recovery | iPhone, iOS 26 and 27 | not yet run | | | | |
 | G-CL-3 | Android tab and installed app, screen off, plugged and unplugged | Android phones | not yet run | | | | |
@@ -518,6 +522,28 @@ Doors ([research/v03/S4-doors.md](research/v03/S4-doors.md), ARCHITECTURE 15.15;
 | G-DR-2 | Android Chrome: install the door app (WebAPK), open it offline; tap an https light link to the door | whether it opens in the app; whether the SVG icon minted a WebAPK |
 | G-DR-3 | Desktop Chrome or Edge: install the door app, click a `web+felinar:` link | the permission dialog's text; that the gate shows before anything loads |
 | G-DR-4 | A phone: open a door page from `file:` and as a `data:` URL | whether anything runs (S4 F9 measured desktop engines only) |
+
+On 2026-11-01 a light link signed for two dev-server doors on one Mac (the demo's server and a second dev server) opened the guest-door view
+in Brave on an Android phone on home Wi-Fi (the versions of G11). The gate showed first. Diagnostics said mode door, engine tab, the site
+ledger open at height 0, the door frame and SDK from the second dev server and the files from the demo server's web seed; the limits text
+said this address "cannot store anything for it" and that your "identity here lasts for this visit only"; there was no Service Worker, by
+design. This is not G-DR-2: no door app was installed, nothing was opened offline and no link was tapped from outside the browser. One thing
+to file as an issue: the Doors list in Settings showed both doors as "not answering", while the loader's `probeDoor`, run from Node (which
+applies no CORS check), reported both up with build 976caba51866 (the phone's log for the page's own address says "signal is aborted without
+reason", which in the loader is the 4 s first-byte timeout; no reason was recorded for the other door). The door view's "Loader 0.3.0,
+build -" line, a blank build id, follows from this, because the build id is only set by a successful probe of the page's own address. Not an
+issue: the example's relative fetch of /data/about.json was blocked in the door frame (sandbox), which is the documented "no relative
+`fetch`" limit of the door view ([DEPLOY.md](DEPLOY.md)), now seen on a device. One observation: after "Share and load" the phone's
+connectivity probe asked both default STUN servers (stun.cloudflare.com and global.stun.twilio.com; one answered), so the LAN tier is not
+strictly local ([PRIVACY.md](PRIVACY.md) lists both).
+
+Later on 2026-11-01, the first door kit on a real host: `publish --door-kit`, verified against the signed 0.3.0 list, uploaded to a
+Cloudflare Pages project. It did not work. `check-site --door` reported `Access-Control-Allow-Origin: *, *` on `/_mw/door.json` (Pages
+applies both matching `_headers` rules of the kit) and a 308 from `/_mw/open.html` to `/_mw/open`; a headless Chromium at the redirected
+address booted as a site page and said "Could not find this site's address", because the loader enters door mode only at the exact
+door page path. Two things to file (release-gate): the kit's duplicate header, and door mode at the clean URL. The identity page bundle
+on a second Cloudflare Pages project served every header of its `_headers` file. The host table of [DEPLOY.md](DEPLOY.md#doors) now
+says so.
 
 ### What to record in each C2 row
 

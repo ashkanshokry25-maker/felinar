@@ -315,7 +315,7 @@ to G-MD-7).
 > **Status: v0.3 C2, built and reviewed.** Built and integrated on 2026-10-20 (loopback tests only: Chromium 156 and WebKit 27.2, e2e E-PS-*,
 > E-CL-*, E-ZS-1, DOOR-*; [deviations/integration-c2.md](deviations/integration-c2.md)). What each platform allows or forbids for the features of phase C2: smart seeding on phones, dock
 > mode, peer-to-peer calls and the rungs without a domain ([research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md](research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md), "SZ",
-> section 1.1; [S1](research/v03/S1-smart-phone-seeding.md) F1 to F4; [S2](research/v03/S2-zero-setup-hosting.md)). Nothing here is a field result: no phone has been
+> section 1.1; [S1](research/v03/S1-smart-phone-seeding.md) F1 to F4; [S2](research/v03/S2-zero-setup-hosting.md)). Nothing here is a field result except one partial row: one Android phone ran the LAN part of G-PS-11 on 2026-11-01, and no iPhone has been
 > tested ([DEMO-RESULTS.md](DEMO-RESULTS.md), rows G-PS, G-ZS and G-CL). Browser only: nothing asks a member to install anything.
 
 Labels used in this part: **documented** (a vendor, standards or bug-tracker page that the research opened; the id resolves in "Sources, C2" below),
@@ -374,7 +374,7 @@ SZ 3.2 and S2 give the ladder; this table says where each rung works. The F-numb
 |---|---|---|
 | 0 try (`npm run demo`) | any browser on the same computer, at `localhost` | this computer only; open `localhost`, not `127.0.0.1` |
 | 1 share on my LAN (mkcert) | phones that trust the local authority | Service Workers need a secure context (https, `localhost`, `127.0.0.0/8`, `::1` or `*.localhost`), so `http://192.168.x.x` fails (F10); iOS trusts an installed root only after Settings, General, About, Certificate Trust Settings; Android 7.0 and later apps trust only system authorities by default (F10); routers with DNS rebinding protection drop the private answer for `192-168-1-20.nip.io` (F11); Wi-Fi client isolation could block phone to laptop traffic (unmeasured) |
-| 1 share on my LAN (Android over USB) | one Android phone | `adb reverse tcp:8080 tcp:8080` and `adb reverse tcp:8000 tcp:8000` |
+| 1 share on my LAN (Android over USB) | one Android phone | `adb reverse tcp:8080 tcp:8080`, `adb reverse tcp:8000 tcp:8000` and `adb reverse tcp:8081 tcp:8081` (the identity page of the desktop demo) |
 | 2a rented server, `nip.io` or `sslip.io` name | any browser | ports 80 and 443 must be reachable (HTTP-01 and TLS-ALPN-01, F7); Let's Encrypt allows 50 certificates per registered domain per 7 days and 5 per exact name set (F5); neither name is on the Public Suffix List, so sibling names are same-site (F4); one DNS filter list names `sslip.io` and not `nip.io` (F6); an identity page on an IP origin gets no passkeys and offers the passphrase card instead (reported, F8; identities still work); a home connection behind carrier-grade NAT cannot be reached (F12: 10% of the ISPs tested, 2017) |
 | 2b GitHub Pages | any browser | shell mode passes with a same-origin web seed (`Range` answers 206); no custom headers; 1 GB, a 100 GB a month soft limit, no commercial sites (F14) |
 | 2b Cloudflare Pages | any browser | cannot be the web seed: it answers `Range` with 200 (F14) |
@@ -408,7 +408,7 @@ Read 2026-10-20; the ids resolve in S1 and SZ section 7.
 Each item says where the work is tracked. Report a failure on a real device as an issue with the `needs-device`
 label ([CONTRIBUTING.md](../CONTRIBUTING.md)).
 
-1. **No real-device results.** iOS, Android, Samsung Internet, Firefox and Safari wait for the release gate
+1. **Almost no real-device results.** One Android phone (Brave, home Wi-Fi, 2026-11-01) ran parts of G11, G17 and G-PS-11; iOS, Samsung Internet, Android Chrome, Firefox and Safari wait for the release gate
    ([DEMO-RESULTS.md](DEMO-RESULTS.md); [ROADMAP.md](ROADMAP.md), 1.0).
 2. **No sub-path deployments.** A site must sit at the root of its origin; `--base` for drop-in is planned with the
    migration tooling ([ROADMAP.md](ROADMAP.md), 1.0).

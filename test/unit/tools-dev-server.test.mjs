@@ -481,3 +481,18 @@ test('F7 (v0.2.1): a root without /_mw/sdk.js gets the static SDK stub there; a 
   const s2 = await start({ root: ownRoot });
   assert.equal(await (await fetch(s2.url + '_mw/sdk.js')).text(), 'export default "real";\n');
 });
+
+test('/_mw/door.json carries Access-Control-Allow-Origin * and no-cache (DEPLOY.md, "What a door must serve"); /_mw/boot.js does not', async () => {
+  const doorRoot = join(work, 'door-' + Date.now());
+  write(doorRoot, { 'index.html': SHELL, '_mw/door.json': '{"v":1}', '_mw/boot.js': '// boot\n' });
+  const s = await start({ root: doorRoot, host: '127.0.0.1' });
+  const door = await get(s, '/_mw/door.json', { headers: { origin: 'https://other.example' } });
+  assert.equal(door.status, 200);
+  assert.equal(door.headers.get('access-control-allow-origin'), '*');
+  assert.equal(door.headers.get('cache-control'), 'no-cache');
+  assert.equal(await door.text(), '{"v":1}');
+  const boot = await get(s, '/_mw/boot.js');
+  assert.equal(boot.status, 200);
+  assert.equal(boot.headers.get('access-control-allow-origin'), null, 'only door.json is readable from another origin');
+  await boot.arrayBuffer();
+});

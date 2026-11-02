@@ -1369,8 +1369,8 @@ DEPLOY, F1 to F6) belong to the documentation and CI waves.
 > of 15.11, and the notes in sections 4 and 10 (the nip.io and sslip.io DNS-over-HTTPS skip, `ship`, the pin flags) are the phase C2
 > specification from [research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md](research/v03/SEEDING-AND-ZERO-SETUP-DESIGN.md) ("SZ") and its inputs S1 to S4 in the
 > same folder. The eight C2 lanes built it and the C2 integration of 2026-10-20 (15.16, [deviations/integration-c2.md](deviations/integration-c2.md))
-> joined it to the v0.3 code; what is still not built keeps the mark **(proposed)** in place. No C2 gate row has run on a real device or
-> network, and the owner decisions are unsigned. Owner decision, 2026-10-20: **browser only**. There is no native app,
+> joined it to the v0.3 code; what is still not built keeps the mark **(proposed)** in place. Of the C2 gate rows only G-PS-11 has run, in part, on a real device and
+> network (one Android phone, 2026-11-01), and the owner decisions are unsigned. Owner decision, 2026-10-20: **browser only**. There is no native app,
 > desktop keeper or extension for members, an installed web app counts as the browser, and the owner's or a hub's pin node is infrastructure
 > beside the static host and the tracker.
 
