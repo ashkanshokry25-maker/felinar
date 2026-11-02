@@ -2314,6 +2314,10 @@ describe('marks, notes, drafts, snippets, unread, blocks', () => {
     await settle(10)
     let calls = 0
     A.apps.onChange(() => { calls++ })
+    // The pairing's last notices (a receipt, a wire notice) can land a few ms later on a loaded machine (seen on a CI runner on
+    // 2026-11-02): let them pass, then count only what the draft and the note raise.
+    await settle(30)
+    calls = 0
     const s = st(A)
     assert.deepEqual(A.apps.setDraft(a, 'half a thought'), { ok: true })
     assert.deepEqual(A.apps.setNote(a, 'ask about the invoice'), { ok: true })
