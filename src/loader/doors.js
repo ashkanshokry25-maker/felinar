@@ -258,6 +258,9 @@ export function doorJsonFor ({ name = 'felinar', version, buildId, files = [] } 
  * checkDoorJson(json, own) → { ok, sameBuild, buildId, version, reason }. ok: the shape of a door.json (v 1, kind, a build id, at least
  * the door page, the loader and the worker, each with a sha256 and an SRI value). sameBuild: own is given and every file of own has
  * the same sha256 here (the door serves this very build). reason names the first problem.
+ * Apps on the door page (ARCHITECTURE 15.21): a door.json may carry an optional `apps` block. It never decides `ok` (a door with a
+ * bad block still serves the loader); only when the block is present the result gains `apps` (appsBlockOf: the checked block, or null)
+ * and, for a null, `appsReason` (appsBlockProblem). Without a block the result has exactly the five fields above.
  */
 export function checkDoorJson (json, ownJson = null) {
   const out = { ok: false, sameBuild: false, buildId: null, version: null, reason: null }
@@ -274,11 +277,78 @@ export function checkDoorJson (json, ownJson = null) {
   out.ok = true
   out.buildId = json.buildId
   out.version = typeof json.version === 'string' ? json.version : null
+  if (own(json, 'apps') && json.apps !== null && json.apps !== undefined) {
+    const a = checkAppsBlock(json.apps)
+    out.apps = a.block
+    if (!a.block) out.appsReason = a.reason
+  }
   if (ownJson && ownJson.files && typeof ownJson.files === 'object') {
     const mine = Object.keys(ownJson.files)
     out.sameBuild = mine.length > 0 && ownJson.buildId === json.buildId && mine.every((p) => own(files, p) && files[p].sha256 === ownJson.files[p].sha256)
   }
   return out
+}
+
+// ---------------------------------------------------------------------------------------------
+// Apps on the door page: the `apps` block of /_mw/door.json (ARCHITECTURE 15.21, docs/DEPLOY.md)
+// ---------------------------------------------------------------------------------------------
+
+/** At most this many rendezvous and STUN entries in an apps block (the page uses the first rendezvous; lanes use at most 4 STUN servers). */
+export const APPS_BLOCK_MAX = 8
+const APPS_URL_MAX = 300
+const STUN_URL_RE = /^stuns?:(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::(\d{1,5}))?$/
+
+function appsUrlOf (text, protocols) {
+  if (typeof text !== 'string') return null
+  const t = text.trim()
+  if (!t || t.length > APPS_URL_MAX || t !== text) return null
+  let u
+  try { u = new URL(t) } catch (_) { return null }
+  if (protocols.indexOf(u.protocol) < 0 || !u.hostname || u.username || u.password || u.hash) return null
+  return u
+}
+
+/**
+ * checkAppsBlock(apps) → { block, reason }: the checks behind appsBlockOf. A block is
+ *   { rendezvous: [wss: URL ...], stun: [stun: URL ...], idp: <origin> }
+ * rendezvous: one to APPS_BLOCK_MAX URLs of the site's own pairing service ('wss:' on any host, 'ws:' only on a loopback host: local
+ * development and the e2e stack); stun: none to APPS_BLOCK_MAX 'stun:' or 'stuns:' URLs (the door's own STUN servers: the lanes of the
+ * apps never fall back to a public default, so none means host candidates only); idp: the identity origin sign-in opens (an https
+ * origin, or http on a loopback host). Each entry must be a string as it is written: no spaces around it, no userinfo, no fragment.
+ * One bad entry makes the block bad (reason names it); unknown keys are ignored. block is a frozen copy, or null.
+ */
+export function checkAppsBlock (apps) {
+  const bad = (reason) => ({ block: null, reason })
+  if (!apps || typeof apps !== 'object' || Array.isArray(apps)) return bad('apps-shape')
+  const rv = apps.rendezvous
+  if (!Array.isArray(rv) || rv.length < 1 || rv.length > APPS_BLOCK_MAX) return bad('apps-rendezvous')
+  for (const x of rv) {
+    const u = appsUrlOf(x, ['wss:', 'ws:'])
+    if (!u) return bad('apps-rendezvous')
+    if (u.protocol === 'ws:' && !isLoopbackDoorHost(u.host)) return bad('apps-rendezvous-insecure')
+  }
+  const st = apps.stun
+  if (!Array.isArray(st) || st.length > APPS_BLOCK_MAX) return bad('apps-stun')
+  for (const x of st) {
+    const m = typeof x === 'string' && x.length <= APPS_URL_MAX ? STUN_URL_RE.exec(x) : null
+    if (!m || (m[1] !== undefined && Number(m[1]) > 65535)) return bad('apps-stun')
+  }
+  const idp = apps.idp
+  const iu = typeof idp === 'string' && idp.length <= APPS_URL_MAX ? appsUrlOf(idp, ['https:', 'http:']) : null
+  if (!iu || iu.origin !== idp || (iu.protocol === 'http:' && !isLoopbackDoorHost(iu.host))) return bad('apps-idp')
+  return { block: Object.freeze({ rendezvous: Object.freeze(rv.slice()), stun: Object.freeze(st.slice()), idp }), reason: null }
+}
+
+/** appsBlockOf(json) → the checked apps block of a parsed door.json, or null (no block, or a bad one: the page keeps its paste box). */
+export function appsBlockOf (json) {
+  if (!json || typeof json !== 'object' || Array.isArray(json) || !own(json, 'apps') || json.apps === null || json.apps === undefined) return null
+  return checkAppsBlock(json.apps).block
+}
+
+/** appsBlockProblem(json) → why the apps block of a door.json is bad ('apps-shape', 'apps-rendezvous', 'apps-rendezvous-insecure', 'apps-stun', 'apps-idp'), or null (no block, or a good one). */
+export function appsBlockProblem (json) {
+  if (!json || typeof json !== 'object' || Array.isArray(json) || !own(json, 'apps') || json.apps === null || json.apps === undefined) return null
+  return checkAppsBlock(json.apps).reason
 }
 
 function timeoutSignal (ms, outer, setT, clearT) {

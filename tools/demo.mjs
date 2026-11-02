@@ -5,7 +5,12 @@
 //
 //   node tools/demo.mjs [--tls [--cert <file> --key <file>]] [--bind <address>] [--port 8080] [--tracker-port 8000] [--idp-port 8081]
 //                       [--site examples/peer-guestbook] [--name peer-guestbook] [--lan-host <ip|name>] [--seeder browser|node|none] [--no-build]
-//                       [--dir .tools/demo] [--headed] [--quiet]
+//                       [--stun <stun: URL>]... [--dir .tools/demo] [--headed] [--quiet]
+//
+// Apps at a door (docs/DEPLOY.md "Apps at a door"): where the demo serves an identity page (the desktop tier),
+// its door page (<origin>/_mw/open.html) offers the apps: the demo's own tracker is the rendezvous, the identity page is where a visitor signs in,
+// and --stun names a STUN server for the block (the demo runs none, so without it browsers connect with host candidates). The dev server
+// sends the block in /_mw/door.json (--apps-rendezvous, --apps-stun, --apps-idp). The LAN tier has no identity page, so it offers no apps.
 //
 // v0.3 verify fix round 2: writing needs a sign-in (R 2.4.1), and a site with no identity page answers every post with
 // E_IDP_UNREACHABLE. The desktop tier therefore also builds the identity page (dist-idp, as npm run build:idp does) and
@@ -43,7 +48,8 @@ import net from 'node:net';
 
 import { build } from '../build.mjs';
 import { keygen } from './keygen.mjs';
-import { publish } from './publish.mjs';
+import { publish, stunList } from './publish.mjs';
+import { makeAppsBlock, appsBlockLine } from './apps-block.mjs';
 import { createTracker } from './tracker.mjs';
 import { createDevServer, createIdpServer } from './dev-server.mjs';
 import { buildIdp } from './build-idp.mjs';
@@ -54,9 +60,11 @@ import {
 const USAGE = `
 Usage: node tools/demo.mjs [--tls [--cert <file> --key <file>]] [--bind <address>] [--port 8080] [--tracker-port 8000] [--idp-port 8081]
                            [--site examples/peer-guestbook] [--name peer-guestbook] [--lan-host <ip|name>] [--seeder browser|node|none] [--no-build]
-                           [--dir .tools/demo] [--headed] [--quiet]
+                           [--stun <stun: URL>]... [--dir .tools/demo] [--headed] [--quiet]
 
 --idp-port  the loopback port of the identity page that the desktop tier serves (posting signs in there; dist-idp is built with the loader)
+--stun      a STUN server for the apps block of the door page (repeat; at most 4). The demo runs none: without it browsers connect with host
+            candidates, which is enough on one machine or one network. The desktop tier offers the apps at /_mw/open.html; the LAN tier has no identity page
 `;
 
 /** String Z8 of S2 (rung 1, share on my LAN), as written there. */
@@ -168,6 +176,18 @@ export function demoSiteLabel(siteDir, demoDir) {
   return label;
 }
 
+/**
+ * demoAppsOptions({ plan, stun, idp }) → { appsRendezvous, appsStun, appsIdp } | null: the apps flags of the demo's dev server (createDevServer).
+ * The demo's own tracker is the rendezvous (plan.trackerUrl: its own port on the desktop tier, /tracker on the page's origin on the LAN
+ * tier), stun is the list given with --stun (the demo runs no STUN server), idp is the identity page the desktop tier serves
+ * ({ origin }). Without an identity page there is no block: a visitor could not sign in, and the door page keeps its paste box.
+ */
+export function demoAppsOptions({ plan, stun = [], idp = null } = {}) {
+  if (!plan || !idp || !idp.origin) return null;
+  const block = makeAppsBlock({ rendezvous: [plan.trackerUrl], stun, idp: idp.origin });
+  return { appsRendezvous: block.rendezvous, appsStun: block.stun, appsIdp: block.idp };
+}
+
 /** A currently free TCP port on 127.0.0.1 (the pointer must name the ports before the servers start). */
 export function freePort() {
   return new Promise((resolve, reject) => {
@@ -191,16 +211,18 @@ async function waitFor(fn, timeoutMs, stepMs = 400) {
 }
 
 /**
- * runDemo(options) → { plan, url, publishResult, chain, tracker, dev, idp: { origin, port, root } | null, seeder: 'browser'|'node'|'none', stop() }
+ * runDemo(options) → { plan, url, publishResult, chain, tracker, dev, idp: { origin, port, root } | null, apps, seeder: 'browser'|'node'|'none', stop() }
  * options: see the command line; `log(line)` receives the output. idpPort 0 (the default) takes a free port; idpDist defaults to
- * dist-idp next to dist; idp: false serves no identity page.
+ * dist-idp next to dist; idp: false serves no identity page. stun: [] are the STUN URLs of the apps block; apps is the block the door page
+ * offers (see demoAppsOptions), or null.
  */
 export async function runDemo(options = {}) {
   const o = Object.assign({
     tls: false, cert: null, key: null, bindHost: null, port: 8080, trackerPort: 8000, site: join(ROOT, 'examples', 'peer-guestbook'), name: 'peer-guestbook', lanHost: null, seeder: 'browser',
-    build: true, dir: join(ROOT, '.tools', 'demo'), dist: join(ROOT, 'dist'), log: out, headless: true, idp: true, idpPort: 0, idpDist: null,
+    build: true, dir: join(ROOT, '.tools', 'demo'), dist: join(ROOT, 'dist'), log: out, headless: true, idp: true, idpPort: 0, idpDist: null, stun: [],
   }, options);
   const log = o.log;
+  const appsStun = stunList(o.stun);
   const closers = [];
   const stop = async () => {
     for (const close of closers.reverse()) {
@@ -261,11 +283,17 @@ export async function runDemo(options = {}) {
     });
     closers.push(() => tracker.close());
     log('tracker: ' + tracker.urls.join(', ') + ' (serves only this site and its ledger rendezvous swarm)' + (plan.trackerProxy ? '; on this computer only, phones reach it at ' + plan.trackerUrl + ' through the dev server' : ''));
-    const dev = await createDevServer({
+    const appsOptions = demoAppsOptions({ plan, stun: appsStun, idp });
+    const dev = await createDevServer(Object.assign({
       root: o.dist, webseed: outDir, pointer: pub.pointer, dev: true, port, host: bindHost, tls, tlsHosts: [plan.scope], trackerProxy: plan.trackerProxy ? tracker.port : null, quiet: true,
-    });
+    }, appsOptions || {}));
     closers.push(() => dev.close());
     log('dev server: ' + dev.urls.join(', '));
+    if (dev.apps) {
+      log('apps: the door page ' + plan.origin + '/_mw/open.html offers the apps (' + appsBlockLine(dev.apps) + (dev.apps.stun.length ? '' : '; no STUN server, so browsers connect with host candidates; --stun names one') + ')');
+    } else {
+      log('apps: not offered' + (plan.tls ? ' (the LAN tier has no identity page, so a visitor could not sign in; the desktop tier offers them)' : ' (there is no identity page to sign in at)'));
+    }
 
     let seeder = 'none';
     if (o.seeder === 'browser') {
@@ -303,7 +331,7 @@ export async function runDemo(options = {}) {
     log('');
     log('Pointer (signed for ' + plan.scope + ', valid 30 days): ' + pub.pointer);
     log('Ctrl-C stops the tracker, the dev server' + (idp ? ', the identity page' : '') + ' and the seeder.');
-    return { plan, url: plan.origin + '/', publishResult: pub, chain, tracker, dev, idp, seeder, stop };
+    return { plan, url: plan.origin + '/', publishResult: pub, chain, tracker, dev, idp, apps: dev.apps, seeder, stop };
   } catch (err) {
     await stop();
     throw err;
@@ -322,6 +350,7 @@ async function main(argv) {
     site: { type: 'string', default: join(ROOT, 'examples', 'peer-guestbook') },
     name: { type: 'string', default: 'peer-guestbook' },
     'lan-host': { type: 'string' },
+    stun: { type: 'list' },
     seeder: { type: 'string', default: 'browser' },
     'no-build': { type: 'boolean' },
     dir: { type: 'string', default: join(ROOT, '.tools', 'demo') },
@@ -340,7 +369,7 @@ async function main(argv) {
   try {
     demo = await runDemo({
       tls: flags.tls, cert: flags.cert, key: flags.key, bindHost: flags.bind, port: flags.port, trackerPort: flags.trackerPort, idpPort: flags.idpPort, site: flags.site, name: flags.name, lanHost: flags.lanHost,
-      seeder: flags.seeder, build: !flags.noBuild, dir: flags.dir, headless: !flags.headed, log: flags.quiet ? () => {} : out,
+      stun: flags.stun, seeder: flags.seeder, build: !flags.noBuild, dir: flags.dir, headless: !flags.headed, log: flags.quiet ? () => {} : out,
     });
   } catch (err) {
     if (err && err.code === 'EADDRINUSE') throw new ToolError('port ' + err.port + ' is already in use: pass --port <n>, --tracker-port <n> and/or --idp-port <n>');

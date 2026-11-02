@@ -386,6 +386,14 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
   bar.className = 'mw-bar'
   bar.setAttribute('role', 'region')
   bar.setAttribute('aria-label', 'Site loader')
+  // Apps on the door page (src/loader/apps-ui.js; ARCHITECTURE 15.21): the full view of the apps is a landmark of its own, after the bar and
+  // before the site frame in the document, fixed over the whole page and padded for the bar by ui.css. Empty and hidden until showApps(node).
+  let appsSlot = root.querySelector('#mw-apps')
+  if (!appsSlot) {
+    appsSlot = el('div', { id: 'mw-apps', class: 'mw-apps', role: 'main', hidden: true })
+    if (site.parentNode === root && typeof root.insertBefore === 'function') root.insertBefore(appsSlot, site)
+    else root.appendChild(appsSlot)
+  }
 
   const pillCount = el('span', { class: 'mw-pill-count', text: '0' })
   const pill = el('button', { type: 'button', class: 'mw-pill', 'aria-expanded': 'true', 'aria-label': 'Hide loader status' }, [el('span', { class: 'mw-dot', 'aria-hidden': 'true' }), pillCount])
@@ -533,6 +541,40 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     openOverlay(pasteO, input)
     return hide
   }
+
+  // Apps on the door page: the node is the apps view (apps-ui.js builds it, textContent only); hideApps() empties the slot again.
+  // The bar is fixed over the view (at the top on computers, at the bottom on phones), so while the view is up the bar's height is
+  // measured and handed to ui.css as --mw-apps-bar: the bar takes a second row on a narrow phone, and grows with every banner or notice.
+  let barWatch = null
+  const measureBar = () => {
+    try {
+      const h = Math.ceil(bar.getBoundingClientRect().height)
+      if (h > 0) appsSlot.style.setProperty('--mw-apps-bar', h + 'px')
+    } catch (_) { /* no layout here: ui.css keeps its first guess */ }
+  }
+  const watchBar = (on) => {
+    if (barWatch) { try { barWatch() } catch (_) { /* gone */ } barWatch = null }
+    if (!on) return
+    measureBar()
+    try {
+      if (win && typeof win.ResizeObserver === 'function') {
+        const ro = new win.ResizeObserver(measureBar)
+        ro.observe(bar)
+        barWatch = () => ro.disconnect()
+      } else if (win && typeof win.addEventListener === 'function') {
+        win.addEventListener('resize', measureBar)
+        barWatch = () => win.removeEventListener('resize', measureBar)
+      }
+    } catch (_) { /* the first measure stands */ }
+  }
+  const showApps = (node) => {
+    clear(appsSlot)
+    if (node) appsSlot.appendChild(node)
+    appsSlot.hidden = !node
+    root.classList.toggle('mw-has-apps', !!node)
+    watchBar(!!node)
+  }
+  const hideApps = () => showApps(null)
 
   // notice (non-blocking)
   const showNotice = ({ onOk, onSettings } = {}) => {
@@ -988,6 +1030,10 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     // C2 doors: the Doors section of Settings and the "Open a link" box of a door's page.
     setDoors: (model) => doorsUi.setModel(model),
     showLinkPaste,
+    // Apps on the door page: the full view slot (#mw-apps, role main) and its two calls.
+    showApps,
+    hideApps,
+    appsSlot,
     setCollapsed,
     siteReady,
     download,

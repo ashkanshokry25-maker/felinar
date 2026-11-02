@@ -16,7 +16,7 @@ name: felinar-tracker
 services:
   tracker:
     build:
-      # The repository root: the image needs package.json, the lockfile, src/ and tools/.
+      # The repository root: the image needs package.json, the lockfile, src/, tools/ and deploy/rtc-worker/pair.js.
       context: ../..
       # LW_NODE_IMAGE in .env pins the base image by digest (node:24-bookworm-slim@sha256:<digest>; README, "Upgrades").
       args:
@@ -30,6 +30,9 @@ services:
         RUN npm ci --ignore-scripts --omit=dev --no-audit --no-fund && npm cache clean --force
         COPY src ./src
         COPY tools ./tools
+        # The pairing core of the apps on a door page, which tools/tracker.mjs loads from here (the Worker shares the file).
+        # Without it the tracker starts with pairing off and says so.
+        COPY deploy/rtc-worker/pair.js ./deploy/rtc-worker/pair.js
         ENV NODE_ENV=production
         USER node
         EXPOSE 8000

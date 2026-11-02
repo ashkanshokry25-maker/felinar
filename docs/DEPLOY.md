@@ -1067,7 +1067,8 @@ The kit is the loader exactly as released. Publish refuses unless every file of 
 pinned key (`tools/verify-release.mjs`), copies `dist` unchanged and adds the list and its signature, `.nojekyll`, `_headers`,
 `_redirects` (the root opens `/_mw/open.html`, and a link's fragment stays with the browser through the redirect), `vercel.json`, a
 `Caddyfile` and `README-DOOR.txt`. `--door-site <publish output>` (repeatable) also lays out a site's web seed copy and `.torrent`, which
-makes it a full door. Upload the folder to the root of a host name. Anyone can check a kit offline:
+makes it a full door; the first one's apps block, if it has one, is also set in `_mw/door.json`, the single loader file the kit changes
+([Apps at a door](#apps-at-a-door)). Upload the folder to the root of a host name. Anyone can check a kit offline:
 
     node tools/verify-release.mjs verify door-kit --list hashes-dist.json --sig hashes-dist.json.sig --pubkey <pinned key> \
       --door-kit --expect-version <version>
@@ -1085,6 +1086,63 @@ It contacts that host only: the address must be the HTTPS root of its name, `/mw
 redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin` (`--allow-no-cors` makes a missing header a warning,
 for a host that cannot send it; GitHub Pages sends it), and every `/_mw/*` file it lists, and `/mw-sw.js`, must have exactly the bytes
 it names. Exit code 1 on a failure.
+When `door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`); a
+block the door page cannot use is a warning. Nothing in the block is contacted.
+
+### Apps at a door
+
+> **Status: the tools below write, serve and read the block, with unit tests on loopback. No real host has served it.** What the apps
+> do, and how visitors use them, is in [APPS](APPS.md); this section covers the block and the servers it names.
+
+A door can offer apps on its bare door page: people who have signed in at the door message each other, or meet in a room, by a short
+code. The page learns which servers to use from an `apps` block in the door's own `/_mw/door.json`:
+
+```json
+"apps": {
+  "rendezvous": ["wss://rtc.example.org"],
+  "stun": ["stun:stun.example.org:3478"],
+  "idp": "https://id.example.org"
+}
+```
+
+- **`rendezvous`**: one to eight `wss:` URLs (`ws:` only for a loopback host while you develop). The apps open their own WebSocket to
+  the first one. It must be **the door's own rendezvous, and it must speak the pair protocol**: the Cloudflare Worker in
+  [`deploy/rtc-worker`](../deploy/rtc-worker/README.md) (see its Pairing section) or `tools/tracker.mjs`. A tracker program that does not
+  have the pair protocol, one of the four shared public trackers or any other WebSocket service does not speak it, and nobody would
+  find anybody. The rendezvous passes a request to the person who made the code, and hands out a private lane only after that person
+  accepts, so no connection offer moves before approval. It sees the short channel half of each code, when requests arrive and the
+  addresses of the sockets, as any relay does: list it in your privacy notice, and do not keep logs that pair a channel with an address.
+- **`stun`**: none to eight `stun:` or `stuns:` URLs (publish takes four), **the site's own**, like the STUN servers of chat (the shared public ones are never a
+  fallback: [Your own tracker and STUN servers](#your-own-tracker-and-stun-servers-for-chat-and-files)). With none, browsers connect with
+  host candidates only, which is enough on one machine or one network and does not reach between two homes.
+- **`idp`**: the identity origin where the visitor signs in before any app opens ([The identity origin](#the-identity-origin-running-your-own-with-toolsbuild-idpmjs)):
+  `https:`, or `http:` for a loopback host. A door without a working identity origin offers nothing anybody can use, so publish writes no
+  block without one.
+
+A door without the block keeps the door page it has: the box that opens a light link.
+
+**Publishing.** The two flags that chat already needs, `--tracker` and `--stun`, together with `--idp`, give the site its block:
+
+    node tools/publish.mjs site --name my-site --scope example.com --key owner.jwk --ws https://example.com/ws/ --shell \
+      --tracker wss://rtc.example.org --stun stun:stun.example.org:3478 --idp https://id.example.org
+
+`summary.json` gets `apps`, and with `--shell` the same block is set in `shell/_mw/door.json`: the build's own file with `apps` as its last
+key, every other loader file as built. Only `--tracker` names the rendezvous: a `--tr` tracker serves the site's pointer, not the apps.
+Without `--tracker` or `--stun` there is no block; without `--idp` there is none either, and with `--shell` publish says why. A drop-in
+publish does not change the `_mw/door.json` it copies.
+
+**Door kits.** `publish --door-kit <dir> ... --door-site <publish output>` copies the block of the **first** `--door-site` into the kit's
+`_mw/door.json` (publish says so when that site has none and a later one has). That file is the only one the kit changes: `door.json`
+without its `apps` key is the release's file, byte for byte. The signed release list names `door.json` without the block, so
+`verify-release.mjs verify <kit> --door-kit` names that one file for a kit that carries one, until the verifier learns the block (an open
+item of this change). Until then read the three addresses in a kit's block before you trust it, whoever made it: the identity origin is
+where its visitors sign in.
+
+**Development.** `node tools/dev-server.mjs --root dist --apps-rendezvous ws://127.0.0.1:8000 --apps-stun stun:127.0.0.1:3478 --apps-idp http://127.0.0.1:8081`
+sends the block in `/_mw/door.json` without changing the file (`--apps-rendezvous` and `--apps-stun` repeat; `--apps-idp` takes one
+origin, and `--apps-rendezvous` needs it). `npm run demo` passes them for the desktop tier, with its own tracker and identity page
+(`--stun <stun: URL>` adds a STUN server; the demo runs none). The LAN tier (`--tls`) serves no identity page, so it offers no apps.
+Check any of it with `node tools/check-site.mjs <url> --door`.
 
 ### When a door stops answering
 
@@ -1372,7 +1430,7 @@ Source: [MIGRATION-DIGEST](research/MIGRATION-DIGEST.md), section 11; the two se
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `shell/` (with `--shell`) | the loader with the pointer stamped into `index.html` and `404.html` | the host root (shell mode) |
+| `shell/` (with `--shell`) | the loader with the pointer stamped into `index.html` and `404.html`; with `--tracker`, `--stun` and `--idp`, also the apps block in `_mw/door.json` ([Apps at a door](#apps-at-a-door)) | the host root (shell mode) |
 | `site/` (with `--dropin`) | your site with the pointer stamped into every page, the runtime under `/_mw/`, `/mw-sw.js`, `/.mw/` and `/_mw/t/<btih>.torrent` | your host (drop-in mode) |
 | `<name>/`, `<name>.torrent` | the web seed files and the torrent | under the web seed base (shell mode) |
 | `site.torrent` | the same torrent, for `check-webseed` | stays local |
@@ -1381,4 +1439,4 @@ Source: [MIGRATION-DIGEST](research/MIGRATION-DIGEST.md), section 11; the two se
 | `magnet.txt` | a magnet link (unsigned: no owner key) | for hubs and sharing |
 | `webseed-layout.txt` (shell mode), `csp.txt` | the keys to upload with an S3 CORS rule, and the CSP additions | reading |
 | `mw-sw-kill.js`, `sdk-static.js` | the kill switch, and a static `/_mw/sdk.js` for a plain copy of the site | the host, when needed |
-| `summary.json` | everything above as JSON, including `rendezvousBtih` | the tracker's `--allow`, your scripts |
+| `summary.json` | everything above as JSON, including `rendezvousBtih` and, for a site with apps, `apps` | the tracker's `--allow`, `--door-kit --door-site`, your scripts |

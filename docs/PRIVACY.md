@@ -860,6 +860,32 @@ contacted, the last door that served each site's `.torrent`, the owner's accepte
 flagged `viaDoor` (at most four, deleted first). Identity at a door lasts for this visit only. A network observer still sees which door
 host a visitor contacts.
 
+### Apps on the door page (unreleased)
+
+> **Status: built on 2026-11-01, not yet reviewed.** ARCHITECTURE 15.21 and [APPS.md](APPS.md); tested on loopback only. No lawyer has
+> reviewed these sentences. A review of the protocol and the privacy claims on 2026-11-02 changed the room's member list (it is sealed now)
+> and the disappearing timers (each person's own); see APPS.md, "Known limits", for what remains.
+
+A door that offers apps lets people who signed in for the visit message each other, or meet in a room, by a short code. A code has twelve
+characters: the first four (the channel) go to the door's rendezvous, the tracker or Worker that the site owner chose, and the other eight
+stay in the browser that made the code. The rendezvous sees each channel, when requests and answers arrive, the network address of each
+socket and sealed boxes it cannot open; it does not see names, keys, the last eight characters of a code or any message, unless it records
+a box and guesses the secret offline (below). Nothing else leaves the device until the person who made the code accepts a request, and the
+accept carries that person's signature, which the other browser checks before it joins anything. Only then does the rendezvous give both
+browsers a private lane, served for 24 hours, the browsers connect to each other, and each learns the other's network address (in a room,
+every member can connect to every other member); the rendezvous then carries their connection offers and answers on that lane, as any
+tracker does. The rendezvous minted the lane, so it can join it like a member: it then sees sealed frames only (it can count the people in
+a room by the number of key boxes) and reads no name, key or message, because the member list of a room is sealed under the room's secret
+like the messages. Messages are sealed on
+the device and travel between the browsers. At a door they live in the page's memory only (no cookie, no storage, no ledger), and a reload,
+a sign-out or closing the page ends them; a person who exports a conversation saves a plain file with its text and both public keys. A
+disappearing-message timer is the author's: a message that its author set to disappear goes from the reader's screen too, a copy the reader
+pinned or saved as well, and the reader sees a mark on it from the start. A
+rendezvous that records the sealed boxes can test guesses of the eight-character secret offline, which 40 bits and 100,000 rounds of key
+derivation make slow, not impossible, and the eight-digit compare code that two people read to each other is what catches a substituted
+key. A site owner who offers apps names the rendezvous and its operator in the privacy notice, with what it sees (the channel of each code
+and the times of requests) in the tracker row of the template.
+
 ### Additions to the notice template, v0.3 C2
 
 > **Status: v0.3 C2, built and reviewed.** Use these only for the features your site turns on. No lawyer has reviewed them.

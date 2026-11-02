@@ -24,6 +24,15 @@
 // announced with it, so a flood ends when its sockets do.
 // Binds 127.0.0.1 by default (docs/DEV-NETWORK.md); use --host 0.0.0.0 for a LAN or a server.
 // --tls serves wss:// with the files given, or with mkcert certificates from .mw-dev-certs/.
+//
+// Pairing (ARCHITECTURE 15.21): the rendezvous also speaks the pairing and room protocol of the apps on a door page,
+// the same state machine as the Cloudflare Worker (deploy/rtc-worker/pair.js, README.md there): a visitor opens a code, another
+// knocks with a sealed hello, and when the owner accepts, the tracker mints a random private lane, allows it for 24 hours (in
+// memory, beside the allow list, which stays the operator's) and hands it to both, so the first WebRTC offer moves after approval.
+// It travels on sockets of its own (the first message classifies a socket as a tracker socket or a pair socket) and keeps
+// everything in memory. --no-pairing turns it off.
+// pair.js lives in deploy/, which the npm package and the Docker images of deploy/ do not copy: without the file the tracker
+// starts with pairing off (and says so) instead of failing to start.
 
 import http from 'node:http';
 import https from 'node:https';
@@ -40,7 +49,7 @@ import {
 
 const USAGE = `
 Usage: node tools/tracker.mjs [--port 8000] [--host 127.0.0.1] [--interval 120000]
-                              [--allow <btih|file>]... [--open] [--tls [<cert> <key>]] [--quiet] [--json]
+                              [--allow <btih|file>]... [--open] [--tls [<cert> <key>]] [--no-pairing] [--quiet] [--json]
 
 --allow   an infohash (40 hex or base32), a magnet link, a .torrent, publish's summary.json, or a
           text file with one infohash per line; repeatable. The tracker serves these, the chat lane
@@ -55,6 +64,8 @@ Usage: node tools/tracker.mjs [--port 8000] [--host 127.0.0.1] [--interval 12000
                               that holds more files needs more)
 --open    serve every infohash under the same caps (anyone can use this tracker to relay WebRTC offers)
 --tls     wss://; with two files (cert key) those are used, else mkcert files from .mw-dev-certs/
+--no-pairing  do not serve the pairing and room protocol of the apps on a door page (deploy/rtc-worker/README.md, "Pairing"):
+          by default a visitor can open a code, another can knock, and when the owner accepts, a private lane is allowed here for 24 hours
 `;
 
 const ACTION_SCRAPE = 2; // bittorrent-tracker lib/common.js ACTIONS.SCRAPE
@@ -77,6 +88,19 @@ export function hubLaneHash(suffix, shard = 0) {
   const s = String(suffix || '').trim().toLowerCase().replace(/\.$/, '');
   if (!s || !/^[a-z0-9.:[\]-]+$/.test(s)) throw new UsageError('--hub must be a host name, got ' + JSON.stringify(suffix));
   return sha1Hex(HUB_LANE_PREFIX + s + '|' + shard);
+}
+
+/**
+ * loadPairModule(specifier) -> Promise<module | null>: deploy/rtc-worker/pair.js, the pairing core the Worker shares. null when the
+ * file is not there (the npm package and the Docker images of deploy/ carry src/ and tools/ only); any other import error is thrown.
+ */
+export async function loadPairModule(specifier = new URL('../deploy/rtc-worker/pair.js', import.meta.url).href) {
+  try {
+    return await import(specifier);
+  } catch (err) {
+    if (err && err.code === 'ERR_MODULE_NOT_FOUND') return null;
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -283,13 +307,17 @@ export function messageProblem(raw) {
  * createTracker(options) → Promise<{ server, url, urls, host, port, allow, close(), stats() }>
  * options: { port = 8000 (0: ephemeral), host = '127.0.0.1', interval = 120000, allow = [], hubs = [], uploads = false, open = false,
  * tls = false (true or { cert, key } file paths), tlsHosts = [] (extra names for a generated certificate), maxPayload = 131072,
- * maxTorrents = 10000 (unlisted swarms in all), maxSwarmsPerSocket = 64 (unlisted swarms per WebSocket), quiet = true, log }
- * Throws UsageError when neither allow nor open is given.
+ * maxTorrents = 10000 (unlisted swarms in all), maxSwarmsPerSocket = 64 (unlisted swarms per WebSocket), quiet = true, log,
+ * pairing (undefined: on when deploy/rtc-worker/pair.js is there; false: off; true: on, or an error), maxLanes = 10000 (private lanes
+ * allowed at once), pairSweepMs = 30000 (how often codes, knocks and lanes are expired), now (the pairing's clock) and random (its
+ * random bytes; both for tests) }
+ * Throws UsageError when neither allow nor open is given. The result adds pairing (true when the pairing protocol is served) and
+ * pairSweep(nowMs) (expires codes, knocks and lanes now; it also runs every pairSweepMs).
  */
 export async function createTracker(options = {}) {
   const o = Object.assign({
     port: 8000, host: '127.0.0.1', interval: 120000, allow: [], hubs: [], uploads: false, open: false, tls: false,
-    maxPayload: 131072, maxTorrents: MAX_SWARMS, maxSwarmsPerSocket: MAX_SWARMS_PER_CONNECTION, quiet: true,
+    maxPayload: 131072, maxTorrents: MAX_SWARMS, maxSwarmsPerSocket: MAX_SWARMS_PER_CONNECTION, quiet: true, maxLanes: 10000, pairSweepMs: 30000,
   }, options);
   const specs = [].concat(o.allow || []).concat([].concat(o.hubs || []).map((h) => hubLaneHash(h)));
   if (!o.open && specs.length === 0) {
@@ -299,9 +327,26 @@ export async function createTracker(options = {}) {
   }
   const log = o.quiet ? () => {} : (o.log || ((line) => process.stdout.write(line + '\n')));
   const allow = await createAllowList(specs);
+  // The pairing and room protocol of the apps (deploy/rtc-worker/pair.js): everything in memory. The lanes it mints are allowed like
+  // listed infohashes until they expire.
+  const pairMod = o.pairing === false ? null : await loadPairModule();
+  if (o.pairing === true && !pairMod) throw new ToolError('pairing needs deploy/rtc-worker/pair.js, which is part of the repository and not of this install');
+  const clock = o.now || Date.now;
+  const lanes = new Map(); // hex -> expiry ms
+  const isLane = (hex) => lanes.has(hex) && !allow.has(hex);
+  const pairing = pairMod ? pairMod.createPairing({
+    now: clock,
+    random: o.random,
+    allowLane: (hex, exp) => {
+      if (!lanes.has(hex) && lanes.size >= o.maxLanes) return false;
+      lanes.set(hex, exp);
+      return true;
+    },
+  }) : null;
+  if (!pairing && o.pairing !== false) log('[tracker] pairing is off: deploy/rtc-worker/pair.js is not in this install');
   // Unlisted swarms are served in open mode and in uploads mode (an option, or asked for by an allow file).
   const unlistedServed = () => Boolean(o.open || o.uploads || allow.uploads);
-  const listed = (hex) => allow.has(hex);
+  const listed = (hex) => allow.has(hex) || lanes.has(hex);
   let unlistedCount = 0; // swarms that exist and are not listed (kept by createSwarm and the prune below)
 
   const server = new Server({
@@ -340,6 +385,13 @@ export async function createTracker(options = {}) {
   // swarms until the process restarts (SCALE-10: one socket with a fresh peer id per announce kept the tracker full).
   const onClose = server._onWebSocketClose.bind(server);
   server._onWebSocketClose = (socket) => {
+    if (pairing && socket && socket.mwProto === 'pair') {
+      try {
+        deliver(pairing.close(socket)); // its codes are released, its knocks cancelled
+      } catch (err) {
+        server.emit('warning', err);
+      }
+    }
     if (socket && socket.mwPeers) {
       for (const [infoHash, ids] of socket.mwPeers) {
         const swarm = server.torrents[infoHash];
@@ -372,7 +424,55 @@ export async function createTracker(options = {}) {
   // with offers: [null] and one other peer in the swarm throws from a timer callback and takes the
   // whole process down. Messages are checked here before the library sees them.
   const handleMessage = server._onWebSocketRequest.bind(server);
+  // A socket the pairing sends to may be on its way out; a reply to it is dropped.
+  const sendTo = (to, obj) => {
+    if (!to || to.readyState !== 1) return;
+    try {
+      to.send(JSON.stringify(obj), to.onSend);
+    } catch (_) { /* a socket on its way out */ }
+  };
+  const deliver = (replies) => {
+    for (const [to, obj] of replies) sendTo(to, obj);
+  };
+  const rawSize = (raw) => (Buffer.isBuffer(raw) ? raw.length : Buffer.byteLength(String(raw), 'utf8'));
   server._onWebSocketRequest = (socket, opts, raw) => {
+    if (pairing) {
+      // The first message classifies a socket for its lifetime: announce and scrape make it a tracker socket, pair-* and room-* a
+      // pair socket (the apps open their own WebSocket); a message of the other kind is refused (ARCHITECTURE 15.21).
+      if (socket.mwProto === 'pair' && rawSize(raw) > pairMod.MAX_PAIR_BYTES) {
+        sendTo(socket, { 'failure reason': 'message too large' });
+        return undefined;
+      }
+      let msg = null;
+      try {
+        msg = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw));
+      } catch (_) { /* not JSON: the library answers it */ }
+      const action = isObject(msg) && typeof msg.action === 'string' ? msg.action : null;
+      if (action !== null && pairMod.isPairAction(action)) {
+        const refuse = (why) => {
+          const reply = { action: action.slice(0, 64), 'failure reason': why };
+          if (typeof msg.rid === 'string' && msg.rid.length >= 1 && msg.rid.length <= 16) reply.rid = msg.rid;
+          sendTo(socket, reply);
+        };
+        if (socket.mwProto === 'tracker') return refuse(pairMod.MIXED);
+        if (rawSize(raw) > pairMod.MAX_PAIR_BYTES) return refuse('message too large');
+        socket.mwProto = 'pair';
+        try {
+          deliver(pairing.message(socket, msg).replies);
+        } catch (err) {
+          server.emit('warning', err); // a defect in the pairing must not take the tracker down (the library does the same for bad input)
+          refuse('internal error');
+        }
+        return undefined;
+      }
+      if (action === 'announce' || action === 'scrape') {
+        if (socket.mwProto === 'pair') {
+          sendTo(socket, { action, 'failure reason': pairMod.MIXED });
+          return undefined;
+        }
+        socket.mwProto = 'tracker';
+      }
+    }
     const problem = messageProblem(raw);
     if (problem) {
       socket.send(JSON.stringify({ 'failure reason': problem }), socket.onSend);
@@ -390,7 +490,8 @@ export async function createTracker(options = {}) {
       torrents++;
       peers += (swarm.complete || 0) + (swarm.incomplete || 0);
     }
-    return { open: Boolean(o.open), uploads: unlistedServed(), allowed: o.open ? null : allow.size, torrents, unlisted: unlistedCount, peers };
+    const p = pairing ? pairing.stats() : { codes: 0, knocks: 0 };
+    return { open: Boolean(o.open), uploads: unlistedServed(), allowed: o.open ? null : allow.size, torrents, unlisted: unlistedCount, peers, codes: p.codes, knocks: p.knocks, lanes: lanes.size };
   };
 
   const handler = (req, res) => {
@@ -455,9 +556,10 @@ export async function createTracker(options = {}) {
     let removed = 0;
     for (const hash of Object.keys(server.torrents)) {
       const swarm = server.torrents[hash];
-      if (swarm && swarm.complete + swarm.incomplete === 0 && !listed(hash)) {
+      if (swarm && swarm.complete + swarm.incomplete === 0 && (!listed(hash) || isLane(hash))) {
+        const counted = !listed(hash); // a lane swarm was never counted as unlisted
         delete server.torrents[hash];
-        unlistedCount = Math.max(0, unlistedCount - 1);
+        if (counted) unlistedCount = Math.max(0, unlistedCount - 1);
         removed++;
       }
     }
@@ -465,6 +567,30 @@ export async function createTracker(options = {}) {
   };
   const prune = setInterval(pruneNow, 300000);
   prune.unref();
+
+  // Codes and knocks that ran out are answered and released. A lane that ran out is dead: it is no longer allowed, its swarm goes (its
+  // peers are refused at their next announce; connections they made between themselves are not the tracker's to end).
+  const pairSweep = (at = clock()) => {
+    if (!pairing) return { lanes: 0, replies: 0 };
+    const replies = pairing.sweep(at);
+    deliver(replies);
+    let expired = 0;
+    for (const [hex, exp] of Array.from(lanes)) {
+      if (exp > at) continue;
+      lanes.delete(hex);
+      expired++;
+      if (!allow.has(hex)) delete server.torrents[hex];
+    }
+    return { lanes: expired, replies: replies.length };
+  };
+  const pairTimer = pairing ? setInterval(() => {
+    try {
+      pairSweep();
+    } catch (err) {
+      server.emit('warning', err);
+    }
+  }, o.pairSweepMs) : null;
+  if (pairTimer) pairTimer.unref();
 
   log('[tracker] ' + urls[0] + (o.open ? ' (open)' : ' (' + allow.size + ' allowed infohashes' + (unlistedServed() ? ', uploads' : '') + ')'));
   return {
@@ -478,6 +604,9 @@ export async function createTracker(options = {}) {
     stats,
     /** prune() → n: forgets the empty unlisted swarms now (the tracker does it every 5 minutes). */
     prune: pruneNow,
+    /** true when the pairing and room protocol is served; pairSweep(nowMs) expires codes, knocks and lanes now. */
+    pairing: Boolean(pairing),
+    pairSweep,
     /** dropConnections() → n: terminates every live WebSocket (a tracker blip) and keeps listening. */
     dropConnections: () => {
       let n = 0;
@@ -492,6 +621,7 @@ export async function createTracker(options = {}) {
     get liveConnections() { return live.size; },
     close: () => new Promise((resolve) => {
       clearInterval(prune);
+      if (pairTimer) clearInterval(pairTimer);
       try {
         server.ws.close();
       } catch (_) { /* already closed */ }
@@ -518,6 +648,7 @@ async function main(argv) {
     'max-swarms-per-connection': { type: 'int', default: MAX_SWARMS_PER_CONNECTION },
     open: { type: 'boolean' },
     tls: { type: 'tls' },
+    pairing: { type: 'boolean', default: true },
     quiet: { type: 'boolean' },
     json: { type: 'boolean' },
   });
@@ -532,10 +663,10 @@ async function main(argv) {
   if (flags.maxSwarms < 1 || flags.maxSwarmsPerConnection < 1) throw new UsageError('--max-swarms and --max-swarms-per-connection must be at least 1');
   const tracker = await createTracker({
     port: flags.port, host: flags.host, interval: flags.interval, allow: flags.allow, hubs: flags.hub, uploads: flags.uploads, open: flags.open, tls: flags.tls,
-    maxTorrents: flags.maxSwarms, maxSwarmsPerSocket: flags.maxSwarmsPerConnection, quiet: true,
+    maxTorrents: flags.maxSwarms, maxSwarmsPerSocket: flags.maxSwarmsPerConnection, quiet: true, pairing: flags.pairing ? undefined : false,
   });
   const uploads = tracker.stats().uploads;
-  if (flags.json) out(JSON.stringify({ url: tracker.url, urls: tracker.urls, port: tracker.port, open: flags.open, uploads, allowed: tracker.allow.size }));
+  if (flags.json) out(JSON.stringify({ url: tracker.url, urls: tracker.urls, port: tracker.port, open: flags.open, uploads, allowed: tracker.allow.size, pairing: tracker.pairing }));
   else {
     out('felinar tracker listening: ' + tracker.url);
     for (const u of tracker.urls.slice(1)) out('  ' + u);
@@ -545,7 +676,9 @@ async function main(argv) {
       out('  unlisted swarms (file, media and member ledger swarms): at most ' + flags.maxSwarms + ' in all and ' + flags.maxSwarmsPerConnection + ' per connection; listed ones are never refused');
     }
     if (tracker.allow.size === 0 && !flags.open) warn('the allow list is empty: every announce is refused until an infohash is added');
+    if (tracker.pairing) out('  pairing and rooms: on (a code a visitor opens, a knock the owner accepts, then a private lane served here for 24 hours)');
   }
+  if (!tracker.pairing && flags.pairing) warn('pairing and rooms are off: deploy/rtc-worker/pair.js is not in this install (use a checkout of the repository)');
   const stop = () => tracker.close().then(() => process.exit(0));
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);

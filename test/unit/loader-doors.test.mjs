@@ -14,7 +14,7 @@ import {
   doorCandidates, hintAllowed, doorTorrentUrls, doorWebseeds, createDoorHealth, doorJsonFor, checkDoorJson, probeDoor, fetchFirst, byteDoors,
   ledgerDoorsFrom, ledgerDoorsProblem, ledgerDoorsValue, readLedgerDoors, enforceDoorBudget, doorsPanelModel, doorsBannerModel, doorLinkFor,
   doorFiles, doorFrameHtml, doorMimeOf, mountDoorView, DOOR_TIMING, DOOR_SANDBOX, LEDGER_DOORS_MAX, LEDGER_DOORS_BYTES, LEDGER_DOORS_INTERVAL_MS,
-  DOOR_JSON_PATH, DOOR_COPIES_MAX,
+  DOOR_JSON_PATH, DOOR_COPIES_MAX, appsBlockOf, appsBlockProblem, checkAppsBlock, APPS_BLOCK_MAX,
 } from '../../src/loader/doors.js';
 import { parseFragment, resolveMode, sdkMode, pastedFragment, sharedFragment, __c2Doors } from '../../src/loader/app.js';
 import { signPointer, formatPointer, parsePointer, verifyPointer, formatLightLink, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../../src/common/pointer.js';
@@ -844,4 +844,77 @@ test('a withdrawal opened at a door deletes that ledger\'s versions only, never 
   deleted.length = 0;
   await __test.presentWithdrawal(mk('shell'), { askFirst: false });
   assert.deepEqual(deleted.sort(), ['a'.repeat(40), 'b'.repeat(40), 'c'.repeat(40)], 'a shell origin holds one site: every version goes, as before');
+});
+
+// ---------------------------------------------------------------------------------------------- apps on the door page (ARCHITECTURE 15.21)
+
+const APPS_GOOD = { rendezvous: ['wss://rendezvous.example.test/announce'], stun: ['stun:stun.example.test:3478'], idp: 'https://id.example.test' };
+
+test('appsBlockOf: arrays of strings, wss: or ws: and stun: prefixes, an https or loopback http origin; the block comes back frozen and without keys it does not know', () => {
+  assert.deepEqual(appsBlockOf({ apps: APPS_GOOD }), APPS_GOOD);
+  const out = appsBlockOf({ apps: Object.assign({ extra: 'ignored', more: [1] }, APPS_GOOD) });
+  assert.deepEqual(Object.keys(out), ['rendezvous', 'stun', 'idp']);
+  assert.ok(Object.isFrozen(out) && Object.isFrozen(out.rendezvous) && Object.isFrozen(out.stun));
+  assert.notEqual(out.rendezvous, APPS_GOOD.rendezvous, 'a copy');
+  // more than one of each, stuns:, no STUN at all (host candidates only), an IPv6 STUN host, a port
+  assert.deepEqual(appsBlockOf({ apps: { rendezvous: ['wss://a.example.test/x', 'wss://b.example.test'], stun: ['stuns:stun.example.test', 'stun:[2001:db8::1]:3478'], idp: 'https://id.example.test' } }).stun, ['stuns:stun.example.test', 'stun:[2001:db8::1]:3478']);
+  assert.deepEqual(appsBlockOf({ apps: { rendezvous: ['wss://a.example.test'], stun: [], idp: 'https://id.example.test' } }).stun, []);
+  // loopback development: ws: on a loopback host, http: for the identity origin on a loopback host
+  const dev = { rendezvous: ['ws://127.0.0.1:8787'], stun: ['stun:127.0.0.1:3478'], idp: 'http://127.0.0.1:9000' };
+  assert.deepEqual(appsBlockOf({ apps: dev }), dev);
+  assert.deepEqual(appsBlockOf({ apps: { rendezvous: ['ws://localhost:8787/'], stun: [], idp: 'http://localhost:9000' } }).idp, 'http://localhost:9000');
+  // absent
+  for (const none of [null, undefined, {}, [], 'x', { apps: null }, { apps: undefined }, { other: APPS_GOOD }]) assert.equal(appsBlockOf(none), null);
+  for (const none of [null, {}, { apps: null }, { apps: APPS_GOOD }]) assert.equal(appsBlockProblem(none), null, 'no block or a good one: no problem');
+});
+
+test('appsBlockOf refuses a bad block as a whole and says why', () => {
+  const bad = (change) => Object.assign({}, APPS_GOOD, change);
+  const reason = (apps) => appsBlockProblem({ apps });
+  for (const shape of ['x', 1, true, [], [APPS_GOOD]]) assert.equal(reason(shape), 'apps-shape', JSON.stringify(shape));
+  // rendezvous: an array of one to eight wss: URLs (ws: only on a loopback host), written as they are
+  for (const rv of [undefined, null, 'wss://a.example.test', [], [1], [null], [{}], ['https://a.example.test'], ['http://a.example.test'], ['ftp://a.example.test'], ['wss:'], ['wss://'], [' wss://a.example.test'], ['wss://a.example.test '],
+    ['wss://user:pw@a.example.test'], ['wss://a.example.test/#frag'], ['wss://a.example.test', 'https://b.example.test'], ['wss://' + 'a'.repeat(300) + '.example.test'], Array.from({ length: APPS_BLOCK_MAX + 1 }, (_, i) => 'wss://h' + i + '.example.test')]) {
+    assert.equal(reason(bad({ rendezvous: rv })), 'apps-rendezvous', String(JSON.stringify(rv)).slice(0, 60));
+  }
+  assert.equal(reason(bad({ rendezvous: ['ws://rendezvous.example.test'] })), 'apps-rendezvous-insecure', 'plain ws: only on a loopback host');
+  assert.equal(reason(bad({ rendezvous: ['ws://192.0.2.7:8787'] })), 'apps-rendezvous-insecure');
+  // stun: an array of stun: or stuns: URLs, none allowed
+  for (const st of [undefined, null, 'stun:a.example.test', [1], ['turn:a.example.test'], ['stun://a.example.test'], ['stun:'], ['stun:a.example.test:99999'], ['stun:a b.example.test'], ['https://a.example.test'], ['stun:a.example.test', null],
+    Array.from({ length: APPS_BLOCK_MAX + 1 }, (_, i) => 'stun:h' + i + '.example.test')]) {
+    assert.equal(reason(bad({ stun: st })), 'apps-stun', String(JSON.stringify(st)).slice(0, 60));
+  }
+  // idp: an https origin, or http on a loopback host; an origin, not a URL
+  for (const idp of [undefined, null, 1, '', 'id.example.test', 'http://id.example.test', 'https://id.example.test/', 'https://id.example.test/path', 'https://user:pw@id.example.test', 'ftp://id.example.test', 'wss://id.example.test', 'https://id.example.test#x', 'javascript:alert(1)']) {
+    assert.equal(reason(bad({ idp })), 'apps-idp', String(idp));
+  }
+  assert.equal(appsBlockOf({ apps: bad({ idp: 'http://id.example.test' }) }), null);
+  assert.equal(checkAppsBlock(null).reason, 'apps-shape');
+  assert.equal(checkAppsBlock(APPS_GOOD).reason, null);
+});
+
+test('checkDoorJson: an apps block rides along as apps; a bad block never decides ok; a door.json without a block has exactly the five fields it had', () => {
+  const plain = fakeDoorJson();
+  assert.deepEqual(Object.keys(checkDoorJson(plain)), ['ok', 'sameBuild', 'buildId', 'version', 'reason']);
+  const withApps = fakeDoorJson({ apps: APPS_GOOD });
+  const r = checkDoorJson(withApps, fakeDoorJson());
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.apps, APPS_GOOD);
+  assert.equal('appsReason' in r, false);
+  const bad = checkDoorJson(fakeDoorJson({ apps: { rendezvous: ['https://a.example.test'], stun: [], idp: 'https://id.example.test' } }));
+  assert.equal(bad.ok, true, 'a door with a bad apps block still serves the loader');
+  assert.equal(bad.apps, null);
+  assert.equal(bad.appsReason, 'apps-rendezvous');
+  assert.deepEqual(Object.keys(checkDoorJson(fakeDoorJson({ apps: null }))), ['ok', 'sameBuild', 'buildId', 'version', 'reason'], 'null is no block');
+  // an older door.json check on a newer file: the other fields are what they were
+  assert.deepEqual(checkDoorJson(withApps, withApps), Object.assign({ ok: true, sameBuild: true, buildId: 'abcdef123456', version: '0.3.0', reason: null }, { apps: APPS_GOOD }));
+  assert.equal(checkDoorJson({ v: 1, kind: 'felinar-door', apps: APPS_GOOD }).ok, false, 'the block does not make a file a door');
+});
+
+test('probeDoor hands the parsed door.json back with its apps block, so the page reads it from the one request', async () => {
+  const json = fakeDoorJson({ apps: APPS_GOOD });
+  const fetchFn = async () => ({ status: 200, headers: { get: () => null }, body: null, arrayBuffer: async () => new TextEncoder().encode(JSON.stringify(json)).buffer });
+  const r = await probeDoor('https://door.test', { fetch: fetchFn, sameOrigin: true });
+  assert.equal(r.state, 'up');
+  assert.deepEqual(appsBlockOf(r.json), APPS_GOOD);
 });

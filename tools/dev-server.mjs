@@ -4,7 +4,13 @@
 //
 //   node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] [--tls] [--webseed <dir>]
 //                             [--pointer "<record>"|@file] [--dev] [--hub shared|subdomain] [--doh <template>]
-//                             [--spa|--no-spa] [--idp-port <n> [--idp-root dist-idp]] [--tracker-proxy <port>] [--quiet] [--json]
+//                             [--spa|--no-spa] [--idp-port <n> [--idp-root dist-idp]] [--tracker-proxy <port>]
+//                             [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--quiet] [--json]
+//
+// - Apps at a door (docs/DEPLOY.md "Apps at a door"): --apps-rendezvous, --apps-stun and --apps-idp (the
+//   first two repeat, the third names one origin) add the apps block { rendezvous, stun, idp } to the /_mw/door.json this server sends, so the
+//   bare door page offers the apps against a rendezvous you started (tools/tracker.mjs) and an identity page you serve (--idp-port). The file
+//   under --root is not changed; a block already in it is replaced. A server without these flags sends door.json as built.
 //
 // - v0.3 C2 (SEEDING-AND-ZERO-SETUP-DESIGN 3.2, S2 rung 1): --tracker-proxy <port> passes WebSocket upgrades on /tracker to a tracker
 //   listening on ws://127.0.0.1:<port> (tools/tracker.mjs), so the tracker answers on the page's own origin: wss://<host>:<port>/tracker
@@ -51,16 +57,22 @@ import { parsePointer } from '../src/common/pointer.js';
 import {
   parseCli, runMain, isMain, devCerts, lanAddresses, injectMeta, isUtf16, ToolError, UsageError, out, warn, ROOT,
 } from './lib.mjs';
+import { makeAppsBlock, withAppsBlock, appsBlockLine } from './apps-block.mjs';
 
 const USAGE = `
 Usage: node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] [--tls [--cert f --key f]]
                                 [--webseed <dir>] [--pointer "<record>"|@file] [--dev] [--hub shared|subdomain]
-                                [--doh <url template>] [--spa|--no-spa] [--idp-port <n> [--idp-root <dir>]] [--tracker-proxy <port>] [--quiet] [--json]
+                                [--doh <url template>] [--spa|--no-spa] [--idp-port <n> [--idp-root <dir>]] [--tracker-proxy <port>]
+                                [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--quiet] [--json]
 
 --idp-port <n>  also serve the identity page (--idp-root, default dist-idp, built by npm run build:idp) with its _headers on
                 http://127.0.0.1:<n>/ (0 = a free port): a second origin, loopback only
 --tracker-proxy <port>  pass WebSocket upgrades on /tracker to the tracker at ws://127.0.0.1:<port>, so the page's own origin carries
                 it (wss://<host>:<port>/tracker with --tls); start the tracker yourself (tools/tracker.mjs)
+--apps-rendezvous <url>  the apps block of /_mw/door.json (docs/DEPLOY.md, "Apps at a door"): where the apps meet, a wss: URL (ws: only for a
+                loopback host) of a tracker or Worker with the pair protocol; repeat for spares (at most 8); needs --apps-idp
+--apps-stun <url>  a stun: or stuns: URL for the apps block (repeat; at most 8; none: browsers on one network connect with host candidates)
+--apps-idp <origin>  the identity origin the visitor signs in at (https:, or http: for a loopback host such as the --idp-port page)
 `;
 
 const MIME_EXTRA = { torrent: 'application/x-bittorrent' };
@@ -313,8 +325,10 @@ function proxyTrackerUpgrade(req, socket, head, upstreamPort, proxied, log) {
  * options: { root = 'dist', port = 8080 (0 = ephemeral), host = '127.0.0.1', tls = false (true or
  * { cert, key } file paths), tlsHosts = [] (extra names for a generated certificate), webseed = null, pointer = null (record text), dev = false, hub = null,
  * doh = null, spa = null (auto), idpPort = null (a number, 0 = ephemeral, serves idpRoot on 127.0.0.1), idpRoot = 'dist-idp',
- * trackerProxy = null (the port of a tracker on 127.0.0.1: WebSocket upgrades on /tracker are passed to it), quiet = false, log = console line writer }
- * v0.3 C2: the result also holds trackerProxy (the port, or null).
+ * trackerProxy = null (the port of a tracker on 127.0.0.1: WebSocket upgrades on /tracker are passed to it), quiet = false, log = console line writer,
+ * appsRendezvous = [] (wss: or loopback ws: URLs), appsStun = [] (stun: URLs), appsIdp = null (one origin): the apps block of /_mw/door.json, each a
+ * string or a list; give any of them and appsRendezvous and appsIdp must be given too }
+ * v0.3 C2: the result also holds trackerProxy (the port, or null). Apps at a door: it also holds apps (the block served, or null).
  */
 export async function createDevServer(options = {}) {
   const o = Object.assign({ root: 'dist', port: 8080, host: '127.0.0.1', tls: false, webseed: null, pointer: null, dev: false, hub: null, doh: null, spa: null, trackerProxy: null, quiet: false }, options);
@@ -339,6 +353,9 @@ export async function createDevServer(options = {}) {
     if (!parsed.ok) throw new UsageError('--pointer does not parse: ' + parsed.error + (parsed.detail ? ' (' + parsed.detail + ')' : ''));
   }
   if (o.hub && !['shared', 'subdomain'].includes(o.hub)) throw new UsageError('--hub must be shared or subdomain');
+  // Apps at a door: the block is made (and refused when it is not usable) before the server listens.
+  const appsGiven = [o.appsRendezvous, o.appsStun, o.appsIdp].some((v) => v !== undefined && v !== null && v !== '' && (!Array.isArray(v) || v.length));
+  const apps = appsGiven ? makeAppsBlock({ rendezvous: o.appsRendezvous, stun: o.appsStun, idp: o.appsIdp }) : null;
   const metas = [];
   if (pointer) metas.push({ name: 'mw-pointer', content: pointer });
   if (o.dev) metas.push({ name: 'mw-dev', content: '1' });
@@ -483,6 +500,21 @@ export async function createDevServer(options = {}) {
       const ost = statOrNull(file);
       if (ost && ost.isFile()) return serveFile(req, res, file, ost, {});
     }
+    // Apps at a door: door.json from --root with the apps block set, read again on every request (a rebuild shows at once). A file that
+    // is not a JSON object is served as it is, so the problem shows where check-site --door looks, not here.
+    if (apps && pathname === '/_mw/door.json') {
+      const file = join(root, '_mw', 'door.json');
+      const dst = statOrNull(file);
+      if (dst && dst.isFile() && containedIn(root, file)) {
+        let body = null;
+        try {
+          body = withAppsBlock(readFileSync(file), apps);
+        } catch (err) {
+          log('[dev-server] /_mw/door.json: ' + err.message + '; served without the apps block');
+        }
+        if (body) return send(req, res, 200, { 'content-type': contentTypeFor(file), 'cache-control': 'no-cache', 'access-control-allow-origin': '*' }, body);
+      }
+    }
     if (hasHiddenSegment(segs)) return notFound(req, res, false);
     let abs = join(root, ...segs);
     if (!(abs + sep).startsWith(root + sep) && abs !== root) return notFound(req, res, false);
@@ -561,6 +593,7 @@ export async function createDevServer(options = {}) {
     urls,
     spa,
     idp,
+    apps,
     trackerProxy: o.trackerProxy === undefined ? null : o.trackerProxy,
     setPointer,
     override,
@@ -595,6 +628,9 @@ async function main(argv) {
     'idp-port': { type: 'int' },
     'idp-root': { type: 'string', default: 'dist-idp' },
     'tracker-proxy': { type: 'int' },
+    'apps-rendezvous': { type: 'list' },
+    'apps-stun': { type: 'list' },
+    'apps-idp': { type: 'list' },
     quiet: { type: 'boolean' },
     json: { type: 'boolean' },
   });
@@ -607,7 +643,12 @@ async function main(argv) {
   if (tls && (flags.cert || flags.key)) tls = { cert: flags.cert, key: flags.key };
   if (!tls && (flags.cert || flags.key)) throw new UsageError('--cert and --key need --tls');
   const srv = await createDevServer(Object.assign({}, flags, { tls }));
-  if (flags.json) out(JSON.stringify(Object.assign({ url: srv.url, urls: srv.urls, port: srv.port, spa: srv.spa }, srv.idp ? { idp: { url: srv.idp.url, urls: srv.idp.urls, port: srv.idp.port } } : {}, srv.trackerProxy !== null ? { trackerProxy: srv.trackerProxy } : {})));
+  // The stop handlers go in before anything is printed: whoever reads the first line (a script, a test) may stop the server at once,
+  // and a signal that came before the handlers would end the process with no exit code instead of 0.
+  const stop = () => srv.close().then(() => process.exit(0));
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+  if (flags.json) out(JSON.stringify(Object.assign({ url: srv.url, urls: srv.urls, port: srv.port, spa: srv.spa }, srv.idp ? { idp: { url: srv.idp.url, urls: srv.idp.urls, port: srv.idp.port } } : {}, srv.trackerProxy !== null ? { trackerProxy: srv.trackerProxy } : {}, srv.apps ? { apps: srv.apps } : {})));
   else {
     out('felinar dev-server: ' + flags.root + (srv.spa ? ' (SPA fallback on)' : '') + (flags.webseed ? ', web seed ' + flags.webseed + ' at /ws/' : ''));
     for (const u of srv.urls) out('  ' + u);
@@ -616,13 +657,11 @@ async function main(argv) {
       for (const u of srv.idp.urls) out('    ' + u);
     }
     if (srv.trackerProxy !== null) out('  tracker proxy: WebSocket upgrades on /tracker go to ws://127.0.0.1:' + srv.trackerProxy + ' (on this origin: ' + srv.url.replace(/^http/, 'ws') + 'tracker)');
+    if (srv.apps) out('  apps block in /_mw/door.json: ' + appsBlockLine(srv.apps) + ' (the door page offers the apps)');
     if (flags.pointer) out('  pointer meta injected into HTML pages');
     if (flags.dev) out('  dev mode: <meta name="mw-dev" content="1">, seeder at ' + srv.url + '_dev/seeder.html');
   }
   if (flags.host === '0.0.0.0' && !tls) warn('phones on the LAN need --tls: browsers allow Service Workers and WebCrypto only on https:// or localhost');
-  const stop = () => srv.close().then(() => process.exit(0));
-  process.on('SIGINT', stop);
-  process.on('SIGTERM', stop);
   return undefined;
 }
 

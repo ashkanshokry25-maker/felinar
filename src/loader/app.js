@@ -52,10 +52,12 @@ import { createHubService, createPersonalSite, decodeGenesis, checkGenesis, hubS
 import { parseLinkFragment, normalizeRecordText, formatLightLink, parseLightLink, DOOR_PAGE_PATH, isDoorPagePath, FELINAR_SCHEME, isLoopbackDoorHost } from '../common/pointer.js'
 import {
   doorCandidates, createDoorHealth, probeDoor, fetchFirst, doorTorrentUrls, doorWebseeds, readLedgerDoors, enforceDoorBudget, byteDoors,
-  doorsPanelModel, doorsBannerModel, doorLinkFor, doorFiles, mountDoorView, hintAllowed, DOOR_TIMING, DOOR_HEALTH_PREF,
+  doorsPanelModel, doorsBannerModel, doorLinkFor, doorFiles, mountDoorView, hintAllowed, DOOR_TIMING, DOOR_HEALTH_PREF, appsBlockOf, appsBlockProblem,
   DOOR_LAST_GOOD_PREF, DOOR_LEDGER_PREF, DOOR_FRAME_PATH
 } from './doors.js'
-import { doorText } from './strings.js'
+import { doorText, appsText } from './strings.js'
+// Apps on the door page (ARCHITECTURE 15.21): the view of src/loader/apps-ui.js; the service it draws, src/loader/apps.js, is imported in runDoorApps.
+import { createAppsUi } from './apps-ui.js'
 import { xsUrls, webseedBases } from './torrent.js'
 import { DEGRADED_RELOAD_KEY } from './render.js'
 import {
@@ -1132,7 +1134,17 @@ async function run (options) {
   }
   if (A.mode.mode === 'hub-root') return runHubRoot(A, metaPointer)
   // C2 doors: the door page without a link offers "Open a link" (S4 D6: iOS and Firefox have no web+felinar: handler).
-  if (A.mode.mode === 'door' && !A.mode.fragment) return runDoorPaste(A)
+  // Apps on the door page (ARCHITECTURE 15.21): when this address's /_mw/door.json names an apps block, the page shows the apps
+  // and the paste box is one of their tiles; without a block, or when the apps cannot start in this build, it is the paste box as before.
+  if (A.mode.mode === 'door' && !A.mode.fragment) {
+    const apps = sharedFragment(A.win.location.search) ? null : await readAppsBlock(A)
+    if (apps) {
+      let up = false
+      try { up = await runDoorApps(A, apps) } catch (err) { A.log('apps: ' + errMessage(err)) } // whatever fails, the page keeps its paste box
+      if (up) return A
+    }
+    return runDoorPaste(A)
+  }
 
   // Service Worker in parallel with everything else (§5.2); boot.js already called register().
   A.swPromise = A.hasSw
@@ -1357,6 +1369,7 @@ function inspectShell (A) {
     seeding: seedingInfo(A),
     calls: A.callUi ? A.callUi.inspect() : null,
     doors: doorsInfo(A), // C2 doors (read-only): candidates, health memory, the last probe, the banner, the door view
+    apps: appsInfo(A), // apps on the door page (read-only): { view, code, conversations, rooms, link, ... }, null on any other page
     pin: pinInfo(A), // C2 integrator (read-only): _mw.cfg.pin, whether this page is the pin node, authenticated pin wires, receipts
     log: lines
   }
@@ -2204,6 +2217,15 @@ async function createTorrentManager (A) {
   A.tm = tm
   if (A.iceServers) tm.setIceServers(A.iceServers)
   if (A.routing && Array.isArray(A.routing.stun) && typeof tm.setLaneIceServers === 'function') tm.setLaneIceServers(A.routing.stun.slice(0, 4))
+  if (A.lanesOnly) {
+    // The apps door page (loadAppsTm): no site, no ledger, no seeding and no pin. The manager only carries the private lanes of
+    // src/loader/apps.js, so none of the site listeners below apply; the peer count and the warnings still reach the bar and the log.
+    tm.addEventListener('peers', (e) => A.ui.setPeers((e.detail && e.detail.count) || 0))
+    tm.addEventListener('warning', (e) => onTorrentWarning(A, e.detail || {}))
+    tm.addEventListener('tracker', (e) => A.log('tracker ' + e.detail.url + ' ' + e.detail.state))
+    A.api.setTorrentManager(tm)
+    return tm
+  }
   tm.addEventListener('torrent', (e) => attachLedger(A, e.detail.torrent))
   tm.addEventListener('progress', (e) => {
     const d = e.detail || {}
@@ -4683,10 +4705,15 @@ function runDoorPaste (A) {
       return A
     } catch (_) { /* fall through to the box */ }
   }
-  const lang = langOf(A)
-  A.ui.setStatus(doorText('door.paste.title', lang))
+  A.ui.setStatus(doorText('door.paste.title', langOf(A)))
+  openLinkBox(A)
+  return A
+}
+
+/** openLinkBox(A): the "Open a link" box (the paste box of a door page, and the tile "Open a link" of the apps). */
+function openLinkBox (A) {
   A.ui.showLinkPaste({
-    lang,
+    lang: langOf(A),
     onOpen: (text) => {
       const frag = pastedFragment(text)
       if (!frag) return false
@@ -4697,7 +4724,148 @@ function runDoorPaste (A) {
       return true
     }
   })
-  return A
+}
+
+/**
+ * readAppsBlock(A) -> the apps block of this address's /_mw/door.json (doors.js appsBlockOf: { rendezvous, stun, idp }), or null: no block, a bad
+ * one, or a door.json that cannot be read. One request to this origin that skips the HTTP cache, with the door probe's size cap and its
+ * time limit (probeDoor, sameOrigin). Nothing else is asked before the visitor signs in.
+ */
+async function readAppsBlock (A) {
+  try {
+    const fetchFn = typeof A.win.fetch === 'function' ? A.win.fetch.bind(A.win) : undefined
+    if (!fetchFn) return null
+    const r = await probeDoor(A.origin, { fetch: fetchFn, sameOrigin: true, timeoutMs: DOOR_TIMING.firstByteMs })
+    if (!r || !r.json) return null
+    const apps = appsBlockOf(r.json)
+    if (!apps && r.json.apps) A.log('door.json has an apps block this loader cannot use (' + (appsBlockProblem(r.json) || 'invalid') + '): showing the paste box')
+    return apps
+  } catch (err) {
+    A.log('apps block: ' + errMessage(err))
+    return null
+  }
+}
+
+/**
+ * loadAppsTm(A, apps) -> Promise<TorrentManager>: the manager the apps join their private lanes with, built when the service first asks (after the
+ * visitor accepted a request or sent one, never before: nothing leaves the page for a peer until then). It is the page's one manager
+ * (ensureTorrentManager, the constructor in createTorrentManager) in its lanes-only form: no site, ledger or seeding. The ICE servers are the
+ * door's own STUN from the apps block and nothing else (setIceServers for the shared client, setLaneIceServers for the chat and group lanes;
+ * no public default). Consent to peers is the visitor's act of accepting or knocking; it is a state of this page only, never stored.
+ */
+function loadAppsTm (A, apps) {
+  if (!A.webrtc) return Promise.reject(Object.assign(new Error('WebRTC is not available in this browser'), { code: 'E_UNSUPPORTED' }))
+  A.lanesOnly = true
+  A.consentState = 'accepted'
+  A.env = A.env || detectEnvironment({ battery: null })
+  A.policy = A.policy || computePolicy(A.env, { share: true, hostOnly: false }, A.config)
+  A.iceServers = apps.stun.map((u) => ({ urls: u }))
+  A.routing = { stun: apps.stun.slice() }
+  return ensureTorrentManager(A)
+}
+
+/** appsInfo(A) -> the apps part of window.__mwShell.inspect(): apps-ui.js inspect(), or null on a page without apps. */
+function appsInfo (A) {
+  if (!A.appsUi) return null
+  try { return A.appsUi.inspect() } catch (_) { return null }
+}
+
+/**
+ * runDoorApps(A, apps, deps) -> true when the apps are up (false: the caller shows the paste box). What it mounts, and nothing more:
+ *   - the identity client, configured with apps.idp (client.configure), so sign-in opens that origin;
+ *   - the identity service, site-less: mountV03Services(A.api, { modules: { identity } }) with no ledger, pointer or node and
+ *     sharedHub: true (a door gives a visit-only identity: random keys, nothing stored, a reload makes the visitor a guest again).
+ *     That gives api.identity (info, keys, onChange), openSignInCard and signInFromCard; the chat, files, media and calls services and the
+ *     followed ledgers are NOT mounted;
+ *   - the apps service (src/loader/apps.js createApps, imported here inside a try: a build without that module keeps the paste box) with
+ *     loadTm = loadAppsTm, so the torrent manager is made on first use;
+ *   - the view (apps-ui.js) in the #mw-apps slot, with sign-in = api.openSignInCard(), sign-out = the identity service's auth.signOut, and the
+ *     tile "Open a link" = the paste box.
+ * deps (tests): { importApps, identity, client, mountServices, createUi } replace the imports, mountV03Services and createAppsUi.
+ */
+async function runDoorApps (A, apps, deps = {}) {
+  const { ui } = A
+  let mod = null
+  try { mod = deps.importApps ? await deps.importApps() : await import('./apps.js') } catch (err) { A.log('apps: no service module in this build (' + errMessage(err) + ')') }
+  if (!mod || typeof mod.createApps !== 'function') {
+    A.log('apps: the service module has no createApps')
+    return false
+  }
+  let identity = null
+  let client = null
+  try {
+    identity = deps.identity || await import('../identity/service.js')
+    client = deps.client || await import('../identity/client.js')
+  } catch (err) {
+    A.log('apps: no identity service in this build (' + errMessage(err) + ')')
+    return false
+  }
+  if (!identity || typeof identity.createIdentityService !== 'function' || !client || typeof client.configure !== 'function') {
+    A.log('apps: this build has no identity service or client')
+    return false
+  }
+  try { client.configure({ idp: apps.idp }) } catch (err) {
+    A.log('apps: the identity origin was refused (' + errMessage(err) + ')')
+    return false
+  }
+  A.api.identity.onChange((snap) => {
+    A.identityInfo = snap && snap.state === 'signed-in' && snap.info ? { pub: snap.info.pub, short: snap.info.short, name: snap.info.name } : null
+    try { ui.setIdentity(A.identityInfo) } catch (_) { /* no UI */ }
+  })
+  const mount = deps.mountServices || mountV03Services
+  const res = await mount(A.api, {
+    modules: { identity },
+    deps: {
+      ledgerId: null,
+      pointer: null,
+      node: () => null,
+      hostOnly: () => false,
+      identityExtra: { sharedHub: true, win: A.win, origin: A.origin, scope: () => null, legacy: null }
+    }
+  })
+  if (!A.api.service('identity')) {
+    A.log('apps: the identity service did not mount: ' + JSON.stringify((res && res.errors) || {}))
+    return false
+  }
+  await applyPendingSignIn(A) // the answer of the redirect round trip (R 2.3.1), when the sign-in window could not open and the page was left and came back
+  const lang = langOf(A)
+  let service = null
+  try {
+    // config is the door's apps block; the same three fields are also passed by name.
+    // log: what the service notes (a settings frame dropped for its time, an accept without a valid proof) goes to the loader log, as words and numbers only
+    service = mod.createApps({
+      api: A.api, config: apps, rendezvous: apps.rendezvous.slice(), stun: apps.stun.slice(), idp: apps.idp, loadTm: () => loadAppsTm(A, apps), lang,
+      log: (...parts) => A.log('apps: ' + parts.map((x) => (x && x.message) || String(x)).join(' '))
+    })
+  } catch (err) {
+    A.log('apps: the service did not start (' + errMessage(err) + ')')
+    return false
+  }
+  let view = null
+  try {
+    view = (deps.createUi || createAppsUi)({
+      root: A.doc.getElementById('mw-root') || A.doc.body,
+      ui,
+      service,
+      lang,
+      actions: {
+        signIn: () => A.api.openSignInCard(),
+        signOut: () => signOutFromHeader(A, false),
+        openLink: () => openLinkBox(A),
+        log: (line) => A.log('apps ui: ' + line)
+      }
+    })
+  } catch (err) {
+    // The view is the last thing made: when it cannot start the page keeps its paste box, as for every other step above.
+    A.log('apps: the view did not start (' + errMessage(err) + ')')
+    try { if (typeof service.destroy === 'function') service.destroy() } catch (_) { /* gone */ }
+    return false
+  }
+  A.appsService = service
+  A.appsUi = view
+  ui.setStatus(appsText('apps.title', lang))
+  A.log('apps on the door page: rendezvous ' + apps.rendezvous.length + ', stun ' + apps.stun.length + ', identity origin set')
+  return true
 }
 
 /** setupDoors(A): the health memory of doors (pref DOOR_HEALTH_PREF), in every mode that shows a site. */
@@ -5021,6 +5189,9 @@ function doorsInfo (A) {
 
 // C2 doors: the steps above, exported for test/unit/loader-doors.test.mjs only; not an API.
 export const __c2Doors = { guardActivationWatch, sharedFragment, consentModeOf, doorCspReload, pastedFragment, runDoorPaste, setupDoors, loadDoorMemory, isPortable, doorCandidatesOf, lightFragment, doorShareLink, showDoorViewBanner, refreshDoors, probeThisDoor, showNotAnswering, doorDownloadPlan, mountDoorFrame, refreshLedgerDoors, copyDoorLink, doorsInfo, persistSite, needsGate }
+
+// Apps on the door page: the steps above, exported for test/unit/loader-apps-ui.test.mjs only; not an API.
+export const __apps = { readAppsBlock, runDoorApps, loadAppsTm, appsInfo, openLinkBox }
 
 // C2 wire-ui: the steps above, exported for test/unit/sdk-c2-seeding.test.mjs only; not an API.
 export const __c2WireUi = { setupSeeding, attachSeeding, refreshCarry, refreshSeedUi, seedModel, refreshUploads, maybeAskSeed, onSeedPush, afterServices, callDeps, onCallYield, toggleDockFromSettings, setKeeper, keeperActive, noteSiteWire, trackerSeen }

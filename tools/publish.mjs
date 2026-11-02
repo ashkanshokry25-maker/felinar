@@ -48,6 +48,11 @@
 // record as to the page tag. --door-kit <dir> makes a door kit: the built loader copied unchanged after it matched the signed release
 // list (--release-list, --release-sig, --release-key), plus the list and its signature, .nojekyll, _headers, _redirects, vercel.json,
 // a Caddyfile and README-DOOR.txt; --door-site <publish output> also lays a site's web seed copy and .torrent into it (a full door).
+//
+// v0.3 apps at a door (docs/DEPLOY.md "Apps at a door"): a site that names its own tracker, STUN server and
+// identity origin (--tracker, --stun, --idp) has an apps block { rendezvous, stun, idp } for the door page. publish records it in summary.json
+// and, with --shell, writes it into the shell's /_mw/door.json (every other key of that file stays as the build wrote it); --door-kit
+// --door-site copies the first door site's block into the kit's /_mw/door.json. tools/apps-block.mjs holds the shape.
 
 import { readFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
@@ -75,6 +80,7 @@ import { formatLightLink, isDoorHost, hostOfOrigin, ledgerIdFor, DOOR_MAX } from
 import { encode as qrEncode } from '../src/idp/qr.js';
 import { verifyRelease, readPublicKey, PINNED_RELEASE_KEYS } from './verify-release.mjs';
 import { doorKitFiles } from './door-kit-files.mjs';
+import { appsBlockProblems, appsBlockLine, withAppsBlock } from './apps-block.mjs';
 
 export { doorKitFiles };
 import { createGenesis, checkGenesis, readBlocksFile, writeBlocksFile, policyOp, ledgerIdForOwner, loadLedger, currentCfg, OPEN_WRITING_WARNING } from './ledger-admin.mjs';
@@ -123,6 +129,9 @@ Features:  --chat --files --media --calls (turn the feature on; --chat-panel and
            With any of them on, publish refuses unless the site names its OWN tracker and STUN: --tracker <wss URL>... (added to tr=;
            not the public default trackers) and --stun <stun: URL>... (written to /.mw/site.json). --turn <turn:, turns: or https: URL>...
            [--turn-mode static|endpoint] adds a TURN relay (off by default; the card names the operator).
+Apps:      --tracker, --stun and --idp together (the site's own tracker, STUN server and identity origin) give the door page its apps:
+           summary.json gets apps { rendezvous, stun, idp }, and --shell writes the same block into shell/_mw/door.json
+           (docs/DEPLOY.md, "Apps at a door"). The tracker must speak the pair protocol (deploy/rtc-worker or tools/tracker.mjs).
 Output:    --out <dir> (default dist-publish)  --verify-ws [--allow-no-preflight]  --verify-host <url> (drop-in)
            --ignore <path>...  --quiet
 Doors (v0.3 C2): --door <host>... (at most 8 door hosts such as mirror.example.org or door.example.net:8443: link mode, needs --chain;
@@ -130,6 +139,8 @@ Doors (v0.3 C2): --door <host>... (at most 8 door hosts such as mirror.example.o
 Door kit:  node tools/publish.mjs --door-kit <dir> --release-list hashes-dist.json --release-sig hashes-dist.json.sig
            --release-key <pinned public key file or p256:...> [--dist dist] [--door-site <publish output dir>]...
            copies the built loader unchanged once it matches the signed release list, and adds the host settings and README-DOOR.txt
+           (when the first --door-site was published with an apps block, that block also goes into the kit's _mw/door.json: the one
+           file of the loader that then differs from the release)
 Withdraw:  node tools/publish.mjs --withdraw --scope <hostname> --key owner.jwk [--why <reason>] [--ct <url>]
            [--chain <label>] [--seq <n>] [--exp <days> (default 399)] [--prev-key <old owner.jwk>] [--ledger-owner <pub>] [--out <dir>]
            writes a signed st=withdrawn record (pointer.txt, meta.html, dns.txt, summary.json): loaders stop
@@ -478,11 +489,14 @@ function readJsonFile(file, what) {
 const releaseKeysToTrust = (releasePinnedKeys) => (Array.isArray(releasePinnedKeys) && releasePinnedKeys.length ? releasePinnedKeys : PINNED_RELEASE_KEYS);
 
 /**
- * doorKit({ out, dist, releaseList, releaseSig, releaseKey, doorSite, log }) → { kit, version, listHash, files, sites }.
+ * doorKit({ out, dist, releaseList, releaseSig, releaseKey, doorSite, log }) → { kit, version, listHash, files, sites, apps }.
  * Refuses unless every file of dist matches the signed release list under the pinned release key (tools/verify-release.mjs): a
  * door must serve the loader as released, or a visitor's first load there would run something else. Then copies dist unchanged,
  * adds the list and its signature (hashes-dist.json, hashes-dist.json.sig) and the files of doorKitFiles(), and, for each
  * --door-site, the site's web seed copy (<publish out>/<name>/ to ws/<name>/) and its torrent (_mw/t/<btih>.torrent).
+ * Apps at a door: when the FIRST --door-site's summary.json holds an apps block (publish with --tracker, --stun and --idp), that block
+ * is set in the kit's /_mw/door.json after the kit was checked against the release list. It is the one file of the loader that then
+ * differs from the release: the signed list names door.json without it (docs/DEPLOY.md, "Apps at a door").
  */
 export async function doorKit({ out: kitOut, dist = join(ROOT, 'dist'), releaseList = null, releaseSig = null, releaseKey = null, releasePinnedKeys = null, doorSite = [], quiet = false, log = null } = {}) {
   const say = quiet ? () => {} : (typeof log === 'function' ? log : (line) => out(line));
@@ -505,6 +519,26 @@ export async function doorKit({ out: kitOut, dist = join(ROOT, 'dist'), releaseL
     throw new ToolError('refusing to make a door kit: ' + relPath(distDir) + ' does not match the signed release list (' + verdict.reason + '): ' +
       verdict.problems.slice(0, 5).join('; ') + (verdict.problems.length > 5 ? '; ...' : '') + '. A door must serve the loader byte for byte as released.');
   }
+  // v0.3 apps at a door: the door sites' summaries are read, and the first one's apps block is checked, before the kit folder is touched.
+  // Only the first door site names the door's apps; the block in a summary is checked again here, because the file is a plain file.
+  const summaries = (doorSite || []).map((pubDir) => readJsonFile(join(resolve(pubDir), 'summary.json'), 'the publish summary'));
+  let apps = null;
+  let appsFrom = null;
+  const laterApps = [];
+  summaries.forEach((summary, i) => {
+    if (!summary || typeof summary !== 'object' || summary.apps === undefined || summary.apps === null) return;
+    if (i > 0) {
+      laterApps.push(String(summary.name));
+      return;
+    }
+    const problems = appsBlockProblems(summary.apps);
+    if (problems.length) throw new ToolError('--door-site ' + doorSite[0] + ': the apps block in summary.json is not usable (' + problems.slice(0, 3).join('; ') + '); publish the site again with --tracker, --stun and --idp');
+    apps = summary.apps;
+    appsFrom = String(summary.name);
+  });
+  if (apps && !existsSync(join(distDir, '_mw', 'door.json'))) {
+    throw new ToolError('--door-site ' + doorSite[0] + ' has an apps block, but the loader in ' + relPath(distDir) + ' has no _mw/door.json to carry it (run: node build.mjs)');
+  }
   if (existsSync(kit)) {
     const entries = readdirSync(kit);
     if (entries.length && !existsSync(join(kit, 'README-DOOR.txt'))) throw new ToolError('refusing to write into ' + relPath(kit) + ': it is not empty and is not a door kit');
@@ -516,9 +550,10 @@ export async function doorKit({ out: kitOut, dist = join(ROOT, 'dist'), releaseL
   const extra = doorKitFiles({ version: list.version });
   for (const [name, text] of Object.entries(extra)) writeFileAtomic(join(kit, name), text);
   const sites = [];
-  for (const pubDir of doorSite || []) {
-    const summary = readJsonFile(join(resolve(pubDir), 'summary.json'), 'the publish summary');
-    if (summary.mode !== 'shell' || !/^[0-9a-f]{40}$/.test(String(summary.btih || '')) || !NAME_RE.test(String(summary.name || ''))) {
+  for (let i = 0; i < summaries.length; i++) {
+    const pubDir = doorSite[i];
+    const summary = summaries[i];
+    if (!summary || summary.mode !== 'shell' || !/^[0-9a-f]{40}$/.test(String(summary.btih || '')) || !NAME_RE.test(String(summary.name || ''))) {
       throw new ToolError('--door-site ' + pubDir + ': summary.json is not a shell-mode publish output (a drop-in site serves its own files)');
     }
     const seedDir = join(resolve(pubDir), summary.name);
@@ -530,11 +565,18 @@ export async function doorKit({ out: kitOut, dist = join(ROOT, 'dist'), releaseL
   // The kit as the README's step 1 checks it (--door-kit): the host settings must be the ones made here, byte for byte (SEC-5).
   const again = await verifyRelease({ dir: kit, list, sig, publicKey, pinnedKeys, allowExtra: true, expectExtra: extra });
   if (!again.ok) throw new ToolError('internal: the kit does not hold the release as listed (' + again.problems.slice(0, 3).join('; ') + ')');
+  if (apps) {
+    // After the check above, so that it ran on the loader exactly as released: door.json is the only loader file that gets this block.
+    const doorFile = join(kit, '_mw', 'door.json');
+    writeFileAtomic(doorFile, withAppsBlock(readFileSync(doorFile), apps));
+  }
   say('door kit ' + relPath(kit) + ' (felinar ' + list.version + ', release list ' + verdict.listHash.slice(0, 16) + '..., ' + verdict.checked + ' loader files checked)');
   say('  added   hashes-dist.json, hashes-dist.json.sig, ' + Object.keys(extra).join(', '));
   for (const s of sites) say('  site    ' + s.name + ' (btih ' + s.btih + '): ' + s.webseed + ' and ' + s.torrent);
+  if (apps) say('  apps    ' + appsBlockLine(apps) + ' (from ' + appsFrom + '), set in _mw/door.json: the one loader file that differs from the signed release (docs/DEPLOY.md, "Apps at a door")');
+  else if (laterApps.length) say('  apps    none in the kit: only the first --door-site names the door\'s apps, and it has no apps block (' + laterApps.join(', ') + ' has one)');
   say('Upload the folder to the root of a host name, then check it: node tools/check-site.mjs https://<host>/ --door');
-  return { kit, version: list.version, listHash: verdict.listHash, files: verdict.checked, sites };
+  return { kit, version: list.version, listHash: verdict.listHash, files: verdict.checked, sites, apps };
 }
 
 /**
@@ -1217,6 +1259,17 @@ export async function publish(options) {
   if (features.length && stun.length && stun.every((s) => (CONFIG.stun || []).some((d) => d.urls === s))) {
     note('--stun names only the shared default STUN servers; naming your own keeps one operator from seeing every site its visitors open');
   }
+  // v0.3 apps at a door (docs/DEPLOY.md "Apps at a door"): the site's own tracker, STUN server and identity origin are the apps block of
+  // the door page. It goes into summary.json, into the shell's /_mw/door.json with --shell, and into a kit with --door-kit --door-site.
+  // Without --idp there is no block: a visitor signs in at the identity origin before any app opens, so a door page without one would
+  // show apps nobody can use. A drop-in publish has no shell and leaves the _mw/door.json it copies as built, so it has no block either.
+  let apps = null;
+  if (!o.dropin && ownTrackerList.length && stun.length) {
+    const candidate = { rendezvous: ownTrackerList.slice(), stun: stun.slice(), idp };
+    const why = idp ? appsBlockProblems(candidate) : ['--idp is missing: a visitor signs in at the identity origin before an app opens'];
+    if (!why.length) apps = candidate;
+    else if (o.shell) note('no apps block for the door page: ' + why[0] + ' (docs/DEPLOY.md, "Apps at a door")');
+  }
   if (o.chatPanel && !o.dropin) note('--chat-panel: the panel reads window.mw, which only drop-in pages define (/_mw/mw.js); publish with --dropin');
   if (o.signinStatement !== null && o.signinStatement !== undefined) {
     const problem = statementProblem(String(o.signinStatement));
@@ -1250,6 +1303,14 @@ export async function publish(options) {
     });
     if (checked.warning) note(checked.warning);
     else if (checked.verified) log('loader    ' + relPath(resolve(o.dist)) + ' matches the signed release list (felinar ' + checked.version + ', list ' + checked.listHash.slice(0, 16) + '...)');
+  }
+
+  // ---- apps at a door: the shell's door list with the block, made before anything is written ------------------------------------
+  let shellDoorJson = null;
+  if (o.shell && apps) {
+    const doorFile = join(o.dist, '_mw', 'door.json');
+    if (existsSync(doorFile)) shellDoorJson = withAppsBlock(readFileSync(doorFile), apps);
+    else note('the loader in ' + relPath(resolve(o.dist)) + ' has no _mw/door.json to carry the apps block (run: node build.mjs); the shell is written without it');
   }
 
   // ---- key ----------------------------------------------------------------------------------
@@ -1739,6 +1800,8 @@ export async function publish(options) {
     if (!existsSync(join(o.dist, 'index.html'))) throw new ToolError('--shell needs the built loader in ' + relPath(o.dist) + ' (run: node build.mjs)');
     replaceTree(shellOut);
     copyTree(o.dist, shellOut);
+    // v0.3 apps at a door: the build's door.json with `apps` as its last key; every other file of the loader is as built.
+    if (shellDoorJson) writeFileAtomic(join(shellOut, '_mw', 'door.json'), shellDoorJson);
     {
       // v0.3: Cross-Origin-Opener-Policy: same-origin-allow-popups and Referrer-Policy: no-referrer for the loader pages.
       const headersFile = join(shellOut, '_headers');
@@ -1801,6 +1864,7 @@ export async function publish(options) {
     features,
     stun,
     turn,
+    apps, // v0.3 apps at a door: { rendezvous, stun, idp } or null
     widgets: widgets.map((w) => ({ name: w.name, path: w.path, integrity: w.integrity, script: w.script, element: w.element })),
     loaderHeaders: Object.assign({}, LOADER_HEADER_VALUES),
     size: { files: sizes.count, bytes: sizes.total, largest: sizes.largest ? { path: sizes.largest.path, length: sizes.largest.length } : null, torrentBytes: built.torrentFile.length, report: sizes.lines },
@@ -1829,6 +1893,9 @@ export async function publish(options) {
   if (nx) log('  nx        ' + nx + (nextOwner ? ' (commits to the next owner key ' + nextOwner.slice(0, 16) + '...)' : ''));
   if (ml) log('  ml        ' + ml);
   if (idp) log('  idp       ' + idp);
+  if (apps) {
+    log('  apps      ' + appsBlockLine(apps) + (shellDoorJson ? ' (in ' + relPath(join(outDir, 'shell', '_mw', 'door.json')) + ')' : ' (in summary.json; --shell writes it into the shell, --door-kit --door-site into a door kit)'));
+  }
   if (features.length) log('  features  ' + features.join(', ') + ' (own tracker ' + ownTrackers(tr).join(' ') + ', STUN ' + stun.join(' ') + ')');
   if (o.calls) log('            calls are off for readers until the ledger says so: node tools/ledger-admin.mjs cfg --key <owner.jwk> --file <ledger.json> --chat members --calls contacts');
   if (turn) {
@@ -1891,7 +1958,7 @@ export async function publish(options) {
   return {
     mode: summary.mode, name: o.name, btih, rendezvousBtih, anchorBtih, ledgerId, gen: genesis.h, genesis, genesisReused,
     owner: identity.pub, fingerprint: identity.fingerprint, pointer, record, magnet, files: torrentFiles, total,
-    torrentFile: built.torrentFile, outDir, outputs, warnings, verified, summary,
+    torrentFile: built.torrentFile, outDir, outputs, warnings, verified, summary, apps,
     link: link ? { record: link.record, text: link.text, scope: link.scope, ledgerId: link.ledgerId, bytes: link.bytes, primary: link.primary, fallbacks: link.fallbacks, web: link.web, doors: link.doors } : null, // C2 doors
   };
 }
