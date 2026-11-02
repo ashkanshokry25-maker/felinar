@@ -180,6 +180,35 @@ test('check-site: a tracker that does not allow the torrent says so; one that do
   assert.match(noClient.error, /no WebSocket client/);
 });
 
+test('check-site (2026-11-01): a tracker that drops the socket on a scrape instead of answering it counts as connected; one that drops it on the announce does not', async () => {
+  const { default: WebSocket, WebSocketServer } = await import('ws');
+  const factory = { kind: 'ws', WebSocket };
+  const serve = async (onMessage) => {
+    const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
+    await new Promise((r) => wss.once('listening', r));
+    closers.push(() => new Promise((r) => wss.close(() => r())));
+    wss.on('connection', (ws) => ws.on('message', (data) => onMessage(ws, JSON.parse(data.toString()))));
+    return 'ws://127.0.0.1:' + wss.address().port;
+  };
+  // what tracker.openwebtorrent.com did on the public tier: the stopped announce accepted in silence, the scrape ends the connection (1006)
+  const onScrape = await serve((ws, msg) => { if (msg.action === 'scrape') ws.terminate(); });
+  const r = await probeTracker(onScrape, { btih: 'a'.repeat(40), origin: 'http://127.0.0.1', timeoutMs: 5000, factory });
+  assert.equal(r.ok, true);
+  assert.match(r.note, /closed the connection instead of answering a scrape \(1006\)/);
+  // the counts of an announce reply are kept when the scrape is answered with a close
+  const counted = await serve((ws, msg) => {
+    if (msg.action === 'announce') ws.send(JSON.stringify({ action: 'announce', interval: 120, info_hash: msg.info_hash, complete: 2, incomplete: 1 }));
+    else ws.terminate();
+  });
+  const c = await probeTracker(counted, { btih: 'a'.repeat(40), origin: 'http://127.0.0.1', timeoutMs: 5000, factory });
+  assert.deepEqual([c.ok, c.seeders, c.leechers], [true, 2, 1]);
+  // a tracker that closes on the announce itself is still down
+  const onAnnounce = await serve((ws) => ws.terminate());
+  const bad = await probeTracker(onAnnounce, { btih: 'a'.repeat(40), origin: 'http://127.0.0.1', timeoutMs: 5000, factory });
+  assert.equal(bad.ok, false);
+  assert.match(bad.error, /closed the connection \(1006\)/);
+});
+
 test('check-site: expired and soon-expiring pointers', async () => {
   const s = await startSite({ exp: 30 });
   const soon = await checkSite(s.dev.url, { doh: false, timeoutMs: 5000, now: Date.now() + 25 * 86400000 });

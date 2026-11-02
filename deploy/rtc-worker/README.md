@@ -68,18 +68,25 @@ npx felinar publish ./site --name my-site --scope example.com --key owner.jwk --
 - Caps, per connection and in all: 32 swarms per connection (a browser uses one connection per tracker for all its
   torrents, so a pin node with many file swarms wants the Node tracker instead), 20 offers per announce, a 128 KiB
   message, and a connection that announced nothing for 20 minutes is closed by a sweep that runs every 5 minutes. The
-  announce interval the replies ask for is `INTERVAL_S` (120).
+  announce interval the replies ask for is `INTERVAL_S` (120), while `tools/tracker.mjs` asks for 24 s (bittorrent-tracker
+  divides its interval by five for WebSocket clients): peers still meet on a newcomer's first announce, so the difference
+  shows only when offers go unanswered, which a loader retries after 120 s here instead of 24; a lower `INTERVAL_S` costs
+  requests. A scrape must name its infohashes (a bare scrape answers an empty list, as the Node tracker does).
 - `/stats.json?token=<STATS_TOKEN>` prints `{ open, uploads, allowed, swarms, unlisted, peers, sockets, interval }` when
   `STATS_TOKEN` is set to a long random value; with it empty the counts are not served.
 
 ## What it costs, and the limits
 
 On the Workers Free plan the object may serve 100,000 requests a day: a connection counts as one, and 20 incoming
-WebSocket messages count as one (outgoing ones are free). A visitor announces each of its swarms every 120 s, so a visitor
-in three swarms (site, ledger, chat) costs about 110 requests a day: the plan covers roughly 900 visitors online all day,
-or many more who come and go. The object sleeps between messages (hibernation), so its running time stays near zero. One
-object holds every swarm; above those numbers, or for a hub, run one Worker per site. Cloudflare's own plan limits and
-prices are at [developers.cloudflare.com/durable-objects/platform/pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
+WebSocket messages count as one (outgoing ones are free). A visitor announces each of its swarms every 120 s, and its loader
+also sends an announce without offers on a socket that was silent for 55 s (`wire.keepaliveAnnounceMs` in
+`src/loader/config.js`), so a visitor costs 110 to 180 requests a day: 108 with three swarms (site, ledger, chat) whose
+announces are spread out, 180 with them in phase, 144 with two swarms. The plan covers roughly 550 to 900 visitors online all
+day, or many more who come and go; these numbers are computed from the code, not measured. The object sleeps between messages
+(hibernation), so its running time stays near zero; a wake rebuilds the connections from the state kept on the sockets, and
+that state is written again at least every 5 minutes so a live connection is not swept as idle after a wake. One object holds
+every swarm; above those numbers, or for a hub, run one Worker per site. Cloudflare's own plan limits and prices are at
+[developers.cloudflare.com/durable-objects/platform/pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
 
 What it doesn't do: no per-IP quota, no `Origin` allow list, no metrics beyond `/stats.json`, no server ping (the loader
 re-announces within the interval, which keeps a socket alive), no hub lanes (list a hub's follow lane by hand, `tools/tracker.mjs`
@@ -98,5 +105,10 @@ On 2026-11-01: the unit tests of `test/unit/deploy-rtc-worker.test.mjs` (the pro
 list and the caps, the state kept on a socket and restored after a restart, the sweep; the Worker's routes and the object
 through a fake platform), and `wrangler dev` 4.156 (the local Workers runtime) with two raw WebSocket clients: announce
 replies, an offer passed to the other peer, an answer passed back, scrape, a refused unlisted infohash, `/healthz` and
-`/stats.json`. Not tested: a deployment on Cloudflare itself, a real loader against it, hibernation on the real platform,
-and load.
+`/stats.json`. Later the same day, a real loader on loopback: a site published with the Worker under `wrangler dev` as its only
+tracker, two isolated headless Chromium visitors that met through it in about 200 ms, joined the site and ledger swarms and
+synced a signed post in under 4 s, and `check-site --tr ws://127.0.0.1:8787` passing; 21 raw protocol checks against
+bittorrent-tracker 11.2.3's answers found three differences, fixed the same day (an answer no longer turns a seeder into a
+leecher in the counts, a bare scrape lists nothing, `event: "empty"` is an update), and the fake platform showed a fourth,
+also fixed (the state on a socket is written again at least every 5 minutes, so a sweep after a wake keeps a live connection).
+Not tested: a deployment on Cloudflare itself, hibernation on the real platform, and load.

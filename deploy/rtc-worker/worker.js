@@ -78,6 +78,7 @@ export class Rendezvous {
     if (message.length > MAX_MESSAGE_BYTES) { ws.close(1009, 'message too large'); return; }
     const conn = this.connFor(ws);
     const r = this.core.message(conn, message);
+    // changed: the swarms moved, or the saved time is ATTACHMENT_REFRESH_S old (rtc.js), so a sweep after a wake sees a live socket
     if (r.changed) { try { ws.serializeAttachment(this.core.attachmentOf(conn)); } catch (_) { /* the swarm cap keeps it under the limit */ } }
   }
 

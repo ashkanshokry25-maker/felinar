@@ -13,7 +13,8 @@
 //   announce: the swarm's counts come back ({ action, interval, info_hash, complete, incomplete }); each offer the message
 //   carries is passed to one other peer of the swarm as { action: 'announce', offer, offer_id, peer_id, info_hash }; an
 //   answer is passed to the peer it names (to_peer_id) and gets no reply; 'stopped' leaves the swarm.
-//   scrape: { action: 'scrape', files: { <info_hash>: { complete, incomplete, downloaded } }, flags }.
+//   scrape: { action: 'scrape', files: { <info_hash>: { complete, incomplete, downloaded } }, flags } for the infohashes it names; a
+//   bare scrape answers files: {} (as tools/tracker.mjs does), so nobody can list the swarms this rendezvous serves.
 //   anything else, or a malformed message: { 'failure reason': <why> } (with action and info_hash when they are known).
 
 /** The announce interval the reply asks for, in seconds (bittorrent-tracker's default for WebSocket clients). */
@@ -30,8 +31,14 @@ export const MAX_MESSAGE_BYTES = 131072;
 export const PEER_TTL_S = 20 * 60;
 /** The largest offer SDP accepted, in characters. */
 export const MAX_SDP_CHARS = 16384;
-const SCRAPE_ALL_MAX = 100;
-const EVENTS = new Set(['started', 'stopped', 'completed', 'update', 'paused']);
+/**
+ * A live connection's saved state is written again at least this often (message() reports it as changed), so the time it carries
+ * stays fresh: an object rebuilt from the attachments (a wake from hibernation, a deployment) restores that time, and its sweep must
+ * not take a connection that announced a minute ago for one idle since its last join (seen on the fake platform on 2026-11-01).
+ */
+export const ATTACHMENT_REFRESH_S = 5 * 60;
+// 'empty' is what some clients send for a plain update; bittorrent-tracker treats it as 'update', and so does this.
+const EVENTS = new Set(['started', 'stopped', 'completed', 'update', 'paused', 'empty']);
 
 /** bin2hex(s) -> the 40-hex text of a 20-byte "binary string" (one char per byte), or null for anything else. */
 export function bin2hex(s) {
@@ -103,8 +110,8 @@ export function messageProblem(msg) {
   return 'invalid action in WS request: ' + String(msg.action);
 }
 
-export function createRendezvous({ allow = new Set(), uploads = false, open = false, intervalS = INTERVAL_S, maxUnlisted = MAX_UNLISTED_SWARMS, maxPerSocket = MAX_SWARMS_PER_SOCKET, now = () => Date.now() } = {}) {
-  const conns = new Map(); // conn -> { peerId: hex|null, swarms: Map<hex, { complete }>, last: ms }
+export function createRendezvous({ allow = new Set(), uploads = false, open = false, intervalS = INTERVAL_S, maxUnlisted = MAX_UNLISTED_SWARMS, maxPerSocket = MAX_SWARMS_PER_SOCKET, refreshS = ATTACHMENT_REFRESH_S, now = () => Date.now() } = {}) {
+  const conns = new Map(); // conn -> { peerId: hex|null, swarms: Map<hex, { complete }>, last: ms, saved: ms (when attachmentOf() last read it) }
   const swarms = new Map(); // hex -> { listed, peers: Map<hex, { conn, complete }> }
   let unlisted = 0;
 
@@ -143,7 +150,7 @@ export function createRendezvous({ allow = new Set(), uploads = false, open = fa
 
   /** attach(conn, saved): a new connection, or one restored from its saved state ({ p, s: [[hex, complete], ...], t }). */
   function attach(conn, saved) {
-    const st = { peerId: null, swarms: new Map(), last: now() };
+    const st = { peerId: null, swarms: new Map(), last: now(), saved: 0 };
     conns.set(conn, st);
     if (saved && typeof saved === 'object') {
       if (typeof saved.p === 'string' && HEX40_RE.test(saved.p)) st.peerId = saved.p;
@@ -160,6 +167,7 @@ export function createRendezvous({ allow = new Set(), uploads = false, open = fa
         }
       }
     }
+    st.saved = st.last;
     return st;
   }
 
@@ -168,6 +176,7 @@ export function createRendezvous({ allow = new Set(), uploads = false, open = fa
     const st = stateOf(conn);
     const s = [];
     for (const [hex, m] of st.swarms) s.push([hex, m.complete ? 1 : 0]);
+    st.saved = st.last;
     return { p: st.peerId, s, t: Math.floor(st.last / 1000) };
   }
 
@@ -193,7 +202,9 @@ export function createRendezvous({ allow = new Set(), uploads = false, open = fa
       return;
     }
     s = swarmFor(hex, true);
-    const complete = Number(msg.left) === 0;
+    // A peer that announced left 0 stays complete (bittorrent-tracker's Swarm only ever promotes): the announce that carries an
+    // answer has no left, and it must not turn a seeder into a leecher in the counts for an interval (seen 2026-11-01).
+    const complete = (member !== null && member.peerId === peerHex && member.complete) || Number(msg.left) === 0;
     if (member && member.peerId !== peerHex) s.peers.delete(member.peerId);
     s.peers.set(peerHex, { conn, complete });
     st.swarms.set(hex, { complete, peerId: peerHex });
@@ -215,7 +226,9 @@ export function createRendezvous({ allow = new Set(), uploads = false, open = fa
   }
 
   function scrape(conn, msg) {
-    const list = msg.info_hash === undefined || msg.info_hash === null ? Array.from(swarms.keys()).slice(0, SCRAPE_ALL_MAX) : (Array.isArray(msg.info_hash) ? msg.info_hash : [msg.info_hash]).map(bin2hex);
+    // A scrape must name its infohashes, as tools/tracker.mjs requires: a bare scrape would list every swarm this rendezvous serves,
+    // in uploads mode the unlisted file, media and member-ledger swarms among them, to anyone who can connect (seen 2026-11-01).
+    const list = msg.info_hash === undefined || msg.info_hash === null ? [] : (Array.isArray(msg.info_hash) ? msg.info_hash : [msg.info_hash]).map(bin2hex);
     const files = {};
     for (const hex of list) {
       const s = swarms.get(hex);
@@ -225,7 +238,10 @@ export function createRendezvous({ allow = new Set(), uploads = false, open = fa
     send(conn, { action: 'scrape', files, flags: { min_request_interval: intervalS } });
   }
 
-  /** message(conn, text) -> { changed, problem }: handles one text frame; changed says the saved state of conn moved. */
+  /**
+   * message(conn, text) -> { changed, problem }: handles one text frame; changed says the saved state of conn moved (its swarms, or
+   * its time: a well-formed message refreshRS seconds or more after attachmentOf() last read the state counts as a change).
+   */
   function message(conn, text) {
     const st = stateOf(conn);
     st.last = now();
@@ -243,7 +259,7 @@ export function createRendezvous({ allow = new Set(), uploads = false, open = fa
     if (msg.action === 'announce') announce(conn, st, msg);
     else scrape(conn, msg);
     const after = st.peerId + '|' + Array.from(st.swarms, ([h, m]) => h + (m.complete ? '+' : '-')).join(',');
-    return { changed: before !== after, problem: null };
+    return { changed: before !== after || st.last - st.saved >= refreshS * 1000, problem: null };
   }
 
   /** close(conn): the connection is gone; every swarm it was in forgets it. */
