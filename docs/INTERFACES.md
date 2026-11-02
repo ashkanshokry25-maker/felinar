@@ -1881,7 +1881,7 @@ build.mjs             --update-lock refuses a provenance package's new release w
 > **Status: built on 2026-11-01, not yet reviewed (unreleased).** Direct messages and rooms on the bare door page. Tested with unit tests
 > on loopback (`test/unit/deploy-rtc-pair`, `deploy-rtc-worker`, `tools-tracker-pair`, `loader-apps`, `loader-apps-format`,
 > `loader-apps-rooms`, `loader-apps-ui`, `loader-apps-tracker`, `tools-publish-apps`, `tools-dev-server-apps` and the apps cases of
-> `loader-doors` and `tools-check-door`). Not run: the Cloudflare Worker with pairing on, a real phone, Safari, Firefox. The owner-facing
+> `loader-doors` and `tools-check-door`). Run on the public tier (the Cloudflare Worker with pairing on) in headless Chromium on 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4). Not run: a real phone, Safari, Firefox. The owner-facing
 > description is [APPS.md](APPS.md).
 
 ### The apps block of `/_mw/door.json`, and the tools that write it

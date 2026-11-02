@@ -2150,7 +2150,7 @@ folded in here until the code does it; R 5.4.7 lists those.
 
 > **Status: built on 2026-11-01, not yet reviewed.** Contracts for the apps that a door offers on its bare door page: direct messages and
 > rooms, by a short code. Tested with unit tests on loopback (fakes, the real pairing core, the Node tracker with real WebSocket clients)
-> and in two scripted Chromium runs on loopback (two visitors; a room of four). Not run: the Cloudflare Worker with pairing on, a real
+> and in two scripted Chromium runs on loopback (two visitors; a room of four). Run on the public tier (the Cloudflare Worker with pairing on) in headless Chromium on 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4). Not run: a real
 > phone, Safari, Firefox, a screen reader, two networks. The new cryptographic code has had no outside review (R 2.19). What is not built
 > is marked **(proposed)**. A review of the protocol and the privacy claims on 2026-11-02 found one blocker (the roster was readable by a
 > connection to the lane that was never accepted) and eight smaller defects; all are fixed, and the rest is in APPS.md, "Known limits". The

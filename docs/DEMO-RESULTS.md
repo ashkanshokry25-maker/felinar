@@ -46,7 +46,7 @@ G1 to G18 are the gate as ARCHITECTURE section 12 lists it, plus the two phone c
 G19 to G22 are the drills and open items that also wait for real devices (ARCHITECTURE section 14,
 [OPERATIONS.md](OPERATIONS.md), [ROADMAP.md](ROADMAP.md)).
 
-The v0.3 rows (G-ID, G-SI, G-CH, G-MD, G-SC and G-SO) are in their own table near the end of this page. The v0.3 C2 rows (G-PS, G-ZS and G-CL, proposed) follow them.
+The v0.3 rows (G-ID, G-SI, G-CH, G-MD, G-SC and G-SO) are in their own table near the end of this page. The v0.3 C2 rows (G-PS, G-ZS and G-CL, proposed) follow them. The rows for the apps on the door page (G-AP) come last.
 
 ## How to record a result
 
@@ -607,3 +607,30 @@ phone, a desktop browser by hand, a real Safari, passkeys, the Worker on Cloudfl
 | G-CL-7 | the share of pairs that needed the relay, and relayed bytes a minute |
 | G-CL-8 | seconds to recover audio after each impairment |
 | G-CL-9 | for each call card, how many people said correctly what it does and who sees their IP address, and the wording changes that follow |
+
+## Apps at a door: rows to add
+
+> **Status: the apps are built and not released, and no row below has run on a real device.** The apps are the direct messages and rooms
+> of the door page ([APPS.md](APPS.md)). On 2026-11-02, between 03:55 and 04:05 ET, headless Chromium 156 under Playwright ran against the
+> public tier. Its facts sit in the cells below as harness facts, and they never make a row pass. The demo site and the demo door run the
+> apps as a test build, not a signed release, until 0.3.1 is released. A phone, a real Safari and pairing in WebKit or Firefox have not run.
+
+Each row names the real devices that settle it, and the harness run of 2026-11-02 is in its Date, Versions and Measured cells. How to record a
+result is the same as above. No pass threshold is invented here: record the numbers and the outcomes listed in the second table, and a row
+passes when the claim it tests is confirmed on those devices or the document that states the claim is corrected.
+
+| Row | What | Device and browser | Result | Date | Versions | Measured | Issue |
+|---|---|---|---|---|---|---|---|
+| G-AP-1 | A door that carries the apps block serves the build with it, and its door page loads and renders | iPhone Safari, Android Chrome, desktop Firefox and Safari | not yet run | 2026-11-02 (harness only) | Playwright Chromium 156, headless, macOS, the public tier: the demo door on a Cloudflare Pages project, loader build bbcb82098cda (a test build, not a signed release) | Harness only, not this row: the demo door serves the same build as the demo site with the apps block (rendezvous 1, STUN 1, identity page), and `check-site --door` found 0 failures. The operator probe of G-AP-4 loaded the door page in 0.3 s and rendered it in 0.6 s. A phone, a real Safari and Firefox have not run. |  |
+| G-AP-2 | Two people sign in for the visit at a door, pair by code, connect, and send a message each way | iPhone Safari with Android Chrome on two networks; desktop Safari and Firefox | not yet run | 2026-11-02 (harness only) | Playwright Chromium 156, headless, macOS, two separate browser processes with fresh profiles, the public tier: the demo door and the identity page on Cloudflare Pages projects, the demo's own rendezvous (a Cloudflare Pages front over a Worker with a Durable Object), loader build bbcb82098cda (a test build, not a signed release); the same pairing ran earlier on the lab tier (a second door and rendezvous with the same build) | Harness only, not this row: both visitors signed in for the visit through the identity page, the code was read from the first page's screen, the second page knocked with it, and the first page showed the request. Before the accept, the count of `RTCPeerConnection` objects was 0 in both pages, and the rendezvous had counted the knock and no lane and no peer. After the accept, both sides connected in 0.5 s (`RTCPeerConnection` counts 4 and 3), and the rendezvous counted one lane and two peers. A formatted message with a link crossed each way, the sender saw "delivered" and then "read", and the pages logged no errors. A phone, a real Safari and pairing in WebKit or Firefox have not run, and both browsers ran on one computer, so no pair has crossed two separate networks. |  |
+| G-AP-3 | The site is republished with the rendezvous and STUN, its pointer names them, and `check-site` passes | any desktop browser | not yet run | 2026-11-02 (harness only) | loader build bbcb82098cda (a test build, not a signed release); Playwright Chromium 156, headless, macOS; the demo site on a GitHub Pages user site, the demo's own rendezvous on Cloudflare (a Pages front over a Worker with a Durable Object), the identity page and the door on Cloudflare Pages projects | Harness only, not this row: the demo site was republished from the apps build, and its pointer names the demo's own rendezvous first, beside two public trackers, a STUN server (Cloudflare's), the identity page, `org=` naming the site's own address and two signed doors. `check-site` found 0 failures and 1 warning (the GitHub Pages 600 s cache, as in G-ZS4), and all three trackers connected: `check-site` now reads a tracker that closes the socket after a scrape as connected (fixed in `check-site`, the changelog). No desktop browser has run it by hand. |  |
+| G-AP-4 | An operator probe checks the door with its pairing check, and the site | any desktop browser | not yet run | 2026-11-02 (harness only) | an operator probe outside this repository; Playwright Chromium 156, headless, macOS; the public tier, loader build bbcb82098cda (a test build, not a signed release) | Harness only, not this row: at the demo door with pairing, the probe passed 5 of 5 checks (page loaded 0.3 s, rendered 0.6 s; tracker reachable; sign-in 1.3 s median; pairing: code 1.4 s, knock 1.7 s, accept 1.3 s, both connected 0.5 s, a message each way 0.1 s). At the demo site it passed 4 of 4 (loaded; rendered 0.7 s; 3 of 3 trackers; peers met in 1 of 1 pairs, the first peer after 0.4 s). No browser other than headless Chromium has run it. |  |
+
+### What to record in each apps row
+
+| Row | What to record |
+|---|---|
+| G-AP-1 | whether the door page showed the apps home or only the box for a link; the failures and warnings of `check-site --door`; seconds to load and to render |
+| G-AP-2 | on each device, whether sign-in for the visit worked, whether a code showed, and whether the knock and the request showed; the count of `RTCPeerConnection` objects before the accept (0 is expected); seconds from the accept to "Connected to you now"; whether a formatted message with a link crossed each way and showed "delivered" and "read"; page errors; the rendezvous's counts of knocks, lanes and peers before and after the accept |
+| G-AP-3 | the order of the rendezvous, the trackers, the STUN server, the identity page, `org=` and the doors in the pointer; the failures and warnings of `check-site`; how many trackers connected |
+| G-AP-4 | how many checks passed out of those run at the door and at the site, and the seconds each step took |
