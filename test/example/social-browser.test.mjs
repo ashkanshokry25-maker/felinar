@@ -457,6 +457,9 @@ describe('Social in a browser', { skip: pw ? false : 'playwright is not installe
     assert.match(await share.locator('.who').textContent(), /^Ada \(.{8}\)shared/);
     assert.equal(await share.locator('.post-body').first().textContent(), 'worth a read');
     assert.equal(await share.locator('blockquote .post-body').textContent(), 'Hello from Bo');
+    // The notice to the author goes out after the share lands in the ledger (shareItem awaits the append, then notify runs through
+    // chat.sendNotice), so wait for the recorded send before reading it: on a loaded runner the article renders first.
+    await waitFor(page, () => __mwMock.calls.some((c) => c[0] === 'chat.dm.send' && c[2] && typeof c[2].text === 'string' && c[2].text.includes('"k":"share"')));
     const notices = (await calls(page, 'chat.dm.send')).map((c) => c[2].text).filter((t) => t.includes('"k":"share"'));
     assert.equal(notices.length, 1, 'the author of the shared post is told');
     // A mention picker puts the short id in the text; the counter and the limit follow.

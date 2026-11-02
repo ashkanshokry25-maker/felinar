@@ -95,7 +95,10 @@ export const SHELL_CACHE_PREFIX = 'mw-shell-';
  * the door page (it shows other origins' sites, which must never become this origin's meta.current).
  */
 export const DOOR_PAGE_PATH = '/_mw/open.html';
+/** 0.3.1: the door page's address on a host with clean URLs (src/common/pointer.js DOOR_PAGE_ALIAS; the worker has no imports). */
+export const DOOR_PAGE_ALIAS = '/_mw/open';
 export const DOOR_JSON_PATH = '/_mw/door.json';
+const isDoorPage = (p) => p === DOOR_PAGE_PATH || p === DOOR_PAGE_ALIAS;
 
 /** IndexedDB names shared with src/loader/cache.js (the SW re-implements a minimal reader). */
 export const DB_NAME = 'mw-sites';
@@ -2033,7 +2036,7 @@ export function createCore(options) {
     if (under(p, paths.webseedRewrite)) return serveWebseed(event, req, url);
     const hub = splitHub(p);
     if (hub && !foreign) return serveHub(event, req, url, hub);
-    if (p === DOOR_PAGE_PATH && !foreign && isNavigation(req)) return serveDoorPage(event, req); // C2 doors
+    if (isDoorPage(p) && !foreign && isNavigation(req)) return serveDoorPage(event, req); // C2 doors (0.3.1: /_mw/open too)
     if (under(p, paths.assets)) return serveAsset(event, req, url);
     if (!state.initDone) {
       if (isNavigation(req) || foreign) await settle();
@@ -2153,7 +2156,7 @@ export function createCore(options) {
       } catch (_) {
         from = null;
       }
-      if (from === DOOR_PAGE_PATH) return { ok: false, error: 'door-page' };
+      if (isDoorPage(from)) return { ok: false, error: 'door-page' };
     }
     await settle();
     const prev = state.current && state.current.btih === btih ? state.current : null;

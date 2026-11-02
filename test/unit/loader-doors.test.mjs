@@ -17,13 +17,13 @@ import {
   DOOR_JSON_PATH, DOOR_COPIES_MAX,
 } from '../../src/loader/doors.js';
 import { parseFragment, resolveMode, sdkMode, pastedFragment, sharedFragment, __c2Doors } from '../../src/loader/app.js';
-import { signPointer, formatPointer, parsePointer, verifyPointer, formatLightLink, DOOR_PAGE_PATH } from '../../src/common/pointer.js';
+import { signPointer, formatPointer, parsePointer, verifyPointer, formatLightLink, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../../src/common/pointer.js';
 import { generateKeyPair, exportPublicKey } from '../../src/chain/crypto.js';
 import { encodeGenesis } from '../../src/loader/personal-site.js';
 import { DOOR_TEXT, doorText } from '../../src/loader/strings.js';
 import { createDoorsUi, doorStateText } from '../../src/loader/ui.js';
 import { FakeDocument } from './dropin-fake-dom.mjs';
-import { createCore, PROTO, DOOR_PAGE_PATH as SW_DOOR_PAGE, DOOR_JSON_PATH as SW_DOOR_JSON } from '../../src/sw/core.js';
+import { createCore, PROTO, DOOR_PAGE_PATH as SW_DOOR_PAGE, DOOR_PAGE_ALIAS as SW_DOOR_ALIAS, DOOR_JSON_PATH as SW_DOOR_JSON } from '../../src/sw/core.js';
 import { doorManifestJson, doorPageHtml, doorJson, precacheList, manifestJson, DOOR_JSON } from '../../build.mjs';
 
 const BTIH = '6b3a0d1c5e7f90214365879aabbccddeeff00112';
@@ -50,14 +50,44 @@ test('doorCandidates: current, last good, owner (org=), guest (dr=), ledger, hin
     current: 'door-a.example.org', lastGood: 'door-c.example.net', record: rec,
     ledgerDoors: ['ledger.example.org', 'door-b.example.org', 'Bad Host'], hints: ['hint.example.org', '10.0.0.1', 'localhost'],
   });
+  // door-c is in dr= too: since 2026-11-01 it keeps its place as the last good door and takes the signed kind (the next test)
   assert.deepEqual(c.map((x) => [x.host, x.kind]), [
-    ['door-a.example.org', 'current'], ['door-c.example.net', 'last-good'], ['example.com', 'owner'], ['door-b.example.org', 'guest'],
+    ['door-a.example.org', 'current'], ['door-c.example.net', 'guest'], ['example.com', 'owner'], ['door-b.example.org', 'guest'],
     ['ledger.example.org', 'ledger'], ['hint.example.org', 'hint'],
   ]);
+  assert.equal(c[1].lastGood, true);
   assert.equal(c[0].origin, 'https://door-a.example.org');
   const many = doorCandidates({ current: 'a.example', ledgerDoors: Array.from({ length: 20 }, (_, i) => 'l' + i + '.example') });
   assert.equal(many.length, 12);
   assert.deepEqual(doorCandidates({ current: 'Bad', record: null }), []);
+});
+
+test('doorCandidates (public tier, 2026-11-01): the last good door that the owner also signed or listed keeps its place and takes that kind, with lastGood; the panel lists it and byteDoors keeps it', async () => {
+  const owner = await newOwner();
+  const rec = await hubRecord(owner); // org= example.com; dr= door-b.example.org, door-c.example.net
+  // the site last loaded from a dr= door: at a second door the panel said "Last loaded from" and "No other address is known"
+  const guest = doorCandidates({ current: 'door-a.example.org', lastGood: 'door-b.example.org', record: rec, ledgerDoors: ['ledger.example.org'] });
+  assert.deepEqual(guest.map((x) => [x.host, x.kind, x.lastGood === true]), [
+    ['door-a.example.org', 'current', false], ['door-b.example.org', 'guest', true], ['example.com', 'owner', false], ['door-c.example.net', 'guest', false], ['ledger.example.org', 'ledger', false],
+  ], 'second in the order, as the last good door, with the signed kind');
+  const m = doorsPanelModel({ candidates: guest });
+  assert.deepEqual([m.lastGood.host, m.guest.map((x) => x.host), m.shown], ['door-b.example.org', ['door-b.example.org', 'door-c.example.net'], true]);
+  assert.equal(doorLinkFor(guest[1], { fragment: '#v%3Dmw1', portable: true }), 'https://door-b.example.org/_mw/open.html#v%3Dmw1');
+  assert.deepEqual(doorsBannerModel({ candidates: guest }).hosts.map((x) => [x.host, x.kind]), [['door-b.example.org', 'guest'], ['example.com', 'owner'], ['door-c.example.net', 'guest']]);
+  assert.deepEqual(byteDoors(guest, { record: rec }).map((x) => x.host), ['door-b.example.org', 'example.com'], 'the last good door still serves bytes');
+  // an org= door and a ledger door as the last good door; a link's hint never upgrades it
+  const ownerLast = doorCandidates({ current: 'door-a.example.org', lastGood: 'example.com', record: rec });
+  assert.deepEqual(ownerLast.slice(0, 2).map((x) => [x.host, x.kind, x.lastGood === true]), [['door-a.example.org', 'current', false], ['example.com', 'owner', true]]);
+  assert.equal(doorLinkFor(ownerLast[1], { portable: false }), 'https://example.com/', 'an owner door that is also the last good door opens at its root');
+  const ledgerLast = doorCandidates({ current: 'door-a.example.org', lastGood: 'ledger.example.org', ledgerDoors: ['ledger.example.org'], hints: ['ledger.example.org'] });
+  assert.deepEqual(ledgerLast.map((x) => [x.host, x.kind, x.lastGood === true]), [['door-a.example.org', 'current', false], ['ledger.example.org', 'ledger', true]]);
+  const hintLast = doorCandidates({ current: 'door-a.example.org', lastGood: 'hint.example.org', hints: ['hint.example.org'] });
+  assert.deepEqual(hintLast.map((x) => [x.host, x.kind]), [['door-a.example.org', 'current'], ['hint.example.org', 'last-good']], 'a hint is weaker than the last good door');
+  assert.equal(doorsPanelModel({ candidates: hintLast }).hint.length, 0);
+  // the plain last good door: the flag, and nothing else changes
+  const plain = doorCandidates({ current: 'a.example', lastGood: 'b.example' });
+  assert.deepEqual(plain[1], { host: 'b.example', origin: 'https://b.example', kind: 'last-good', lastGood: true });
+  assert.deepEqual(doorsPanelModel({ candidates: plain }).lastGood.host, 'b.example');
 });
 
 test('hintAllowed: an unsigned hint must be a public host, except loopback hints on a loopback page (development)', () => {
@@ -426,8 +456,12 @@ test('resolveMode: /_mw/open.html is the door page (mode door, with or without a
   assert.equal(m.mode, 'door');
   assert.equal(m.fragment.kind, 'btih');
   assert.deepEqual(resolveMode(loc(DOOR_PAGE_PATH)), { mode: 'door', fragment: null, path: '/' });
+  // 0.3.1: a host with clean URLs (Cloudflare Pages) answers the door page at /_mw/open: the same mode there
+  assert.deepEqual(resolveMode(loc(DOOR_PAGE_ALIAS)), { mode: 'door', fragment: null, path: '/' });
+  assert.equal(resolveMode(loc(DOOR_PAGE_ALIAS, '#btih:' + BTIH), { metaPointer: 'v=mw1; btih=' + 'f'.repeat(40), hubMeta: 'shared' }).mode, 'door');
   assert.equal(resolveMode(loc('/')).mode, 'shell');
   assert.equal(resolveMode(loc('/_mw/open.htm')).mode, 'shell');
+  assert.equal(resolveMode(loc('/_mw/open/')).mode, 'shell');
   assert.equal(sdkMode('door'), 'hub-shared');
   assert.equal(sdkMode('hub-sub'), 'hub');
 });
@@ -672,6 +706,36 @@ test('SW core: /_mw/door.json always goes to the network; the door page comes fr
   assert.deepEqual(cold.fetches, ['https://door.test' + SW_DOOR_PAGE]);
 });
 
+test('SW core (0.3.1): a navigation to /_mw/open (a host with clean URLs) is the door page too, from the precache; mw-set-current from it is refused', async () => {
+  assert.equal(SW_DOOR_ALIAS, DOOR_PAGE_ALIAS);
+  const { core } = swCore({ cached: { [SW_DOOR_PAGE]: '<!doctype html><title>door</title>' } });
+  const ev = swEvent(SW_DOOR_ALIAS, { navigate: true });
+  assert.equal(core.owns(ev), true);
+  const res = await core.handle(ev);
+  assert.equal(res.status, 200);
+  assert.equal(await res.text(), '<!doctype html><title>door</title>');
+  assert.equal(res.headers.get('content-security-policy'), "frame-ancestors 'none'");
+  assert.equal(res.headers.get('x-frame-options'), 'DENY');
+  const replies = [];
+  core.message({ data: { proto: PROTO, type: 'mw-set-current', btih: BTIH }, source: { id: 'door-client', url: 'https://door.test' + SW_DOOR_ALIAS }, ports: [{ postMessage: (m) => replies.push(m) }], waitUntil (p) { this.p = p } });
+  await sleep(20);
+  assert.equal(replies[0].ok, false);
+  assert.equal(replies[0].error, 'door-page');
+  assert.equal(core.inspect().current, null);
+});
+
+test('doorJsonFor / build doorJson (0.3.1): door.json names the clean URL of the door page (pageAlias), which check-site --door reads', () => {
+  const dj = doorJsonFor({ version: '0.3.1', buildId: 'abcdef123456', files: [] });
+  assert.equal(dj.page, DOOR_PAGE_PATH);
+  assert.equal(dj.pageAlias, DOOR_PAGE_ALIAS);
+  assert.deepEqual(Object.keys(dj), ['v', 'kind', 'name', 'version', 'buildId', 'page', 'pageAlias', 'files']);
+  const built = JSON.parse(doorJson(new Map([['index.html', Buffer.from('x')]]), { version: '0.3.1', buildId: 'abcdef123456' }).toString('utf8'));
+  assert.equal(built.pageAlias, DOOR_PAGE_ALIAS);
+  assert.deepEqual(Object.keys(built), Object.keys(dj));
+  const entry = { bytes: 1, sha256: 'a'.repeat(64), sri: 'sha256-' + Buffer.alloc(32, 1).toString('base64') };
+  assert.equal(checkDoorJson(Object.assign({}, dj, { files: { '/_mw/open.html': entry, '/_mw/loader.js': entry, '/mw-sw.js': entry } })).ok, true, 'an optional field changes nothing for an older checker');
+});
+
 test('SW core: the door page never sets this origin\'s current site (mw-set-current from it is refused)', async () => {
   const { core } = swCore({});
   const replies = [];
@@ -708,14 +772,14 @@ test('createDoorsUi: the Doors section lists the doors with plain links, and "Co
   ui.onAction((a, p) => actions.push([a, p]));
   assert.equal(ui.node.hidden, true);
   ui.setModel({
-    shown: true, current: { host: 'door-a.example', state: 'down' }, lastGood: { host: 'door-c.example' },
+    shown: true, current: { host: 'door-a.example', state: 'down' }, lastGood: { host: 'door-c.example', state: 'up' },
     owner: [{ host: 'example.com', state: 'up', url: 'https://example.com/' }], guest: [{ host: 'door-b.example', state: null, url: 'https://door-b.example/_mw/open.html#v%3D' }],
     ledger: [], hint: [], link: 'https://door-a.example/_mw/open.html#v%3D', build: { version: '0.3.0', id: 'abcdef123456' },
   });
   assert.equal(ui.node.hidden, false);
   const text = ui.node.textContent;
   assert.match(text, /This address: door-a\.example \(not answering\)/);
-  assert.match(text, /Last loaded from: door-c\.example/);
+  assert.match(text, /Last loaded from: door-c\.example \(answering\)/, 'the last good door shows its state too (2026-11-01)');
   assert.match(text, /The owner's addresses/);
   assert.match(text, /Doors the owner signed/);
   assert.match(text, /Loader 0\.3\.0, build abcdef123456/);

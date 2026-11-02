@@ -725,7 +725,7 @@ test('code review round 1: lo= names the ledger owner after a rotation; the ledg
 
 import {
   isDoorHost, isLoopbackDoorHost, doorOrigin, hostOfOrigin, doorsOf, parseDoors, parseHintList, parseLinkFragment,
-  normalizeRecordText, formatLightLink, parseLightLink, DOOR_MAX, HINT_MAX, DOORS_TOTAL_MAX, DOOR_PAGE_PATH, FELINAR_SCHEME, ORG_MAX,
+  normalizeRecordText, formatLightLink, parseLightLink, DOOR_MAX, HINT_MAX, DOORS_TOTAL_MAX, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS, isDoorPagePath, FELINAR_SCHEME, ORG_MAX,
 } from '../../src/common/pointer.js';
 import { readFileSync as readVectorFile } from 'node:fs';
 
@@ -937,6 +937,15 @@ test('formatLightLink / parseLightLink: the record arrives exactly as signed (sp
   assert.ok(formatLightLink({ door: '127.0.0.1:8081', record: text }).startsWith('http://127.0.0.1:8081/_mw/open.html#'));
   assert.equal(parseLightLink('https://door.example/#' + encodeURIComponent(text)).path, '/');
   assert.equal(parseLightLink('https://door.example/other.html#' + encodeURIComponent(text)).error, 'path');
+  // 0.3.1: the door page at a clean URL (Cloudflare Pages answers /_mw/open.html with a 308 to /_mw/open) is the same page
+  const clean = parseLightLink('https://door.example' + DOOR_PAGE_ALIAS + '#' + encodeURIComponent(text));
+  assert.equal(clean.path, DOOR_PAGE_ALIAS);
+  assert.equal(clean.record, text);
+  assert.equal(parseLightLink('https://door.example/_mw/open/#' + encodeURIComponent(text)).error, 'path');
+  assert.equal(isDoorPagePath(DOOR_PAGE_PATH), true);
+  assert.equal(isDoorPagePath(DOOR_PAGE_ALIAS), true);
+  assert.equal(isDoorPagePath('/_mw/open.htm'), false);
+  assert.equal(isDoorPagePath('/_mw/open/'), false);
   assert.equal(parseLightLink('ftp://door.example/#x').error, 'not-a-link');
   assert.equal(parseLightLink('https://door.example/_mw/open.html').error, 'no-record');
   assert.equal(parseLightLink('').error, 'empty');

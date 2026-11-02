@@ -21,9 +21,31 @@ export function createIdpWorker({ buildId = BUILD_ID, precache = PRECACHE, cache
   const name = CACHE_PREFIX + buildId;
   const base = new URL(scope);
 
+  /**
+   * The precache, one plain 200 copy per path. A host with clean URLs (Cloudflare Pages) answers ./index.html and
+   * ./signin/index.html with a redirect to ./ and ./signin/, and a cached response that came through a redirect is refused by
+   * the browser for a navigation (net::ERR_FAILED on every sign-in after the first, seen on 2026-11-01), so the copy is stored
+   * without the redirect, under the path the list names. A file that does not answer 200 fails the install, as addAll did.
+   */
   async function install() {
     const cache = await cacheStorage.open(name);
-    await cache.addAll(precache.map((p) => new URL(p, base).href));
+    for (const p of precache) {
+      const url = new URL(p, base).href;
+      const res = await fetchFn(url);
+      if (!res || !res.ok) throw new Error('precache: ' + url + ' answered ' + (res ? res.status : 'nothing'));
+      await cache.put(url, await plainCopy(res));
+    }
+  }
+
+  /** plainCopy(res) -> a Response with the same status, body and headers, but no redirect history and no encoding headers. */
+  async function plainCopy(res) {
+    const headers = new Headers();
+    res.headers.forEach((value, key) => {
+      const k = key.toLowerCase();
+      if (k === 'content-encoding' || k === 'content-length' || k === 'transfer-encoding') return;
+      headers.set(key, value);
+    });
+    return new Response(await res.arrayBuffer(), { status: res.status, statusText: res.statusText, headers });
   }
 
   async function activate() {
@@ -48,7 +70,7 @@ export function createIdpWorker({ buildId = BUILD_ID, precache = PRECACHE, cache
     return (async () => {
       const cache = await cacheStorage.open(name);
       const hit = await cache.match(new URL(target, base).href, { ignoreSearch: true });
-      if (hit) return hit;
+      if (hit) return hit.redirected ? plainCopy(hit) : hit; // a copy from an older install may still carry a redirect
       return fetchFn(request);
     })();
   }

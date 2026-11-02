@@ -66,6 +66,16 @@ export const HINT_MAX = 4;
 export const DOORS_TOTAL_MAX = 12;
 /** v0.3 C2 doors: the reserved page of every loader build that shows any site by its link (resolveMode 'door'). */
 export const DOOR_PAGE_PATH = '/_mw/open.html';
+/**
+ * 0.3.1: the door page's address on a host with clean URLs. Cloudflare Pages answers /_mw/open.html with a 308 to /_mw/open and
+ * serves the page there (a link's fragment stays with the browser through the redirect). The loader and the worker treat both
+ * paths as the door page; links, door.json and the kit's redirects keep naming DOOR_PAGE_PATH (src/sw/core.js repeats the value).
+ */
+export const DOOR_PAGE_ALIAS = '/_mw/open';
+/** isDoorPagePath(pathname) → true for the door page at either address (DOOR_PAGE_PATH or DOOR_PAGE_ALIAS, exact). */
+export function isDoorPagePath(pathname) {
+  return pathname === DOOR_PAGE_PATH || pathname === DOOR_PAGE_ALIAS;
+}
 /** v0.3 C2 doors: the scheme of the protocol handler (door deployments only; desktop Chromium and Firefox). */
 export const FELINAR_SCHEME = 'web+felinar:';
 /** A fresh record may carry a seq at most this many seconds ahead of the verifier's clock (seq is Unix time by default). */
@@ -1278,9 +1288,10 @@ export function formatLightLink({ door = null, record, genesis = null, hints = [
 
 /**
  * parseLightLink(link) → { ok: true, door, origin, path, record, decoded, handler, hints, genesis } | { ok: false, error }.
- * Accepts https://<door>/_mw/open.html#..., https://<door>/#... (a hub root) and web+felinar:... (door null). record is the pointer
- * text ready for parsePointer (decoded once when it was encoded, else with the fragment's separator spaces restored); the record is
- * not parsed or verified here. errors: 'empty', 'not-a-link', 'path' (another page than / or /_mw/open.html), 'no-record'.
+ * Accepts https://<door>/_mw/open.html#..., https://<door>/_mw/open#... (the same page on a host with clean URLs, 0.3.1),
+ * https://<door>/#... (a hub root) and web+felinar:... (door null). record is the pointer text ready for parsePointer (decoded once
+ * when it was encoded, else with the fragment's separator spaces restored); the record is not parsed or verified here. errors:
+ * 'empty', 'not-a-link', 'path' (another page than /, /_mw/open.html or /_mw/open), 'no-record'.
  */
 export function parseLightLink(link) {
   if (typeof link !== 'string' || !link.trim()) return { ok: false, error: 'empty' };
@@ -1299,7 +1310,7 @@ export function parseLightLink(link) {
       return { ok: false, error: 'not-a-link' };
     }
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return { ok: false, error: 'not-a-link' };
-    if (u.pathname !== '/' && u.pathname !== DOOR_PAGE_PATH) return { ok: false, error: 'path' };
+    if (u.pathname !== '/' && !isDoorPagePath(u.pathname)) return { ok: false, error: 'path' };
     door = u.host;
     origin = u.origin;
     path = u.pathname;

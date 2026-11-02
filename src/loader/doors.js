@@ -26,7 +26,7 @@
 // (with door 1 down and nothing cached the browser shows its own error page and no code of ours runs).
 
 import {
-  isDoorHost, doorOrigin, hostOfOrigin, parseDoors, isLoopbackDoorHost, DOOR_PAGE_PATH, DOORS_TOTAL_MAX, HINT_MAX
+  isDoorHost, doorOrigin, hostOfOrigin, parseDoors, isLoopbackDoorHost, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS, DOORS_TOTAL_MAX, HINT_MAX
 } from '../common/pointer.js'
 import { isPublicWebHost } from '../common/magnet.js'
 import {
@@ -37,6 +37,8 @@ import {
 export const DOOR_TIMING = Object.freeze({ firstByteMs: 4000, perDoorMs: 12000, staggerMs: 250, inFlight: 3, backoffMs: 10 * 60 * 1000 })
 export const DOOR_CANDIDATES_MAX = DOORS_TOTAL_MAX
 export const DOOR_KINDS = Object.freeze(['current', 'last-good', 'owner', 'guest', 'ledger', 'hint'])
+/** The kinds the owner signed or listed: the last good door takes one of them when it is also such a door (doorCandidates). */
+const LAST_GOOD_UPGRADES = Object.freeze(['owner', 'guest', 'ledger'])
 /** The owner's list of doors in the site ledger (S4 D5). */
 export const LEDGER_DOORS_KEY = '_doors'
 export const LEDGER_DOORS_MAX = 24
@@ -81,18 +83,30 @@ export function hintAllowed (host, { pageHost = null } = {}) {
 }
 
 /**
- * doorCandidates({ current, lastGood, record, ledgerDoors, hints, pageHost, max }) → [{ host, origin, kind }]: the doors of a site,
- * each host once, in the order of S4 D3: the door this page runs on ('current'), the door the site last loaded from on this device
- * ('last-good'), the owner's org= ('owner') and dr= ('guest') doors, the ledger's _doors ('ledger'), then the link's hints ('hint',
- * only hosts hintAllowed() accepts); at most `max` (12). current and lastGood are door hosts (location.host); a bad host is dropped.
+ * doorCandidates({ current, lastGood, record, ledgerDoors, hints, pageHost, max }) → [{ host, origin, kind, lastGood? }]: the doors
+ * of a site, each host once, in the order of S4 D3: the door this page runs on ('current'), the door the site last loaded from on
+ * this device ('last-good'), the owner's org= ('owner') and dr= ('guest') doors, the ledger's _doors ('ledger'), then the link's
+ * hints ('hint', only hosts hintAllowed() accepts); at most `max` (12). current and lastGood are door hosts (location.host); a bad
+ * host is dropped. The last good door carries lastGood: true; when the owner also signed or listed it, it keeps its place in the
+ * order and takes that kind ('owner', 'guest' or 'ledger') with the flag, so the Doors panel lists it with its state and a link and
+ * byteDoors() still asks it for bytes (seen 2026-11-01 at a door whose last good door was the dr= door: the candidate came back as
+ * 'last-good' only, and the panel said that no other address was known).
  */
 export function doorCandidates ({ current = null, lastGood = null, record = null, ledgerDoors = [], hints = [], pageHost = null, max = DOOR_CANDIDATES_MAX } = {}) {
   const out = []
-  const seen = new Set()
+  const seen = new Map()
   const add = (host, kind) => {
-    if (out.length >= max || typeof host !== 'string' || !isDoorHost(host) || seen.has(host)) return
-    seen.add(host)
-    out.push({ host, origin: doorOrigin(host), kind })
+    if (typeof host !== 'string' || !isDoorHost(host)) return
+    const had = seen.get(host)
+    if (had) {
+      if (had.kind === 'last-good' && LAST_GOOD_UPGRADES.indexOf(kind) >= 0) had.kind = kind
+      return
+    }
+    if (out.length >= max) return
+    const c = { host, origin: doorOrigin(host), kind }
+    if (kind === 'last-good') c.lastGood = true
+    seen.set(host, c)
+    out.push(c)
   }
   add(current, 'current')
   add(lastGood, 'last-good')
@@ -128,7 +142,7 @@ export function byteDoors (candidates, { record = null, base = undefined } = {})
       try { trusted.add(new URL(String(u), base).host) } catch (_) { /* not a URL */ }
     }
   }
-  return (Array.isArray(candidates) ? candidates : []).filter((c) => c && c.host && (c.kind === 'owner' || c.kind === 'last-good' || trusted.has(c.host)))
+  return (Array.isArray(candidates) ? candidates : []).filter((c) => c && c.host && (c.kind === 'owner' || c.kind === 'last-good' || c.lastGood === true || trusted.has(c.host)))
 }
 
 /** doorTorrentUrls(candidates, btih) → each door's /_mw/t/<btih>.torrent (the layout of a full door, docs/DEPLOY.md "Doors"). */
@@ -228,6 +242,8 @@ export function createDoorHealth ({ load = null, save = null, now = () => Date.n
 /**
  * doorJsonFor({ name, version, buildId, files }) → the object build.mjs writes to /_mw/door.json. files: [{ path, bytes, sha256, sri }]
  * with absolute paths ('/_mw/loader.js'); door.json itself is never listed. Sorted by path, so two builds give the same bytes.
+ * pageAlias (0.3.1) says this loader enters door mode at /_mw/open too, where a host with clean URLs answers the door page;
+ * check-site --door reads it (a door.json without it is an older loader).
  */
 export function doorJsonFor ({ name = 'felinar', version, buildId, files = [] } = {}) {
   const list = {}
@@ -235,7 +251,7 @@ export function doorJsonFor ({ name = 'felinar', version, buildId, files = [] } 
     if (!f || typeof f.path !== 'string' || !f.path.startsWith('/') || f.path === DOOR_JSON_PATH) continue
     list[f.path] = { bytes: f.bytes, sha256: f.sha256, sri: f.sri }
   }
-  return { v: 1, kind: DOOR_JSON_KIND, name, version, buildId, page: DOOR_PAGE_PATH, files: list }
+  return { v: 1, kind: DOOR_JSON_KIND, name, version, buildId, page: DOOR_PAGE_PATH, pageAlias: DOOR_PAGE_ALIAS, files: list }
 }
 
 /**
@@ -574,9 +590,9 @@ export function doorsPanelModel ({ candidates = [], health = null, now = Date.no
     if (!c || !c.host) continue
     const h = health && typeof health.get === 'function' ? health.get(c.host) : null
     const item = { host: c.host, origin: c.origin, state: h ? (h.until > now ? 'down' : h.state) : null }
-    if (c.kind === 'current') out.current = item
-    else if (c.kind === 'last-good') out.lastGood = item
-    else if (out[c.kind]) out[c.kind].push(item)
+    if (c.kind === 'current') { out.current = item; continue }
+    if (c.kind === 'last-good' || c.lastGood === true) out.lastGood = Object.assign({}, item)
+    if (out[c.kind]) out[c.kind].push(item)
   }
   out.shown = !!(out.current || out.owner.length || out.guest.length || out.ledger.length || out.hint.length)
   return out

@@ -19,20 +19,22 @@
 //      and wrong-bytes detection); drop-in pages: host mode, a full GET of every file at its own URL
 //      with browser Accept headers, every piece SHA-1 checked (catches edge transforms)
 //   6. tr=: a WebSocket to each tracker, a "stopped" announce (checks the tracker's allow list, registers
-//      nothing) and a scrape for the infohash (seeders and leechers online)
+//      nothing) and a scrape for the infohash (seeders and leechers online); a tracker that drops the socket
+//      on the scrape instead of answering it still counts as connected (browsers never scrape)
 //   7. cs=: the ledger snapshot downloads and holds the genesis block named by gen=
 //   8. with --headless: Playwright Chromium opens the site like a visitor and waits for it to render
 //
 // v0.3 C2 doors (docs/research/v03/S4-doors.md D3, D7): --door checks a door instead of a site (checkDoor): the address is the
 // root of an https: host (http only on loopback); /mw-sw.js answers 200 with a JavaScript type and no redirect; /_mw/door.json
 // is a door list (kind felinar-door) that other origins may read (Access-Control-Allow-Origin, else other doors see this one as
-// "answering, not checked": --allow-no-cors makes that a warning, for GitHub Pages); and every /_mw/* file it lists, and /mw-sw.js,
+// "answering, not checked": --allow-no-cors makes that a warning, for a host that cannot send the header; GitHub Pages does send
+// Access-Control-Allow-Origin: * on every file, seen 2026-11-01); and every /_mw/* file it lists, and /mw-sw.js,
 // has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). No pointer is read.
 
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 
-import { parsePointer, verifyPointer, verifyRotation, pickRecord, ledgerIdFor, normalizeScope, EXP_WARN_DAYS } from '../src/common/pointer.js';
+import { parsePointer, verifyPointer, verifyRotation, pickRecord, ledgerIdFor, normalizeScope, EXP_WARN_DAYS, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../src/common/pointer.js';
 import { checkDoorJson } from '../src/loader/doors.js';
 import { parseTorrentFile } from '../src/common/torrent-file.js';
 import { resolveTxt, shouldSkipDoh, isWildcardDnsName, isNoTxtPlatformName, magnetTxtName, dohOverrideFromMeta, RESOLVERS } from '../src/loader/doh.js';
@@ -74,6 +76,8 @@ export const DOOR_CHECK_ORIGIN = 'https://door-check.invalid';
 /**
  * checkDoor(url, { fetch, timeoutMs, allowNoCors, log }) → { ok, failures, warnings, results, door } (v0.3 C2 doors). door is the
  * parsed /_mw/door.json (or null). Steps: 'door' (the address), '/mw-sw.js', '/_mw/door.json', 'cors', and one per listed file.
+ * 0.3.1: a host with clean URLs (Cloudflare Pages) answers /_mw/open.html with a redirect to /_mw/open: the door page's bytes are
+ * checked there (an info line), and a loader whose door.json has no pageAlias fails, because it enters door mode only at /_mw/open.html.
  */
 export async function checkDoor(urlText, options = {}) {
   const o = Object.assign({ fetch: globalThis.fetch, timeoutMs: 10000, allowNoCors: false, log: () => {} }, options);
@@ -99,7 +103,7 @@ export async function checkDoor(urlText, options = {}) {
   };
   if (u.protocol === 'http:' && !isLoopbackHost(u.hostname)) add('fail', 'door', 'plain http: a door must be served over https (browsers run the loader only on https:// or localhost)');
   else add('ok', 'door', origin + (u.protocol === 'http:' ? ' (loopback, for local development)' : ''));
-  if (u.pathname !== '/' && u.pathname !== '/_mw/open.html') add('warn', 'door', 'checking ' + origin + '/: a door is the root of its host name (the path ' + u.pathname + ' is ignored)');
+  if (u.pathname !== '/' && u.pathname !== DOOR_PAGE_PATH && u.pathname !== DOOR_PAGE_ALIAS) add('warn', 'door', 'checking ' + origin + '/: a door is the root of its host name (the path ' + u.pathname + ' is ignored)');
 
   // /mw-sw.js: 200, a JavaScript type, no redirect (a redirected worker script fails to register).
   let swBytes = null;
@@ -142,7 +146,7 @@ export async function checkDoor(urlText, options = {}) {
         }
         const acao = res.headers.get('access-control-allow-origin');
         if (acao === '*' || acao === DOOR_CHECK_ORIGIN) add('ok', 'cors', 'Access-Control-Allow-Origin: ' + acao + ' (other doors can check this one)');
-        else add(o.allowNoCors ? 'warn' : 'fail', 'cors', 'no Access-Control-Allow-Origin on /_mw/door.json: other doors see this one as "answering, not checked" (add the header: the kit\'s _headers, vercel.json or Caddyfile do; GitHub Pages cannot, use --allow-no-cors there)');
+        else add(o.allowNoCors ? 'warn' : 'fail', 'cors', 'no Access-Control-Allow-Origin on /_mw/door.json: other doors see this one as "answering, not checked" (add the header: the kit\'s _headers, vercel.json or Caddyfile do; for a host that cannot send it, use --allow-no-cors)');
       }
     } catch (err) {
       add('fail', '/_mw/door.json', 'cannot fetch ' + url + ': ' + errText(err));
@@ -164,7 +168,20 @@ export async function checkDoor(urlText, options = {}) {
       const url = origin + path;
       target('GET ' + url);
       try {
-        const res = await o.fetch(url, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+        let res = await o.fetch(url, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+        if (path === DOOR_PAGE_PATH && res.status >= 300 && res.status < 400) {
+          // 0.3.1: a host with clean URLs (Cloudflare Pages) answers the door page at /_mw/open after a redirect that keeps a link's
+          // fragment. A loader from 0.3.1 enters door mode there (door.json says so: pageAlias); an older one shows its normal page.
+          const location = res.headers.get('location') || '';
+          let to = null;
+          try { to = new URL(location, url).href; } catch (_) { to = null; }
+          if (to !== origin + DOOR_PAGE_ALIAS) { add('fail', path, 'HTTP ' + res.status + ' redirect to ' + (location || '?') + ': the door page must answer at ' + DOOR_PAGE_PATH + ', or redirect to ' + DOOR_PAGE_ALIAS + ' (clean URLs)'); continue; }
+          const status = res.status;
+          target('GET ' + to);
+          res = await o.fetch(to, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+          if (door.pageAlias === DOOR_PAGE_ALIAS) add('info', path, 'clean URLs: the host answers the door page at ' + DOOR_PAGE_ALIAS + ' (HTTP ' + status + ' from ' + DOOR_PAGE_PATH + '); a link with ' + DOOR_PAGE_PATH + ' follows one redirect, and this loader enters door mode there');
+          else add('fail', path, 'the host answers the door page at ' + DOOR_PAGE_ALIAS + ' (HTTP ' + status + ', clean URLs), where this loader' + (door.version ? ' (' + door.version + ')' : '') + ' does not enter door mode: a link opened at this door shows the loader\'s normal page instead of the site; deploy a kit made from felinar 0.3.1 or newer');
+        }
         if (res.status !== 200) { add('fail', path, 'HTTP ' + res.status); continue; }
         const bytes = await readCapped(res, MAX_DOOR_FILE_BYTES);
         if (bytes.length !== want.bytes || sha(bytes) !== want.sha256) {
@@ -256,7 +273,8 @@ async function openSocketFactory() {
  * probeTracker(url, { btih, origin, timeoutMs, factory }) → { ok, ms, seeders, leechers, note, error }
  * Opens a WebSocket (with the site's Origin header when the ws package is there), sends a "stopped"
  * announce for the infohash (it runs the tracker's allow list but registers no peer), then a scrape
- * for the counts. A tracker that does not allow the torrent says so in `error`.
+ * for the counts. A tracker that does not allow the torrent says so in `error`. A tracker that closes
+ * the socket on the scrape instead of answering it is still ok (with a note): visitors never scrape.
  */
 export function probeTracker(url, { btih, origin, timeoutMs = 10000, factory }) {
   return new Promise((resolve) => {
@@ -284,14 +302,23 @@ export function probeTracker(url, { btih, origin, timeoutMs = 10000, factory }) 
     const peerId = '-MW0200-' + createHash('sha1').update(String(Math.random()) + started).digest('hex').slice(0, 12);
     const countsOf = (msg) => (Number.isFinite(Number(msg.complete)) && Number.isFinite(Number(msg.incomplete))
       ? { seeders: Number(msg.complete), leechers: Number(msg.incomplete) } : null);
+    let scrapeSent = false;
     const sendScrape = () => {
       try {
         sock.send(JSON.stringify({ action: 'scrape', info_hash: binary }));
       } catch (err) {
         return finish({ ok: false, error: 'send failed: ' + errText(err) });
       }
+      scrapeSent = true;
       stepTimer = setTimeout(() => finish(counts ? Object.assign({ ok: true }, counts) : { ok: true, note: 'connected, but the tracker did not answer a scrape' }), Math.min(3000, timeoutMs));
       return undefined;
+    };
+    // A close that arrives after the scrape was sent is the tracker's answer to the scrape, not a dead tracker: tracker.openwebtorrent.com
+    // accepted the announce, kept a silent socket open for 8 s, and dropped the socket (1006) about 110 ms after a scrape, while
+    // browsers, which never scrape, used it (seen 2026-11-01). A close before the scrape, or before the socket opened, is a failure.
+    const onClose = (code) => {
+      if (scrapeSent) return finish(counts ? Object.assign({ ok: true }, counts) : { ok: true, note: 'connected; the tracker closed the connection instead of answering a scrape (' + code + '), which visitors never send' });
+      return finish({ ok: false, error: 'the tracker closed the connection (' + code + ')' });
     };
     const onOpen = () => {
       connectedAt = Date.now() - started;
@@ -327,13 +354,13 @@ export function probeTracker(url, { btih, origin, timeoutMs = 10000, factory }) 
         sock.on('message', onMessage);
         sock.on('error', (err) => finish({ ok: false, error: errText(err) }));
         sock.on('unexpected-response', (req, res) => finish({ ok: false, error: 'HTTP ' + res.statusCode + ' instead of a WebSocket upgrade' }));
-        sock.on('close', (code) => finish({ ok: false, error: 'the tracker closed the connection (' + code + ')' }));
+        sock.on('close', (code) => onClose(code));
       } else {
         sock = new factory.WebSocket(url);
         sock.addEventListener('open', onOpen);
         sock.addEventListener('message', (e) => onMessage(e.data));
         sock.addEventListener('error', () => finish({ ok: false, error: 'connection failed' }));
-        sock.addEventListener('close', (e) => finish({ ok: false, error: 'the tracker closed the connection (' + e.code + ')' }));
+        sock.addEventListener('close', (e) => onClose(e.code));
       }
     } catch (err) {
       finish({ ok: false, error: errText(err) });
@@ -769,7 +796,7 @@ async function main(argv) {
   if (flags.door) {
     // v0.3 C2 doors: a door, not a site (no pointer, no DNS, no trackers).
     log('check-site --door ' + positionals[0]);
-    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists). Each target is printed before it is contacted.');
+    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; the door page also at /_mw/open when the host redirects there). Each target is printed before it is contacted.');
     const result = await checkDoor(positionals[0], { timeoutMs: flags.timeout, allowNoCors: flags.allowNoCors, log });
     if (flags.json) out(JSON.stringify({ url: positionals[0], door: true, ok: result.ok, failures: result.failures, warnings: result.warnings, results: result.results }, null, 2));
     else out((result.ok ? 'OK' : 'FAILED') + ': ' + result.failures + ' failure(s), ' + result.warnings + ' warning(s).');

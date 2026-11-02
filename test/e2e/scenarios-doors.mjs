@@ -11,6 +11,8 @@
 //               door's worker to serve the site (current stays null), and mw.ready() in the frame resolves with the link's
 //               ledger id (the SDK's hello from the sandboxed frame); a guest door (dr= only) and the loader-only door itself are
 //               never asked for the site's .torrent or web seed bytes (code review v0.3, byteDoors); with --webkit also DOOR-GUEST-W.
+//   DOOR-CLEAN  (0.3.1) a loader-only door with clean URLs (/_mw/open.html answers 308 to /_mw/open, as Cloudflare Pages does): the
+//               link opens the door view at /_mw/open with its fragment intact, and the share target (?mw=) lands there too.
 //
 // Code review v0.3 (round 2): only owner doors (org=), the last good door and the hosts of the record's ws= and xs= are asked for
 // a site's bytes (src/loader/doors.js byteDoors); a guest door (dr=) or a hint serves the loader only and never learns which site
@@ -26,7 +28,7 @@ import { readFileSync, existsSync, statSync, mkdirSync, writeFileSync, cpSync } 
 import { Visitor, waitUntil, sleep, StepError, shellState, launchWebkit } from './lib.mjs';
 import { publish } from '../../tools/publish.mjs';
 
-export const DOORS_ORDER = ['DOOR-DOWN', 'DOOR-HASH', 'DOOR-GUEST'];
+export const DOORS_ORDER = ['DOOR-DOWN', 'DOOR-HASH', 'DOOR-GUEST', 'DOOR-CLEAN'];
 export const DOORS_WEBKIT_ORDER = ['DOOR-GUEST-W'];
 
 const TYPES = {
@@ -34,13 +36,18 @@ const TYPES = {
   '.webmanifest': 'application/manifest+json', '.torrent': 'application/x-bittorrent', '.wasm': 'application/wasm',
 };
 
-/** A static door: the build (and, for a full door, the site's web seed copy and .torrent); Range answered with 206, CORS open. */
-function doorServer(root) {
+/**
+ * A static door: the build (and, for a full door, the site's web seed copy and .torrent); Range answered with 206, CORS open.
+ * cleanUrls (0.3.1): /_mw/open.html answers 308 to /_mw/open and the page is served there, as Cloudflare Pages does.
+ */
+function doorServer(root, { cleanUrls = false } = {}) {
   const log = [];
   const server = http.createServer((req, res) => {
     let p;
     try { p = decodeURIComponent(new URL(req.url, 'http://door.invalid').pathname); } catch (_) { res.writeHead(400); return res.end(); }
     log.push(req.method + ' ' + p + (req.headers.range ? ' ' + req.headers.range : ''));
+    if (cleanUrls && p === '/_mw/open.html') { res.writeHead(308, { location: '/_mw/open' }); return res.end(); }
+    if (cleanUrls && p === '/_mw/open') p = '/_mw/open.html';
     let file = join(root, p);
     if (!file.startsWith(root)) { res.writeHead(404); return res.end(); }
     if (p.endsWith('/')) file = join(file, 'index.html');
@@ -79,7 +86,8 @@ export function doorsScenarios({ run, assert, headed = false }) {
 
   /**
    * doors(ctx, step, key, plan) -> { ports, pub, link(door), close } where plan names each door 'full' (the site's copy and .torrent),
-   * 'bad' (full, with one byte of its .torrent flipped) or 'loader' (the build only), and which doors the link lists in dr=.
+   * 'bad' (full, with one byte of its .torrent flipped), 'loader' (the build only) or 'clean' (the build only, with clean URLs),
+   * and which doors the link lists in dr=.
    */
   async function doors(ctx, step, key, plan, { dr, wsDoor, org = [] }) {
     const { stack } = ctx;
@@ -94,7 +102,7 @@ export function doorsScenarios({ run, assert, headed = false }) {
       for (const name of Object.keys(plan)) {
         const root = join(base, 'door-' + name);
         mkdirSync(root, { recursive: true });
-        servers[name] = doorServer(root);
+        servers[name] = doorServer(root, { cleanUrls: plan[name] === 'clean' });
         servers[name].root = root;
         ports[name] = await servers[name].listen();
         ctx.closers.push(() => servers[name].close());
@@ -108,7 +116,7 @@ export function doorsScenarios({ run, assert, headed = false }) {
       for (const [name, kind] of Object.entries(plan)) {
         const root = servers[name].root;
         cpSync(stack.dist, root, { recursive: true });
-        if (kind === 'loader') continue;
+        if (kind === 'loader' || kind === 'clean') continue;
         cpSync(join(out, 'flow-' + key), join(root, 'ws', 'flow-' + key), { recursive: true });
         mkdirSync(join(root, '_mw', 't'), { recursive: true });
         const torrent = Buffer.from(readFileSync(join(out, 'site.torrent')));
@@ -267,6 +275,43 @@ export function doorsScenarios({ run, assert, headed = false }) {
       ctx.closers.push(() => v.close());
       const page = await v.newPage();
       return guest(ctx, step, page, 'WebKit');
+    },
+  };
+
+  // ------------------------------------------------------------------------------------------- DOOR-CLEAN
+  S['DOOR-CLEAN'] = {
+    title: '0.3.1: a loader-only door with clean URLs (/_mw/open.html answers 308 to /_mw/open, as Cloudflare Pages does): the link opens the door view at /_mw/open, and the share target lands there too',
+    async fn(ctx, step) {
+      const d = await doors(ctx, step, 'clean', { K: 'clean', F: 'full' }, { dr: ['F'], wsDoor: 'F' });
+      const v = await ctx.visitor('DCL');
+      const page = await v.newPage();
+      const st = await step('open the link at K (/_mw/open.html#...): one 308 that keeps the fragment, the gate, the site in the door view at /_mw/open', () => openLink(page, d.link('K')));
+      assert(st.mode === 'door' && st.ledgerId === d.pub.ledgerId, 'door K ' + JSON.stringify({ mode: st.mode, ledgerId: st.ledgerId }));
+      const u = new URL(page.url());
+      assert(u.pathname === '/_mw/open' && u.hash.length > 1, 'url ' + page.url().slice(0, 80));
+      assert(d.servers.K.log.some((l) => l === 'GET /_mw/open.html') && d.servers.K.log.some((l) => l === 'GET /_mw/open'), 'K log ' + JSON.stringify(d.servers.K.log.slice(0, 6)));
+      const frame = await step('the door view is a sandboxed frame (origin "null") that rendered the site', async () => {
+        const f = doorFrame(page);
+        assert(f, 'no door frame');
+        return waitUntil(() => f.evaluate(() => {
+          const h = document.getElementById('h');
+          return h ? { origin: String(window.origin), h1: h.textContent } : null;
+        }).catch(() => null), { timeoutMs: 15000, label: 'the site in the door view' });
+      });
+      assert(frame.origin === 'null' && frame.h1 === 'Hello from the door flow', 'frame ' + JSON.stringify(frame));
+      const shared = await step('the share target at the clean URL (/_mw/open?mw=<link>) lands on /_mw/open#<fragment>: the gate, or the door view again (this visitor accepted the gate for this site already)', async () => {
+        await page.goto('http://' + d.host('K') + '/_mw/open?mw=' + encodeURIComponent(d.link('K')), { waitUntil: 'domcontentloaded', timeout: 20000 });
+        return waitUntil(async () => {
+          const u2 = new URL(page.url());
+          if (u2.pathname !== '/_mw/open' || u2.search !== '' || u2.hash.length < 2) return null;
+          const gate = await page.locator('button').filter({ hasText: /^Load$/ }).count().catch(() => 0);
+          const x = await doorsState(page);
+          return gate > 0 || (x && x.doors.rendered) ? { gate: gate > 0, rendered: !!(x && x.doors.rendered), ledgerId: x ? x.ledgerId : null } : null;
+        }, { timeoutMs: 30000, label: 'the door page from the share target' });
+      });
+      assert(shared.gate || (shared.rendered && shared.ledgerId === d.pub.ledgerId), 'share target ' + JSON.stringify(shared));
+      await ctx.closeVisitor('DCL');
+      return 'door view at /_mw/open after the 308, ledger ' + st.ledgerId + '; the share target lands on /_mw/open#... (' + (shared.gate ? 'the gate' : 'the door view') + ')';
     },
   };
 

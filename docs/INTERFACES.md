@@ -1488,6 +1488,7 @@ dev server's result has `trackerProxy`; `npm run ship` runs `tools/ship.mjs`.
 ```
 src/common/pointer.js   record.dr: string[] (dr=, 1..DOOR_MAX hosts, one key, KEY_ORDER after org)
                         DOOR_MAX = 8, HINT_MAX = 4, DOORS_TOTAL_MAX = 12, DOOR_PAGE_PATH = '/_mw/open.html', FELINAR_SCHEME = 'web+felinar:'
+                        DOOR_PAGE_ALIAS = '/_mw/open' (0.3.1: the door page on a host with clean URLs), isDoorPagePath(pathname)
                         isDoorHost(h), isLoopbackDoorHost(h), doorOrigin(h), hostOfOrigin(origin), doorsOf(record)
                         parseDoors(record, hints) -> { owner, guest, hints, all: [{ host, kind, origin }] }
                         parseHintList(value), normalizeRecordText(text)
@@ -1497,7 +1498,7 @@ src/loader/doors.js     DOOR_TIMING = { firstByteMs: 4000, perDoorMs: 12000, sta
                         doorCandidates({ current, lastGood, record, ledgerDoors, hints, pageHost, max }) -> [{ host, origin, kind }]
                         hintAllowed(host, { pageHost }), doorTorrentUrls(candidates, btih), doorWebseeds(candidates, { health, now, max, exclude })
                         createDoorHealth({ load, save, now, backoffMs, max }) -> { ready, get, ok, fail, inBackoff, order, snapshot }
-                        doorJsonFor({ name, version, buildId, files }), checkDoorJson(json, own) -> { ok, sameBuild, buildId, version, reason }
+                        doorJsonFor({ name, version, buildId, files }) (door.json carries pageAlias since 0.3.1), checkDoorJson(json, own) -> { ok, sameBuild, buildId, version, reason }
                         probeDoor(origin, { fetch, own, sameOrigin, timeoutMs, signal }) -> { origin, host, state: up|other-build|opaque|bad|down, buildId, json, ms, reason }
                         fetchFirst(urls, { fetch, verify, staggerMs, inFlight, firstByteMs, perDoorMs, maxBytes, signal, onResult }) -> { ok, url, bytes, results, aborted? }
                         LEDGER_DOORS_KEY = '_doors', LEDGER_DOORS_MAX = 24, LEDGER_DOORS_BYTES = 2048, LEDGER_DOORS_INTERVAL_MS = 3600000
