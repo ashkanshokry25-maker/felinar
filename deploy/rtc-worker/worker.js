@@ -5,7 +5,7 @@
 // sleeps between messages and is woken by them), keeps each connection's state on the socket itself (serializeAttachment),
 // keeps the rows that must outlive a socket in ctx.storage (a pairing code's details as chan:<channel>, a private lane's expiry
 // as lane:<hex>), and closes idle connections and expires codes, knocks and lanes from an alarm.
-import { createRendezvous, parseAllow, MAX_MESSAGE_BYTES } from './rtc.js';
+import { createRendezvous, parseAllow, MAX_MESSAGE_BYTES, ATTACHMENT_REFRESH_S } from './rtc.js';
 import { CHAN_KEY, LANE_KEY } from './pair.js';
 
 const OBJECT_NAME = 'swarms';
@@ -125,8 +125,8 @@ export class Rendezvous {
     const r = this.core.message(conn, message);
     const at = Date.now();
     // rtc-worker-lane-2: a periodic announce changes no membership, so the stored time would stay at the last join and an object
-    // rebuilt after a wake would close a live socket as idle. Rewrite the attachment when its time is older than a sweep period.
-    if (r.changed || at - (this.written.get(conn) || 0) > SWEEP_MS) this.keep(ws, conn, at);
+    // rebuilt after a wake would close a live socket as idle. Rewrite the attachment once its time is ATTACHMENT_REFRESH_S old (rtc.js).
+    if (r.changed || at - (this.written.get(conn) || 0) >= ATTACHMENT_REFRESH_S * 1000) this.keep(ws, conn, at);
     this.touch(r.touched);
     await this.settle();
     if (r.pair) await this.rearm();

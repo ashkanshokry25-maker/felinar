@@ -982,10 +982,15 @@ last, only for bytes that are checked by hash, and only when they are public hos
 
 | Door | Where | The site runs | Identity there |
 |---|---|---|---|
-| Owner door | the site's own address and the origins in `org=` | in full: Service Worker, storage, the site's URLs | the site's own |
+| Owner door | the site's own address (a visit to its root) and the origins in `org=` | in full: Service Worker, storage, the site's URLs | the site's own |
 | Guest door | any loader host, the doors in `dr=` and the ledger's `_doors` | in the door view: a frame with `sandbox="allow-scripts"` | for this visit only |
 | Hub door | a wildcard hub label (see [Hubs](#hubs)) | in full, one origin per site | the hub's |
 | Emergency viewer | a `file:` or `data:` page on a computer | not built: data: has no `crypto.subtle` and nothing is kept (F9) | none |
+
+The door page (`/_mw/open.html`, or `/_mw/open` on a host with clean URLs) shows the door view on every host, the site's own
+address included: a light link opened there runs the limited view too, and its banner offers "Open at" only for the origins in
+`org=`. Name the site's own address in `--org` when you publish, or a visitor who arrives by a light link at the owner's host has
+no button to the full site one path away (seen 2026-11-01 on a site published without `--org`).
 
 ### Light links: `publish --door`
 
@@ -1009,8 +1014,9 @@ A site does not need a domain of its own. Publish it once with `--chain` and `--
 code in `link-qr.svg`: the site lives at its key, and any door opens it. Three doors need no purchase today:
 
 - **Your `<user>.github.io` or `<name>.netlify.app` site with a door kit** ([Door kits](#door-kits-publish---door-kit)):
-  upload the kit to the root of that free site. GitHub Pages sends no custom headers, so other doors see it as
-  "answering, not checked".
+  upload the kit to the root of that free site. GitHub Pages takes no headers of yours, but it sends
+  `Access-Control-Allow-Origin: *` on every file by itself, so other doors can check such a door (seen 2026-11-01); its
+  10-minute cache applies to `/_mw/door.json` too, so a probe may read a door list up to 10 minutes old after a redeploy.
 - **A friend's host** that serves a door kit at the root of its name. A door can serve a hostile loader, so use doors run
   by people you trust, and check them with `check-site --door`.
 - **A door on your own computer.** After `npx felinar build`, `npx felinar dev` serves the built loader on
@@ -1044,7 +1050,7 @@ home Wi-Fi, and the 0.3.0 door kit on Cloudflare Pages did not work until the tw
 
 | Host (S4 F5) | Loader door | Full door | Door settings |
 |---|---|---|---|
-| GitHub Pages | yes | yes | no custom headers: other doors see this door as "answering, not checked"; `/mw-sw.js` is cached for up to 10 minutes |
+| GitHub Pages | yes | yes | no headers of yours, but Pages sends `Access-Control-Allow-Origin: *` on every file, so other doors can check this door (`check-site --door` passed there without `--allow-no-cors` on 2026-11-01); `/mw-sw.js` and `/_mw/door.json` are cached for up to 10 minutes |
 | Cloudflare Pages | yes with the fix of 0.3.1, **not with the 0.3.0 kit** (tried 2026-11-01: Pages answers `/_mw/open.html` with a 308 to `/_mw/open`, where loader 0.3.0 does not enter door mode, and it applies every matching `_headers` rule, so the 0.3.0 kit's `/_mw/door.json` rule and its `/_mw/*` rule together sent `Access-Control-Allow-Origin: *, *`, which browsers reject; the loader now enters door mode at `/_mw/open` and the kit sets each header once per path; re-run the same day with a kit from the fixed build: `check-site --door` passed and a headless Chromium opened a light link there into the door view, [DEMO-RESULTS.md](DEMO-RESULTS.md), the Doors note) | no (Range gives 200) | `_headers` and `_redirects` are read; the door page answers at `/_mw/open` |
 | Netlify | yes | yes | `_headers` and `_redirects` are read |
 | Vercel | not tried | not tried | the kit writes `vercel.json` |
@@ -1078,7 +1084,8 @@ changed to serve another worker therefore fails here, not only at `check-site --
 
 It contacts that host only: the address must be the HTTPS root of its name, `/mw-sw.js` must answer 200 as JavaScript without a
 redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin` (`--allow-no-cors` makes a missing header a warning,
-for GitHub Pages), and every `/_mw/*` file it lists, and `/mw-sw.js`, must have exactly the bytes it names. Exit code 1 on a failure.
+for a host that cannot send it; GitHub Pages sends it), and every `/_mw/*` file it lists, and `/mw-sw.js`, must have exactly the bytes
+it names. Exit code 1 on a failure.
 When `door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`); a
 block the door page cannot use is a warning. Nothing in the block is contacted.
 
@@ -1318,6 +1325,11 @@ A site names the identity origin it uses: `publish --idp <origin>` puts `idp=` i
 content="https://...">` tag in the page names it. With neither, sign-in fails with `E_IDP_UNREACHABLE` ("no identity page is
 configured for this site"), so visitors cannot sign in to write. Servers choose which identity origins they accept
 (`allowIdps` in the verifier of [recipes/signin-server-node.md](recipes/signin-server-node.md)).
+
+The page's cards answer a person's own press only: a click a script makes (`isTrusted` false) and any press in the first 400 ms
+after a card appears are dropped without a message (`MIN_PRESS_MS` in `src/idp/cards.js`, an anti-tapjacking guard). A person who
+taps the instant a card shows taps again; automation and tests go through `test/e2e/idp-driver.mjs`, which waits the guard out
+(on 2026-11-01 every engine of a test campaign sat on a card for up to 60 s until its scripts did).
 
 1. **Build it** from a checkout: `node tools/build-idp.mjs` produces the static bundle with its own Service Worker, a
    build id and a bundle hash. Publish the hash with every release; the cards show the build id and the hash

@@ -19,14 +19,16 @@
 //      and wrong-bytes detection); drop-in pages: host mode, a full GET of every file at its own URL
 //      with browser Accept headers, every piece SHA-1 checked (catches edge transforms)
 //   6. tr=: a WebSocket to each tracker, a "stopped" announce (checks the tracker's allow list, registers
-//      nothing) and a scrape for the infohash (seeders and leechers online)
+//      nothing) and a scrape for the infohash (seeders and leechers online); a tracker that drops the socket
+//      on the scrape instead of answering it still counts as connected (browsers never scrape)
 //   7. cs=: the ledger snapshot downloads and holds the genesis block named by gen=
 //   8. with --headless: Playwright Chromium opens the site like a visitor and waits for it to render
 //
 // v0.3 C2 doors (docs/research/v03/S4-doors.md D3, D7): --door checks a door instead of a site (checkDoor): the address is the
 // root of an https: host (http only on loopback); /mw-sw.js answers 200 with a JavaScript type and no redirect; /_mw/door.json
 // is a door list (kind felinar-door) that other origins may read (Access-Control-Allow-Origin, else other doors see this one as
-// "answering, not checked": --allow-no-cors makes that a warning, for GitHub Pages); and every /_mw/* file it lists, and /mw-sw.js,
+// "answering, not checked": --allow-no-cors makes that a warning, for a host that cannot send the header; GitHub Pages does send
+// Access-Control-Allow-Origin: * on every file, seen 2026-11-01); and every /_mw/* file it lists, and /mw-sw.js,
 // has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). No pointer is read.
 // Apps at a door: an apps block in door.json (docs/DEPLOY.md, "Apps at a door") gets an info line (rendezvous, STUN and identity origin
 // counted) and a shape check; the addresses in it are read, never contacted.
@@ -153,7 +155,7 @@ export async function checkDoor(urlText, options = {}) {
         }
         const acao = res.headers.get('access-control-allow-origin');
         if (acao === '*' || acao === DOOR_CHECK_ORIGIN) add('ok', 'cors', 'Access-Control-Allow-Origin: ' + acao + ' (other doors can check this one)');
-        else add(o.allowNoCors ? 'warn' : 'fail', 'cors', 'no Access-Control-Allow-Origin on /_mw/door.json: other doors see this one as "answering, not checked" (add the header: the kit\'s _headers, vercel.json or Caddyfile do; GitHub Pages cannot, use --allow-no-cors there)');
+        else add(o.allowNoCors ? 'warn' : 'fail', 'cors', 'no Access-Control-Allow-Origin on /_mw/door.json: other doors see this one as "answering, not checked" (add the header: the kit\'s _headers, vercel.json or Caddyfile do; for a host that cannot send it, use --allow-no-cors)');
       }
     } catch (err) {
       add('fail', '/_mw/door.json', 'cannot fetch ' + url + ': ' + errText(err));
@@ -280,7 +282,8 @@ async function openSocketFactory() {
  * probeTracker(url, { btih, origin, timeoutMs, factory }) → { ok, ms, seeders, leechers, note, error }
  * Opens a WebSocket (with the site's Origin header when the ws package is there), sends a "stopped"
  * announce for the infohash (it runs the tracker's allow list but registers no peer), then a scrape
- * for the counts. A tracker that does not allow the torrent says so in `error`.
+ * for the counts. A tracker that does not allow the torrent says so in `error`. A tracker that closes
+ * the socket on the scrape instead of answering it is still ok (with a note): visitors never scrape.
  */
 export function probeTracker(url, { btih, origin, timeoutMs = 10000, factory }) {
   return new Promise((resolve) => {
@@ -308,14 +311,23 @@ export function probeTracker(url, { btih, origin, timeoutMs = 10000, factory }) 
     const peerId = '-MW0200-' + createHash('sha1').update(String(Math.random()) + started).digest('hex').slice(0, 12);
     const countsOf = (msg) => (Number.isFinite(Number(msg.complete)) && Number.isFinite(Number(msg.incomplete))
       ? { seeders: Number(msg.complete), leechers: Number(msg.incomplete) } : null);
+    let scrapeSent = false;
     const sendScrape = () => {
       try {
         sock.send(JSON.stringify({ action: 'scrape', info_hash: binary }));
       } catch (err) {
         return finish({ ok: false, error: 'send failed: ' + errText(err) });
       }
+      scrapeSent = true;
       stepTimer = setTimeout(() => finish(counts ? Object.assign({ ok: true }, counts) : { ok: true, note: 'connected, but the tracker did not answer a scrape' }), Math.min(3000, timeoutMs));
       return undefined;
+    };
+    // A close that arrives after the scrape was sent is the tracker's answer to the scrape, not a dead tracker: tracker.openwebtorrent.com
+    // accepted the announce, kept a silent socket open for 8 s, and dropped the socket (1006) about 110 ms after a scrape, while
+    // browsers, which never scrape, used it (seen 2026-11-01). A close before the scrape, or before the socket opened, is a failure.
+    const onClose = (code) => {
+      if (scrapeSent) return finish(counts ? Object.assign({ ok: true }, counts) : { ok: true, note: 'connected; the tracker closed the connection instead of answering a scrape (' + code + '), which visitors never send' });
+      return finish({ ok: false, error: 'the tracker closed the connection (' + code + ')' });
     };
     const onOpen = () => {
       connectedAt = Date.now() - started;
@@ -351,13 +363,13 @@ export function probeTracker(url, { btih, origin, timeoutMs = 10000, factory }) 
         sock.on('message', onMessage);
         sock.on('error', (err) => finish({ ok: false, error: errText(err) }));
         sock.on('unexpected-response', (req, res) => finish({ ok: false, error: 'HTTP ' + res.statusCode + ' instead of a WebSocket upgrade' }));
-        sock.on('close', (code) => finish({ ok: false, error: 'the tracker closed the connection (' + code + ')' }));
+        sock.on('close', (code) => onClose(code));
       } else {
         sock = new factory.WebSocket(url);
         sock.addEventListener('open', onOpen);
         sock.addEventListener('message', (e) => onMessage(e.data));
         sock.addEventListener('error', () => finish({ ok: false, error: 'connection failed' }));
-        sock.addEventListener('close', (e) => finish({ ok: false, error: 'the tracker closed the connection (' + e.code + ')' }));
+        sock.addEventListener('close', (e) => onClose(e.code));
       }
     } catch (err) {
       finish({ ok: false, error: errText(err) });

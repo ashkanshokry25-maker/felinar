@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createRendezvous, parseAllow, messageProblem, bin2hex, hex2bin, INTERVAL_S, MAX_OFFERS, MAX_SWARMS_PER_SOCKET, PEER_TTL_S } from '../../deploy/rtc-worker/rtc.js';
+import { createRendezvous, parseAllow, messageProblem, bin2hex, hex2bin, INTERVAL_S, MAX_OFFERS, MAX_SWARMS_PER_SOCKET, PEER_TTL_S, ATTACHMENT_REFRESH_S } from '../../deploy/rtc-worker/rtc.js';
 import worker, { Rendezvous, coreFromEnv } from '../../deploy/rtc-worker/worker.js';
 import { LANE_TTL_MS, CHANNEL_TTL_MS, KNOCK_TTL_MS, MIXED } from '../../deploy/rtc-worker/pair.js';
 
@@ -581,4 +581,78 @@ test('the object: a woken object drops what ran out while it slept; a frame of t
   const asked = coreFromEnv({ ALLOW: A, PAIRING: '0' });
   assert.equal(asked.message(conn('c'), frame({ action: 'pair-open', channel: 'abcd', box: BOX })).problem, 'pairing is off on this rendezvous');
   assert.equal(coreFromEnv({ ALLOW: A }).message(conn('d'), frame({ action: 'pair-open', channel: 'abcd', box: BOX })).problem, null, 'on by default');
+});
+
+test('rtc-worker lane (2026-11-01): an answer keeps a seeder complete, a bare scrape lists nothing, event "empty" is an update, and the saved time is refreshed so a sweep after a wake keeps a live socket', async () => {
+  let clock = 1800000000000;
+  const r = createRendezvous({ allow: new Set([A]), now: () => clock });
+  const a = conn('a');
+  const b = conn('b');
+  r.message(a, announce(A, peer('a')));
+  r.message(b, announce(A, peer('b'), { left: 100, offers: [offer(1)] }));
+  assert.equal(a.last().offer_id, 'o1');
+  // a answers the way the loader's client does: no left, no event
+  const res = r.message(a, JSON.stringify({ action: 'announce', info_hash: bin(A), peer_id: peer('a'), to_peer_id: peer('b'), answer: { type: 'answer', sdp: 'v=0 answer' }, offer_id: 'o1' }));
+  assert.equal(res.changed, false, 'an answer moves no state');
+  r.message(a, JSON.stringify({ action: 'scrape', info_hash: bin(A) }));
+  assert.deepEqual(a.last().files[bin(A)], { complete: 1, incomplete: 1, downloaded: 1 }, 'the seeder stays a seeder in the counts');
+  r.message(a, announce(A, peer('a'), { left: 7, event: 'update' }));
+  r.message(a, JSON.stringify({ action: 'scrape', info_hash: bin(A) }));
+  assert.equal(a.last().files[bin(A)].complete, 1, 'bittorrent-tracker never demotes a peer, nor does this');
+  r.message(a, JSON.stringify({ action: 'scrape' }));
+  assert.deepEqual(a.last(), { action: 'scrape', files: {}, flags: { min_request_interval: INTERVAL_S } }, 'a bare scrape lists no swarm');
+  r.message(b, announce(A, peer('b'), { left: 100, event: 'empty' }));
+  assert.equal(b.last()['failure reason'], undefined, 'event "empty" is an update');
+  assert.equal(b.last().incomplete, 1);
+  // the saved time: the core reports membership changes only, so a message that moves no swarm is no change however late it comes;
+  // when the saved time is written again is the object's rule (worker.js, ATTACHMENT_REFRESH_S), checked on the fake platform below
+  const saved = r.attachmentOf(a);
+  assert.equal(saved.t, Math.floor(clock / 1000));
+  clock += ATTACHMENT_REFRESH_S * 1000;
+  assert.equal(r.message(a, announce(A, peer('a'), { event: 'update' })).changed, false, 'no swarm moved: nothing for the core to report');
+  assert.equal(r.attachmentOf(a).t, Math.floor(clock / 1000), 'and the time it would save is the current one');
+  // the fake platform: a periodic announce 19 minutes after the join refreshes the attachment, and an object rebuilt from it two
+  // minutes later keeps the socket (before the fix its sweep closed it: the attachment still carried the join time)
+  const realNow = Date.now;
+  try {
+    let t = 1800000000000;
+    Date.now = () => t;
+    // the object's rule: a message that moves no swarm rewrites the attachment once its time is ATTACHMENT_REFRESH_S old, not
+    // before, and not again right after
+    const wu = fakeWs('u');
+    const objU = new Rendezvous(fakeCtx([wu]), ENV);
+    objU.core.attach(objU.connFor(wu), null);
+    wu.serializeAttachment(objU.core.attachmentOf(objU.connFor(wu)));
+    await objU.webSocketMessage(wu, announce(A, peer('u')));
+    const joinedU = wu.attachment.t;
+    t += (ATTACHMENT_REFRESH_S - 1) * 1000;
+    await objU.webSocketMessage(wu, announce(A, peer('u'), { event: 'update' }));
+    assert.equal(wu.attachment.t, joinedU, 'under the refresh period: nothing to save');
+    t += 1000;
+    await objU.webSocketMessage(wu, announce(A, peer('u'), { event: 'update' }));
+    assert.equal(wu.attachment.t, joinedU + ATTACHMENT_REFRESH_S, 'at the refresh period: save it');
+    t += 1000;
+    await objU.webSocketMessage(wu, announce(A, peer('u'), { event: 'update' }));
+    assert.equal(wu.attachment.t, joinedU + ATTACHMENT_REFRESH_S, 'just saved');
+    const ws = fakeWs('v');
+    const ctx = fakeCtx([ws]);
+    const obj = new Rendezvous(ctx, ENV);
+    obj.core.attach(obj.connFor(ws), null);
+    ws.serializeAttachment(obj.core.attachmentOf(obj.connFor(ws)));
+    await obj.webSocketMessage(ws, announce(A, peer('v')));
+    const joined = ws.attachment.t;
+    t += 19 * 60 * 1000;
+    await obj.webSocketMessage(ws, announce(A, peer('v'), { event: 'update' }));
+    assert.equal(ws.attachment.t, joined + 19 * 60, 'the periodic announce refreshed the saved time');
+    t += 2 * 60 * 1000;
+    const woke = new Rendezvous(fakeCtx([ws]), ENV);
+    await woke.alarm();
+    assert.equal(ws.closed, null, 'the rebuilt object keeps a socket that announced two minutes ago');
+    assert.equal(woke.core.stats().peers, 1);
+    t += PEER_TTL_S * 1000 + 1000;
+    await woke.alarm();
+    assert.deepEqual(ws.closed, { code: 1001, reason: 'idle' }, 'and still closes one that went silent');
+  } finally {
+    Date.now = realNow;
+  }
 });

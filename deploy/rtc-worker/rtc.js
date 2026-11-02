@@ -45,7 +45,15 @@ export const MAX_MESSAGE_BYTES = 131072;
 export const PEER_TTL_S = 20 * 60;
 /** The largest offer SDP accepted, in characters. */
 export const MAX_SDP_CHARS = 16384;
-const EVENTS = new Set(['started', 'stopped', 'completed', 'update', 'paused']);
+/**
+ * A live connection's saved state is written again at least this often (worker.js rewrites the attachment of a socket whose last
+ * write is this old: rtc-worker-lane-2), so the time it carries stays fresh: an object rebuilt from the attachments (a wake from
+ * hibernation, a deployment) restores that time, and its sweep must not take a connection that announced a minute ago for one
+ * idle since its last join (seen on the fake platform on 2026-11-01).
+ */
+export const ATTACHMENT_REFRESH_S = 5 * 60;
+// 'empty' is what some clients send for a plain update; bittorrent-tracker treats it as 'update', and so does this.
+const EVENTS = new Set(['started', 'stopped', 'completed', 'update', 'paused', 'empty']);
 
 /** bin2hex(s) -> the 40-hex text of a 20-byte "binary string" (one char per byte), or null for anything else. */
 export function bin2hex(s) {

@@ -301,7 +301,7 @@ export function createDoorsUi ({ doc, lang = 'en' } = {}) {
     node.hidden = !current.shown
     clear(body)
     if (current.current) body.appendChild(textNode('p', 'mw-value mw-doors-current', doorText('door.panel.current', L, { host: current.current.host }) + ' (' + doorStateText(current.current.state, L) + ')'))
-    if (current.lastGood) body.appendChild(textNode('p', 'mw-note mw-doors-last', doorText('door.panel.lastGood', L, { host: current.lastGood.host })))
+    if (current.lastGood) body.appendChild(textNode('p', 'mw-note mw-doors-last', doorText('door.panel.lastGood', L, { host: current.lastGood.host }) + (current.lastGood.state ? ' (' + doorStateText(current.lastGood.state, L) + ')' : '')))
     let any = false
     for (const kind of ['owner', 'guest', 'ledger', 'hint']) {
       const list = Array.isArray(current[kind]) ? current[kind] : []
@@ -701,8 +701,8 @@ export function createUI (root, strings = STRINGS, uiOpts = {}) {
     pointerEl.classList.toggle('mw-warn', !!info.warn)
   }
 
-  const setMode = ({ degraded = false, hostOnly = false } = {}) => {
-    const text = degraded ? S.limitedMode : hostOnly ? S.hostOnlyBadge : ''
+  const setMode = ({ degraded = false, hostOnly = false, door = false } = {}) => {
+    const text = door ? S.limitedDoor : degraded ? S.limitedMode : hostOnly ? S.hostOnlyBadge : ''
     modeEl.hidden = !text
     modeEl.textContent = text
   }

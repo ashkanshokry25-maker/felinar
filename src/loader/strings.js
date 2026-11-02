@@ -14,10 +14,13 @@ function plural (n, one, many) {
   return formatCount(n) + ' ' + (Math.floor(Number(n) || 0) === 1 ? one : many)
 }
 
+// The visitor's own calendar date, YYYY-MM-DD. It was the UTC date (toISOString), which reads as tomorrow in the Americas in the
+// evening: "key remembered since 2026-11-02" at 20:00 on 2026-11-01, seen in four engines on the public tier.
 function isoDate (value) {
   const d = value instanceof Date ? value : new Date(typeof value === 'number' && value < 1e12 ? value * 1000 : value)
   if (Number.isNaN(d.getTime())) return String(value)
-  return d.toISOString().slice(0, 10)
+  const pad = (n) => (n < 10 ? '0' : '') + n
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
 }
 
 const RESOLVER_NAMES = { cloudflare: 'Cloudflare', 'dns.sb': 'dns.sb', google: 'Google' }
@@ -116,6 +119,8 @@ export const STRINGS = Object.freeze({
   offline: 'Offline: showing the copy on this device',
   backOnline: 'Back online',
   limitedMode: 'Limited mode: this browser has no offline engine',
+  // the door view's chip: the limit comes from the address, not from the browser (seen in the expanded bar on 2026-11-01)
+  limitedDoor: 'Limited view: this address cannot store anything for the site',
   sourceLabel: (source) => ({ cache: 'From this device', peers: 'From other visitors', webseed: 'From the host', mixed: 'From visitors and the host' })[source] || '',
   peers: (n) => plural(n, 'peer', 'peers'),
   ledgerLine: ({ entries = 0, inSync = 0, peers = 0 } = {}) => {

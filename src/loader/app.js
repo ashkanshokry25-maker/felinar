@@ -1543,7 +1543,7 @@ function recomputePolicy (A) {
     shareOnNetwork: A.prefs.shareOnNetwork,
     pointerMax: A.record ? A.record.max : undefined
   }, seedPrefsOf(A.prefs, dockState)), A.config)
-  A.ui.setMode({ degraded: !!A.degraded, hostOnly })
+  A.ui.setMode({ degraded: !!A.degraded, hostOnly, door: !!(A.mode && A.mode.mode === 'door') })
   if (A.tm) A.tm.setPolicy(A.policy)
   applySeedBudget(A) // C2 wire-ui
   return A.policy
@@ -5174,7 +5174,7 @@ function doorsInfo (A) {
   return {
     current: A.win.location.host,
     portable: isPortable(A),
-    candidates: (A.doorCandidates || []).map((c) => ({ host: c.host, kind: c.kind })),
+    candidates: (A.doorCandidates || []).map((c) => ({ host: c.host, kind: c.kind, lastGood: c.lastGood === true })),
     health: A.doorHealth.snapshot(),
     probe: A.doorProbe || null,
     down: !!A.doorDown,
