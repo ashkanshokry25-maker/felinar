@@ -19,16 +19,19 @@ changes are in "About this text" below.
 
 ## About this text
 
-- **Version and date.** This page describes the code of 0.3.0 as checked on 2026-10-25 (after the DNS-over-HTTPS skip list of the independence round). Each release re-reads it against
+- **Version and date.** This page describes the code of 0.3.0 as checked on 2026-10-25 (after the DNS-over-HTTPS skip list of the independence round); parts marked "(unreleased)" (the apps on the door page, and usage reports) describe code written since. Each release re-reads it against
   the code (release checklist, section 9); changes are in [CHANGELOG.md](../CHANGELOG.md). When the trackers or STUN
   servers a visitor agreed to change, the loader asks for the choice again; a release that changes a card's text must
-  raise `consent.version` in `src/loader/config.js` so that visitors are asked again too.
+  raise `consent.version` in `src/loader/config.js` so that visitors are asked again too. One change does not raise it: the line that names a
+  usage report host (unreleased, [below](#usage-reports-unreleased)) appears only on a site whose owner turned on usage reports. The host is one of the
+  recipients a stored choice covers, so a visitor who agreed earlier is asked again on that site and on no other.
 - **Who answers for it.** The project publishes software and runs no service for your visitors. By design, the project
   hosts no identity page (owner decision N-2, none in 0.3.0): run your own or use one you trust. Two things would change
   that, and 0.3.0 has neither: a default identity page, if the project ever hosts one, and a hosted homepage demo, which
   the release checklist makes optional. For those two the owner named in [GOVERNANCE.md](../GOVERNANCE.md) would answer,
-  and this page names the operator and a contact before either is published. For every other site, the site owner answers: use
-  the contact in that site's privacy notice.
+  and this page names the operator and a contact before either is published. A usage report endpoint (unreleased) would be a third: if the owner turns
+  usage reports on for a demo page of the project, the owner would answer for the endpoint of that demo, and the card of that page names it before anything
+  is sent. For every other site, the site owner answers: use the contact in that site's privacy notice.
 - **No lawyer, no legal advice.** See the note above. The review that replaced a lawyer's review used public sources
   only; no regulator, court or lawyer was asked.
 - **Languages.** The first-run card, the gate, the Settings panel and the status messages are in English only in 0.3.0;
@@ -38,18 +41,23 @@ changes are in "About this text" below.
 
 ## In short
 
-- The loader has no analytics, no telemetry, no third-party scripts and no cookies.
+- The loader has no analytics, no third-party scripts and no cookies, and it sends nothing home. The one exception is usage reports (unreleased: they
+  are not in 0.3.0), which exist only when the site owner names an endpoint in the site's `door.json`. Then the first-run card names the host before
+  anything leaves the device, "Load from host only" and a switch in Settings keep them off, what the endpoint receives and never receives is fixed
+  ([below](#usage-reports-unreleased)), and it keeps reports 7 days.
 - Before the visitor chooses anything, the browser talks only to hosts the site owner chose: the static host,
   and the hosts of the web seed, the `.torrent` and the ledger snapshot. It stores the site's files and a few
-  records on the device.
+  records on the device. If the owner named a usage report endpoint, what the page does before the visitor's choice waits in memory and is sent only after a yes.
 - After "Share and load", the browser also connects to WebSocket trackers, STUN servers and other visitors,
   and they see the visitor's IP address and that they are viewing this site. A shell page then also asks a
   DNS-over-HTTPS resolver for the site's `_magnet` record, to learn about updates, whether or not the owner
   published one; the resolver sees the visitor's IP address and the site's name. Drop-in pages never do, and no page asks
   for a name that cannot carry the record: IP addresses, nip.io and sslip.io names, and hosting-platform names where no user can
   publish a TXT record, such as `*.github.io`, `*.netlify.app`, `*.pages.dev` or `*.ts.net` (the list: [DEPLOY.md](DEPLOY.md#the-dns-txt-record)).
+- If the site owner named a usage report endpoint (unreleased), the browser also sends it reports after the visitor's yes: what the page did, never an
+  address or content. The endpoint's server sees the visitor's IP address, as any server does ([below](#usage-reports-unreleased)).
 - "Load from host only" keeps the visitor away from peers, trackers and STUN servers, and on a site with a page
-  tag from the DNS-over-HTTPS resolver too.
+  tag from the DNS-over-HTTPS resolver too. It sends no usage reports either.
 - Everything written with mw.db is public and copied to every visitor. Deleting an entry hides it for visitors
   who receive the deletion. Copies on devices that never sync again stay where they are.
 
@@ -57,7 +65,7 @@ changes are in "About this text" below.
 
 | Recipient | What it receives | When | Default |
 |---|---|---|---|
-| Your static host | the visitor's IP address, the pages and files requested, the usual request headers | every visit, before any choice (it serves the loader) | your host |
+| Your static host | the visitor's IP address, the pages and files requested (a shell page also asks once for `/_mw/door.json`, where the owner names a usage report endpoint, if there is one), the usual request headers | every visit, before any choice (it serves the loader) | your host |
 | Web seed, `.torrent` and snapshot hosts (`ws=`, `xs=`, `cs=`) | IP address, the files requested | from page load, before any choice: the download from the web seed starts at once over HTTP, and the snapshot is fetched after the site renders | set by the site owner; often the same host |
 | WebSocket trackers | IP address, the site's infohash and the ledger's rendezvous infohash, WebRTC offers | after "Share and load" (or a stored choice) | for a signed pointer, exactly its `tr=` list; for an unsigned pointer or a bare magnet link, its `tr=` plus `tracker.webtorrent.dev`, `tracker.openwebtorrent.com`, `tracker.novage.com.ua` and `open.ftorrent.com` |
 | STUN servers | IP address (to learn the public address WebRTC needs) | after "Share and load" | `stun.cloudflare.com:3478`, `global.stun.twilio.com:3478` |
@@ -65,18 +73,22 @@ changes are in "About this text" below.
 | DNS-over-HTTPS resolver | IP address and the name `_magnet.<site>` | shell pages on a public hostname, after "Share and load" (or the gate's "Load"): right after the choice (on a later visit, after the site renders, unless a cached answer is still fresh), then every 5 minutes or the record's TTL while the page is open, and on focus at most once a minute, whether or not a TXT record exists. "Load from host only" makes no lookup on a site with a page tag. A site found only through DNS asks after its blocking card, with either of its two load buttons (Cancel loads nothing), and keeps checking on the same schedule. Never in drop-in mode, never for `localhost`, IP addresses or names such as `.local` and `.test`, and never for nip.io and sslip.io names or hosting-platform names that cannot carry a TXT record (`*.github.io`, `*.gitlab.io`, `*.codeberg.page`, `*.pages.dev`, `*.workers.dev`, `*.netlify.app`, `*.vercel.app`, `*.surge.sh`, `*.trycloudflare.com`, `*.ts.net`) | Cloudflare first, then dns.sb, then Google (asked not to forward the visitor's subnet, `edns_client_subnet=0.0.0.0/0`); `<meta name="mw-doh">` replaces them with a resolver you choose |
 | Your tracker, if you run one | IP address and the infohash | as for trackers | you, and whatever your proxy logs |
 | Your pin node, if you run one | IP address, as any peer | as for peers | you |
+| Usage report endpoint (optional, owner-run; unreleased) | the reports of [Usage reports](#usage-reports-unreleased): the steps the page took, the controls used, state changes, errors, timings and WebRTC states by candidate type; a random session id, the page kind, the build and loader versions, the first 8 characters of the site's infohash, the short id of the identity signed in on that page, the browser family and a coarse network type. No address or port in a report, no full user agent, name, message, key, passphrase, code beyond its 4-character channel, URL fragment or typed text. The server it runs on sees the visitor's IP address, as any server does | after "Share and load" (or "Load" on the gate) and while the Settings switch stays on; on a door with apps, after the first "Continue" on a price card (the card names the host; signing in alone does not count); on the identity page, after the first press of a card button. Before that, what the page does waits in memory, and "Load from host only" or the switch drops it | none: off unless the site owner names an endpoint in `/_mw/door.json`; the first-run card names its host; "Load from host only" sends none; kept 7 days by default |
 | The site owner | posts the visitor writes, like everyone else | when the visitor writes | |
 
 Not used for loading a site or for its ledger: relay (TURN) servers, Nostr relays or blob hosts, and analytics or
-error reporting of any kind. If a later release adds any of them, this register and the consent card change first.
+error reporting by a service of the project or of a third party. The one path that reports what a page did is the site owner's own usage report endpoint, when
+the owner names one (the row above). If a later release adds any other, this register and the consent card change first.
 The v0.3 features of 0.3.0 add recipients (an identity page, a passkey provider, the site's own tracker and STUN
 servers for chat and files, a hub's pin service, and a relay for calls that only the owner can set up); they are in
 [the v0.3 register](#the-recipients-register-v03) and [the C2 register](#the-recipients-register-c2), and no lawyer
 has reviewed them, like the rest of the v0.3 text.
 
 The consent record stores the recipients a visitor agreed to: the host names of the trackers in the pointer and
-of the STUN servers. When they change, the card asks again. The DNS-over-HTTPS resolvers are part of the loader
-and not in that record, so a new `<meta name="mw-doh">` doesn't ask again. The OPC's consent guidelines ask for
+of the STUN servers and, on a site whose owner named a usage report endpoint (unreleased), that endpoint's host (as `obs:<host>`). When they change, the card
+asks again. The DNS-over-HTTPS resolvers are part of the loader
+and not in that record, so a new `<meta name="mw-doh">` doesn't ask again. A usage report endpoint is the other way round: its host is in the record, so the
+first one, or a new one, asks again. The OPC's consent guidelines ask for
 fresh consent when personal information goes to a new third party, so choose `mw-doh` before launch and do not change it
 afterwards: visitors who already chose "Share and load" would otherwise send their IP address and your site's name to a
 resolver they were never told about. The first-run card and the gate name
@@ -106,6 +118,8 @@ Read on 2026-10-22 from the operators' own pages. They can change, and the proje
 | The copy of the site ledger | IndexedDB (`mw-chain-<ledger id>`) | when the ledger opens | clearing site data |
 | The remembered site key and pointer | IndexedDB (`mw-sites`) | the first signed pointer | clearing site data |
 | The sharing choice `{ v, choice, dns, day, scope, rcpt }` | IndexedDB (`mw-sites`) | the visitor's choice | clearing site data; asked again when the version or the recipients change |
+| Usage reports waiting to be sent, only on a site whose owner turned them on (unreleased): events not yet sent, and the batches that failed (usually one) | the page's memory, 500 events at most; nothing is written to disk | as the page does things | sent after the visitor's yes; dropped on "Load from host only", when the Settings switch is turned off, and when the page closes |
+| The Settings switch for usage reports (`reports`, `on` or `off`) (unreleased) | IndexedDB (`mw-sites`); a door page keeps it for the visit only | when the visitor uses the switch | clearing site data |
 | Small flags: the status bar collapsed or not, a one-time reload guard | `localStorage`, `sessionStorage` | as needed | clearing site data, closing the tab |
 
 "Forget this site" removes the site's files, not the identity, the ledger copy, the remembered key or the choice:
@@ -143,6 +157,12 @@ DNS-over-HTTPS service (Cloudflare, dns.sb or Google), which sees your IP addres
 whichever you choose." With `<meta name="mw-doh">` on the page, these sentences name that resolver's host
 instead. A site with no host copy (no web seed) offers [Not now] in place of "Load from host only".
 
+On a site whose owner named a usage report endpoint (unreleased), the card adds one line that names the endpoint's host:
+
+> Usage reports: if you choose to share, this page also sends reports to {host}, run by this site's owner: which steps it took, which controls you pressed, errors, and the kinds of connections it made. They carry no messages, names or passphrases and no IP addresses, but {host} can see your IP address, as any server you connect to can. If you do not share, none are sent. You can turn them off any time in Settings.
+
+A site without an endpoint shows no such line.
+
 **The gate**, blocking, shown on hubs, for `consent=gate`, and for an `aud=` declaring personal data, children,
 sensitive content or an EEA, UK or Quebec audience:
 
@@ -153,6 +173,8 @@ sensitive content or an EEA, UK or Quebec audience:
 On a page with a public hostname the gate adds: "Loading it peer-to-peer also lets your browser ask a
 DNS-over-HTTPS service (Cloudflare, dns.sb or Google) whether this site has a newer version, at most once a minute
 while this page is open. That service sees your IP address and the name of this site."
+
+On a site whose owner named a usage report endpoint (unreleased), the gate adds: "Loading it peer-to-peer also sends usage reports to {host}, run by this site's owner: which steps this page took, which controls you pressed, errors, and the kinds of connections it made. They carry no messages, names or passphrases and no IP addresses, but {host} can see your IP address, as any server you connect to can. If you do not load it peer-to-peer, none are sent. You can turn them off any time in Settings."
 
 "Load from host only" appears only when the pointer has a web seed. A shared-origin hub adds "Sites on this hub
 share one browser origin and can access each other's data." and labels its button "Load anyway: this site can
@@ -166,6 +188,11 @@ read and change everything other sites stored on this hub".
 - "Share on this network", with "Phones on mobile data or an unknown network only download until you allow
   sharing here."
 - "Change your sharing choice" opens the card again.
+- "Send usage reports to {host}", shown only on a site whose owner named a usage report endpoint (unreleased). "Which steps this page takes, which controls you press, errors and the kinds of connections it makes, without messages, names or passphrases. {host} can see your IP address. Off stops them at once and drops the ones still waiting."
+
+**The door page and the identity page**, when the door's `door.json` or the identity page's build names a usage report endpoint (unreleased): the price card of an app that can start something
+adds "Besides that, this door sends usage reports to its operator at {host}: what the apps do here (steps, taps and errors), never network addresses, names or messages. Settings turns them off." (`src/loader/strings.js`), and the identity page, which has its own strings (`src/idp/strings.js`), shows this above the buttons of the card it opens with, until a button is pressed:
+"Usage reports: when you press a button on this page, it sends {host} a report of the steps you take and how long they take. The report holds no keys, no site address and nothing you type. To send nothing, close this window without pressing one."
 
 ## Retention
 
@@ -175,6 +202,7 @@ read and change everything other sites stored on this hub".
 | Posts in the ledger | every visitor who holds a copy | until a deletion reaches that copy; devices that never sync again keep them. A deleted post leaves its outline (the author's key, the minute it was written and the list's name) until the owner writes a checkpoint, and copies that never apply a checkpoint keep it |
 | Host and CDN logs | your host | your choice; say it in your notice (7 to 30 days, or none, is a common choice: [OPERATIONS.md](OPERATIONS.md#retention)) |
 | Tracker, STUN and resolver logs | their operators | their policies; link them in your notice; nobody can delete them for you |
+| Usage reports at the endpoint (unreleased) | the site owner who runs it; Cloudflare, as the host of the Free-plan setup, sees each request's address | 7 days by default (the owner can set 1 to 30), at most 50,000 rows, deleted by a sweep every 10 minutes; turning reports off does not remove what was already sent |
 | Your own tracker's logs | you | none is best; never the infohash together with an IP address |
 
 ## Who is responsible for what
@@ -183,7 +211,7 @@ read and change everything other sites stored on this hub".
 |---|---|
 | A site on its own domain (shell or drop-in) | the site owner, for everything the loader on that domain makes the browser do |
 | A hub | the hub operator for the hub's own processing, and each site's owner for its site |
-| This repository | the maintainers ship software and run no service for your visitors, so nothing here receives visitors' data, with two possible exceptions that the owner would answer for, neither run for 0.3.0: a default identity page, if the project ever hosts one (by design it hosts none), and a hosted homepage demo on GitHub Pages ("About this text" names them) |
+| This repository | the maintainers ship software and run no service for your visitors, so nothing here receives visitors' data, with two possible exceptions that the owner would answer for, neither run for 0.3.0: a default identity page, if the project ever hosts one (by design it hosts none), and a hosted homepage demo on GitHub Pages ("About this text" names them). A usage report endpoint that the owner may run for a demo page of the project (unreleased) would be a third: its card names it before anything is sent, as on any site |
 
 The research reads the roles below from the laws' texts, the cases and the regulators' guidance (first in
 [PRODUCTION-DIGEST](research/PRODUCTION-DIGEST.md), 4.2 and 5.3; checked again by AI research agents on 2026-10-22). No
@@ -197,7 +225,8 @@ lawful means to link it to a person (Breyer, C-582/14).
 - **Site owner:** a controller of the visitor's IP address as its own host sees it, and of the transmission of that
   address and the site's name to the trackers, STUN servers, DNS-over-HTTPS service and peers its page causes, and only
   of those operations (Fashion ID, C-40/17, operative part 2; EDPB Guidelines 07/2020, paragraphs 40, 67). High for
-  host logs, medium for the transmission.
+  host logs, medium for the transmission. An owner who turns on usage reports (unreleased) also collects them, for the owner's own purposes: the owner decides
+  what they are for and how long they are kept, and answers for them. The research did not read this role separately.
 - **Trackers, STUN servers and resolvers:** most likely controllers of their own logs, not joint controllers with the
   owner (EDPB 07/2020, paragraphs 68, 70 to 72); no Art. 26 arrangement is possible with a public service. Medium.
 - **Visitors who share:** not clearly inside the household exemption, which covers only a purely personal activity
@@ -210,9 +239,10 @@ lawful means to link it to a person (Breyer, C-582/14).
 - **This repository:** none; its maintainers run no service that receives visitors' data. The default trackers, STUN
   servers and resolvers (`src/loader/config.js`, `src/loader/doh.js`) are the project's choice of recipients, which an
   owner adopts by shipping them. A maintainer who runs a default identity origin or a hub is the controller of that
-  host's logs. Medium.
+  host's logs. A usage report endpoint is run by the site owner who names it, and, for a demo page of the project, by the owner of that demo. Medium.
 - **Legitimate interest** is weak for letting peers see a visitor's address, because a web seed can deliver the site
-  without them. The loader relies on consent through the card.
+  without them. The loader relies on consent through the card. Usage reports (unreleased) rest on the same consent: nothing is sent before it, and "Load from
+  host only" and the Settings switch withdraw it.
 
 Storing information on the device is a separate rule: ePrivacy Directive Art. 5(3) and, in the UK, PECR regulation 6
 and Schedule A1. The EDPB names local storage, WebSQL and caches, treats an instruction to send an IP address as
@@ -231,6 +261,9 @@ functionality, if the visitor is told what it is for and has a simple, free way 
   The loader keeps them whichever button is pressed and has no setting that stops it, so the EU question is open and
   the UK exception is not met (an owner decision; the card now says that the site is kept). Medium.
 - a posting key made for a guest (only in a build without the identity service): not necessary. Medium.
+- usage reports, when the site owner turns them on (unreleased): the loader reads the browser's family and a coarse network type from the device and sends
+  them with the steps of the page. The loader treats that as needing consent: it goes only after the visitor's yes on a card that names the host. Whether any
+  exemption could apply was not researched.
 
 **Canada.** Canada uses other words. PIPEDA has no controller or processor: an organization is responsible for the
 personal information under its control, including what it has passed to a third party for processing (Schedule 1,
@@ -264,8 +297,8 @@ CAI or a court.
   service offered to the public must give its privacy settings the highest level of confidentiality by default, with
   no action by the person (s. 9.1). A website that collects personal information must publish a confidentiality policy
   in clear and simple language (s. 8.2), with the title and contact information of the person in charge of protecting
-  personal information (s. 3.1). Before the visitor chooses, felinar sends nothing to peers, trackers, STUN servers or
-  DNS-over-HTTPS services: the browser contacts only the hosts the site owner chose (the static host, the web seed, and the hosts of the `.torrent` and the
+  personal information (s. 3.1). Before the visitor chooses, felinar sends nothing to peers, trackers, STUN servers,
+  DNS-over-HTTPS services or a usage report endpoint (reports wait in memory until the visitor says yes): the browser contacts only the hosts the site owner chose (the static host, the web seed, and the hosts of the `.torrent` and the
   snapshot), which see the visitor's IP address as any web host does. Publishing with `--aud qc` makes the blocking
   gate the default for your site. Nothing in 0.3.0 checks that an assessment was done. Outside Quebec, PIPEDA has no
   impact-assessment duty; the OPC's Children's Privacy Code (launched 2026-10-20) encourages one for a service that
@@ -284,13 +317,13 @@ work, and no lawyer has reviewed it. Fill the right-hand column for your deploym
 | Question | What felinar does (0.3.0) | You fill in |
 |---|---|---|
 | What personal information, and how sensitive? | The IP address and the fact that the visitor views this site: to the hosts you chose before any choice, and to peers, trackers and STUN servers after "Share and load". Posts and sealed items if you turn those features on. The subject of your site can make the IP address sensitive (health, belief, sexuality) | the sensitivity of your site's subject |
-| Purposes | to deliver the site, find peers and keep the site ledger in sync; nothing else is built in (no analytics, no profiling) | any purpose you add |
+| Purposes | to deliver the site, find peers and keep the site ledger in sync; if you turn on usage reports (unreleased), also to see what the loader did on the page and why it failed; nothing else is built in (no analytics, no profiling) | any purpose you add |
 | Who receives it | the recipients register, by feature | the hosts, trackers, STUN and DNS-over-HTTPS servers you named; your pin node and hub, if any |
-| Where it is kept, and for how long | the visitor's device; host and tracker logs for as long as each operator keeps them; peers for as long as they like | your retention for host and tracker logs |
-| How the visitor chooses | nothing goes to peers, trackers or STUN before "Share and load" or "Load", on a card with an equal "Load from host only"; `--aud qc` makes the gate blocking | whether your site needs the gate; the first-run card has no French yet |
-| Defaults (s. 9.1) | peer sharing off until chosen; phones share kept items only after "Share on this network"; chat, files, presence and message requests off; one exception, the Echo lane for private media on desktops after "Share and load" | any setting you changed |
-| Identify, locate, profile (s. 8.1) | peers see an IP address; presence is off until turned on; no profiling | the means you offer to switch on any function you add |
-| Communication outside Quebec (s. 17) | peers and some servers can be anywhere; the software cannot restrict where | where your trackers, STUN, DNS-over-HTTPS and hosts are; the written agreement with each operator you name; your conclusion on adequate protection, or why peer sharing waits for the visitor's choice |
+| Where it is kept, and for how long | the visitor's device; host and tracker logs for as long as each operator keeps them; peers for as long as they like; usage reports, if you turn them on, 7 days by default at your endpoint | your retention for host and tracker logs, and for usage reports |
+| How the visitor chooses | nothing goes to peers, trackers, STUN or a usage report endpoint before "Share and load" or "Load", on a card with an equal "Load from host only"; `--aud qc` makes the gate blocking | whether your site needs the gate; the first-run card has no French yet |
+| Defaults (s. 9.1) | peer sharing off until chosen; phones share kept items only after "Share on this network"; chat, files, presence and message requests off; usage reports off until you name an endpoint, and then sent only after the visitor's yes; one exception, the Echo lane for private media on desktops after "Share and load" | any setting you changed |
+| Identify, locate, profile (s. 8.1) | peers see an IP address; presence is off until turned on; no profiling; a usage report holds no address, and holds the short id of the key a visitor signed in with on that page | the means you offer to switch on any function you add |
+| Communication outside Quebec (s. 17) | peers and some servers can be anywhere; the software cannot restrict where | where your trackers, STUN, DNS-over-HTTPS, hosts and usage report endpoint are; the written agreement with each operator you name; your conclusion on adequate protection, or why peer sharing waits for the visitor's choice |
 | Access, correction, the person in charge (ss. 3.1, 27, 28, 32) | the visitor's data is on their device; a post can be tombstoned | the person's title and contact; your 30-day process |
 | Incidents (ss. 3.5 to 3.8) | the site ledger is public by design; a leaked host log is yours | your incident register, kept 5 years |
 
@@ -300,7 +333,8 @@ This software cannot check anyone's age, and a click on a card is not a parent's
 should be a plain static site without felinar's peer sharing: the web seed can deliver everything, and peers,
 trackers and STUN servers all see a visitor's IP address. 0.3.0 has no owner setting that forces host-only; `--aud
 kids` makes the blocking gate the default, and a visitor can still choose "Load". See
-[OPERATIONS.md](OPERATIONS.md#childrens-content). This is research, not legal advice, and no lawyer has reviewed it.
+[OPERATIONS.md](OPERATIONS.md#childrens-content). Do not turn on usage reports for such a site either: they record what each visit did, and the tools do
+not check who the audience is. This is research, not legal advice, and no lawyer has reviewed it.
 
 - **United States.** COPPA (15 U.S.C. 6501 to 6506 and the FTC's COPPA Rule, 16 CFR Part 312) counts an IP address as
   personal information when it is collected from a child under 13. It binds the operator of a commercial site or
@@ -337,12 +371,12 @@ it, and it is not legal advice.
   collects consumers' personal information, and either has annual gross revenue above $26,625,000 (the figure since
   2025, adjusted every two years), or buys, sells or shares the personal information of 100,000 or more consumers or
   households a year, or earns 50 percent or more of its revenue from selling or sharing it (Civil Code 1798.140(d)).
-  The project is not a business: it earns nothing and receives no visitor data. A site owner or hub operator is one
+  The project is not a business: it earns nothing and receives no visitor data (a usage report endpoint belongs to the owner who names it). A site owner or hub operator is one
   only if it is for-profit and passes a test; if you do, add a California section to your notice.
 - **Sale and sharing.** "Sale" is disclosure for money or other valuable consideration, and "sharing" is disclosure for
   cross-context behavioral advertising. Neither happens when the consumer directs the business to disclose personal
-  information or to interact with a third party (1798.140(ad), (ah)). The loader sends nothing to trackers, STUN servers
-  or peers before the visitor chooses "Share and load". Nobody has said whether that choice fits the exception.
+  information or to interact with a third party (1798.140(ad), (ah)). The loader sends nothing to trackers, STUN servers,
+  peers or a usage report endpoint before the visitor chooses "Share and load". Nobody has said whether that choice fits the exception.
 - **What these documents say about encryption.** The FTC treats a claim as deceptive if it is likely to mislead a
   reasonable consumer and is material, judged on the net impression. It acted over an "end-to-end" claim where the
   provider held the keys (Zoom, 2020). That is why the cards and these documents say, in the same sentence, who can
@@ -379,6 +413,10 @@ can read them. R 2.2.2 and 2.16.2 are more precise: the keys for old messages, r
 live in the vault, so a restore from the words alone recovers the public identities and not those. The change is
 recorded in `docs/deviations/docs.md`.
 
+On a site whose owner turned on usage reports (unreleased), one more recipient joins that summary: the owner's report endpoint. It sees your IP address, as any
+server does, and receives what the page did on that site, with the short id of your key for that page while you are signed in
+([Usage reports](#usage-reports-unreleased) says what it never receives).
+
 The statement on anonymity, in plain words (R 2.18):
 
 > felinar identities are **pseudonymous by design**: a key, not a person, and by default a different key on every
@@ -390,6 +428,9 @@ The statement on anonymity, in plain words (R 2.18):
 > it can carry, but it does not run WebRTC (to be confirmed from a primary source), so in Tor Browser you can read
 > and sign in but cannot connect to other visitors. Nothing in felinar proves who you are, your age or that one key
 > is one person.
+
+If the site owner turned on usage reports (unreleased), the site's report endpoint receives, next to the time of each step, the short id of the key you are
+signed in with on that page. It is the key that site already sees when you sign in, and a guest has none; the identity page's own reports carry no short id at all.
 
 ### The sentences the loader and these documents use
 
@@ -417,14 +458,23 @@ loader's string tables fails if a replaced sentence comes back (`docs/deviations
 
 (`<IdO>` stands for the host name of the identity page. The card prints it.)
 
+What usage reports (unreleased) change in these sentences:
+
+- **Matching a visitor by key.** The sentence stands: on a site that turned reports on, the endpoint gets a short id only for a visitor who signed in there, which is
+  the choice to be recognised by that site, and the id is that of the key used on that page, not of any other identity the person has.
+- **Signing in.** If the identity page's build names a usage report endpoint, that endpoint also receives a report of the steps (the cards shown, the buttons pressed, the
+  unlock method, the result and its time) after the first card button is pressed. It receives no key, no pointer and no address of a site, and nothing typed.
+- **Presence.** Usage reports are not presence: no other visitor sees them, and the owner's endpoint sees the times of steps, keyed by a short id only for a signed-in visitor,
+  not a name shown as connected.
+
 ### The recipients register, v0.3
 
 These recipients are added to the register above, and each must be named on the card for the feature that reaches it
-before any data flows (R 2.14.3, MF-59).
+before any data flows (R 2.14.3, MF-59). The usage report endpoint of the register above follows the same rule: the card names its host before any report is sent.
 
 | Recipient | What it receives | When | Default |
 |---|---|---|---|
-| The identity origin's operator | the IP address and the time of popup loads that miss its cache, and of update checks. With altered code at the identity origin, the roots of people who unlock afterwards | when the identity page opens in a window; by design most sign-ins load nothing from this host because its own Service Worker caches the bundle (R 2.3.9; unmeasured) | whichever origin the site names (`publish --idp`, which puts `idp=` in the pointer, or `<meta name="mw-idp">`); there is no default, by design: the project hosts none (R 1.5, N-2, decided for 0.3.0). A site owner, hub or person runs their own or uses one they trust, and every operator copies this row into their own notice |
+| The identity origin's operator | the IP address and the time of popup loads that miss its cache, and of update checks. With altered code at the identity origin, the roots of people who unlock afterwards. If its build names a usage report endpoint (unreleased), that endpoint also receives the steps of a sign-in after the first card button is pressed (the cards shown, the buttons pressed, the unlock method, the result and its time), never a key, a pointer or the address of a site | when the identity page opens in a window; by design most sign-ins load nothing from this host because its own Service Worker caches the bundle (R 2.3.9; unmeasured) | whichever origin the site names (`publish --idp`, which puts `idp=` in the pointer, or `<meta name="mw-idp">`); there is no default, by design: the project hosts none (R 1.5, N-2, decided for 0.3.0). A site owner, hub or person runs their own or uses one they trust, and every operator copies this row into their own notice |
 | The passkey provider (a password manager, or the platform: for example iCloud Keychain or Google Password Manager) | that the person has a felinar identity at the identity page: one credential, for one origin | when the person chooses a passkey | the person's own provider |
 | A server-backed relying party (a site that checks sign-ins with `@felinar/verify`) | the person's key for that site, a nonce, times, the IP address and the user agent, at each sign-in | at each sign-in to that site | the site's operator |
 | The site's own tracker and STUN servers, for chat, groups and private files | IP addresses, the lane's infohash, when a person is active; for private media swarms a random infohash and which addresses announce it (an edge between an uploader's address and a recipient's) | after the visitor turns chat or files on | the site owner must name its own; the separate chat lane, group lanes and private media swarms announce only to it and use only its STUN servers (R 2.7.1, MF-44). Chat also travels over the connections the browser already has for this site's ledger, which the pointer's trackers (for an unsigned pointer, the four public ones too) and the two default STUN servers helped set up; those servers do not learn that you chat, because the chat lane's infohash is never announced to them |
@@ -435,7 +485,7 @@ before any data flows (R 2.14.3, MF-59).
 | Other people on a chat lane, in a group or in a file swarm | the IP address, that the visitor uses chat on this site, padded sizes and times; for recipients and group members everything the visitor sends; the visitor's signed chat key, which names their key for this site, only when there is a reason (a contact, group member or call-roster key, a key the page looks for, open message requests, public presence), so a neighbour that is none of these does not learn the site key from chat (review round PRIV-2; `src/loader/api.js:2156`) | while the visitor has chat or files on and the page is open | off until the visitor opts in |
 | Opt-in holders | encrypted messages they cannot read, for up to 7 days (chosen, R 2.7.5); the address that deposited a message and the address that collected it | only if a visitor turns on "Hold messages for others" | off |
 
-The design has no analytics, no error reporting and no account at an identity company. The root is kept wrapped on
+Apart from the optional usage reports (unreleased), the design has no analytics and no error reporting, and no account at an identity company. The root is kept wrapped on
 the person's own devices; the sites a person signs in to hold only opaque wrapped copies (escrow) that they cannot
 open, and only of a root wrapped by a passkey: a passphrase identity is never escrowed, so after a browser deletes the
 identity page's data it comes back from the 12 words or the backup file (code review v0.3). The DNS-over-HTTPS resolvers of the register above are unchanged.
@@ -599,6 +649,7 @@ has no `_mw.cfg` setting for the owner to turn that off (the C2 section below). 
 - public file listings, private files and private media are separate switches for the owner and separate opt-ins for
   each visitor; chat and files are off until the owner turns them on;
 - presence is off;
+- usage reports (unreleased) are off until the owner names an endpoint, and then go only after the visitor's yes;
 - "Stay signed in" is a choice the visitor makes, and it is off in shared-computer mode;
 - visitors' profiles follow the ledger's writer policy: off under the default `owner`, on once the owner allows other
   writers.
@@ -657,7 +708,7 @@ In short:
   so the peers see your IP address for that time. It ends when you leave the page, unplug the phone, let the battery fall under 20% (where the
   browser reports it) or reach the cap.
 - **The counters stay on the device.** The seeding meters (bytes by lane for the session and the month) are local. The loader never sends them to a
-  tracker or a peer, and never ranks them. The site's own script can read them, because `mw.net.seeding()` returns them
+  tracker, a peer or a usage report endpoint, and never ranks them. The site's own script can read them, because `mw.net.seeding()` returns them
   to it like any other read method of the SDK, so a site could send them to its own server. There is no reward for sharing (ARCHITECTURE section 8).
 - **Without a domain, a DNS service learns the site's name.** A site on a name such as `203-0-113-7.nip.io` is found through that free service,
   which two volunteers run with no uptime promise and no privacy statement (S2 F1). The resolver of each visitor asks it for the name, and the
@@ -720,7 +771,7 @@ runs a pin node for others is also a hosting provider under the EU Digital Servi
 ## A privacy-notice template
 
 Adapted from [PRODUCTION-DIGEST](research/PRODUCTION-DIGEST.md) 9.2 (b) to what 0.3.0 does on a site that turns on none
-of the v0.3 features; the additions after it cover those features. Replace every `<...>`,
+of the v0.3 features; the additions after it cover those features and, last, usage reports (unreleased). Replace every `<...>`,
 delete what doesn't apply, make every sentence true for your deployment and, if you can, have a lawyer qualified where
 your visitors are review it: no lawyer has reviewed this template. Link it from your own pages and put its URL in the
 pointer with `publish --lg <URL>`; `publish` signs `lg=` into the pointer, but the 0.3.0 loader does not show it to
@@ -851,7 +902,9 @@ Add these to the other items:
 > **Status: v0.3 C2, built and reviewed.** ARCHITECTURE 15.15; tested on loopback only.
 
 A door sees the visitor's IP address, the time and the requests to `/_mw/*` (the loader and `door.json`); it does not see which site in
-those requests, because a link's fragment never leaves the browser (RFC 3986 3.5). A door that serves altered code can
+those requests, because a link's fragment never leaves the browser (RFC 3986 3.5). A door whose `door.json` also names a usage report endpoint (unreleased)
+hands that endpoint the first 8 characters of the infohash of the site it opens, once the visitor has agreed; the endpoint's operator then learns which site was
+opened, by a prefix that tells known sites apart, and that is the door's operator when the door runs the endpoint. A door that serves altered code can
 read the fragment in the visitor's browser and send it home, which is why a first door is trusted ("Trust on first door"
 in SECURITY-MODEL.md). A site's bytes from a full door (`/ws/<name>/`, `/_mw/t/<btih>.torrent`)
 name the site to that door. When a page's own address stops answering, the page contacts up to three other doors of that site (one
@@ -870,7 +923,7 @@ A door that offers apps lets people who signed in for the visit message each oth
 characters: the first four (the channel) go to the door's rendezvous, the tracker or Worker that the site owner chose, and the other eight
 stay in the browser that made the code. The rendezvous sees each channel, when requests and answers arrive, the network address of each
 socket and sealed boxes it cannot open; it does not see names, keys, the last eight characters of a code or any message, unless it records
-a box and guesses the secret offline (below). Nothing else leaves the device until the person who made the code accepts a request, and the
+a box and guesses the secret offline (below). Nothing else leaves the device for the rendezvous or for another person until the person who made the code accepts a request, and the
 accept carries that person's signature, which the other browser checks before it joins anything. Only then does the rendezvous give both
 browsers a private lane, served for 24 hours, the browsers connect to each other, and each learns the other's network address (in a room,
 every member can connect to every other member); the rendezvous then carries their connection offers and answers on that lane, as any
@@ -883,8 +936,64 @@ disappearing-message timer is the author's: a message that its author set to dis
 pinned or saved as well, and the reader sees a mark on it from the start. A
 rendezvous that records the sealed boxes can test guesses of the eight-character secret offline, which 40 bits and 100,000 rounds of key
 derivation make slow, not impossible, and the eight-digit compare code that two people read to each other is what catches a substituted
-key. A site owner who offers apps names the rendezvous and its operator in the privacy notice, with what it sees (the channel of each code
-and the times of requests) in the tracker row of the template.
+key. If the door's `door.json` names a usage report endpoint (unreleased), the page also reports what it did to that endpoint after the visitor's first "Continue" on a
+price card (the card names the host; a sign-in alone does not count, and until then the reports wait in memory, like the messages): the views, the cards, the sign-in steps, the channel of a code, the requests,
+the statuses of conversations by local id, and counts of messages per status; never a message, a name, a key or the last eight characters of a code. A site owner who offers
+apps names the rendezvous and its operator in the privacy notice, with what it sees (the channel of each code
+and the times of requests) in the tracker row of the template, and, if the door sends usage reports, the endpoint and its operator with what it receives
+([the row for it](#additions-to-the-notice-template-usage-reports-unreleased)).
+
+### Usage reports (unreleased)
+
+> **Status: built on 2026-11-02, not yet reviewed (unreleased); not in 0.3.0.** [OBSERVABILITY.md](OBSERVABILITY.md) and ARCHITECTURE 15.22. Tested with unit tests on
+> loopback only; no real host has served it yet. No lawyer has reviewed these sentences.
+
+A site owner can turn on usage reports. The visitor's browser then sends what the loader did on the page to an endpoint the owner runs. The owner names the endpoint in
+the `obs` block of the host's `/_mw/door.json` (`publish --obs`), and whoever runs an identity page names one in its build (`tools/build-idp.mjs --obs`). Without a block
+nothing is reported: no reporter exists, no event is kept and no request goes to any endpoint. A shell page does ask its own host for `/_mw/door.json` once at the start, to
+find out, and the host sees that request as it sees any file.
+
+**When anything leaves the device.**
+
+- On a site, or a site on a hub: after "Share and load" on the first-run card, or "Load" on the gate. Both name the endpoint's host first (the words are in
+  [What visitors are told](#what-visitors-are-told)). "Load from host only" sends none. A choice stored before the block existed, or for another endpoint, does not count:
+  the host is one of the recipients the record holds, so the card asks again.
+- On a door with apps: after the visitor's first "Continue" on a price card that can start something, which names the host. Signing in does not count: the loader's own sign-in card names
+  no host and says nothing about reports, so what the page did until the price card's "Continue" (the sign-in's steps among it) waits in memory and goes then.
+- On an identity page whose build names an endpoint: after the first press of a card button. The first card has one line above its buttons that names the host and says how to
+  send nothing: close the window without pressing one.
+- Until then what the page does is queued in the page's memory, 500 events at most, and nothing is sent. "Load from host only" or the Settings switch drops the queue; closing the card or the gate without a choice leaves it waiting.
+  The switch can be turned off at any time and stops reports at once; what was already sent stays at the endpoint (below).
+
+**What the endpoint receives.** Batches of events about one page load, sent at most every 2 seconds while the page has something to report, and when the page is hidden or closes:
+
+- a random session id the page made (12 characters, new on every page load, never stored), a batch number, the kind of page (a site, a door, a hub or the identity page), the loader's
+  version and the door's build id;
+- the first 8 hex characters of the infohash of the site the page shows, enough to tell known sites apart;
+- the short id of the identity signed in on that page, as its header shows it (the identity page sends none), the browser's family (Chromium, Firefox, WebKit or other), whether it
+  says it is mobile, and a coarse network type where the browser gives one;
+- the events: which steps the page took and how long they took, which control a visitor used (named by its role, id or tag, with the first 24 characters of a button's or link's label,
+  never an input's value), state changes, errors, the state of each WebRTC link and the kinds of its candidates (host, server reflexive, relay), counts of peers, the host names of the
+  trackers it contacted, and the loader's own log lines (each with its URLs cut to a scheme and a host name, its long hashes to their first 8 characters and its keys to a tag and 4
+  characters before the page masks it, a line that names a file of the site reported without the file, and the error texts of the cache, the download and the engine, which can name a
+  file, reported as their codes).
+
+**What it never receives from the page.** IP addresses and ports (masked to `x.x.x.x` even if one slips into a log line), a full user agent string, names and nicknames, message text,
+drafts and search text, passphrases, keys, boxes and proofs, the last 8 characters of a pair code (the first 4, the channel, may go), the fragment of a URL, the file names of a site,
+and any free text a person typed. Strings are cut at 200 characters. The page masks what it sends, and the endpoint masks it again and refuses a batch of the wrong shape. A mask cannot
+recognise a name inside a sentence, which is why the loader reports no text a person typed and why a log line must carry none ([OBSERVABILITY.md](OBSERVABILITY.md), "The field rules").
+
+**What the endpoint's host sees anyway.** The request arrives from the visitor's IP address with the usual request headers, the full user agent among them. The Worker's code reads four
+headers (`Origin`, `Content-Type`, `Content-Length` and `Upgrade`), never reads the sender's address and never logs. Cloudflare, as the operator of the host of the Free-plan setup, sees
+the addresses at its edge: the owner keeps its logs off and names it in the privacy notice.
+
+**How long it is kept.** One stored row per batch, deleted after 7 days by default (the owner can set 1 to 30 days), at most 50,000 rows, and, by default, at most 20,000 batches accepted a day (a cap sized for the
+Workers Free plan). A visitor's turning reports off does not remove what was already sent.
+
+**Who decides.** The site owner who names the endpoint decides what the reports are for and how long they are kept, within the limits of the Worker; whoever runs an identity page decides
+for that page's reports. The same limits as above apply: this is a reading, not advice. The owner names the endpoint, its operator and what it receives in the privacy notice (the rows are
+[below](#additions-to-the-notice-template-usage-reports-unreleased)), keeps the endpoint's logs off, lists only the owner's own origins in its allow list, and does not turn usage reports on
+for a site that children use; the tools do not check the audience.
 
 ### Additions to the notice template, v0.3 C2
 
@@ -904,3 +1013,23 @@ Add these to the other items:
 > we turned them on; a call starts only when you press the button, and everyone in it sees your IP address once you accept.
 >
 > **7b. Others can see which files you share.** Anyone connected to a file's swarm can see your IP address and that your browser holds that file.
+
+### Additions to the notice template, usage reports (unreleased)
+
+> **Status: unreleased, not reviewed.** Use these only if your site names a usage report endpoint. No lawyer has reviewed them.
+
+Add this row to the table in section 3 of the template:
+
+> | Usage report endpoint: <operator>, and Cloudflare as its host if you use the Free-plan setup | your IP address, as any server sees it, and a report of what this page did: the steps, the controls you used, errors, timings, the kinds of connections, a random session id, the first 8 characters of this site's address (its infohash), your short id if you are signed in, your browser's family and a coarse network type; no messages, names, passphrases, keys or typed text | to see what the site did and why it failed, only if you agree on the first-run card (or the gate) | <N days; 7 by default> |
+
+Add these to the other items:
+
+> **3d. Usage reports.** We send usage reports to <host> only after you choose "Share and load" (or "Load"). "Load from host only" sends none. You can turn them off at any time in
+> Settings ("Send usage reports to <host>"), which stops them at once; what was already sent stays with us for <N days>. <Say what you use them for, and who can read them.>
+>
+> **4d. What is stored on your device.** Reports waiting to be sent are held in memory only, and are dropped if you say no, turn reports off or close the page. The setting of the switch
+> stays on your device.
+>
+> **9c. Transfers.** Our report endpoint is hosted by <Cloudflare, Inc., in the United States, if you use the Free-plan setup>. <Where it is, and the safeguard.>
+>
+> **11b. Changes.** If the usage report endpoint changes, your browser asks for your choice again.

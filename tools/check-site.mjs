@@ -32,13 +32,15 @@
 // has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). No pointer is read.
 // Apps at a door: an apps block in door.json (docs/DEPLOY.md, "Apps at a door") gets an info line (rendezvous, STUN and identity origin
 // counted) and a shape check; the addresses in it are read, never contacted.
+// Usage reports: an obs block in door.json (docs/DEPLOY.md, "Usage reports") gets one info line that names the host the reports go to,
+// and a warning when the loader cannot use the block; the endpoint is read, never contacted.
 
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 
 import { parsePointer, verifyPointer, verifyRotation, pickRecord, ledgerIdFor, normalizeScope, EXP_WARN_DAYS, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../src/common/pointer.js';
-import { checkDoorJson } from '../src/loader/doors.js';
-import { appsBlockProblems, appsBlockLine } from './apps-block.mjs';
+import { checkDoorJson, checkObsBlock } from '../src/loader/doors.js';
+import { appsBlockProblems, appsBlockLine, obsBlockProblems, obsBlockLine } from './apps-block.mjs';
 import { parseTorrentFile } from '../src/common/torrent-file.js';
 import { resolveTxt, shouldSkipDoh, isWildcardDnsName, isNoTxtPlatformName, magnetTxtName, dohOverrideFromMeta, RESOLVERS } from '../src/loader/doh.js';
 import { isShellHtml } from '../src/sw/lib.js';
@@ -151,6 +153,14 @@ export async function checkDoor(urlText, options = {}) {
             const problems = appsBlockProblems(json.apps);
             if (!problems.length) add('info', 'apps', appsBlockLine(json.apps));
             else add('warn', 'apps', 'door.json has an apps block the door page cannot use (' + problems[0] + (problems.length > 1 ? '; ' + (problems.length - 1) + ' more' : '') + '): the bare door page keeps its paste box');
+          }
+          // Usage reports: named by host when the door sends them; a block the loader cannot use is a warning (it sends none). Never contacted.
+          if (json.obs !== undefined && json.obs !== null) {
+            const problems = obsBlockProblems(json.obs);
+            if (problems.length) add('warn', 'door', 'door.json has an obs block the loader cannot use (' + problems[0] + (problems.length > 1 ? '; ' + (problems.length - 1) + ' more' : '') + '): it sends no usage reports');
+            // The loader on a page that is not itself on a loopback host takes no http: endpoint, not even on a loopback host (checkObsBlock's pageHost).
+            else if (!checkObsBlock(json.obs, { pageHost: u.host }).block) add('warn', 'door', 'door.json has an obs block the loader cannot use on this host (an http: endpoint on a loopback host is used only by a page that is itself on one): it sends no usage reports');
+            else add('info', 'door', obsBlockLine(json.obs));
           }
         }
         const acao = res.headers.get('access-control-allow-origin');
@@ -805,7 +815,7 @@ async function main(argv) {
   if (flags.door) {
     // v0.3 C2 doors: a door, not a site (no pointer, no DNS, no trackers).
     log('check-site --door ' + positionals[0]);
-    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; the door page also at /_mw/open when the host redirects there; the addresses of an apps block are read, never contacted). Each target is printed before it is contacted.');
+    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; the door page also at /_mw/open when the host redirects there; the addresses of an apps block are read, never contacted, and neither is the endpoint of an obs block). Each target is printed before it is contacted.');
     const result = await checkDoor(positionals[0], { timeoutMs: flags.timeout, allowNoCors: flags.allowNoCors, log });
     if (flags.json) out(JSON.stringify({ url: positionals[0], door: true, ok: result.ok, failures: result.failures, warnings: result.warnings, results: result.results }, null, 2));
     else out((result.ok ? 'OK' : 'FAILED') + ': ' + result.failures + ' failure(s), ' + result.warnings + ' warning(s).');

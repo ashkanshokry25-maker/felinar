@@ -12,7 +12,7 @@
 //   completeRedirect({ win }) -> { bundle?, proof?, record?, erased?, returnTo } | null   (at /_mw/idp-return)
 //   openIdentity({ intent }) -> 'done' | 'cancelled'      (the IdO's own settings window)
 //
-// Messages (popup): IdO -> opener { v: 1, t: 'mw-idp-ready', build }; opener -> IdO the request (below) with
+// Messages (popup): IdO -> opener { v: 1, t: 'mw-idp-ready', build, obs? }; opener -> IdO the request (below) with
 // targetOrigin = the IdO origin; optional rounds { t: 'mw-idp-count', pub } -> { t: 'mw-idp-count-res', count }
 // (the "Found N posts" line after a restore) and { t: 'mw-idp-legacy', epk } -> { t: 'mw-idp-legacy-res', sealed }
 // (a 0.2.1 key moving into the vault, R 2.2.7); IdO -> opener { v: 1, t: 'mw-signin-res', requestId, ok, ... }.
@@ -20,8 +20,12 @@
 // Request (R 2.3.2 plus the fields of docs/deviations/idp.md item 2):
 //   { v: 1, t: 'mw-signin-req', requestId, purpose: 'site' | 'server', pointer?, scope?, challenge?,
 //     want: one of WANT_SETS, epk?, shared?, hubDefault? (ticks the hub box only on a page whose template the IdO build lists; review round UX-12), create?, owner?,
-//     escrow?: { root?, vault? }, record?, legacy?: { pub, ledger, name? } }
+//     escrow?: { root?, vault? }, record?, legacy?: { pub, ledger, name? }, obs?: { sid } }
 //   redirect only: origin (the page's own origin), ret (= origin + '/_mw/idp-return')
+// obs (usage reports, docs/OBSERVABILITY.md): the session id of the opener's own usage report, 12 characters of [a-z2-9]. A popup
+// carries it only when the identity page said obs: true in its ready message (a build that reports and names its host), so an
+// identity page built before the field existed is never sent a field it would refuse. The identity page uses it as a label on
+// its own report, so the operator can read the two timelines side by side. Nothing else of the opener is used.
 // Nothing in the request can choose the label, the key mode, "same identity", the domain or the origin of a
 // proof: those come from the IdO and the browser (an unknown field is refused, so no parameter can ask).
 //
@@ -49,9 +53,12 @@ export const WANTS = Object.freeze(['keys', 'proof', 'record', 'erase']);
 export const WANT_SETS = Object.freeze([['keys'], ['proof'], ['keys', 'proof'], ['record'], ['erase']].map((w) => Object.freeze(w)));
 export const OWNER_ACTIONS = Object.freeze(['policy', 'checkpoint', 'withdraw', 'delete']);
 export const REQUEST_FIELDS = Object.freeze(['v', 't', 'requestId', 'purpose', 'pointer', 'scope', 'challenge', 'want', 'epk', 'shared', 'hubDefault',
-  'create', 'owner', 'escrow', 'record', 'legacy']);
+  'create', 'owner', 'escrow', 'record', 'legacy', 'obs']);
 export const REDIRECT_FIELDS = Object.freeze(['origin', 'ret']);
 export const MAX_BLOB_CHARS = 400000;
+/** The session id of a usage report (src/loader/obs.js): 12 characters of [a-z2-9]. */
+export const OBS_SID_RE = /^[a-z2-9]{12}$/;
+export const isObsSid = (s) => typeof s === 'string' && OBS_SID_RE.test(s);
 
 const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
 
@@ -160,6 +167,7 @@ export function validateRequest(req, { transport = 'popup' } = {}) {
     if (l.ledger !== undefined && l.ledger !== null && (typeof l.ledger !== 'string' || l.ledger.length > 64)) return bad('legacy ledger');
     if (l.name !== undefined && (typeof l.name !== 'string' || l.name.length > 48)) return bad('legacy name');
   }
+  if (req.obs !== undefined && (!plainObject(req.obs) || Object.keys(req.obs).length !== 1 || !isObsSid(req.obs.sid))) return bad('obs');
   if (transport === 'redirect') {
     if (!isOrigin(req.origin)) return bad('origin');
     if (!returnUrlOk(req.ret, req.origin)) return bad('ret');
@@ -323,12 +331,17 @@ export function mergeRecords(...records) {
 // The identity origin address
 // ---------------------------------------------------------------------------------------------
 
-const CONFIG = { idp: null };
+const CONFIG = { idp: null, obsSid: null };
 
-/** configure({ idp }): the default identity origin for this page (the loader passes its configuration). */
-export function configure({ idp } = {}) {
+/**
+ * configure({ idp, obsSid }): the default identity origin for this page (the loader passes its configuration), and the session id
+ * of the page's usage report while its reports are on (null when they are off or not configured). A sid that is not 12 characters
+ * of [a-z2-9] is not kept. signIn({ obsSid }) overrides it for one call.
+ */
+export function configure({ idp, obsSid } = {}) {
   if (idp !== undefined && idp !== null && !isOrigin(idp)) throw new TypeError('configure: idp must be an https origin');
   if (idp !== undefined) CONFIG.idp = idp;
+  if (obsSid !== undefined) CONFIG.obsSid = isObsSid(obsSid) ? obsSid : null;
 }
 
 function pointerIdp(pointer) {
@@ -529,7 +542,7 @@ export function opensInPlace(win) {
  * signIn(opts) -> Promise<{ bundle?, proof?, record?, erased? }>
  * opts: { purpose = 'site', pointer, scope, challenge, want = ['keys'], shared, create, owner, escrow, record,
  *         legacy: { pub, ledger, name, exportKey() -> Promise<jwk> }, countPosts(pub) -> Promise<number | null>,
- *         redirect, returnTo, idp, win, cryptoApi, now, readyTimeoutMs, answerTimeoutMs, pollMs }
+ *         redirect, returnTo, idp, obsSid, win, cryptoApi, now, readyTimeoutMs, answerTimeoutMs, pollMs }
  * redirect: true starts with the redirect round trip, false never does; left out, a key sign-in (no proof) starts with
  * it where opensInPlace(win). challenge, escrow, record, legacy, pointer and scope may be promises (resolveLate).
  * Call it from a click: window.open runs before the first await.
@@ -621,6 +634,10 @@ async function runPopup(opts, win, idp, popup) {
           }
           resolved = late;
           request = buildRequest(late, requestId, box ? box.pub : undefined);
+          // The usage-report id goes only to an identity page that said it reports (obs: true in its ready message): an older
+          // build refuses a field it does not know, and the sign-in would fail for a label it has no use for.
+          const obsSid = isObsSid(late.obsSid) ? late.obsSid : CONFIG.obsSid;
+          if (data.obs === true && isObsSid(obsSid)) request.obs = { sid: obsSid };
           const v = validateRequest(request);
           if (!v.ok) {
             fail('E_BAD_REQUEST', 'the request was refused here: ' + v.reason);

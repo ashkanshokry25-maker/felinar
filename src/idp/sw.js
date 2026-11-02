@@ -5,7 +5,11 @@
 //   createIdpWorker({ buildId, precache, caches, fetchFn, scope }) -> { install(), activate(), handle(request) }
 //   precache: paths relative to the worker's scope ('./', './index.html', './signin/', ..., './idp.js')
 //
-// Only same-origin GET requests are answered from the cache; everything else goes to the network untouched.
+// Only same-origin GET requests are answered from the cache; everything else goes to the network untouched. Where the browser has
+// the Static Routing API (Chromium 123 and later) a request to another origin is also told to skip this worker (staticRoute): the
+// worker answers nothing for it, and the usage report the page sends to its report host as its window closes or goes away is lost
+// when that request first has to be handed to a worker (Chromium 156, 2026-11-02: 0 of 6 pagehide beacons arrived on a navigation with
+// the worker in control, 6 of 6 with this rule or without a worker).
 // A new build is taken when every IdO window has closed (no skipWaiting), so one sign-in never mixes builds.
 // tools/build-idp.mjs replaces self.__MW_IDP_BUILD__ and self.__MW_IDP_PRECACHE__ and bundles this file as a
 // classic script; the exports are for the unit tests.
@@ -16,6 +20,28 @@ export const CACHE_PREFIX = 'mw-idp-';
 
 /** Navigation paths and the cached document that answers each (relative to the scope). */
 export const NAV_ALIASES = Object.freeze({ '': './index.html', 'index.html': './index.html', signin: './signin/index.html', 'signin/': './signin/index.html' });
+
+/**
+ * staticRoute(location) -> the one Static Routing rule of this worker: a request to any origin but this one goes straight to the
+ * network, without waking the worker. The page makes none today except a usage report (docs/OBSERVABILITY.md), and this worker answers
+ * none of them either way.
+ */
+export function staticRoute(loc) {
+  return { condition: { not: { urlPattern: { protocol: String(loc.protocol).replace(/:$/, ''), hostname: loc.hostname, port: loc.port } } }, source: 'network' };
+}
+
+/** installRoutes(event, location) -> true when the rule was registered; a browser without the API, or one that refuses the rule, gets none and the install goes on. */
+export function installRoutes(event, loc) {
+  try {
+    if (event && typeof event.addRoutes === 'function') {
+      event.addRoutes(staticRoute(loc));
+      return true;
+    }
+  } catch (_) {
+    // no static routing here: requests to another origin pass through the worker, which answers none of them
+  }
+  return false;
+}
 
 export function createIdpWorker({ buildId = BUILD_ID, precache = PRECACHE, caches: cacheStorage, fetchFn, scope }) {
   const name = CACHE_PREFIX + buildId;
@@ -80,7 +106,10 @@ export function createIdpWorker({ buildId = BUILD_ID, precache = PRECACHE, cache
 
 if (typeof ServiceWorkerGlobalScope !== 'undefined' && typeof self !== 'undefined' && self instanceof ServiceWorkerGlobalScope) {
   const worker = createIdpWorker({ caches: self.caches, fetchFn: (r) => fetch(r), scope: self.registration.scope });
-  self.addEventListener('install', (event) => event.waitUntil(worker.install()));
+  self.addEventListener('install', (event) => {
+    installRoutes(event, self.location);
+    event.waitUntil(worker.install());
+  });
   self.addEventListener('activate', (event) => event.waitUntil(worker.activate().then(() => self.clients.claim())));
   self.addEventListener('fetch', (event) => {
     const answer = worker.handle(event.request);

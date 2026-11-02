@@ -4,7 +4,7 @@
 // stored choice means and what a new record holds. Node and browsers.
 //
 //   consentModeFor   'gate' | 'notice' from consent= and aud= (an EEA, UK, Quebec or personal-data audience gates)
-//   recipientsKey    the third parties a "Share and load" covers (tracker and STUN hosts)
+//   recipientsKey    the third parties a "Share and load" covers (tracker and STUN hosts, and the usage-report host when the site has one)
 //   makeConsentRecord / consentFromRecord / dnsAllowedBy   the versioned record { v, choice, dns, day, scope, rcpt }
 //   consentKeyFor    its prefs key: per origin ('consent'), per ledger only on the shared demo hub
 
@@ -36,15 +36,20 @@ export function consentModeFor (record, config = CONFIG) {
 }
 
 /**
- * recipientsKey(record, config) → the third parties a "Share and load" covers: tracker and STUN host
- * names, sorted and joined. A stored choice with other recipients is asked again.
+ * recipientsKey(record, config, { obsHost }) → the third parties a "Share and load" covers: tracker and STUN host
+ * names, sorted and joined. A stored choice with other recipients is asked again. obsHost: the host name of the
+ * usage-report endpoint of the site's door.json (src/loader/doors.js obsBlockOf), added as 'obs:' + host, so a visitor
+ * who agreed before the site had one, or to another one, sees the card again with the host named. Without it (a site
+ * with no report block, and the drop-in runtime) the key is what it always was, and nobody is asked again.
  */
-export function recipientsKey (record, config = CONFIG) {
+export function recipientsKey (record, config = CONFIG, extra = null) {
+  const obsHost = extra && typeof extra === 'object' ? extra.obsHost : null
   const hosts = new Set()
   for (const url of announceListFor(record || {}, config.trackers)) {
     try { hosts.add(new URL(url).host.toLowerCase()) } catch (_) { /* skip */ }
   }
   for (const u of stunUrlsOf(config.stun)) hosts.add(String(u).replace(/^stuns?:/i, '').toLowerCase())
+  if (typeof obsHost === 'string' && obsHost) hosts.add('obs:' + obsHost.toLowerCase())
   return Array.from(hosts).sort().join(',')
 }
 

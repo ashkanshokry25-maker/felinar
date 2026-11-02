@@ -818,7 +818,7 @@ policy is recomputed (caps, `maxSiteBytes`, `leaveVersionSwarm`); a drop-in copy
 host's web seed when the network becomes metered is aborted and started again from peers only (3.4.7).
 
 Consent (strings in DESIGN-REVIEW §4.5 and PRODUCTION-DIGEST §9.2, verbatim), always **before the first
-tracker, peer connection and DoH lookup (C1)**:
+tracker, peer connection and DoH lookup (C1)**, and, where the site names a usage report endpoint, before the first usage report (15.22):
 - Per-domain and drop-in: the first-run card, non-blocking, with a same-layer refusal **[Share and load]
   [Load from host only]**; the web seed download starts at once (HTTP only); peers, trackers and the STUN
   probe start after "Share and load" or a stored choice. `consent=gate`, or an `aud=` gate token (§4: personal
@@ -830,12 +830,12 @@ tracker, peer connection and DoH lookup (C1)**:
   and the gate (`gateDnsUpdate`) say so on every shell or hub page whose `dnsHost` is not skipped (post-wave
   fix), and the DNS-only card adds `consentDnsAgain`.
 - The choice is a versioned record `{ v, choice, dns, day, scope, rcpt }` stored per origin; a record of
-  another version, or whose tracker/STUN recipients differ, is asked again.
+  another version, or whose tracker/STUN recipients (and usage report host, 15.22) differ, is asked again.
 - Hub: the gate, unless the site is cached. While gated, load from the web seed only when the pointer has
   `xs`/`ws`, otherwise nothing.
 - Settings: "Share with other visitors: On / Off" (Off stops sharing the site's files; posts are still passed
   between connected visitors and the IP stays visible: code review round 1, DESIGN-REVIEW §4.5), "Host only:
-  no peer connections", and "Change your sharing choice" (re-opens the card).
+  no peer connections", "Change your sharing choice" (re-opens the card), and, only on a site that names a usage report endpoint, "Send usage reports to {host}" (15.22).
 `navigator.storage.persist()` is requested only from the consent click itself (never at load: Firefox
 prompts). Storage budget 512 MiB desktop / 128 MiB mobile, LRU by last visit (never the current site),
 "Forget this site".
@@ -1329,7 +1329,8 @@ until it passes.
   rotation, `<meta>` as primary bootstrap, DoH only as the update channel, DNSSEC `AD` surfaced.
 - Trackers scoped to the signed `tr` list (`private: true` per add); defaults only for unsigned pointers.
 - No owner key in browsers; moderators instead; the ledger id binds the owner key.
-- Privacy and consent per §8; no analytics, no third-party scripts; hub shared origin never claims isolation.
+- Privacy and consent per §8; no analytics, no third-party scripts, and nothing sent home unless the site owner turns on usage reports (15.22: a card
+  names the host first); hub shared origin never claims isolation.
 - Supply chain: `.npmrc ignore-scripts`, `build.lock.json`, immutable versioned assets, kill switch.
   **v0.2.1:** the vendored bundle is shipped patched only through hash-asserted patch points (B3) and pinned
   twice (stock and patched sha256); the worker installs only a precache whose JS and CSS match the build's
@@ -1865,7 +1866,7 @@ hosts and 2,048 bytes, at most one accepted change an hour per device; invalid i
 Only the door manifest (`/_mw/door.webmanifest`) has `protocol_handlers` (`web+felinar` to `/_mw/open.html#%s`), `share_target` and
 `launch_handler`. Tools: `publish --door`, `publish --door-kit`, `check-site --door` (DEPLOY.md, "Doors").
 A door may also offer apps on its bare door page, named by an optional `apps` block of `/_mw/door.json` (15.21); without the block the page
-is the paste box described above.
+is the paste box described above. The same file may carry an optional `obs` block that names a usage report endpoint (15.22); it never decides whether a door is usable.
 
 ### 15.16 C2 integration (v0.3 C2)
 The C2 integration (2026-10-20, [deviations/integration-c2.md](deviations/integration-c2.md), C2-1 to C2-24) joined the eight C2 lanes to the
@@ -2165,7 +2166,7 @@ folded in here until the code does it; R 5.4.7 lists those.
   no credentials, no referrer, the probe's size cap and its 4 s limit). When the block is valid and the address is not a share target
   (`?mw=`, `?mwtext=`), `runDoorApps` starts the apps in place of the paste box, which becomes the tile "Open a link". Any failure leaves
   the paste box. The block never decides whether a door is usable: `checkDoorJson` keeps its five fields, gains `apps` (the checked block,
-  or null) when a block is present and `appsReason` when it is bad. A door without a block, and every other mode, are as before. Support
+  or null) when a block is present and `appsReason` when it is bad (usage reports add `obs` and `obsReason` in the same way, 15.22). A door without a block, and every other mode, are as before. Support
   and tests read `window.__mwShell.inspect().apps`: counts, states, short ids and the channel of the visitor's own code (its first four
   characters, never the secret half), never a message text.
 - **What a door page mounts.** The identity client configured with `idp`; the identity service alone (`mountV03Services` with
@@ -2272,7 +2273,8 @@ folded in here until the code does it; R 5.4.7 lists those.
   | The site ledger; a log of messages | nothing | not applicable |
 
 - **Tools.** `publish --tracker <wss URL> --stun <stun: URL> --idp <origin>` writes `apps` into `summary.json` and, with `--shell`, into the
-  shell's `_mw/door.json` (the build's file with `apps` as its last key; `withoutAppsBlock` gives the build's bytes back);
+  shell's `_mw/door.json` (the build's file with `apps` after the build's own keys, and the usage-report block `obs` behind it when there is one, whichever was written first; each of
+  `withoutAppsBlock` and `withoutObsBlock` takes out its own key, and the two together give the build's bytes back);
   `publish --door-kit <dir> --door-site <publish output>` copies the first site's block into the kit's `_mw/door.json`, the one loader file
   the kit then changes; `tools/dev-server.mjs --apps-rendezvous --apps-stun --apps-idp` serves a block without changing the file;
   `check-site --door` prints it (`[info] apps: rendezvous 1, stun 1, identity <origin>`) or warns that the page cannot use it, and contacts
@@ -2300,3 +2302,76 @@ folded in here until the code does it; R 5.4.7 lists those.
   `_mw/apps.js` entry loaded only by doors with apps. **(proposed)** `verify-release.mjs verify --door-kit` accepting a door kit whose
   `door.json` carries the block (it names that file today, because the signed list names `door.json` without it). No Cloudflare run, so
   hibernation and idle pair sockets on the real platform are untested.
+
+### 15.22 Usage reports (unreleased)
+
+> **Status: built on 2026-11-02, not yet reviewed.** Contracts for the optional usage reports: what the loader, the apps and the identity page tell an endpoint that the site
+> owner runs, so that the owner can see what happened on a visit. Tested with unit tests on loopback (the reporter, the page's wiring, the hooks of the apps and of the identity page,
+> the Worker's core and front over fakes, and the publish tools). Not run: a real host, Cloudflare, a phone. What is not built is marked **(proposed)**. The description for owners
+> and operators is [OBSERVABILITY.md](OBSERVABILITY.md); the exports, the batch and the routes are in INTERFACES "Usage reports"; the endpoint is
+> [deploy/obs-worker/README.md](../deploy/obs-worker/README.md); the privacy sentences are PRIVACY, "Usage reports". No lawyer has reviewed those sentences.
+
+- **Design.** A host names its endpoint in an optional block of its own `/_mw/door.json`: `obs: { endpoint: <origin> }` (an exact origin, `https:` or `http:` on a loopback host, at
+  most 300 characters, no path, user name, query or fragment; `checkObsBlock` in `src/loader/doors.js`, and `tools/apps-block.mjs`, which is at least as strict). `checkDoorJson` gains
+  `obs` (the checked block, or null) when a block is present and `obsReason` when it is bad (`obs-shape`, `obs-endpoint`, `obs-endpoint-insecure`); the block never decides `ok`. The
+  block is a file of the loader's shell and never part of a site's payload, so the infohash does not change when it is added or removed. Every shell, hub and door page reads this
+  address's `/_mw/door.json` once at the start of `run()` (`readDoorJson`: one request, same origin, no HTTP cache, no credentials, no referrer, the probe's size cap and its 4 s limit; the
+  apps block of the door page comes from the same read). A usable block makes a reporter. No block, a bad one or a failed read means none, and `rep()` is then a function call that
+  returns. The identity page does not read `door.json`: `tools/build-idp.mjs --obs <origin>` writes the origin as `data-mw-obs` on `<html>` and into `connect-src` of its `_headers`, and
+  the build id changes. Drop-in pages and the Service Worker have no reporter.
+- **The reporter** (`src/loader/obs.js`, no imports; the identity page has its own small client of the same wire in `src/idp/obs-client.js`, because that bundle holds the roots of identities
+  and carries the least code that does the job). `createReporter` queues events `{ t, n, ...fields }`, batches them (at most 50 events and 16,384 bytes; one batch per 2 s tick while something
+  waits), sends with `fetch` with `keepalive` (a cors request, the page's real origin) or, without it, `navigator.sendBeacon`, retries a failed batch with the same `seq` and body, three tries in all, and drains up to three batches when the page
+  is hidden. `safeField` masks every string it is given; `describeTarget` names a control from the page's own data attributes and never reads a value; `wrapPeerConnection` reports the ICE and
+  connection states and the kinds of candidates of every connection made through `RTCPeerConnection`, never an address. The wire is in INTERFACES.
+- **Consent.** Events wait in memory (500, the oldest dropped and counted) until `allow(true)`. On a shell, hub or door-view page, `setConsent` and `syncReports` call it for `accepted` while
+  Settings has not turned reports off; `host-only` means no and drops the queue, and `pending` leaves it waiting. The consent record's recipients include `obs:<host>` (`recipientsKey(record, config,
+  { obsHost })`), so a stored choice made without that host asks again, and `consent.version` is not raised, so a site without a block asks nobody again. On the bare door page of a door with apps,
+  the first yes is the Continue of a price card that can start something, a card that names the host (a sign-in alone is not one: the loader's sign-in card names no host, and `app.js` never calls the
+  view's `how.popup()`): `createAppsUi` raises `actions.firstYes` and `onFirstYes`, and the page allows then. On the identity page the first press of a card button allows (`onCardPress`), and the page flushes with `keepalive` after it has posted its answer, before its window closes. The
+  Settings switch is `prefs.reports` (`on` or `off`, default `on`, kept with the other prefs; on a door page for the visit only), and turning it off is never itself reported.
+- **Where the loader reports.** `rep(A, name, fields)` in `src/loader/app.js` raises the events of OBSERVABILITY (a no-op without a reporter; a throw is swallowed). `A.log` also mirrors each
+  line as `log { m }` through `reportableText`, which cuts a URL to its scheme and host and a hash to 8 characters, and the reporter's masks run after it. One delegated capture listener for
+  `click`, `change` and `submit` sits on `#mw-root` and one inside each closed shadow root (the cards, the call panel); each calls `describeTarget`, and a `change` reports the control and a value only for a
+  checkbox, a radio button or a select. `wrapPeerConnection` is installed before the WebTorrent bundle is imported and composes with `installOfferTimeout`; the wrapper exposes the native
+  constructor as `__mwNative`, which the calls code finds through it (`nativeRtc`). The torrent manager takes a `report` option (`peer.wire`, `peer.ice`, `peers.count`, `tracker.state`);
+  `createApps` takes `report` and `linkOptions` (`apps.*` and, through the pair socket, `link.*`); `createAppsUi` takes `report`, `reportsHost` and the first-yes callbacks; `MwApi` takes `report`
+  (`api.request`, `signin.*`). The identity client gives the reporter's session id to an identity page that says it reports (`obs: true` in its ready message), which sends it back as `ref`, so
+  that an operator who runs both endpoints can read the two timelines side by side.
+- **The Worker** (`deploy/obs-worker`). A Pages project holds the front (`public/_worker.js`, a copy of the front of `worker.js` that imports nothing, because a Pages project cannot define a Durable
+  Object class) and reaches the class `ObsLog` of the Worker `felinar-obs-do` through a binding, so that no account name shows in the address. The front checks `Origin` against `ALLOW_ORIGINS`, the size,
+  the content type and the token, then hands the object a new request that holds the text of the batch and none of the sender's headers. The object (`ObsLog`, SQLite-backed) validates with
+  `validateBatch`, masks with `maskString` (both in `obs-core.js`, which has no platform code, so the unit tests and the end-to-end collector run the same file over an in-memory store), limits each
+  session to 60 batches a minute and 1,000 a day and all sessions to `MAX_BATCHES_PER_DAY` (a batch is refused before it is read once the day's total is reached, and a batch the session sent before, with
+  the same number and text, is answered 204 and kept once), stores one `b:` row per batch (key `b:`, 15 digits of milliseconds, `:` and 4 digits), pushes each stored
+  row to its tail sockets (Hibernation API) and, from an alarm every 10 minutes, deletes rows older than `RETENTION_DAYS` and the oldest above 50,000, and closes tail sockets that have been open for 12 hours. The Worker never reads
+  `CF-Connecting-IP`, `X-Forwarded-For` or `request.cf` and never logs; a unit test searches its source for those names.
+- **Who learns what.** The endpoint's operator learns the steps and states in the catalogue (OBSERVABILITY, "The events"), a random session id, the page kind, the build and loader versions, the first 8 characters of
+  the infohash of the site shown, the short id of the identity signed in on that page, the browser's family, a coarse network type and the time each batch arrived. It does not learn a name, a message, a
+  key, a passphrase, the last eight characters of a code, a URL fragment, the full user agent in a report or an address in a report; the host that runs it sees the sender's address, as any host does,
+  and the Worker's code does not read it. A door that names an endpoint hands it the first 8 characters of the infohash of every site opened through that door. The identity page's endpoint learns
+  the steps of a sign-in and never the site it signs in to.
+- **What is stored where.**
+
+  | Where | What | Until |
+  |---|---|---|
+  | The page's memory | the reporter's queue (500 events at most), the batches waiting for a retry (usually one), the session id | the page closes; "Load from host only" or the switch drops the queue |
+  | The visitor's disk | the Settings switch, `reports`, in the prefs of IndexedDB `mw-sites` (nothing on a door page) | clearing site data |
+  | The Worker's Durable Object storage | one `b:` row per batch, `{ at, sid, page, who, site, build, n, body }`, and a counter row `m:c` | 7 days (`RETENTION_DAYS`, 1 to 30) and 50,000 rows at most |
+  | A tail socket | nothing kept: the frames it is sent | the socket closes at the first sweep after 12 hours |
+  | The site's torrent, its pointer and its ledger | nothing | not applicable |
+
+- **Tools.** `publish --obs <origin>` writes `obs` into `summary.json` and, with `--shell`, into the shell's `_mw/door.json` after `apps`; it needs none of `--tracker`, `--stun` and `--idp`, and the
+  infohash is the same with and without it. `publish --door-kit <dir> --door-site <publish output>` copies the first site's `obs` block as it copies the apps block. `tools/dev-server.mjs --obs <origin>`
+  serves a block without changing the file. `check-site --door` prints `[info] door: usage reports to <host>` or warns that the page cannot use the block, and contacts no address. `tools/build-idp.mjs
+  --obs <origin>` names the endpoint of an identity page. The operator's readers (`events-tail`, `events-dump`, `events-summary`) are in the operations repository, and read `/tail`, `/events.json` and
+  `/summary.json` with the read token.
+- **Built as (decisions made while building).** One row per batch and not per event, because the Free plan counts row writes (40,000 at the cap of 20,000 batches a day: arithmetic, not a run). The body is
+  `text/plain` so that a report needs no preflight, and `fetch` with `keepalive` goes first because a cors request carries the page's real origin (a no-cors beacon carries `Origin: null` under the door's no-referrer policy and is refused); the beacon is the fallback, and both outlive a closing page. A Pages front, because a Pages project cannot define a Durable Object class and a bare
+  `workers.dev` address shows the account's subdomain. The session id is made fresh for every page load and never stored, so one person's visits are not joined unless the person signed in. The masks run
+  twice, written separately so that the two do not share a gap, and over-mask on purpose. `t` and `n` are the time and the name, so a field of either name is dropped (the count of messages of a conversation
+  is `count`). The block lives in `door.json` and not in the pointer, so turning reports on does not change the site's infohash or ask the owner to sign a new pointer. `consent.version` is not raised.
+- **Not built.** **(proposed)** Reports of the calls (`src/calls`); their peer connections are not wrapped. Drop-in pages and the Service Worker send no reports. **(proposed)** A budget of events per session
+  on the page: a loop that raises events forever keeps the queue full and costs one request every 2 seconds, and the Worker's 60 batches a minute per session is the backstop. De-duplication of a retried batch
+  at the endpoint (a repeated `sid` and `seq` is kept, and readers drop it). A per-address quota at the endpoint (it never reads the address, and a script that sends any `Origin` can use up the day's requests).
+  An authenticated sender (the allow list only keeps other websites out of a browser). No Cloudflare run, so the Pages binding to the object, hibernation and the Free plan's counting are untested.

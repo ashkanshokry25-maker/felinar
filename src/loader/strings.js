@@ -79,6 +79,10 @@ export const STRINGS = Object.freeze({
   consentNoHost: 'Not now',
   consentNotNow: 'This site was not loaded. It has no host copy, so it loads only from other visitors.',
   settingsConsentAgain: 'Change your sharing choice',
+  // Usage reports (docs/OBSERVABILITY.md): one more line on the first-run card and on the gate, shown only when this site's door.json
+  // names a report endpoint. {host} is that endpoint's host name. "Load from host only" sends none; the Settings switch stops them at once.
+  consentReports: "Usage reports: if you choose to share, this page also sends reports to {host}, run by this site's owner: which steps it took, which controls you pressed, errors, and the kinds of connections it made. They carry no messages, names or passphrases and no IP addresses, but {host} can see your IP address, as any server you connect to can. If you do not share, none are sent. You can turn them off any time in Settings.",
+  gateReports: "Loading it peer-to-peer also sends usage reports to {host}, run by this site's owner: which steps this page took, which controls you pressed, errors, and the kinds of connections it made. They carry no messages, names or passphrases and no IP addresses, but {host} can see your IP address, as any server you connect to can. If you do not load it peer-to-peer, none are sent. You can turn them off any time in Settings.",
 
   // ---- hub, shared origin (verbatim, §3.3) ------------------------------------------------------
   hubSharedLoad: 'Load anyway: this site can read and change everything other sites stored on this hub',
@@ -308,6 +312,8 @@ export const STRINGS_FR = Object.freeze({
   consentNoHost: 'Pas maintenant',
   consentNotNow: 'Ce site n\'a pas été chargé. Il n\'a pas de copie chez un hébergeur, donc il se charge seulement depuis d\'autres visiteurs.',
   settingsConsentAgain: 'Changer votre choix de partage',
+  consentReports: 'Rapports d\'utilisation : si vous choisissez de partager, cette page envoie aussi des rapports à {host}, géré par le propriétaire de ce site : les étapes franchies, les commandes utilisées, les erreurs et les types de connexions établies. Ils ne contiennent ni messages, ni noms, ni phrases secrètes, ni adresses IP, mais {host} peut voir votre adresse IP, comme tout serveur auquel vous vous connectez. Si vous ne partagez pas, aucun n\'est envoyé. Vous pouvez les désactiver à tout moment dans les Réglages.',
+  gateReports: 'Le chargement de pair à pair envoie aussi des rapports d\'utilisation à {host}, géré par le propriétaire de ce site : les étapes franchies, les commandes utilisées, les erreurs et les types de connexions établies. Ils ne contiennent ni messages, ni noms, ni phrases secrètes, ni adresses IP, mais {host} peut voir votre adresse IP, comme tout serveur auquel vous vous connectez. Si vous ne le chargez pas de pair à pair, aucun n\'est envoyé. Vous pouvez les désactiver à tout moment dans les Réglages.',
   hubSharedLoad: 'Charger quand même : ce site peut lire et modifier tout ce que les autres sites ont enregistré sur ce hub',
   hubSharedBanner: 'Les sites de ce hub partagent une même origine dans le navigateur et peuvent accéder aux données les uns des autres.',
   hubDetailsTitle: 'Avant le chargement de ce site',
@@ -723,7 +729,15 @@ export const UI_TEXT = Object.freeze({
     continueHereTitle: 'Continue in this tab?',
     continueHereText: 'The sign-in window did not open or lost its link to this page. You can continue in this tab: the identity page opens in its place and then brings you back here.',
     continueHere: 'Continue in this tab',
-    headerShow: 'Show who is signed in'
+    headerShow: 'Show who is signed in',
+    // Usage reports (docs/OBSERVABILITY.md): the Settings switch and the line of the Diagnostics section, shown only when this site names
+    // a report endpoint. {host} is its host name; {state} is one of the three reportsState words.
+    settingsReportsLabel: 'Send usage reports to {host}',
+    settingsReportsNote: 'Which steps this page takes, which controls you press, errors and the kinds of connections it makes, without messages, names or passphrases. {host} can see your IP address. Off stops them at once and drops the ones still waiting.',
+    reportsDebug: 'Usage reports to {host}: {state}. Sent {sent}, waiting {queued}, dropped {dropped}.',
+    reportsStateSending: 'sending',
+    reportsStateWaiting: 'waiting for your choice',
+    reportsStateOff: 'off'
   }),
   fr: Object.freeze({
     openIdentity: 'Ouvrir la page d\'identité',
@@ -811,7 +825,13 @@ export const UI_TEXT = Object.freeze({
     continueHereTitle: 'Continuer dans cet onglet?',
     continueHereText: 'La fenêtre de connexion ne s\'est pas ouverte ou a perdu son lien avec cette page. Vous pouvez continuer dans cet onglet : la page d\'identité s\'ouvre à sa place, puis vous ramène ici.',
     continueHere: 'Continuer dans cet onglet',
-    headerShow: 'Montrer qui est connecté'
+    headerShow: 'Montrer qui est connecté',
+    settingsReportsLabel: 'Envoyer des rapports d\'utilisation à {host}',
+    settingsReportsNote: 'Les étapes que franchit cette page, les commandes que vous utilisez, les erreurs et les types de connexions qu\'elle établit, sans messages, noms ni phrases secrètes. {host} peut voir votre adresse IP. Désactiver les arrête tout de suite et abandonne ceux qui attendent.',
+    reportsDebug: 'Rapports d\'utilisation vers {host} : {state}. Envoyés {sent}, en attente {queued}, abandonnés {dropped}.',
+    reportsStateSending: 'envoi en cours',
+    reportsStateWaiting: 'en attente de votre choix',
+    reportsStateOff: 'désactivés'
   })
 })
 
@@ -1213,6 +1233,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.price.check': 'Check: read your codes to each other.',
     'apps.price.continue': 'Continue',
     'apps.price.notNow': 'Not now',
+    'apps.price.reports': 'Besides that, this door sends usage reports to its operator at {host}: what the apps do here (steps, taps and errors), never network addresses, names or messages. Settings turns them off.',
     'apps.accept.title': 'Accept this request?',
     'apps.accept.titleRoom': 'Let this person into your room?',
     'apps.requests.title': 'Requests',
@@ -1496,6 +1517,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.price.check': 'Vérifiez : lisez-vous vos codes l\'un à l\'autre.',
     'apps.price.continue': 'Continuer',
     'apps.price.notNow': 'Pas maintenant',
+    'apps.price.reports': 'En plus, cette porte envoie des rapports d\'utilisation à son exploitant, à {host} : ce que font les applications ici (étapes, touches et erreurs), jamais d\'adresses réseau, de noms ni de messages. Les Réglages permettent de les arrêter.',
     'apps.accept.title': 'Accepter cette demande?',
     'apps.accept.titleRoom': 'Laisser entrer cette personne dans votre salon?',
     'apps.requests.title': 'Demandes',

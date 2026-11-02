@@ -33,6 +33,7 @@ Each part below is a party that can stop or watch a site; the last column names 
 | A pin node | an always-on copy of the files and the ledger | you, on a small server (optional) | see [Pin node](#pin-node) | another pin node; `tools/seed.mjs` or an open page holds a copy too |
 | The owner key | signing pointers, withdrawals and ledger control blocks | you, offline | never on a host, in a browser or in a repository | nothing: the key is the site's name; a hand-over (`ledger-admin owner`) moves the ledger to a new key |
 | An identity origin | sign-in, for anyone who writes from a browser | whoever the site names with `--idp`; by design the project hosts none | whoever serves it can change the page that unlocks roots, and sees the IP address and time of loads that miss its cache ([PRIVACY.md](PRIVACY.md), the identity origin's row) | your own ([The identity origin](#the-identity-origin-running-your-own-with-toolsbuild-idpmjs), with hosts that cost nothing); a site whose visitors only read needs none |
+| A usage report endpoint | seeing what visits did (optional, off unless you name it with `--obs`) | you: [`deploy/obs-worker`](../deploy/obs-worker/README.md), a Cloudflare Worker with one Durable Object behind a Pages project, on the Workers Free plan | it holds what the reports carry for 7 days (no address, name, message or typed text, but a session id and the first 8 characters of the site's infohash), the host that runs it sees each reporting visitor's IP address as any host does, and a busy site can outgrow the cap of 20,000 batches a day ([Usage reports](#usage-reports)) | none needed: reports are off by default, and a visitor can refuse them on the card that names the endpoint |
 | A name | an address visitors can type, and its HTTPS certificate | your registrar and DNS provider; with no domain, nip.io or sslip.io (one free service under two names, run by volunteers) or a platform name such as `<user>.github.io` | whoever runs the name can point it elsewhere or block it | the light link: the site lives at its key and any door opens it ([Doors](#doors)), so losing a name loses one door |
 | A certificate authority | HTTPS on every public door | Let's Encrypt on the one-box (`deploy/one-box/Caddyfile`); the platform's own on GitHub Pages, Netlify or Cloudflare Pages | on the one-box one authority issues every certificate, and all one-box sites under one service name share its limits | doors with other providers; `LW_ACME_CA` in the one-box `.env` names another ACME directory (not tried; `ship` writes Let's Encrypt) |
 | The code at deploy time | a fresh build or deploy | GitHub (the clone, also on the server for `ship`), the npm registry (`npm ci`), Docker Hub (the one-box images) and, for the optional pin profile, Playwright's browser download and the Debian package mirrors (`deploy/pin/Dockerfile`) | an outage or a removed package stops a fresh deploy, not a running site; `npm-shrinkwrap.json` and `build.lock.json` pin bytes, not availability | the signed release files, from any mirror, checked offline with `tools/verify-release.mjs` |
@@ -1067,8 +1068,9 @@ The kit is the loader exactly as released. Publish refuses unless every file of 
 pinned key (`tools/verify-release.mjs`), copies `dist` unchanged and adds the list and its signature, `.nojekyll`, `_headers`,
 `_redirects` (the root opens `/_mw/open.html`, and a link's fragment stays with the browser through the redirect), `vercel.json`, a
 `Caddyfile` and `README-DOOR.txt`. `--door-site <publish output>` (repeatable) also lays out a site's web seed copy and `.torrent`, which
-makes it a full door; the first one's apps block, if it has one, is also set in `_mw/door.json`, the single loader file the kit changes
-([Apps at a door](#apps-at-a-door)). Upload the folder to the root of a host name. Anyone can check a kit offline:
+makes it a full door; the first one's apps block and usage reports block, if it has them, are also set in `_mw/door.json`, the single loader
+file the kit changes ([Apps at a door](#apps-at-a-door), [Usage reports](#usage-reports)). Upload the folder to the root of a host name.
+Anyone can check a kit offline:
 
     node tools/verify-release.mjs verify door-kit --list hashes-dist.json --sig hashes-dist.json.sig --pubkey <pinned key> \
       --door-kit --expect-version <version>
@@ -1087,7 +1089,8 @@ redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin
 for a host that cannot send it; GitHub Pages sends it), and every `/_mw/*` file it lists, and `/mw-sw.js`, must have exactly the bytes
 it names. Exit code 1 on a failure.
 When `door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`); a
-block the door page cannot use is a warning. Nothing in the block is contacted.
+block the door page cannot use is a warning. Nothing in the block is contacted. A block of usage reports adds one line too
+(`[info] door: usage reports to obs.example.org`, [Usage reports](#usage-reports)), and its endpoint is not contacted either.
 
 ### Apps at a door
 
@@ -1143,6 +1146,66 @@ sends the block in `/_mw/door.json` without changing the file (`--apps-rendezvou
 origin, and `--apps-rendezvous` needs it). `npm run demo` passes them for the desktop tier, with its own tracker and identity page
 (`--stun <stun: URL>` adds a STUN server; the demo runs none). The LAN tier (`--tls`) serves no identity page, so it offers no apps.
 Check any of it with `node tools/check-site.mjs <url> --door`.
+
+### Usage reports
+
+> **Status: the tools below write, serve and read the block, with unit tests on loopback; no real host has served it yet.** This section covers
+> the flag, the block and the address; the Worker has its own deploy steps in its folder.
+
+A site, a door or an identity page can send **usage reports** to an endpoint you run: what the loader does on the page (the steps of a load,
+the controls a visitor uses, state changes, errors, timings and the kinds of connection it makes), so that you can see what happened without
+asking anyone. They are **off unless you name the endpoint**: a door.json without the block is as it was. A report carries no IP address or
+port, no message, no name, no passphrase, no key and nothing a person typed; it does carry the first 8 characters of the site's infohash (so
+the endpoint can tell sites apart) and, for a signed-in visitor, the short id the header shows. The host that runs the endpoint still sees the
+visitor's IP address, as any host does; the Worker's own code does not read or store it. What a report may hold, field by field, is in
+[OBSERVABILITY.md](OBSERVABILITY.md).
+
+The block sits next to the apps block in the door list:
+
+```json
+"obs": { "endpoint": "https://obs.example.org" }
+```
+
+- **`endpoint`**: an exact origin, `https:` (or `http:` for a loopback host while you develop), with no path, no user name or password and no
+  fragment, at most 300 characters. A block the loader cannot use is ignored, and then no reports are sent. A loader on a page that is not itself on a
+  loopback host ignores an `http:` endpoint too, so a door's `door.json` cannot aim a visitor's reports at a service on the visitor's own machine.
+
+**The address.** The endpoint is the Worker in [`deploy/obs-worker`](../deploy/obs-worker/README.md): a Cloudflare Worker with one Durable Object, made for
+the Workers Free plan and put behind a Pages project so that no account name shows in its address. Give `--obs` the address of that Pages project
+(`https://<project>.pages.dev`, or a custom domain on it), not the Worker's own. The Worker takes a report only from an origin in its
+`ALLOW_ORIGINS` list, so list the origin of every host that serves the loader for you (the site, the door, the identity page): a report from any
+other origin is refused and is lost. By default it keeps reports for 7 days and stores at most 20,000 batches a day, a cap sized for the Free plan's
+daily limits: a very busy site can outgrow it, and the Worker's README lists what happens at each limit. Name the endpoint, and Cloudflare as its
+host, in your privacy notice, as you do the other recipients ([Owner duties](#owner-duties)).
+
+**What the visitor sees.** With the block in place, the consent card, which already appears before anything leaves the device, gets one more line
+that names the host. The stored choice covers that host: a visitor who agreed before the block existed, or to another endpoint, is asked again. "Load from host
+only" sends no reports, a switch in Settings turns them off at any time, and what the loader noted before the answer is kept in memory and dropped
+on a no.
+
+**The identity page** does not read door.json: its endpoint is part of its own build. `node tools/build-idp.mjs --obs https://obs.example.org` writes it
+into both pages, lets the page's `connect-src` reach that origin and puts one line naming the host on the first card; the page reports only after a
+press of a card button, and without the flag the build is as it was. Put the identity page's origin in the Worker's `ALLOW_ORIGINS` list too.
+
+**Publishing.** One flag, with or without the apps flags:
+
+    node tools/publish.mjs site --name my-site --scope example.com --key owner.jwk --ws https://example.com/ws/ --shell \
+      --obs https://obs.example.org
+
+`summary.json` gets `obs`, and with `--shell` the block is set in `shell/_mw/door.json`, after `apps` when there is one; every other loader
+file is as built. `--obs` needs none of `--tracker`, `--stun` and `--idp`. The block is never one of the site's files: the torrent holds the
+same files with and without it, so the infohash does not change when you turn reports on or off. A drop-in publish leaves the `_mw/door.json` it
+copies as built, so `--obs` does nothing there, and publish says so. To turn reports off, publish without `--obs` and deploy the shell again.
+
+**Door kits.** `publish --door-kit <dir> ... --door-site <publish output>` copies the `obs` block of the **first** `--door-site`, as it does the apps
+block (publish says so when that site has none and a later one has). `door.json` without its `apps` and `obs` keys is the release's file, byte
+for byte, and the signed release list names it without them, so `verify-release.mjs verify <kit> --door-kit` names that one file for a kit that
+carries either block. Read the endpoint in a kit's block before you trust it, whoever made it: it is where the reports of its visitors go.
+
+**Development and checking.** `node tools/dev-server.mjs --root dist --obs http://127.0.0.1:8787` sends the block in `/_mw/door.json` without
+changing the file (`--obs` takes one origin, needs none of the `--apps-*` flags, and accepts `http:` for a loopback host only).
+`node tools/check-site.mjs <url> --door` adds one line for a block, `[info] door: usage reports to <host>`, or a warning when the loader cannot
+use it (an `http:` endpoint on a loopback host is one it cannot use on a door that is not itself on a loopback host); it reads the endpoint and never contacts it.
 
 ### When a door stops answering
 
@@ -1353,7 +1416,8 @@ taps the instant a card shows taps again; automation and tests go through `test/
    8.2 of the private-sector Act). The identity page itself names no operator and links no notice in 0.3.0; until a
    build option adds that line, name the identity page in the privacy notice of every site that uses it.
 5. **Keep it boring.** No analytics, no third-party scripts and no other site on the same origin. The origin that holds
-   roots must run nothing else.
+   roots must run nothing else. The one thing a build can add is the optional usage report to an endpoint you run
+   (`--obs`, [Usage reports](#usage-reports)); built without it, the page is as it was.
 6. **Be ready for a bad build.** The runbook is in [OPERATIONS.md](OPERATIONS.md#runbooks-for-v03-incidents).
 
 #### Hosting it without buying a domain
@@ -1430,7 +1494,7 @@ Source: [MIGRATION-DIGEST](research/MIGRATION-DIGEST.md), section 11; the two se
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `shell/` (with `--shell`) | the loader with the pointer stamped into `index.html` and `404.html`; with `--tracker`, `--stun` and `--idp`, also the apps block in `_mw/door.json` ([Apps at a door](#apps-at-a-door)) | the host root (shell mode) |
+| `shell/` (with `--shell`) | the loader with the pointer stamped into `index.html` and `404.html`; with `--tracker`, `--stun` and `--idp`, also the apps block in `_mw/door.json` ([Apps at a door](#apps-at-a-door)); with `--obs`, also the obs block there ([Usage reports](#usage-reports)) | the host root (shell mode) |
 | `site/` (with `--dropin`) | your site with the pointer stamped into every page, the runtime under `/_mw/`, `/mw-sw.js`, `/.mw/` and `/_mw/t/<btih>.torrent` | your host (drop-in mode) |
 | `<name>/`, `<name>.torrent` | the web seed files and the torrent | under the web seed base (shell mode) |
 | `site.torrent` | the same torrent, for `check-webseed` | stays local |
@@ -1439,4 +1503,4 @@ Source: [MIGRATION-DIGEST](research/MIGRATION-DIGEST.md), section 11; the two se
 | `magnet.txt` | a magnet link (unsigned: no owner key) | for hubs and sharing |
 | `webseed-layout.txt` (shell mode), `csp.txt` | the keys to upload with an S3 CORS rule, and the CSP additions | reading |
 | `mw-sw-kill.js`, `sdk-static.js` | the kill switch, and a static `/_mw/sdk.js` for a plain copy of the site | the host, when needed |
-| `summary.json` | everything above as JSON, including `rendezvousBtih` and, for a site with apps, `apps` | the tracker's `--allow`, `--door-kit --door-site`, your scripts |
+| `summary.json` | everything above as JSON, including `rendezvousBtih` and, for a site with apps, `apps`, and, for a site with usage reports, `obs` | the tracker's `--allow`, `--door-kit --door-site`, your scripts |

@@ -73,7 +73,7 @@ Nothing was written to the device.
 
 1. **Show your code.** The first time you open Messages, a card says "What this costs your privacy": "Codes and requests pass through this
    door's rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the
-   other's network address." "Continue" shows your code, like `abcd-efgh-2345`, with "Copy" and "New code". "Not now" leaves a "Show my
+   other's network address." On a door that sends usage reports the card adds a line that names their host ("What is stored, and what is seen"). "Continue" shows your code, like `abcd-efgh-2345`, with "Copy" and "New code". "Not now" leaves a "Show my
    code" button. A code works while this page is open, and for 24 hours at the most. Read it to the person you want to message.
 2. **Or knock.** Under "Message someone" type "Their code" and press "Knock" (if you have not seen the card yet, it comes first). The
    request waits for their approval for 10 minutes. If no open code starts with the first four characters you typed, the page says "No one
@@ -282,6 +282,14 @@ of a code, a message, or which identity talks to which, unless it records a box 
 member can connect to every other member. A connection to a lane that was never accepted (the rendezvous minted the lane, so it can join
 it like a member) sees only sealed frames: it can count the people in a room by the number of key boxes, and it reads no name, no key and
 no message. Details: [PRIVACY](PRIVACY.md) and [ARCHITECTURE](ARCHITECTURE.md) 15.21.
+
+**What usage reports add.** If the door's `/_mw/door.json` also has an `obs` block ([OBSERVABILITY](OBSERVABILITY.md)), the page sends usage reports to that endpoint, and only
+after the visitor's first yes: "Continue" on a price card that can start something (signing in alone is not one: the loader's sign-in card names no host). The price card then has one more line:
+"Besides that, this door sends usage reports to its operator at {host}: what the apps do here (steps, taps and errors), never network addresses, names or messages. Settings turns them off." Until the yes, what the visitor does waits in the page's memory and nothing is sent. The reports say what the apps did, never what was said: which view was opened, which card was
+shown and what was pressed on it, the steps of signing in, the first four characters of a code, how requests came in and went, the status of each conversation or room by its local id, how many
+messages reached each status, the states of the pair socket, and, with them, the short id of the visit's key, the browser's family and a coarse network type. They carry no message, name,
+nickname, key, box, proof, lane, address or last eight characters of a code. Settings has a switch, "Send usage reports to {host}", which stops them at once; the page stores nothing, so
+the choice lasts for this visit only. What the endpoint's host sees anyway, and how long it keeps reports (7 days by default), is in [PRIVACY](PRIVACY.md#usage-reports-unreleased).
 
 ## What was tested
 

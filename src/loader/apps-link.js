@@ -3,7 +3,7 @@
 // request id, echoed in the direct reply), reconnect with back off, timers for knocks, and events for what the rendezvous pushes.
 //
 //   createLink({ url, WebSocketImpl, setTimeoutFn, clearTimeoutFn, random, backoffMs, knockSilentMs, knockExpireMs,
-//                requestTimeoutMs, keepaliveMs, log }) -> PairLink
+//                requestTimeoutMs, keepaliveMs, log, report, now }) -> PairLink
 //
 //   link.state            'idle' (not started or closed) | 'connecting' | 'open' | 'backoff' (waiting to retry)
 //   link.connect()        starts the socket (also ends a back off wait at once); nothing is opened before the first call
@@ -27,6 +27,12 @@
 //   request(action, fields, { timeoutMs }) -> { ok: true, reply } | { ok: false, reason } is the untyped call under them.
 // Failure replies ({ 'failure reason': text }) become reason slugs ('channel taken' -> 'channel-taken'). Reasons the link adds:
 // 'link-down' (the socket did not open in time), 'closed' (lost or closed while waiting), 'timeout', 'too-big', 'bad-reply'.
+//
+// report(name, fields) is optional (usage reports, docs/OBSERVABILITY.md; the page adds a prefix to every name). It hears, as flat
+// objects of words and counts: state { state, prev }, open { attempt }, gone { why }, backoff { attempt, ms, why }, sent { action }
+// (a frame went out), reply { action, ok, reason, ms }, timeout { action, ms } and push { name } (a push that passed its checks).
+// Only the names of this protocol's actions and pushes and short reason slugs appear: never a box, a proof, a channel, a knock token,
+// a lane or an address. A report that throws is ignored. now() -> ms (default Date.now) times the replies.
 //
 // The socket is opened only after connect(); the rendezvous learns channels, knock timing, lane ids and the socket's address
 // (as any relay does), never names, keys or which identity talks to which (the boxes are sealed under the code).
@@ -54,6 +60,34 @@ const PUSH_RE = /^(pair|room)-(request|accepted|rejected|cancelled|close)$/
 
 function noop () {}
 
+/**
+ * reportWord(v) -> v when it is a short slug (letters, digits, hyphens and underscores, up to 48 characters), else 'other': what a
+ * usage report may carry of a text that came from outside (a failure reason of the rendezvous, a reason of a peer's frame).
+ */
+export function reportWord (v) {
+  const s = v === undefined || v === null ? '' : String(v)
+  return /^[A-Za-z0-9_-]{1,48}$/.test(s) ? s : 'other'
+}
+
+/**
+ * The failure reasons a usage report may name, as reasonCode() writes them: the ones this project's rendezvous answers with (deploy/rtc-worker
+ * pair.js and rtc.js) and the ones the link adds itself. A rendezvous is anyone's to run and its failure reason is its own text, which may
+ * hold a name or an address ("Ferdle Morrow 203.0.113.5 asked" is a slug of letters, digits and hyphens that no mask knows), so a reason that
+ * is not on this list is reported as 'other'. The service still gets the slug whole, to map it to an error of its own.
+ */
+const REPORT_REASONS = new Set([
+  'box-invalid', 'invalid-channel', 'channel-taken', 'too-many-codes', 'too-many-lanes', 'too-many-requests', 'unknown-code', 'invalid-knock',
+  'unknown-knock', 'proof-invalid', 'invalid-rid', 'unsupported-version', 'invalid-action', 'socket-already-used-for-another-protocol',
+  'message-too-large', 'invalid-message-not-json', 'pairing-is-off-on-this-rendezvous', 'internal-error',
+  'link-down', 'closed', 'timeout', 'too-big', 'bad-reply', 'failed', 'rejected', 'expired', 'gone'
+])
+
+/** reasonWord(v) -> v when it is a reason on the list above, else 'other': what a usage report may carry of a reason that came from a rendezvous. */
+export function reasonWord (v) {
+  const s = reportWord(v)
+  return REPORT_REASONS.has(s) ? s : 'other'
+}
+
 /** reasonCode('channel taken') -> 'channel-taken': the slug of a failure text. */
 export function reasonCode (text) {
   const s = String(text === undefined || text === null ? '' : text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
@@ -80,7 +114,7 @@ export class PairLink {
   constructor ({
     url, WebSocketImpl = null, setTimeoutFn = null, clearTimeoutFn = null, random = null, backoffMs = BACKOFF_MS,
     knockSilentMs = KNOCK_SILENT_MS, knockExpireMs = KNOCK_EXPIRE_MS, requestTimeoutMs = REQUEST_TIMEOUT_MS,
-    openWaitMs = OPEN_WAIT_MS, keepaliveMs = 0, log = null
+    openWaitMs = OPEN_WAIT_MS, keepaliveMs = 0, log = null, report = null, now = null
   } = {}) {
     this.url = checkUrl(url)
     this.WS = WebSocketImpl || (typeof WebSocket === 'function' ? WebSocket : null)
@@ -94,6 +128,8 @@ export class PairLink {
     this.openWaitMs = openWaitMs
     this.keepaliveMs = keepaliveMs
     this._log = typeof log === 'function' ? log : noop
+    this._report = typeof report === 'function' ? report : null
+    this._now = typeof now === 'function' ? now : () => Date.now()
     this._state = 'idle'
     this._ws = null
     this._stopped = true
@@ -128,10 +164,23 @@ export class PairLink {
     }
   }
 
+  // A report says what happened and never changes it: a throw in the page's function stops here.
+  _rep (name, fields) {
+    if (!this._report) return
+    try { this._report(name, fields) } catch (_) { /* a report never breaks the socket */ }
+  }
+
   _set (state) {
     if (this._state === state) return
+    const prev = this._state
     this._state = state
+    this._rep('state', { state, prev })
     this._emit('state', { state })
+  }
+
+  _gone (why) {
+    this._rep('gone', { why })
+    this._emit('gone', {})
   }
 
   // ---- socket ---------------------------------------------------------------------------------
@@ -168,8 +217,10 @@ export class PairLink {
     }
     on('open', () => {
       if (this._ws !== ws) return
+      const tries = this._attempt
       this._attempt = 0
       this._set('open')
+      this._rep('open', { attempt: tries })
       this._flushWaiters(true)
       this._armKeepalive()
       this._emit('open', {})
@@ -198,7 +249,7 @@ export class PairLink {
     if (this._stopped) {
       this._flushWaiters(false)
       this._set('idle')
-      if (wasOpen) this._emit('gone', {})
+      if (wasOpen) this._gone(why)
       return
     }
     const list = this.backoffMs
@@ -206,7 +257,8 @@ export class PairLink {
     this._attempt++
     const delay = Math.round(base * (0.8 + 0.4 * this._random()))
     this._set('backoff')
-    if (wasOpen) this._emit('gone', {})
+    if (wasOpen) this._gone(why)
+    this._rep('backoff', { attempt: this._attempt, ms: delay, why })
     this._retryTimer = this._setT(() => {
       this._retryTimer = null
       if (!this._stopped) this._openSocket()
@@ -234,7 +286,7 @@ export class PairLink {
     this._clearKnocks()
     this._flushWaiters(false)
     this._set('idle')
-    if (wasOpen) this._emit('gone', {})
+    if (wasOpen) this._gone('stopped')
   }
 
   _flushWaiters (ok) {
@@ -296,31 +348,51 @@ export class PairLink {
   /** send(action, fields) -> boolean: one frame without a rid and without waiting (for actions that have no direct reply). */
   send (action, fields) {
     const text = this._frame(action, fields, null)
-    return text === null ? false : this._sendText(text)
+    if (text === null) return false
+    const ok = this._sendText(text)
+    if (ok) this._rep('sent', { action: reportWord(action) })
+    return ok
   }
 
   /** request(action, fields, { timeoutMs }) -> Promise<{ ok: true, reply } | { ok: false, reason }>. */
   async request (action, fields = {}, { timeoutMs = this.requestTimeoutMs } = {}) {
-    if (!this.WS) return { ok: false, reason: 'link-down' }
+    const at = this._now()
+    if (!this.WS) return this._answered(action, at, { ok: false, reason: 'link-down' })
     if (this._state !== 'open') {
       const up = await this.whenOpen()
-      if (!up) return { ok: false, reason: 'link-down' }
+      if (!up) return this._answered(action, at, { ok: false, reason: 'link-down' })
     }
     const rid = b64url.encode(randomBytes(6))
     const text = this._frame(action, fields, rid)
-    if (text === null) return { ok: false, reason: 'too-big' }
+    if (text === null) return this._answered(action, at, { ok: false, reason: 'too-big' })
     return new Promise((resolve) => {
-      const entry = { resolve, timer: null }
+      const entry = { resolve, timer: null, action, at }
       entry.timer = this._setT(() => {
-        if (this._pending.delete(rid)) resolve({ ok: false, reason: 'timeout' })
+        if (this._pending.delete(rid)) {
+          this._rep('timeout', { action: reportWord(action), ms: timeoutMs })
+          resolve({ ok: false, reason: 'timeout' })
+        }
       }, timeoutMs)
       this._pending.set(rid, entry)
       if (!this._sendText(text)) {
         this._pending.delete(rid)
         this._clearT(entry.timer)
-        resolve({ ok: false, reason: 'link-down' })
+        resolve(this._answered(action, at, { ok: false, reason: 'link-down' }))
+      } else {
+        this._rep('sent', { action: reportWord(action) })
       }
     })
+  }
+
+  // The one place a request ends other than by timeout: the result is reported (action name, ok, a reason slug, the time it took) and returned.
+  _answered (action, at, result) {
+    if (this._report) {
+      const a = reportWord(action)
+      const ms = Math.max(0, this._now() - at)
+      if (result.ok) this._rep('reply', { action: a, ok: true, ms })
+      else this._rep('reply', { action: a, ok: false, reason: reasonWord(result.reason), ms })
+    }
+    return result
   }
 
   _failPending (reason) {
@@ -328,7 +400,7 @@ export class PairLink {
     this._pending.clear()
     for (const e of list) {
       this._clearT(e.timer)
-      e.resolve({ ok: false, reason })
+      e.resolve(this._answered(e.action, e.at, { ok: false, reason }))
     }
   }
 
@@ -347,8 +419,8 @@ export class PairLink {
       const e = this._pending.get(m.rid)
       this._pending.delete(m.rid)
       this._clearT(e.timer)
-      if (Object.prototype.hasOwnProperty.call(m, 'failure reason')) e.resolve({ ok: false, reason: reasonCode(m['failure reason']), reply: m })
-      else e.resolve({ ok: true, reply: m })
+      if (Object.prototype.hasOwnProperty.call(m, 'failure reason')) e.resolve(this._answered(e.action, e.at, { ok: false, reason: reasonCode(m['failure reason']), reply: m }))
+      else e.resolve(this._answered(e.action, e.at, { ok: true, reply: m }))
       return
     }
     const hit = PUSH_RE.exec(m.action)
@@ -357,21 +429,28 @@ export class PairLink {
     const what = hit[2]
     if (what === 'close') {
       // the rendezvous ends a code this socket owns (it runs out after 24 hours); a reply to our own close carries a rid and never gets here
-      if (isChannel(m.channel)) this._emit('closed', { kind, channel: m.channel, reason: typeof m.reason === 'string' ? m.reason.slice(0, 32) : 'closed' })
+      if (isChannel(m.channel)) {
+        this._rep('push', { name: hit[0] })
+        this._emit('closed', { kind, channel: m.channel, reason: typeof m.reason === 'string' ? m.reason.slice(0, 32) : 'closed' })
+      }
       return
     }
     if (typeof m.knock !== 'string' || !TOKEN_RE.test(m.knock)) return
     if (what === 'request') {
       if (!isChannel(m.channel) || !boxOk(m.box)) return
+      this._rep('push', { name: hit[0] })
       this._emit('request', { kind, knock: m.knock, channel: m.channel, box: { iv: m.box.iv, ct: m.box.ct } })
     } else if (what === 'accepted') {
       if (!LANE_RE.test(String(m.lane)) || !isChannel(m.channel) || !boxOk(m.box)) return
       this._dropKnock(kind, m.knock)
+      this._rep('push', { name: hit[0] })
       this._emit('accepted', { kind, knock: m.knock, lane: m.lane, channel: m.channel, box: { iv: m.box.iv, ct: m.box.ct }, proof: typeof m.proof === 'string' && PROOF_RE.test(m.proof) ? m.proof : null })
     } else if (what === 'rejected') {
       this._dropKnock(kind, m.knock)
+      this._rep('push', { name: hit[0] })
       this._emit('rejected', { kind, knock: m.knock, reason: REASONS.has(m.reason) ? m.reason : 'rejected' })
     } else if (what === 'cancelled') {
+      this._rep('push', { name: hit[0] })
       this._emit('cancelled', { kind, knock: m.knock })
     }
   }

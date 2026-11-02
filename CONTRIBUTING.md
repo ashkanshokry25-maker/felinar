@@ -173,8 +173,13 @@ connection a test browser makes.
   point moves. After you have reviewed a WebTorrent upgrade, `node build.mjs --update-lock` rewrites the pins.
   Dependabot opens the weekly update pull requests; review them like any other change.
 - **Consent first, no third parties.** The loader has no analytics and no third-party scripts, and the visitor's choice
-  comes before the first tracker, peer connection and DNS-over-HTTPS lookup
-  ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) section 8). Keep it that way ([docs/PRIVACY.md](docs/PRIVACY.md)).
+  comes before the first tracker, peer connection, DNS-over-HTTPS lookup and usage report
+  ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) section 8). Usage reports are the one thing that may leave a page for a host the site owner runs: only when the
+  owner names it, only after a yes on a card that names the host, and only with the fields of [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md). A new event, and a
+  new line in the loader's log (which is mirrored as an event), carries no address, name, message, passphrase, key, file of the site or text a person typed (a log line that
+  has to name a file passes the report its own text: `A.log(line, { report })`), and a control that shows what a
+  person wrote gets `dir="auto"` or `data-obs="off"`, so that a click report gives no label for it. Keep it that way
+  ([docs/PRIVACY.md](docs/PRIVACY.md)).
 - **Keys and consent stay in loader-owned UI.** The owner key never enters a browser. A site's script can't export
   the visitor's identity or accept consent for them; `window.mw` has no call for either.
 - **Follow the spec, and say when you don't.** Comments cite the rule they implement (for example

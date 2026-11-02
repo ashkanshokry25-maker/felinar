@@ -1409,7 +1409,8 @@ git grep -n -i -E 'project hosts no identity page|no default (identity origin )?
 
 - [ ] Only if you later run a shared default: serve it as static files over HTTPS with `frame-ancestors 'none'`, the script policy and `Referrer-Policy:
   no-referrer` that the build documents, and nothing else on the origin: no analytics, no third-party scripts, no other
-  site ([DEPLOY.md](DEPLOY.md#the-identity-origin-running-your-own-with-toolsbuild-idpmjs)).
+  site; the one thing a build can add is the optional usage report to an endpoint you run (`build-idp.mjs --obs`, [Usage reports](DEPLOY.md#usage-reports)), and built without it the page is as it was
+  ([DEPLOY.md](DEPLOY.md#the-identity-origin-running-your-own-with-toolsbuild-idpmjs)).
 - [ ] Only if you later run a shared default: its bundle hash and build id go in the release notes of each release
   (step 10b), where the identity artifact's hash already goes; the README and [SECURITY.md](../SECURITY.md) point at the notes.
 - [ ] Only if you later run a shared default: print the identity page's address on the recovery kit text.

@@ -147,6 +147,7 @@ Each of these exists only because v0.3 adds the feature; none was possible in 0.
 | The site's own tracker | IP address and the infohashes it is asked about | none beyond naming it on the card | the infohash of each file torrent you announce |
 | Readers of `pin-status.json` | n/a | hashed item ids, no people | the pin's key, the site, the time, the bytes this month and the cap; whether a known infohash is held |
 | The operators of `nip.io` or `sslip.io` | n/a | none in software | the name of the site with the resolver of each visitor |
+| The operator of a usage report endpoint (only if the owner names one; unreleased) | n/a | the card names its host before anything is sent; "Load from host only" and a Settings switch send none; no address, port, full user agent, name, message, passphrase, key or typed text in a report (masked in the page and again at the endpoint); rows kept 7 days by default | the steps and states of each visit under a session id that is new at every page load, the first 8 characters of the site's infohash, the short id of a signed-in identity, the browser's family, a coarse network type and the time; the sender's IP address, as any host sees it; not content |
 | A network observer or ISP | connections to trackers, STUN and peers | none in a browser | the flows between call participants, their volume and timing; not the content |
 
 ## The v0.2.1 hardening, carried by 0.3.0

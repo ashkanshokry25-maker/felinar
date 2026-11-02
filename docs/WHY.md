@@ -85,7 +85,7 @@ refuse a different one unless they confirm, and your key can withdraw the site.
 | Your domain and key in charge | signed pointer, remembered key, `seq` that never goes back, expiry, withdrawal | your host and DNS stay the trust root on every visit |
 | Existing sites switch with one tag | drop-in mode leaves every HTML page on the host and fails open | new visitors still need the host; filling copies can multiply host egress |
 | Returning visitors survive a host outage | shell mode keeps a verified copy and the Service Worker serves it | only after a previous visit, and only while the browser keeps the copy |
-| No tracking added by the loader | no analytics, no telemetry, no third-party scripts, no connection to peers, trackers, STUN or DoH before the visitor's choice | your host sees each visitor's IP address, as any web host does; once a visitor shares, peers and connection servers see it too |
+| No tracking added by the loader | no analytics, no third-party scripts, nothing sent home unless the owner turns on usage reports (the card names the host first), no connection to peers, trackers, STUN or DoH before the visitor's choice | your host sees each visitor's IP address, as any web host does; once a visitor shares, peers and connection servers see it too; usage reports (unreleased) record what a visit did, need an endpoint you run and are kept 7 days at most (50,000 rows at most, so fewer days at a busy site) ([OBSERVABILITY](OBSERVABILITY.md)) |
 
 ## The trade-offs, stated plainly
 

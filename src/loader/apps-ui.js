@@ -250,17 +250,29 @@ export function errorKey (err) {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * createAppsUi({ root, ui, service, lang, appsText, actions, now }) -> { node, render, show, back, inspect, destroy, nodes }
+ * createAppsUi({ root, ui, service, lang, appsText, actions, now, report, reportsHost }) -> { node, render, show, back, inspect, destroy, nodes, onFirstYes }
  *   root       any element of the loader's page (its ownerDocument is used)
  *   ui         the loader's UI (createUI): showApps(node) / hideApps() place the view; download(name, text) saves an export
  *   service    the apps service (src/loader/apps.js): state(), onChange(fn), and the calls named in its header
  *   lang       a language tag; appsText(key, lang, params) gives the strings (default: strings.js)
- *   actions    { signIn() -> Promise, signOut() -> Promise, openLink() (the "Open a link" box), copy(text) -> Promise<boolean>, log(line) }
- *              each optional; without signIn the view asks ui.prompt('signin', ...); without openLink the tile stays inactive
+ *   actions    { signIn(how) -> Promise, signOut() -> Promise, openLink() (the "Open a link" box), copy(text) -> Promise<boolean>, log(line),
+ *              firstYes() }
+ *              each optional; without signIn the view asks ui.prompt('signin', ...); without openLink the tile stays inactive.
+ *              how.popup() is for the page's signIn to call when the sign-in window has opened, which is when the visitor pressed
+ *              Continue on the loader's sign-in card (a card this view cannot see): it is reported and counts as the first yes. Call it
+ *              only when that card named the host of the usage reports; a sign-in that merely ends does not count as a yes.
+ *   report     (name, fields), optional: usage reports (docs/OBSERVABILITY.md; the page adds a prefix to every name). The view names view
+ *              { view, id }, card { kind, ev: show | continue | cancel, why }, first-yes { via } and signin { step: start | popup | done | error, code }:
+ *              short words and the local id of a conversation or a room, never a text, a name, a code or a message. A throw is ignored.
+ *   reportsHost  the host name of the operator that receives the reports, or a function that returns it ('' when there is none or the
+ *              visitor turned reports off): the price cards that can start something show one line that says so (apps.price.reports)
+ *   onFirstYes(fn) -> off: fn({ via }) runs once, at the first yes the visitor gives: Continue on a price card that can start something
+ *              (via 'card'; such a card names the host of the reports when there is one) or how.popup() (via 'signin'). actions.firstYes
+ *              is the same, given at creation. A later fn runs at once.
  * The view re-renders from service.state() on every onChange (batched into one microtask). inspect() is the apps part of
  * window.__mwShell.inspect(): { view, code (the channel only), conversations, rooms, link, ... }.
  */
-export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText = defaultAppsText, actions = {}, now = () => Date.now(), doc = null, win = null } = {}) {
+export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText = defaultAppsText, actions = {}, now = () => Date.now(), doc = null, win = null, report = null, reportsHost = '' } = {}) {
   if (!service || typeof service.state !== 'function') throw new TypeError('createAppsUi needs the apps service')
   const D = doc || (root && root.ownerDocument)
   if (!D || typeof D.createElement !== 'function') throw new TypeError('createAppsUi needs a document')
@@ -282,6 +294,40 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     else clearTimeout(h)
   }
   const log = (line) => { try { if (typeof act.log === 'function') act.log(String(line)) } catch (_) { /* a log line must not break the view */ } }
+  // Usage reports: what the visitor did and saw here, never what was typed or said. A field without a value is left out.
+  const rep = (name, fields) => {
+    if (typeof report !== 'function') return
+    const f = {}
+    for (const k of Object.keys(fields)) if (fields[k] !== null && fields[k] !== undefined) f[k] = fields[k]
+    try { report(name, f) } catch (_) { /* a report must not break the view */ }
+  }
+  // The host that receives the page's usage reports, named on the price cards; '' when there is none or the visitor turned them off.
+  const reportsHostNow = () => {
+    let h = ''
+    try { h = typeof reportsHost === 'function' ? reportsHost() : reportsHost } catch (_) { h = '' }
+    return typeof h === 'string' ? h.trim().slice(0, 253) : ''
+  }
+  // The code of an error that a report may carry: an identifier like E_POPUP_BLOCKED, else 'error'.
+  const codeOf = (err) => (err && typeof err.code === 'string' && /^E_[A-Z0-9_]{1,30}$/.test(err.code) ? err.code : 'error')
+  // The first yes of the visitor, told once: the page starts its usage reports here (events before it wait in memory).
+  const agreed = { given: false, via: null, fns: new Set() }
+  if (typeof act.firstYes === 'function') agreed.fns.add(act.firstYes)
+  function firstYes (via) {
+    if (agreed.given) return
+    agreed.given = true
+    agreed.via = via
+    rep('first-yes', { via })
+    for (const fn of Array.from(agreed.fns)) { try { fn({ via }) } catch (err) { log('first yes: ' + ((err && err.message) || err)) } }
+  }
+  function onFirstYes (fn) {
+    if (typeof fn !== 'function') throw new TypeError('onFirstYes: fn')
+    if (agreed.given) {
+      try { fn({ via: agreed.via }) } catch (err) { log('first yes: ' + ((err && err.message) || err)) }
+      return () => {}
+    }
+    agreed.fns.add(fn)
+    return () => { agreed.fns.delete(fn) }
+  }
 
   // ----- DOM helpers: textContent and attributes only -------------------------------------------
   const el = (tag, attrs, kids) => {
@@ -339,7 +385,7 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   const st = freshState()
   const notes = { code: '', knock: '', join: '', conv: '', room: '', roomCode: '' }
   const local = { conv: new Map(), msg: new Map() }
-  const memo = { signedIn: false, linkWasOpen: false, lastRead: new Map(), seen: new Map(), toastKeys: null, counts: new Map(), pendingRender: false, baseTitle: null, toastTimer: null, copiedTimer: null, stick: false }
+  const memo = { viewKey: null, signedIn: false, linkWasOpen: false, lastRead: new Map(), seen: new Map(), toastKeys: null, counts: new Map(), pendingRender: false, baseTitle: null, toastTimer: null, copiedTimer: null, stick: false }
 
   // ----- the model: state() read once per render, tolerant of fields the plan leaves open ----------------------------------------
   function snapshot () {
@@ -492,17 +538,28 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   // ---- cards: the price before a code, a knock or an accept, and the confirmations ----------------------------
   function priceSpec (kind, { room = false, accept = false, run, onCancel } = {}) {
     const paras = [{ text: T(room ? 'apps.price.room' : 'apps.price.text') }]
+    // A card that can be the first yes names the host of the usage reports. A card that accepts a request only follows one that did
+    // (a request needs a code, and a code needs a price card first), so it carries no such line and is no first yes.
+    const host = accept ? '' : reportsHostNow()
+    if (host) paras.push({ text: T('apps.price.reports', { host }) })
     if (accept) paras.push({ text: T('apps.price.check') })
-    return { kind, title: accept ? T(room ? 'apps.accept.titleRoom' : 'apps.accept.title') : T('apps.price.title'), paras, yes: T('apps.price.continue'), no: T('apps.price.notNow'), focus: 'yes', run, onCancel }
+    return { kind, price: !accept, title: accept ? T(room ? 'apps.accept.titleRoom' : 'apps.accept.title') : T('apps.price.title'), paras, yes: T('apps.price.continue'), no: T('apps.price.notNow'), focus: 'yes', run, onCancel }
   }
   const confirmSpec = (kind, title, text, yes, run) => ({ kind, title, paras: [{ text }], yes, no: T('apps.confirm.no'), danger: true, focus: 'no', run })
   function openCard (spec) {
     st.card = Object.assign({ returnFk: fkOf(D.activeElement) }, spec)
+    rep('card', { kind: spec.kind, ev: 'show' })
     render()
     focusFk('card:' + (spec.focus || 'yes'))
   }
+  // A card that goes away without an answer (the visitor moved on, signed out): told as a cancel, with the reason.
+  function dropCard (why) {
+    if (st.card) rep('card', { kind: st.card.kind, ev: 'cancel', why })
+    st.card = null
+  }
   function closeCard () {
     const c = st.card
+    if (c) rep('card', { kind: c.kind, ev: 'cancel', why: 'user' })
     st.card = null
     render()
     if (c && typeof c.onCancel === 'function') { try { c.onCancel() } catch (_) { /* a courtesy */ } }
@@ -511,6 +568,8 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   async function runCard () {
     const c = st.card
     if (!c) return
+    rep('card', { kind: c.kind, ev: 'continue' })
+    if (c.price) firstYes('card')
     st.card = null
     render()
     try { await c.run() } catch (err) { log('card: ' + ((err && err.message) || err)) }
@@ -541,9 +600,25 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     return a
   }
   async function doSignIn () {
+    rep('signin', { step: 'start' })
+    // The sign-in card is the loader's, so this view cannot see its button, and cannot know what that card said. A page that can tell
+    // when the window opened (the visitor pressed Continue on a card that named the host of the reports) says so through how.popup(),
+    // and that is a first yes. A sign-in that only ends is not: the visitor may never have been told who receives the reports.
+    let popped = false
+    const how = { popup: () => { if (popped) return; popped = true; rep('signin', { step: 'popup' }); firstYes('signin') } }
     try {
-      if (typeof act.signIn === 'function') await act.signIn()
-      else if (ui && typeof ui.prompt === 'function') await ui.prompt('signin', { method: 'signIn', options: {} })
+      let r
+      if (typeof act.signIn === 'function') r = await act.signIn(how)
+      else if (ui && typeof ui.prompt === 'function') r = await ui.prompt('signin', { method: 'signIn', options: {} })
+      if (r === true || snapshot().signedIn) {
+        rep('signin', { step: 'done' })
+      } else {
+        const c = codeOf(r)
+        rep('signin', { step: 'error', code: c === 'error' ? 'not-signed-in' : c })
+      }
+    } catch (err) {
+      rep('signin', { step: 'error', code: codeOf(err) })
+      throw err
     } finally { render() }
   }
   async function doSignOut () {
@@ -592,13 +667,13 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   function back () {
     saveDraft()
     if (st.view === 'conversation') { st.view = 'messages'; st.convId = null } else if (st.view === 'room') { st.view = 'rooms'; st.roomId = null } else st.view = 'home'
-    st.card = null
+    dropCard('nav')
     render()
     focusTitle()
   }
   function enterMessages () {
     saveDraft()
-    st.view = 'messages'; st.card = null
+    st.view = 'messages'; dropCard('nav')
     const s = snapshot()
     if (!st.priceOk && !st.askedStart && !s.code) {
       st.askedStart = true
@@ -612,13 +687,13 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   }
   function enterRooms () {
     saveDraft()
-    st.view = 'rooms'; st.card = null
+    st.view = 'rooms'; dropCard('nav')
     render()
     focusTitle()
   }
   function openConv (id) {
     saveDraft()
-    st.view = 'conversation'; st.convId = id; st.card = null
+    st.view = 'conversation'; st.convId = id; dropCard('nav')
     resetConvUi()
     st.marked.delete(id)
     const c = convById(snapshot(), id)
@@ -629,7 +704,7 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   }
   function openRoom (id) {
     saveDraft()
-    st.view = 'room'; st.roomId = id; st.card = null
+    st.view = 'room'; st.roomId = id; dropCard('nav')
     notes.room = ''
     const r = roomById(snapshot(), id)
     rm.reset()
@@ -1293,7 +1368,8 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
           kids.push(el('p', { class: 'mw-note mw-mono', 'data-role': 'format-help', text: T('apps.composer.formatHelp') }))
         } else if (isDm && p.panel === 'snippets') {
           const items = snippetList().map((sn, i) => el('div', { class: 'mw-apps-snippet-row' }, [
-            button(T('apps.composer.snippetUse', { text: shortPlain(sn.text, 60) }), () => insertAtCursor(sn.text), 'mw-small mw-apps-snippet', { 'data-role': 'snippet', 'data-fk': 'snippet:' + i }),
+            // the label holds what the visitor saved: data-obs="off" keeps it out of the usage report of this click
+            button(T('apps.composer.snippetUse', { text: shortPlain(sn.text, 60) }), () => insertAtCursor(sn.text), 'mw-small mw-apps-snippet', { 'data-role': 'snippet', 'data-fk': 'snippet:' + i, 'data-obs': 'off' }),
             button(T('apps.composer.snippetRemove'), () => removeSnippet(sn), 'mw-small mw-link', { 'aria-label': T('apps.composer.snippetRemoveLabel', { text: shortPlain(sn.text, 40) }), 'data-role': 'snippet-remove', 'data-fk': 'snippet-remove:' + i })
           ]))
           kids.push(el('div', { class: 'mw-apps-snippets', 'data-role': 'snippets-panel' }, items.length ? items : [el('p', { class: 'mw-note', text: T('apps.composer.snippetNone') })]))
@@ -1829,6 +1905,7 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
 
   // A sign-out, by any path, ends this visit's state: drafts, snippets, the price answer, every field.
   function resetSession () {
+    dropCard('signed-out')
     Object.assign(st, freshState())
     for (const k of Object.keys(notes)) notes[k] = ''
     local.conv.clear(); local.msg.clear()
@@ -1840,6 +1917,14 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     sDir.value = 'all'
     msgListC.__sig = null; msgListR.__sig = null; nickInput.__conv = null
   }
+  // Each change of the view is told once, whichever way it came (a tile, a back button, a conversation that went away, a sign-out).
+  function noteView () {
+    const id = st.view === 'conversation' ? st.convId : (st.view === 'room' ? st.roomId : null)
+    const key = st.view + ':' + (id === null || id === undefined ? '' : String(id))
+    if (memo.viewKey === key) return
+    memo.viewKey = key
+    rep('view', { view: st.view, id: id === null || id === undefined ? null : String(id) })
+  }
   function render () {
     if (destroyed) return
     memo.pendingRender = false
@@ -1847,9 +1932,10 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     if (memo.signedIn && !s.signedIn) resetSession()
     memo.signedIn = s.signedIn
     if (s.link === 'open') memo.linkWasOpen = true
-    if (!s.signedIn && st.view !== 'home') { st.view = 'home'; st.card = null }
+    if (!s.signedIn && st.view !== 'home') { st.view = 'home'; dropCard('signed-out') }
     if (st.view === 'conversation' && !convById(s, st.convId)) { st.view = 'messages'; st.convId = null }
     if (st.view === 'room' && !roomById(s, st.roomId)) { st.view = 'rooms'; st.roomId = null }
+    noteView()
     keepFocus(() => {
       renderHead(s)
       for (const k of Object.keys(views)) views[k].hidden = k !== st.view
@@ -1920,12 +2006,13 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     inspect,
     destroy,
     back,
+    onFirstYes,
     show (view, id) {
       if (view === 'messages') enterMessages()
       else if (view === 'rooms') enterRooms()
       else if (view === 'conversation') openConv(id)
       else if (view === 'room') openRoom(id)
-      else { st.view = 'home'; st.card = null; render() }
+      else { st.view = 'home'; dropCard('nav'); render() }
     },
     nodes: { head: headEl, title: titleEl, toast: toastEl, tiles: tiles.map((t) => t.node), composer: dm.ta, send: dm.sendBtn, roomComposer: rm.ta, roomSend: rm.sendBtn, knockInput, joinInput, filterInput, messageList: msgListC, roomMessageList: msgListR }
   }

@@ -6,7 +6,7 @@
 //     [--tr <wss>]... [--chain <label>] [--max <bytes>] [--cs <url>] [--consent notice|gate] [--exp <days>]
 //     [--seq <n>] [--policy open|allow|owner] [--moderator <pub>]... [--allow <pub>]... [--bits <n>]
 //     [--dropin] [--keep-days 7] [--verify-ws [--allow-no-preflight]] [--verify-host <url>] [--out dist-publish]
-//     v0.3: [--org <origin>]... [--next-key <file>] [--nx <b64url>] [--ml <x.y.z>] [--idp <origin>] [--signin-widget] [--chat-panel]
+//     v0.3: [--org <origin>]... [--next-key <file>] [--nx <b64url>] [--ml <x.y.z>] [--idp <origin>] [--obs <origin>] [--signin-widget] [--chat-panel]
 //     [--tracker <wss>]... [--stun <stun:>]... [--turn <url>]... [--chat] [--files] [--media] [--calls] [--cfg-from <ledger.json>]
 //
 // Shell mode (default): every file of <dir> except the ignore list goes into the torrent, plus
@@ -53,6 +53,11 @@
 // identity origin (--tracker, --stun, --idp) has an apps block { rendezvous, stun, idp } for the door page. publish records it in summary.json
 // and, with --shell, writes it into the shell's /_mw/door.json (every other key of that file stays as the build wrote it); --door-kit
 // --door-site copies the first door site's block into the kit's /_mw/door.json. tools/apps-block.mjs holds the shape.
+//
+// v0.3 usage reports (docs/DEPLOY.md "Usage reports"): --obs <origin> names the endpoint the loader sends usage reports to. publish records
+// it in summary.json and, with --shell, writes it into the shell's /_mw/door.json beside the apps block ({ endpoint }); --door-kit --door-site
+// copies the first door site's obs block into the kit like the apps block. It needs no --tracker, --stun or --idp, and it is never a file of
+// the site, so the torrent and its infohash are the same with and without it.
 
 import { readFileSync, existsSync, mkdirSync, renameSync, readdirSync, rmdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
@@ -80,7 +85,7 @@ import { formatLightLink, isDoorHost, hostOfOrigin, ledgerIdFor, DOOR_MAX } from
 import { encode as qrEncode } from '../src/idp/qr.js';
 import { verifyRelease, readPublicKey, PINNED_RELEASE_KEYS } from './verify-release.mjs';
 import { doorKitFiles } from './door-kit-files.mjs';
-import { appsBlockProblems, appsBlockLine, withAppsBlock } from './apps-block.mjs';
+import { appsBlockProblems, appsBlockLine, withAppsBlock, obsBlockProblems, obsBlockLine, makeObsBlock, withObsBlock } from './apps-block.mjs';
 
 export { doorKitFiles };
 import { createGenesis, checkGenesis, readBlocksFile, writeBlocksFile, policyOp, ledgerIdForOwner, loadLedger, currentCfg, OPEN_WRITING_WARNING } from './ledger-admin.mjs';
@@ -132,6 +137,10 @@ Features:  --chat --files --media --calls (turn the feature on; --chat-panel and
 Apps:      --tracker, --stun and --idp together (the site's own tracker, STUN server and identity origin) give the door page its apps:
            summary.json gets apps { rendezvous, stun, idp }, and --shell writes the same block into shell/_mw/door.json
            (docs/DEPLOY.md, "Apps at a door"). The tracker must speak the pair protocol (deploy/rtc-worker or tools/tracker.mjs).
+Reports:   --obs <origin> (usage reports: the origin of the endpoint you run for them, such as https://obs.example.org; http: only for a loopback
+           host) goes into summary.json as obs { endpoint } and, with --shell, into shell/_mw/door.json beside the apps block. It is never a file
+           of the site, so the infohash does not change, and it needs no --tracker, --stun or --idp. A visitor is asked first: the consent card
+           names the host, and "Load from host only" sends nothing (docs/DEPLOY.md, "Usage reports").
 Output:    --out <dir> (default dist-publish)  --verify-ws [--allow-no-preflight]  --verify-host <url> (drop-in)
            --ignore <path>...  --quiet
 Doors (v0.3 C2): --door <host>... (at most 8 door hosts such as mirror.example.org or door.example.net:8443: link mode, needs --chain;
@@ -140,7 +149,7 @@ Door kit:  node tools/publish.mjs --door-kit <dir> --release-list hashes-dist.js
            --release-key <pinned public key file or p256:...> [--dist dist] [--door-site <publish output dir>]...
            copies the built loader unchanged once it matches the signed release list, and adds the host settings and README-DOOR.txt
            (when the first --door-site was published with an apps block, that block also goes into the kit's _mw/door.json: the one
-           file of the loader that then differs from the release)
+           file of the loader that then differs from the release; an obs block from --obs goes there the same way)
 Withdraw:  node tools/publish.mjs --withdraw --scope <hostname> --key owner.jwk [--why <reason>] [--ct <url>]
            [--chain <label>] [--seq <n>] [--exp <days> (default 399)] [--prev-key <old owner.jwk>] [--ledger-owner <pub>] [--out <dir>]
            writes a signed st=withdrawn record (pointer.txt, meta.html, dns.txt, summary.json): loaders stop
@@ -489,14 +498,15 @@ function readJsonFile(file, what) {
 const releaseKeysToTrust = (releasePinnedKeys) => (Array.isArray(releasePinnedKeys) && releasePinnedKeys.length ? releasePinnedKeys : PINNED_RELEASE_KEYS);
 
 /**
- * doorKit({ out, dist, releaseList, releaseSig, releaseKey, doorSite, log }) → { kit, version, listHash, files, sites, apps }.
+ * doorKit({ out, dist, releaseList, releaseSig, releaseKey, doorSite, log }) → { kit, version, listHash, files, sites, apps, obs }.
  * Refuses unless every file of dist matches the signed release list under the pinned release key (tools/verify-release.mjs): a
  * door must serve the loader as released, or a visitor's first load there would run something else. Then copies dist unchanged,
  * adds the list and its signature (hashes-dist.json, hashes-dist.json.sig) and the files of doorKitFiles(), and, for each
  * --door-site, the site's web seed copy (<publish out>/<name>/ to ws/<name>/) and its torrent (_mw/t/<btih>.torrent).
  * Apps at a door: when the FIRST --door-site's summary.json holds an apps block (publish with --tracker, --stun and --idp), that block
  * is set in the kit's /_mw/door.json after the kit was checked against the release list. It is the one file of the loader that then
- * differs from the release: the signed list names door.json without it (docs/DEPLOY.md, "Apps at a door").
+ * differs from the release: the signed list names door.json without it (docs/DEPLOY.md, "Apps at a door"). Usage reports: the obs block of
+ * the first --door-site's summary.json (publish with --obs) is set in the same file the same way (docs/DEPLOY.md, "Usage reports").
  */
 export async function doorKit({ out: kitOut, dist = join(ROOT, 'dist'), releaseList = null, releaseSig = null, releaseKey = null, releasePinnedKeys = null, doorSite = [], quiet = false, log = null } = {}) {
   const say = quiet ? () => {} : (typeof log === 'function' ? log : (line) => out(line));
@@ -536,8 +546,23 @@ export async function doorKit({ out: kitOut, dist = join(ROOT, 'dist'), releaseL
     apps = summary.apps;
     appsFrom = String(summary.name);
   });
-  if (apps && !existsSync(join(distDir, '_mw', 'door.json'))) {
-    throw new ToolError('--door-site ' + doorSite[0] + ' has an apps block, but the loader in ' + relPath(distDir) + ' has no _mw/door.json to carry it (run: node build.mjs)');
+  // The obs block (usage reports) is read the same way: the first site's, checked again here, refused before the kit folder is touched.
+  let obs = null;
+  let obsFrom = null;
+  const laterObs = [];
+  summaries.forEach((summary, i) => {
+    if (!summary || typeof summary !== 'object' || summary.obs === undefined || summary.obs === null) return;
+    if (i > 0) {
+      laterObs.push(String(summary.name));
+      return;
+    }
+    const problems = obsBlockProblems(summary.obs);
+    if (problems.length) throw new ToolError('--door-site ' + doorSite[0] + ': the obs block in summary.json is not usable (' + problems.slice(0, 3).join('; ') + '); publish the site again with --obs');
+    obs = summary.obs;
+    obsFrom = String(summary.name);
+  });
+  if ((apps || obs) && !existsSync(join(distDir, '_mw', 'door.json'))) {
+    throw new ToolError('--door-site ' + doorSite[0] + ' has ' + [apps && 'an apps block', obs && 'an obs block'].filter(Boolean).join(' and ') + ', but the loader in ' + relPath(distDir) + ' has no _mw/door.json to carry it (run: node build.mjs)');
   }
   if (existsSync(kit)) {
     const entries = readdirSync(kit);
@@ -565,18 +590,23 @@ export async function doorKit({ out: kitOut, dist = join(ROOT, 'dist'), releaseL
   // The kit as the README's step 1 checks it (--door-kit): the host settings must be the ones made here, byte for byte (SEC-5).
   const again = await verifyRelease({ dir: kit, list, sig, publicKey, pinnedKeys, allowExtra: true, expectExtra: extra });
   if (!again.ok) throw new ToolError('internal: the kit does not hold the release as listed (' + again.problems.slice(0, 3).join('; ') + ')');
-  if (apps) {
-    // After the check above, so that it ran on the loader exactly as released: door.json is the only loader file that gets this block.
+  if (apps || obs) {
+    // After the check above, so that it ran on the loader exactly as released: door.json is the only loader file that gets these blocks.
     const doorFile = join(kit, '_mw', 'door.json');
-    writeFileAtomic(doorFile, withAppsBlock(readFileSync(doorFile), apps));
+    let doorBytes = readFileSync(doorFile);
+    if (apps) doorBytes = withAppsBlock(doorBytes, apps);
+    if (obs) doorBytes = withObsBlock(doorBytes, obs);
+    writeFileAtomic(doorFile, doorBytes);
   }
   say('door kit ' + relPath(kit) + ' (felinar ' + list.version + ', release list ' + verdict.listHash.slice(0, 16) + '..., ' + verdict.checked + ' loader files checked)');
   say('  added   hashes-dist.json, hashes-dist.json.sig, ' + Object.keys(extra).join(', '));
   for (const s of sites) say('  site    ' + s.name + ' (btih ' + s.btih + '): ' + s.webseed + ' and ' + s.torrent);
   if (apps) say('  apps    ' + appsBlockLine(apps) + ' (from ' + appsFrom + '), set in _mw/door.json: the one loader file that differs from the signed release (docs/DEPLOY.md, "Apps at a door")');
   else if (laterApps.length) say('  apps    none in the kit: only the first --door-site names the door\'s apps, and it has no apps block (' + laterApps.join(', ') + ' has one)');
+  if (obs) say('  obs     ' + obsBlockLine(obs) + ' (from ' + obsFrom + '), set in _mw/door.json: the one loader file that differs from the signed release (docs/DEPLOY.md, "Usage reports")');
+  else if (laterObs.length) say('  obs     none in the kit: only the first --door-site names the door\'s usage reports, and it has no obs block (' + laterObs.join(', ') + ' has one)');
   say('Upload the folder to the root of a host name, then check it: node tools/check-site.mjs https://<host>/ --door');
-  return { kit, version: list.version, listHash: verdict.listHash, files: verdict.checked, sites, apps };
+  return { kit, version: list.version, listHash: verdict.listHash, files: verdict.checked, sites, apps, obs };
 }
 
 /**
@@ -1136,7 +1166,7 @@ export async function publish(options) {
     includeDot: [], allowSecret: [], date: null, maxFiles: null, fromWxr: null, wxrDir: 'comments', doublePack: false,
     ct: null, lg: null, aud: null,
     org: [], tracker: [], stun: [], turn: [], turnMode: null, chat: false, files: false, media: false, calls: false, signinWidget: false, chatPanel: false,
-    nextKey: null, nx: null, ml: null, idp: null, signinStatement: null, challengeUrl: null, proofUrl: null, prevPointer: null, cfgFrom: null,
+    nextKey: null, nx: null, ml: null, idp: null, obs: null, signinStatement: null, challengeUrl: null, proofUrl: null, prevPointer: null, cfgFrom: null,
   }, options);
   // o.log (code review round 1): where the report lines go (tests read them); stdout by default.
   const log = o.quiet ? () => {} : (typeof o.log === 'function' ? o.log : out);
@@ -1270,6 +1300,16 @@ export async function publish(options) {
     if (!why.length) apps = candidate;
     else if (o.shell) note('no apps block for the door page: ' + why[0] + ' (docs/DEPLOY.md, "Apps at a door")');
   }
+  // Usage reports (docs/DEPLOY.md "Usage reports"): --obs is the origin the loader sends its reports to. It becomes a block of the shell's
+  // /_mw/door.json, and of summary.json where a door kit finds it, and never a file of the site: the torrent, and so the infohash, are what
+  // they were without it. It stands alone: the apps block needs a tracker, a STUN server and an identity origin, and the reports need none of
+  // them. A drop-in publish has no shell and leaves the _mw/door.json it copies as built, so it has no block either.
+  let obs = null;
+  if (o.obs !== null && o.obs !== undefined && o.obs !== '' && !(Array.isArray(o.obs) && !o.obs.length)) {
+    const block = makeObsBlock(o.obs);
+    if (!o.dropin) obs = block;
+    else note('--obs ' + block.endpoint + ' is not used: a drop-in publish has no shell and leaves the _mw/door.json it copies as built (docs/DEPLOY.md, "Usage reports")');
+  }
   if (o.chatPanel && !o.dropin) note('--chat-panel: the panel reads window.mw, which only drop-in pages define (/_mw/mw.js); publish with --dropin');
   if (o.signinStatement !== null && o.signinStatement !== undefined) {
     const problem = statementProblem(String(o.signinStatement));
@@ -1305,12 +1345,18 @@ export async function publish(options) {
     else if (checked.verified) log('loader    ' + relPath(resolve(o.dist)) + ' matches the signed release list (felinar ' + checked.version + ', list ' + checked.listHash.slice(0, 16) + '...)');
   }
 
-  // ---- apps at a door: the shell's door list with the block, made before anything is written ------------------------------------
+  // ---- apps at a door and usage reports: the shell's door list with the blocks, made before anything is written -----------------------
   let shellDoorJson = null;
-  if (o.shell && apps) {
+  if (o.shell && (apps || obs)) {
     const doorFile = join(o.dist, '_mw', 'door.json');
-    if (existsSync(doorFile)) shellDoorJson = withAppsBlock(readFileSync(doorFile), apps);
-    else note('the loader in ' + relPath(resolve(o.dist)) + ' has no _mw/door.json to carry the apps block (run: node build.mjs); the shell is written without it');
+    if (existsSync(doorFile)) {
+      shellDoorJson = readFileSync(doorFile);
+      if (apps) shellDoorJson = withAppsBlock(shellDoorJson, apps);
+      if (obs) shellDoorJson = withObsBlock(shellDoorJson, obs);
+    } else {
+      note('the loader in ' + relPath(resolve(o.dist)) + ' has no _mw/door.json to carry the ' + [apps && 'apps', obs && 'obs'].filter(Boolean).join(' and ') +
+        (apps && obs ? ' blocks' : ' block') + ' (run: node build.mjs); the shell is written without ' + (apps && obs ? 'them' : 'it'));
+    }
   }
 
   // ---- key ----------------------------------------------------------------------------------
@@ -1800,7 +1846,7 @@ export async function publish(options) {
     if (!existsSync(join(o.dist, 'index.html'))) throw new ToolError('--shell needs the built loader in ' + relPath(o.dist) + ' (run: node build.mjs)');
     replaceTree(shellOut);
     copyTree(o.dist, shellOut);
-    // v0.3 apps at a door: the build's door.json with `apps` as its last key; every other file of the loader is as built.
+    // v0.3 apps at a door and usage reports: the build's door.json with `apps` and `obs` after its own keys; every other file of the loader is as built.
     if (shellDoorJson) writeFileAtomic(join(shellOut, '_mw', 'door.json'), shellDoorJson);
     {
       // v0.3: Cross-Origin-Opener-Policy: same-origin-allow-popups and Referrer-Policy: no-referrer for the loader pages.
@@ -1865,6 +1911,7 @@ export async function publish(options) {
     stun,
     turn,
     apps, // v0.3 apps at a door: { rendezvous, stun, idp } or null
+    obs, // v0.3 usage reports: { endpoint } or null (a door kit copies it from here; the torrent never holds it)
     widgets: widgets.map((w) => ({ name: w.name, path: w.path, integrity: w.integrity, script: w.script, element: w.element })),
     loaderHeaders: Object.assign({}, LOADER_HEADER_VALUES),
     size: { files: sizes.count, bytes: sizes.total, largest: sizes.largest ? { path: sizes.largest.path, length: sizes.largest.length } : null, torrentBytes: built.torrentFile.length, report: sizes.lines },
@@ -1895,6 +1942,9 @@ export async function publish(options) {
   if (idp) log('  idp       ' + idp);
   if (apps) {
     log('  apps      ' + appsBlockLine(apps) + (shellDoorJson ? ' (in ' + relPath(join(outDir, 'shell', '_mw', 'door.json')) + ')' : ' (in summary.json; --shell writes it into the shell, --door-kit --door-site into a door kit)'));
+  }
+  if (obs) {
+    log('  obs       ' + obsBlockLine(obs) + (shellDoorJson ? ' (in ' + relPath(join(outDir, 'shell', '_mw', 'door.json')) + ')' : ' (in summary.json; --shell writes it into the shell, --door-kit --door-site into a door kit)'));
   }
   if (features.length) log('  features  ' + features.join(', ') + ' (own tracker ' + ownTrackers(tr).join(' ') + ', STUN ' + stun.join(' ') + ')');
   if (o.calls) log('            calls are off for readers until the ledger says so: node tools/ledger-admin.mjs cfg --key <owner.jwk> --file <ledger.json> --chat members --calls contacts');
@@ -1958,7 +2008,7 @@ export async function publish(options) {
   return {
     mode: summary.mode, name: o.name, btih, rendezvousBtih, anchorBtih, ledgerId, gen: genesis.h, genesis, genesisReused,
     owner: identity.pub, fingerprint: identity.fingerprint, pointer, record, magnet, files: torrentFiles, total,
-    torrentFile: built.torrentFile, outDir, outputs, warnings, verified, summary, apps,
+    torrentFile: built.torrentFile, outDir, outputs, warnings, verified, summary, apps, obs,
     link: link ? { record: link.record, text: link.text, scope: link.scope, ledgerId: link.ledgerId, bytes: link.bytes, primary: link.primary, fallbacks: link.fallbacks, web: link.web, doors: link.doors } : null, // C2 doors
   };
 }
@@ -2011,6 +2061,7 @@ export const PUBLISH_FLAGS = {
   nx: { type: 'string' },
   ml: { type: 'string' },
   idp: { type: 'string' },
+  obs: { type: 'string' },
   'prev-pointer': { type: 'string' },
   'signin-widget': { type: 'boolean' },
   'signin-statement': { type: 'string' },
@@ -2056,6 +2107,7 @@ async function main(argv) {
   if (flags.doorKit) {
     // v0.3 C2 doors: the loader as released plus the host settings of a door; no site directory is read.
     if (positionals.length) throw new UsageError('--door-kit takes no site directory');
+    if (flags.obs) throw new UsageError('--obs belongs to a publish: a door kit takes the usage reports block of the first --door-site (publish that site with --obs)');
     await doorKit({ out: flags.doorKit, dist: flags.dist, releaseList: flags.releaseList, releaseSig: flags.releaseSig, releaseKey: flags.releaseKey, doorSite: flags.doorSite, quiet: flags.quiet });
     return 0;
   }

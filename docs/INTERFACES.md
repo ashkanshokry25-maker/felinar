@@ -390,7 +390,7 @@ export const PROBE_CLASSES = ['easy-mapping','easy-probable','hard','udp-blocked
 ```
 export function audienceOf(record) → string[]                         // aud= tokens, lowercased
 export function consentModeFor(record, config = CONFIG) → 'gate' | 'notice'   // consent= wins; else aud ∩ config.consent.gateAudiences → 'gate'
-export function recipientsKey(record, config) → string                // sorted tracker hosts (announceListFor) + STUN hosts, comma-joined
+export function recipientsKey(record, config, { obsHost } = {}) → string   // sorted tracker hosts (announceListFor) + STUN hosts, comma-joined; + 'obs:<host>' when obsHost is given (usage reports, see "Usage reports")
 export function makeConsentRecord({ choice, dns, scope, rcpt, now, config }) → { v, choice, dns, day, scope, rcpt }
 export function consentFromRecord(record, { rcpt, config }) → 'accepted' | 'host-only' | 'pending'   // other version, or accepted for other recipients → pending
 export function dnsAllowedBy(record, config) → boolean
@@ -1185,7 +1185,7 @@ IdentityBinding.setLoaderKey(info | null)     // an imported moderator key signs
 api.ownerConfirm(card) -> Promise<boolean>    // the shell and drop-in set it to the identity service's ownerAction (owner.policy)
 src/loader/personal-site.js: genesisBlocks needs ChainNode.genesis (the only minting path); viewAdapters(recent) ->
   { stateOf, snapshotOf } reads a followed ledger from its recent-window view (recent.js viewOf(node).state().state)
-window.__mwShell = { version, inspect(), rectOf(label) }   // rectOf: a loader card button's rectangle (tests click it)
+window.__mwShell = { version, inspect(), rectOf(label) }   // rectOf: a loader card button's rectangle (tests click it); inspect().obs = reporter.inspect() | null (usage reports)
 ```
 
 ### Final integration changes (v0.3; [deviations/integration-v03.md](deviations/integration-v03.md), "Final integration")
@@ -1408,8 +1408,8 @@ As built (calls and wire-ui; [deviations/calls.md](deviations/calls.md), [deviat
 the loader-only `answer(id, { video })` (the call panel's own incoming card), `media(id)` (tracks for the panel; the SDK never gets a
 `MediaStream`), `setVisible(visible)`, `setNetwork()`, `inspect()` and `destroy()`; deps add `prefs()` (`{ sameLan, hideIp }`), `mediaSession`, `mode`
 and `deviceClass`. Calls require the site's own STUN or a relay (`E_POLICY`), and "Hide my IP" without a relay is `E_POLICY`. The chat seam
-also exposes `contact`, `groupMembers`, `state`, `ckOf` and `learn`. `src/loader/call-ui.js`: `createCallUi({ win, doc, nav, lang, cssHref, ... })
--> { attach(service), detach, prompt(kind, data), inspect, rectOf(label), destroy }`; it copies the rules of the shell's loaded `/_mw/ui.css`
+also exposes `contact`, `groupMembers`, `state`, `ckOf` and `learn`. `src/loader/call-ui.js`: `createCallUi({ win, doc, nav, lang, cssHref, observe, ... })
+-> { attach(service), detach, prompt(kind, data), inspect, rectOf(label), destroy }` (`observe(event)`: the loader's usage-report observer, handed every click, change and submit inside the panel's closed root); it copies the rules of the shell's loaded `/_mw/ui.css`
 into a `<style>` in its closed root (the `<link>` is the fallback) and sits at the top right (C2 integration). In a development build (loopback or
 `<meta name="mw-dev">`) `window.__mwShell.setCallPrefs({ sameLan, hideIp })` sets the two choices for the page (never stored; C2 has no switch
 or strings for them).
@@ -1886,7 +1886,7 @@ build.mjs             --update-lock refuses a provenance package's new release w
 
 ### The apps block of `/_mw/door.json`, and the tools that write it
 ```
-door.json "apps"        { "rendezvous": ["wss://..."], "stun": ["stun:host:port"], "idp": "https://origin" }   (optional; the tools write it as the last key)
+door.json "apps"        { "rendezvous": ["wss://..."], "stun": ["stun:host:port"], "idp": "https://origin" }   (optional; the tools write it after the build's own keys, and before "obs" when the file has one)
                         rendezvous: 1..8 URLs, wss:, or ws: on a loopback host; the page uses the first (the others are not used yet)
                         stun:       0..8 URLs, stun: or stuns: with a host and an optional port; the shared client gets all of them, the lanes at most 4
                         idp:        an origin, exactly as written: https:, or http: on a loopback host
@@ -1902,7 +1902,7 @@ tools/apps-block.mjs    APPS_RENDEZVOUS_MAX = 8, APPS_STUN_MAX = 8, APPS_URL_MAX
                         appsBlockProblems(block) -> [text]          (at least as strict as checkAppsBlock; a test compares them)
                         makeAppsBlock({ rendezvous, stun, idp }, { flags }) -> block   (lists may hold comma separated values; a UsageError names the flags)
                         appsBlockLine(block) -> 'rendezvous 1, stun 1, identity https://...'
-                        withAppsBlock(doorJsonBytes, block) -> Buffer      (the build's format, apps as the last key)
+                        withAppsBlock(doorJsonBytes, block) -> Buffer      (the build's format, apps after the build's keys and before obs, see "Usage reports")
                         withoutAppsBlock(doorJsonBytes) -> Buffer          (the build's own bytes again)
 tools/publish.mjs       --tracker <wss URL>... --stun <stun: URL>... --idp <origin> together: summary.apps, result.apps; --shell also writes the block into
                         shell/_mw/door.json. No --idp, no block (with --shell a note says why). A drop-in publish records none.
@@ -2055,4 +2055,153 @@ src/loader/app.js       run(): a door page with no link and an apps block runs r
                         loadAppsTm(A, apps) -> Promise<TorrentManager>; window.__mwShell.inspect().apps = { view, signedIn, ready, tm, link, code (the channel: the first four characters), current, card, requests,
                         conversations: [{ id, short, status, unread, messages, lastStatus, pinned, muted, archived, favorite }],
                         rooms: [{ id, role, status, members, messages, unread }] } (null on any other page; counts, states, short ids and the channel of the visitor's own code, never a message text)
+```
+
+## Usage reports (contract changes; ARCHITECTURE 15.22)
+
+> **Status: built on 2026-11-02, not yet reviewed (unreleased).** The optional usage reports of the loader, the apps and the identity page, and the endpoint that receives them. Tested
+> with unit tests on loopback (`test/unit/loader-obs`, `loader-app-obs`, `loader-apps-obs`, `idp-obs`, `deploy-obs-core`, `deploy-obs-worker`, `tools-apps-block-obs`, `tools-publish-obs`,
+> `tools-dev-server-obs` and the obs cases of `tools-check-door`), by three scripted Chromium scenarios on loopback (OBS-1 to OBS-3 of `test/e2e/scenarios-obs.mjs`, against the stand-in
+> collector of `test/e2e/obs-collector.mjs`) and by `docs-observability`, which holds the event tables of OBSERVABILITY.md to the calls in the code. Not run on a real host or on Cloudflare. The owner-facing description is [OBSERVABILITY.md](OBSERVABILITY.md); the
+> events are listed there.
+
+### The obs block of `/_mw/door.json`, and the tools that write it
+```
+door.json "obs"         { "endpoint": "https://origin" }   (optional; the tools write it as the last key, behind "apps")
+                        endpoint: an origin, exactly as written: https:, or http: on a loopback host; at most 300 characters, no spaces, no user name or password,
+                        no path, query or fragment; unknown keys ignored. The page takes an http: endpoint only when it is itself on a loopback host
+src/loader/doors.js     checkObsBlock(obs, { pageHost }) -> { block, reason }     block: a frozen { endpoint } or null; reason: 'obs-shape' | 'obs-endpoint' | 'obs-endpoint-insecure'
+                        (http: on a host that is not loopback, and, when pageHost (the loader gives its own location.host) is given, http: on a loopback host for a page that is not on one;
+                        the tools leave pageHost out)
+                        obsBlockOf(json, opts) -> block | null      (no block, or a bad one: the page sends no reports; opts as checkObsBlock's)
+                        obsBlockProblem(json, opts) -> reason | null
+                        obsHostOf(block) -> host name | null        (the host name only: what the card names and the consent record keeps)
+                        checkDoorJson(json, own) gains obs (the checked block, or null) when json.obs is present, and obsReason when it is bad; the block never changes ok
+tools/apps-block.mjs    OBS_ENDPOINT_MAX = 300
+                        obsBlockProblems(block) -> [text]           (at least as strict as checkObsBlock; a test compares them)
+                        makeObsBlock(endpoint, { flag = '--obs' }) -> { endpoint }   (one origin, or a list holding one; one trailing slash is dropped; a UsageError names the flag)
+                        obsBlockLine(block) -> 'usage reports to <host name>'
+                        withObsBlock(doorJsonBytes, block) -> Buffer   (the build's format; obs as the last key, behind apps)
+                        withoutObsBlock(doorJsonBytes) -> Buffer       (withAppsBlock keeps obs behind apps; the build's own bytes come back byte for byte)
+tools/publish.mjs       --obs <origin>: summary.obs (null when absent), result.obs; with --shell the block is set in shell/_mw/door.json after apps. It needs none of --tracker, --stun and
+                        --idp, and it is never one of the site's files (the infohash is the same with and without it). A drop-in publish records none and says so.
+                        --door-kit <dir> --door-site <publish output>: the FIRST site's obs block is copied into the kit's _mw/door.json as the apps block is; doorKit(...) -> { ..., apps, obs };
+                        --door-kit with --obs is a usage error
+tools/dev-server.mjs    --obs <origin>; option obs (a string, or a list holding one); result.obs; /_mw/door.json is served with the block, read again on every request, the file under --root unchanged
+tools/check-site.mjs    --door: '[info] door: usage reports to <host>', or a warning when the page cannot use the block; the endpoint is never contacted
+tools/build-idp.mjs     --obs <origin>: OBS_ORIGIN_MAX = 300, checkObsOrigin(s) -> s | UsageError, headersWithObs(headersText, origin) -> text (the one connect-src 'self' gains the origin),
+                        pageFor(html, { ..., obs }); buildIdp({ obs }) -> { ..., obs }. The origin is written as data-mw-obs on <html> in both pages, it is part of the build id and of build.json
+                        (only when named: without --obs the build is byte for byte what it was)
+```
+
+### The reporter, `src/loader/obs.js` (the identity page has `src/idp/obs-client.js`, the same wire)
+```
+OBS_LIMITS = { flushMs: 2000, maxBatch: 50, maxQueue: 500, maxField: 200, maxBodyBytes: 16384, maxRetries: 3 }
+createReporter({ endpoint, page, build, loader, site, now, random, send, visibility, timers, env }) -> reporter
+  endpoint     an https origin, or http on a loopback host; anything else gives an inert reporter (inspect().enabled false, no network call, sid '')
+  page         'site' | 'door' | 'hub' | 'idp' (anything else is 'site');  build: the door's build id (hex) or '';  loader: the loader version (0.3.0, 0.3.1-rc.1; any other text is '');  site: first 8 hex characters of an infohash or ''
+  now() -> ms; random() -> [0, 1) for the session id; send(url, text, { final }) -> boolean | Promise<boolean> (false, a rejection or no answer in 15 s is a failure; anything else succeeds)
+  default send  fetch POST keepalive, mode cors, credentials omit, referrerPolicy no-referrer, text/plain first (a cors request carries the real Origin and answers), else navigator.sendBeacon with a text/plain Blob (counted as sent, no answer; a no-cors beacon carries Origin null under no-referrer and is refused);
+                the final flush uses fetch
+  visibility    { onHide(fn) } (default: pagehide, and visibilitychange to hidden);  timers { setTimeout, clearTimeout };  env { navigator, fetch }
+  reporter.event(name, fields)   name matches /^[a-z][a-z0-9.-]{1,48}$/; at most 12 fields, each a string (through safeField), a finite number, a boolean or null, else dropped
+                                 field by field; t and n cannot be fields; never throws
+  reporter.click(target, extra)  = event('ui.click', describeTarget(target) + extra)
+  reporter.setWho(short | null)  reporter.setSite(hex8)  reporter.setNet({ type, effectiveType })   (taken when an event is queued; a batch holds events that share them; who is a short id of two
+                                 groups of 4 from the identity page's alphabet, anything else is null; net holds the words of navigator.connection, any other word being 'other' or 'unknown')
+  reporter.allow(bool)           true sends, the buffered events first; false drops the queue and ignores events until the next true. Before the first allow(true) events buffer (maxQueue,
+                                 oldest dropped and counted). Only an exact true allows.
+  reporter.flush(reason)         one batch now -> true when a batch went out; 'hide', 'pagehide', 'unload', 'final', 'stop' and 'close' send up to three batches at once with { final: true }.
+                                 A batch that fails stays for the next flush with the same seq and the same body, three tries in all (OBS_LIMITS.maxRetries), then it is dropped and counted
+  reporter.stop()                final flush, timers off, nothing more
+  reporter.inspect() -> { host, enabled, allowed, queued, sent, dropped, batches, lastOk }   (host: the endpoint's host name only)     reporter.sid -> the 12 character session id
+describeTarget(el) -> { role?, fk?, app?, view?, banner?, dialog?, row?, card?, id?, tag?, text? }
+  the first of data-role, data-fk (the prefix before its first ':'), data-app, data-view, .mw-banner[data-id], .mw-dialog[aria-labelledby], data-row, data-mw-card, [id], else tag; each rule takes the
+  closest element that has it, and the rule order wins over distance. text: the label of a button, link or [role=button|link], masked then cut at 24 characters; never for an input, textarea,
+  select or option; none for a control that, or whose ancestor or descendant, has dir="auto", nor for one with data-obs="off" on it or an ancestor. Pure, never throws.
+wrapPeerConnection(win, reporter) -> boolean   wraps win.RTCPeerConnection once (marked __mwObs; the wrapper exposes the underlying constructor as __mwNative, in either order with the offer
+                                               timeout's wrapper); ice.pc { id, ev: created | closed }, ice.gathering, ice.state, ice.conn { id, state }, ice.local { id, type, proto },
+                                               ice.remote { id, sdp, types }, ice.pair { id, local, remote } (each side as 'type/proto', such as host/udp); candidate types and protocols only
+safeField(v) -> string | number | boolean | null   NFKC and invisible characters folded, the look-alikes of the dot and the colon (the ideographic full stop, the ratio sign, %2e and %3a, a combining mark
+                                               glued to a digit, a hex letter, a dot or a colon) put back, strings cut at 200, IPv4 (a group may be octal) and IPv6 (with port, brackets and zone) -> 'x.x.x.x',
+                                               candidate ports and mDNS names removed, the user fragment, password and fingerprint of an SDP cut, text after '#' of a URL-like token cut (the '#' itself stays;
+                                               each word in front of a '#' is read once), a pair code to its first 4 characters, a run of 40 or more hex digits that holds a digit and a letter a to f to its first 8.
+                                               An address written as one integer or in hex, and a pair code written without hyphens, are not recognised
+src/idp/obs-client.js   createReporter({ endpoint, build, loader, now, random, send, nav, visibility, setTimeout, clearTimeout }) -> { event, allow, flush, stop, inspect, sid } (page 'idp', site '', who null);
+                        flush(reason) -> Promise<void>, which never rejects (the loader's flush returns a boolean): 'final' sends the whole queue, FINAL_BATCHES = 4 batches at most, by fetch with keepalive and
+                        settles when each has its answer, or BEACON_GRACE_MS = 150 ms after the browser took a beacon (a beacon has no answer); stop() returns the same promise. send(url, text, { final })
+                        may return a promise of a boolean. Exports: OBS_LIMITS, BEACON_GRACE_MS, safeField, uaOf, hideHook(win, doc), instrumentCards(cards, report), instrumentHandlers(handlers, report),
+                        cardOutcome(kind, v), wantWord(want), CARD_KINDS, HANDLER_NAMES
+src/idp/sw.js           staticRoute(location) -> { condition: { not: { urlPattern } }, source: 'network' }: the one Static Routing rule of the identity worker, a request to any origin but its own goes
+                        straight to the network (Chromium 123 and later); installRoutes(event, location) -> boolean: registers it from the install event when event.addRoutes exists, else false and the
+                        install goes on. Why: a report sent as a page held by this worker closes or navigates was lost without the rule (Chromium 156, loopback: 0 of 6 against 6 of 6)
+```
+
+### The batch (the wire) and the endpoint's routes (`deploy/obs-worker`)
+```
+POST <endpoint>/e   Content-Type: text/plain (no preflight); one JSON object per request, at most 32,768 bytes (the reporters send at most 16,384)
+{ "v": 1, "sid": "k3m8h2q9x4vt", "seq": 7, "page": "door", "build": "bbcb82098cda", "loader": "0.3.0", "site": "d680ff36", "who": "da9u-6qug" | null,
+  "net": { "type": "cellular", "effectiveType": "4g" } | null, "ua": { "browser": "chromium", "mobile": true }, "t0": 1793600000,
+  "events": [ { "t": 1234, "n": "gate.shown", ...fields }, ... ] }
+validateBatch(input) -> { ok: true, batch } | { ok: false, reason }    reason, one word: shape | version | sid (12 of a-z2-9) | seq (integer 0..1e9) | page (site, door, hub, idp) |
+                        build (hex, up to 16, or '') | site (hex, up to 8, or '') | loader (a version such as 0.3.0 or 0.3.1-rc.1, up to 16 characters, or '') |
+                        who (null, or a short id: two groups of 4 from a-z without l and o and 2-9, with a hyphen between) |
+                        net (null, or { type, effectiveType } with the words of navigator.connection: bluetooth, cellular, ethernet, mixed, none, other, unknown, wifi, wimax; slow-2g, 2g, 3g, 4g, unknown) |
+                        ua (browser chromium, firefox, webkit or other; mobile boolean) | t0 (integer seconds) |
+                        events (1 to 100) | event | time (t, integer from 0) | name (n) | keys (more than 12 fields beside t and n) | key (a field name that is not a letter and
+                        up to 31 letters, digits or underscores) | value (a field that is not a string, a finite number, a boolean or null); parseBatchText adds empty and json.
+                        The batch it returns is built from the fields it checked, so a key the format does not name never reaches storage; every string value is masked again
+                        (maskString) and cut at 200 characters
+deploy/obs-worker/obs-core.js   LIMITS, PAGES, BROWSERS, KEY_PREFIX = 'b:', META_KEY = 'm:c', MASK = 'x.x.x.x'; maskString(value), validateBatch(input), parseBatchText(text), utf8Length(s),
+                        batchKey(ms, n) -> 'b:' + 15 digits + ':' + 4 digits, parseBatchKey(key) -> { ms, n } | null, parseEventsQuery(params) / parseSummaryQuery(params) -> { ok, query },
+                        createLimiter(cfg) -> { gate(now), take(sid, now, mark), seen(sid, mark, now), count(now), snapshot(now), restore(saved, now) } (gate: is the day full, before anyone reads a batch;
+                        mark: { seq, sig } of a batch, kept for the last 8 of each session so that seen() knows one sent again), createMemoryStorage() -> a store with get, put, delete and list({ prefix, start,
+                        startAfter, end, reverse, limit }) -> Map, createSummary({ maxNames }) -> { add(row), result() }, summarizeRows(rows, options),
+                        createObsLog(storage, { limits, retentionDays, maxBatchesPerDay, now }) -> { limits, load(), ingest(body), events(q), summary(q), sweep(), todayCount(), rowCount() }
+                          over any storage that has get, put, delete and list; no platform code. ingest(body) -> { ok: true, status: 204, key, row } | { ok: true, status: 204, repeat: true } (a batch
+                          the session sent before, the same number and text: not stored, counted or pushed) | { ok: false, status, reason, retryAfter? }; the day's total is looked at before the body is parsed
+deploy/obs-worker/worker.js     default export: the front (fetch); class ObsLog: the Durable Object (SQLite-backed, binding OBS, migration v1 new_sqlite_classes ["ObsLog"])
+                        vars: ALLOW_ORIGINS (the front, comma, space or line separated, exact origins, no wildcard; empty refuses every report), READ_TOKEN (the front, a secret; fewer than 24 characters is taken for none), RETENTION_DAYS ("7", held
+                        between 1 and 30), MAX_BATCHES_PER_DAY ("20000", held between 1 and 200000)
+GET  /healthz                                            -> 200 "ok", no token
+POST /e                                                  -> 204 (with Access-Control-Allow-Origin: the allowed Origin, Vary: Origin) | 403 (Origin not allowed) | 413 | 415 (not text/plain or
+                                                            application/json) | 400 + one reason word, nothing stored | 429 + Retry-After (sid-minute: 60 a minute, sid-day: 1000 a day,
+                                                            day-all: MAX_BATCHES_PER_DAY a UTC day, answered before the body is read); 204 and nothing stored for a batch the object already has
+OPTIONS /e                                               -> 204 for an allowed origin (max-age 600), 403 otherwise
+GET  /events.json?token=&since=&sid=&who=&limit=         -> { next, more, batches: [row] }, rows in key order after the key `since`, filtered by sid and who, limit 200 by default and 1000 at most,
+                                                            at most 5000 rows read; 404 unless READ_TOKEN is set and equals token (compared in constant time); Access-Control-Allow-Origin: *
+GET  /summary.json?token=&hours=                         -> { hours, from, to, truncated, batches, events, sids, who, pages, names }, hours 24 by default and 168 at most, the newest 5000 rows at most
+GET  /tail?token=   (Upgrade: websocket)                 -> first frame { "type": "hello", "batches": <batches today> }, then one text frame per stored batch (the stored row as JSON);
+                                                            what the client sends is ignored; 16 sockets at most (429); closed after 12 hours (code 1001); a GET without the upgrade is 426 with the token, 404 without
+anything else                                            -> 404
+row                     { at (ms), sid, page, who, site, build, n (events in the batch), body (the validated batch) }; stored under 'b:' + zero-padded ms + ':' + a 4 digit counter
+the Worker never reads CF-Connecting-IP, X-Forwarded-For or request.cf, reads Origin, Content-Type, Content-Length and Upgrade only, and never logs (a unit test greps worker.js and obs-core.js)
+the alarm, every 10 minutes: deletes rows older than RETENTION_DAYS, keeps at most 50000, closes sockets that have been open for 12 hours
+```
+
+### The hooks in the loader and the identity client
+```
+src/loader/consent.js   recipientsKey(record, config, { obsHost }) -> 'host,host,obs:<host>': a usage report host is one more recipient; without obsHost the key is what it always was
+src/loader/config.js    CONFIG.obs = { progressEveryMs: 10000, ledgerEveryMs: 5000 } (how often site.progress and ledger.sync may repeat); consent.version is not raised
+src/loader/strings.js   STRINGS.consentReports and gateReports ({host}); UI_TEXT.settingsReportsLabel, settingsReportsNote, reportsDebug ({host}, {state}, {sent}, {queued}, {dropped}); APPS_TEXT 'apps.price.reports'
+                        ({host}); each in English and French
+src/loader/ui.js       createUI(uiOpts) gains report(name, fields) and observe(event); showConsentCard and showGate take reportsHost (a host name: one more line); settings.setReports({ host, on, state, sent,
+                        queued, dropped } | null) draws the switch and the Diagnostics line (null hides both); the switch fires 'reports' with { on }
+src/loader/app.js       run(): readDoorJson(A) reads /_mw/door.json once; installObs(A, block, ...) makes the reporter when obsBlockOf (given the page's own host) finds a usable block; A.obs, A.obsHost, A.report, rep(A, name, fields);
+                        A.log(line, { report }): the ring keeps line, the reporter gets the report text (a line that names a file of the site passes one; A.earlyLog holds those texts until the reporter exists);
+                        page is 'door' for mode door, 'hub' for the hub modes, else 'site'; A.prefs.reports 'on' | 'off'; syncReports(A) decides allow(): accepted sends, host-only and the switch
+                        off drop the queue, pending (the card or the gate closed without a choice, "Not now", Cancel) leaves it waiting; window.__mwShell.inspect().obs = reporter.inspect() | null;
+                        nativeRtc(R) -> the browser's own RTCPeerConnection under the usage-report wrapper (__mwNative) and the offer-timeout wrapper, in either order (the calls use it)
+src/loader/api.js       new MwApi({ ..., report })     api.request, signin.start, signin.result, signin.fallback
+src/loader/torrent.js   new TorrentManager({ ..., report })     peer.wire, peer.ice, peers.count, tracker.state
+src/loader/apps.js      createApps({ ..., report, linkOptions }): one report per transition (code, knock, request, conv, wire, msg, room, notice); the page prefixes 'apps.'
+src/loader/apps-link.js createLink({ ..., report, now }) -> PairLink: state, open, gone, backoff, sent, reply, timeout, push; the page prefixes 'link.'; reportWord(v) -> v | 'other'; reasonWord(v) -> v | 'other' (v a failure reason of the project's rendezvous or one the link adds, else 'other': the reasons reports may name)
+src/loader/apps-ui.js   createAppsUi({ ..., report, reportsHost }) (reportsHost: a host name, or a function that returns it; '' when there is none or the visitor turned reports off); actions.firstYes;
+                        the view returns onFirstYes(fn) -> off: fn({ via }) runs once, at the "Continue" of a price card that can start something (via 'card'; such a card names the host) or when the page's
+                        signIn calls how.popup() (via 'signin'; the loader's page does not call it, so a sign-in alone is not a first yes); it reports view, card, first-yes and signin
+src/identity/client.js  REQUEST_FIELDS gains 'obs'; request.obs = { sid } (exactly that one key; 12 characters of [a-z2-9]: OBS_SID_RE, isObsSid(s)); configure({ idp, obsSid });
+                        signIn({ ..., obsSid }); the opener adds obs only when the identity page's mw-idp-ready message says obs: true
+src/idp/idp.js          readObsEndpoint(doc) -> origin | null (data-mw-obs on <html>); createIdp env gains obs, obsEndpoint, obsSend, obsRandom, obsTimers (tests); createCards({ ..., onCardPress, obsHost });
+                        OBS_CLOSE_WAIT_MS = 700: the longest the last report holds the window open, after the answer to the site is posted and before the window closes or the page goes back to the
+                        site (finalFlush waits for the report's answer, or for that long); without a reporter nothing waits
 ```

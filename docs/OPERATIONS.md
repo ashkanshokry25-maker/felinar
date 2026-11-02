@@ -34,7 +34,9 @@ Commands use `npx felinar <command>`, which runs `node tools/<file>.mjs` from a 
 
 ## Monitoring without a backend
 
-The loader sends nothing home: no analytics, no error reporting, no beacons. So you learn about problems in two
+By default the loader sends nothing home: no analytics, no error reporting, no beacons. The one exception is usage reports (unreleased),
+which you can turn on for a site, a door or an identity page: they send what a page did to an endpoint you run, only after the visitor said
+yes on a card that names its host, and the endpoint keeps them 7 days ([OBSERVABILITY.md](OBSERVABILITY.md)). Without them you learn about problems in two
 ways ([PRODUCTION-DIGEST](research/PRODUCTION-DIGEST.md), 8.1). The page tells a visitor *what* failed, and a
 probe from outside tells you *why*. Browsers hide the reason a WebSocket or a `fetch` failed from page scripts
 by specification, which is why the outside probe matters.
@@ -47,7 +49,8 @@ browser console and keeps a short log. On a desktop browser, or on a phone over 
 Inspector, `chrome://inspect`), the console gives you more:
 
 - `window.__mwShell.inspect()` in a shell page returns the mode, pointer source, consent state, policy class,
-  connectivity class, peers, web seed backoffs, the ledger's height and peers, and the diagnostics lines.
+  connectivity class, peers, web seed backoffs, the ledger's height and peers, and the diagnostics lines; on a page with usage
+  reports it also returns `obs`, the reporter's host name and counts (`null` without them).
 - `window.__mwDropin.inspect()` in a drop-in page returns the engine's state (and why it is off), consent
   state, the Service Worker's mode, the stored copy, peers, the policy column and the log.
 
@@ -66,6 +69,25 @@ What the shell's list says, and what it means:
 
 The connectivity class comes from a 2.5-second STUN probe at boot: `easy-mapping`, `easy-probable`, `hard`
 (strict NAT), `udp-blocked-or-no-stun`, `relay-only-reachable`, `unknown-single-stun` or `no-webrtc`.
+
+### What the loader can report, if you turn it on
+
+Usage reports are a third way, and the only one that reaches you without a visitor having to write to you. They are off unless your `door.json` names an endpoint
+(`publish --obs`); then the card names its host, "Load from host only" and a switch in Settings send nothing, and what a report may carry is fixed
+([OBSERVABILITY.md](OBSERVABILITY.md), "The field rules"). The endpoint ([deploy/obs-worker](../deploy/obs-worker/README.md)) is a Worker on the Workers
+Free plan, sized for 20,000 batches a day, and it keeps rows 7 days at most (50,000 rows at most, which is about 2.5 days at 20,000 batches a day). What you can do with it:
+
+- **Watch a visit live** with the tail reader, `node obs/events-tail.mjs --origin <obs origin> --token-file <path>`, one line per event, or follow one
+  session with `--sid` or one signed-in identity with `--who` (the readers are in the operations repository, `felinar-ops`; any client of the routes
+  in [INTERFACES.md](INTERFACES.md) does the same).
+- **Count what happened** with `/summary.json` (batches, events, sessions, signed-in identities, per page and per event name for the last 24 hours, up to 168).
+  Read the numbers as a floor: a visitor who said no sends none, a blocker can drop a report, and past 20,000 batches in a UTC day the endpoint stops taking them.
+- **Catch a failing step before a visitor writes to you**: `error`, `site.error`, `pointer.error` and `sw.register` events, and `ice.state` events that end in
+  `failed`, show where a load stopped. They tell you *what* and *where*, as the diagnostics list does; the outside probe still tells you *why*.
+
+Two duties come with it: name the endpoint, its operator and what it receives in your privacy notice ([PRIVACY.md](PRIVACY.md#additions-to-the-notice-template-usage-reports-unreleased)),
+and keep its logs off (Workers Logs, Logpush and Web Analytics stay off for the Worker and its Pages project). Anyone who has the read token can read every stored batch,
+so keep it in a file only you can read and give it to tools from the file.
 
 ### Probe from outside: check-site
 
@@ -639,7 +661,8 @@ in the visitor's browser only. It asks again when:
 
 - the record's version changes (a loader release that changes the card or its rules);
 - the recipients change, for visitors who chose "Share and load": the host names of the trackers in your pointer
-  and of the loader's STUN servers. Adding or removing a tracker in `tr=` asks every sharing visitor again;
+  and of the loader's STUN servers, and, if you turn on usage reports, the host of their endpoint. Adding or removing a tracker in `tr=`, or naming an
+  endpoint for the first time or a new one, asks every sharing visitor again;
 - the visitor opens Settings, "Change your sharing choice".
 
 A pointer with `--consent gate`, or an `aud=` token for personal data, children, sensitive content or an EEA, UK
@@ -697,6 +720,7 @@ posted there is not a breach, but personal data that shouldn't be there is a rea
 | CyberTipline report contents (US) | at least 1 year | 18 U.S.C. 2258A(h) |
 | Canadian notice-and-notice records | 6 months, 1 year if proceedings are notified | Copyright Act s.41.26 |
 | Visitors' consent records | on the visitor's device only | how the loader works |
+| Usage reports at your endpoint | 7 days (`RETENTION_DAYS`, 1 to 30), at most 50,000 rows; say which in your privacy notice | suggested; the Worker's default |
 
 ### Children's content
 

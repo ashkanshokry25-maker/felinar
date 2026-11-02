@@ -1,0 +1,18 @@
+# deploy/obs-worker/pages/wrangler.toml: the settings of the Pages project that fronts the usage report endpoint, so that the address
+# reports go to is <name>.pages.dev and shows no account name (README.md). Deploy the Worker of the folder above first: the binding
+# below names its object class, which a Pages project cannot define itself. Run wrangler from a copy of the folder outside the
+# repository.
+name = "felinar-obs"
+pages_build_output_dir = "./public"
+compatibility_date = "2025-09-01"
+
+# The exact origins whose pages may send reports, comma separated, no wildcard (an origin is a scheme, a host and a port if it is not
+# the default one: https://example.com). Empty refuses every report. Change it here and deploy again. READ_TOKEN is not listed on
+# purpose: set it as a secret of the project ("wrangler pages secret put READ_TOKEN --project-name felinar-obs"), never as a var here.
+[vars]
+ALLOW_ORIGINS = ""
+
+[[durable_objects.bindings]]
+name = "OBS"
+class_name = "ObsLog"
+script_name = "felinar-obs-do"

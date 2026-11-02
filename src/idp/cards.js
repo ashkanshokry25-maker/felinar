@@ -6,13 +6,16 @@
 // Two parts:
 //   policies (pure, tested on their own): sameIdentityOptions, recordSameOffer, approvalAllowed, kitDue,
 //     reentryPositions, registrableSplit
-//   createCards({ doc, win, lang, build, now, minPressMs }) -> { signin, confirmSame, chooseUnlock, passphrase,
+//   createCards({ doc, win, lang, build, now, minPressMs, onCardPress, obsHost }) -> { signin, confirmSame, chooseUnlock, passphrase,
 //     showPhrase, reentry, restore, checkCode, foundPosts, recoveryKit, backupFile, saveBackup, tapToFinish,
 //     createPage, ownerAction, recordRead, erase, legacy, replaceKeys, removeDevice, message, error, busy, progress,
 //     showCodes, scanCode, settings, close, root }
 //   Each card replaces the previous one and resolves on the person's own press (isTrusted !== false, and not in
 //   the first minPressMs after it appeared). Text comes from strings.js; site-supplied text (origin, statement,
 //   names) is set with textContent only. Styling is idp.css (CSP style-src 'self') plus CSSOM properties.
+//   Usage reports (docs/OBSERVABILITY.md), both options off unless the build names a report host: onCardPress() runs when a
+//   button takes the person's own press (the first press of any button lets the page report), and obsHost() returns the host
+//   to name (or null) on the one disclosure line each card shows above its buttons until that press.
 
 import { t, errorText, pickLang, IDP_STRING_FLAGS } from './strings.js';
 import { encode as qrEncode } from './qr.js';
@@ -133,7 +136,11 @@ function identiconCells(pub) {
   return { hue, cells };
 }
 
-/** shortId(pub) -> 'k3f9-2xq1' style id (8 base32 characters of SHA-256(pub)) used on the cards. */
+/**
+ * shortId(pub) -> 'k3f9-2xqm' style id used on the cards: 8 characters drawn from SHA-256(pub) out of the 32 of 'abcdefghijkmnpqrstuvwxyz23456789'
+ * (a to z without l and o, 2 to 9: never a 0, 1, l or o), in two groups of 4. The usage report endpoint takes a short id in exactly this shape
+ * for `who` (deploy/obs-worker/obs-core.js WHO_RE, held to this function by a unit test): change the alphabet and that pattern with it.
+ */
 export function shortId(pub) {
   const h = sha256Sync(utf8.encode(String(pub || '')));
   const A = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -144,7 +151,7 @@ export function shortId(pub) {
 
 /**
  * createCards(opts) -> the card set. opts: { doc, win, lang, build: { version, id, hash, test }, now, minPressMs,
- * secondPressMs, idp (this origin, for the copy) }.
+ * secondPressMs, idp (this origin, for the copy), onCardPress, obsHost }.
  */
 export function createCards(opts = {}) {
   const doc = opts.doc || (typeof document !== 'undefined' ? document : null);
@@ -156,6 +163,8 @@ export function createCards(opts = {}) {
   const secondPress = opts.secondPressMs === undefined ? SECOND_PRESS_MS : opts.secondPressMs;
   const build = opts.build || { version: '0.3.0', id: 'dev', hash: '', test: false };
   const idp = opts.idp || (win && win.location ? win.location.origin : '');
+  const onCardPress = typeof opts.onCardPress === 'function' ? opts.onCardPress : null;
+  const obsHost = typeof opts.obsHost === 'function' ? opts.obsHost : null;
   const L = (key, params) => t(key, params, lang);
 
   let root = opts.root || null;
@@ -218,7 +227,27 @@ export function createCards(opts = {}) {
     }
   }
 
+  /**
+   * obsLine(card, host): the usage-report disclosure, put right above the first row of buttons so it is read before any of them
+   * is pressed (a card without a row of buttons gets it at the end).
+   */
+  function obsLine(card, host) {
+    // A plain paragraph, not a muted note: it asks nothing of the person, but it is what they agree to by pressing a button.
+    const line = el('p', { 'data-mw-obs-line': '1' }, L('obsDisclosure', { host }));
+    const kids = card.children;
+    for (let i = 0; kids && i < kids.length; i++) {
+      const k = kids[i];
+      if (k && typeof k.getAttribute === 'function' && /(^|\s)mw-actions(\s|$)/.test(k.getAttribute('class') || '')) {
+        card.insertBefore(line, k);
+        return;
+      }
+    }
+    card.appendChild(line);
+  }
+
   function footer(card) {
+    const host = obsHost ? obsHost() : null;
+    if (host) obsLine(card, host);
     const f = el('footer', { class: 'mw-build' });
     f.appendChild(el('span', null, L('build', { version: build.version || '', id: build.id || '' })));
     if (build.hash) f.appendChild(el('span', null, ' ' + L('bundleHash', { hash: String(build.hash).slice(0, 12) })));
@@ -233,6 +262,9 @@ export function createCards(opts = {}) {
       if (ev && ev.isTrusted === false) return;
       if (now() - shownAt < delay) return;
       if (b.disabled) return;
+      if (onCardPress) {
+        try { onCardPress(); } catch (_) { /* a usage report never blocks a press */ }
+      }
       onPress(ev);
     });
     return b;

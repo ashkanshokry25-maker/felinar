@@ -12,6 +12,7 @@ import { checkDoor, DOOR_CHECK_ORIGIN } from '../../tools/check-site.mjs';
 import { doorJson } from '../../build.mjs';
 import { ROOT } from '../../tools/lib.mjs';
 
+const BANNED = /blockchain|serverless|unstoppable|censorship|production-ready|fully decentralized|sub-second|[\u2013\u2014\u2018\u2019\u201c\u201d]/i;
 const closers = [];
 after(async () => { for (const c of closers.reverse()) await c(); });
 
@@ -30,7 +31,7 @@ function doorFiles() {
  * A door on 127.0.0.1. opts: { cors, swRedirect, swType, flip: path, noDoorJson, blockPage, cleanUrls (0.3.1: /_mw/open.html answers
  * 308 to /_mw/open and the page is served there, as Cloudflare Pages does), redirectTo (the 308's target), oldLoader (a door.json
  * without pageAlias: a loader that enters door mode only at /_mw/open.html), apps (the value of the "apps" key of door.json, set as
- * the last key: a door that offers apps) }.
+ * the last key: a door that offers apps), obs (the value of its "obs" key, set after apps: a door whose loader sends usage reports) }.
  */
 async function door(opts = {}) {
   const files = doorFiles();
@@ -43,6 +44,11 @@ async function door(opts = {}) {
   if (opts.apps !== undefined) {
     const o = JSON.parse(dj.toString('utf8'));
     o.apps = opts.apps;
+    dj = Buffer.from(JSON.stringify(o, null, 2) + '\n');
+  }
+  if (opts.obs !== undefined) {
+    const o = JSON.parse(dj.toString('utf8'));
+    o.obs = opts.obs;
     dj = Buffer.from(JSON.stringify(o, null, 2) + '\n');
   }
   const served = new Map(files);
@@ -232,6 +238,140 @@ test('CLI: check-site --door prints the apps line, and says the addresses in a b
     assert.match(r.stdout, /^OK: 0 failure\(s\), 0 warning\(s\)\.$/m);
     const json = spawnSync(process.execPath, [join(ROOT, 'tools', 'check-site.mjs'), 'http://127.0.0.1:' + port + '/', '--door', '--json'], { encoding: 'utf8', timeout: 60000 });
     assert.deepEqual(JSON.parse(json.stdout).results.find((x) => x.step === 'apps'), { level: 'info', step: 'apps', message: 'rendezvous 1, stun 1, identity http://127.0.0.1:8081' });
+  } finally {
+    child.kill();
+  }
+});
+
+// ---------------------------------------------------------------------------------------------- usage reports
+
+const OBS_ENDPOINT = 'http://127.0.0.1:8787';
+
+/** A stand-in for the report endpoint on 127.0.0.1: it answers 204 to anything and counts every request that reaches it. */
+async function collector() {
+  const seen = [];
+  const server = http.createServer((req, res) => {
+    seen.push(req.method + ' ' + req.url);
+    res.writeHead(204);
+    res.end();
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  closers.push(() => new Promise((r) => { server.closeAllConnections(); server.close(r) }));
+  return { seen, origin: 'http://127.0.0.1:' + server.address().port };
+}
+
+test('checkDoor (usage reports): a door.json with an obs block still passes and gets one info line that names the host; the endpoint is never contacted', async () => {
+  const sink = await collector();
+  const d = await door({ obs: { endpoint: sink.origin } });
+  const calls = [];
+  const res = await checkDoor(d.url, { fetch: (url, init) => { calls.push(String(url)); return fetch(url, init) } });
+  assert.equal(res.ok, true, JSON.stringify(res.results, null, 1));
+  assert.deepEqual(res.results.filter((r) => /usage reports/.test(r.message)), [{ level: 'info', step: 'door', message: 'usage reports to 127.0.0.1' }]);
+  assert.deepEqual(res.door.obs, { endpoint: sink.origin });
+  assert.equal(levels(res)['/_mw/*'], 'ok', 'every listed file still matches: door.json does not list itself');
+  assert.ok(calls.length > 0 && calls.every((u) => u.startsWith(d.url)), 'only the door: ' + calls.join(' '));
+  assert.ok(d.seen.every((s) => s.path.startsWith('/_mw/') || s.path === '/mw-sw.js'));
+  assert.deepEqual(sink.seen, [], 'nothing reached the endpoint');
+  // the step comes after door.json is read and before the files are compared
+  const steps = res.results.map((r) => (/usage reports/.test(r.message) ? 'obs-line' : r.step));
+  assert.ok(steps.indexOf('obs-line') > steps.indexOf('/_mw/door.json') && steps.indexOf('obs-line') < steps.indexOf('/_mw/*'));
+  // the host is named without a port, as the consent card names it; an https endpoint is read, not contacted
+  const named = await door({ obs: { endpoint: 'https://obs.example.org:8443' } });
+  const namedCalls = [];
+  const namedRes = await checkDoor(named.url, { fetch: (url, init) => { namedCalls.push(String(url)); return fetch(url, init) } });
+  assert.equal(namedRes.ok, true, JSON.stringify(namedRes.results, null, 1));
+  assert.equal(namedRes.results.find((r) => /usage reports/.test(r.message)).message, 'usage reports to obs.example.org');
+  assert.ok(namedCalls.every((u) => u.startsWith(named.url)), 'only the door: ' + namedCalls.join(' '));
+});
+
+test('checkDoor (usage reports): an http: endpoint on a loopback host is usable only by a page that is itself on a loopback host: checked as a door elsewhere it is a warning, checked on loopback it is the info line', async () => {
+  const d = await door({ obs: { endpoint: 'http://localhost:6379' } });
+  // the same door, reached under another name: the host the checker sees is door.example.test (the requests go to the local server, so nothing outside is contacted)
+  const away = await checkDoor('https://door.example.test/', { fetch: (url, init) => fetch(String(url).replace('https://door.example.test', d.url.replace(/\/$/, '')), init) });
+  const lines = away.results.filter((r) => /usage reports|obs block/.test(r.message));
+  assert.equal(lines.length, 1, JSON.stringify(lines));
+  assert.deepEqual([lines[0].level, lines[0].step], ['warn', 'door']);
+  assert.match(lines[0].message, /^door\.json has an obs block the loader cannot use on this host \(an http: endpoint on a loopback host is used only by a page that is itself on one\): it sends no usage reports$/);
+  assert.equal(away.results.some((r) => r.level === 'info' && /usage reports/.test(r.message)), false);
+  const here = await checkDoor(d.url, {});
+  assert.deepEqual(here.results.filter((r) => /usage reports/.test(r.message)), [{ level: 'info', step: 'door', message: 'usage reports to localhost' }]);
+  const secure = await door({ obs: { endpoint: 'https://obs.example.org' } });
+  const secureAway = await checkDoor('https://door.example.test/', { fetch: (url, init) => fetch(String(url).replace('https://door.example.test', secure.url.replace(/\/$/, '')), init) });
+  assert.deepEqual(secureAway.results.filter((r) => /usage reports|obs block/.test(r.message)), [{ level: 'info', step: 'door', message: 'usage reports to obs.example.org' }]);
+});
+
+test('checkDoor (usage reports): a door without a block has no such line, and a null block is no block', async () => {
+  const res = await checkDoor((await door()).url, {});
+  assert.equal(res.ok, true);
+  assert.equal(res.results.some((r) => /usage reports/.test(r.message)), false);
+  const nul = await checkDoor((await door({ obs: null })).url, {});
+  assert.equal(nul.ok, true);
+  assert.equal(nul.results.some((r) => /usage reports|obs block/.test(r.message)), false);
+});
+
+test('checkDoor (usage reports): apps and obs together give both lines, apps first, and the door passes', async () => {
+  const d = await door({ apps: APPS_BLOCK, obs: { endpoint: OBS_ENDPOINT } });
+  const res = await checkDoor(d.url, {});
+  assert.equal(res.ok, true, JSON.stringify(res.results, null, 1));
+  const steps = res.results.filter((r) => r.level === 'info' && (r.step === 'apps' || /usage reports/.test(r.message))).map((r) => r.message);
+  assert.deepEqual(steps, ['rendezvous 1, stun 1, identity http://127.0.0.1:8081', 'usage reports to 127.0.0.1']);
+  assert.deepEqual(res.door.apps, APPS_BLOCK);
+  assert.deepEqual(res.door.obs, { endpoint: OBS_ENDPOINT });
+});
+
+test('checkDoor (usage reports): a block the loader cannot use is a warning that says no reports are sent; a door that is otherwise good still passes', async () => {
+  const bad = [
+    { endpoint: 'http://obs.example.org' },
+    { endpoint: 'https://obs.example.org/e' },
+    { endpoint: 'https://user:pw@obs.example.org' },
+    { endpoint: 'https://obs.example.org#x' },
+    { endpoint: 7 },
+    {},
+    'yes',
+    [],
+  ];
+  for (const obs of bad) {
+    const res = await checkDoor((await door({ obs })).url, {});
+    const lines = res.results.filter((r) => /usage reports|obs block/.test(r.message));
+    assert.equal(lines.length, 1, JSON.stringify(obs) + ' -> ' + JSON.stringify(lines));
+    assert.equal(lines[0].level, 'warn', JSON.stringify(obs));
+    assert.equal(lines[0].step, 'door');
+    assert.match(lines[0].message, /^door\.json has an obs block the loader cannot use \(.+\): it sends no usage reports$/, JSON.stringify(obs));
+    assert.equal(res.ok, true, 'a warning does not fail the door');
+    assert.equal(res.warnings, 1);
+    assert.equal(res.results.some((r) => r.level === 'info' && /usage reports/.test(r.message)), false, 'never an info line for ' + JSON.stringify(obs));
+  }
+  const one = await checkDoor((await door({ obs: bad[0] })).url, {});
+  assert.match(one.results.find((r) => /obs block/.test(r.message)).message, /endpoint is http: on a host that is not loopback/);
+  const many = await checkDoor((await door({ obs: {} })).url, {});
+  assert.match(many.results.find((r) => /obs block/.test(r.message)).message, /\(endpoint is not a string\)/);
+});
+
+test('CLI: check-site --door prints the usage reports line, and says the endpoint is never contacted', async () => {
+  const script = [
+    "const http = require('node:http');",
+    "const files = " + JSON.stringify(Array.from(doorFiles()).map(([k, v]) => [k, v.toString('base64')])) + ";",
+    "const o = JSON.parse(Buffer.from(" + JSON.stringify(doorJson(doorFiles(), { version: '0.3.0', buildId: 'abcdef123456' }).toString('base64')) + ", 'base64').toString());",
+    "o.obs = " + JSON.stringify({ endpoint: OBS_ENDPOINT }) + ";",
+    "const dj = Buffer.from(JSON.stringify(o, null, 2) + '\\n');",
+    "const map = new Map(files.map(([k, v]) => [k, Buffer.from(v, 'base64')]));",
+    "const s = http.createServer((q, r) => { const p = new URL(q.url, 'http://x').pathname; if (p === '/_mw/door.json') { r.writeHead(200, { 'access-control-allow-origin': '*' }); return r.end(dj) } const k = p.slice(1); if (!map.has(k)) { r.writeHead(404); return r.end() } r.writeHead(200, { 'content-type': k.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(map.get(k)) });",
+    "s.listen(0, '127.0.0.1', () => { process.stdout.write(String(s.address().port) + '\\n') });",
+  ].join('\n');
+  const { spawn } = await import('node:child_process');
+  const { port, child } = await new Promise((resolve) => {
+    const c = spawn(process.execPath, ['-e', script], { stdio: ['ignore', 'pipe', 'inherit'] });
+    c.stdout.once('data', (d) => resolve({ port: Number(String(d).trim()), child: c }));
+  });
+  try {
+    const r = spawnSync(process.execPath, [join(ROOT, 'tools', 'check-site.mjs'), 'http://127.0.0.1:' + port + '/', '--door'], { encoding: 'utf8', timeout: 60000 });
+    assert.equal(r.status, 0, r.stderr + r.stdout.slice(0, 600));
+    assert.match(r.stdout, /^\[info\] door: usage reports to 127\.0\.0\.1$/m);
+    assert.match(r.stdout, /the addresses of an apps block are read, never contacted, and neither is the endpoint of an obs block/);
+    assert.match(r.stdout, /^OK: 0 failure\(s\), 0 warning\(s\)\.$/m);
+    assert.doesNotMatch(r.stdout, BANNED);
+    const json = spawnSync(process.execPath, [join(ROOT, 'tools', 'check-site.mjs'), 'http://127.0.0.1:' + port + '/', '--door', '--json'], { encoding: 'utf8', timeout: 60000 });
+    assert.deepEqual(JSON.parse(json.stdout).results.find((x) => /usage reports/.test(x.message)), { level: 'info', step: 'door', message: 'usage reports to 127.0.0.1' });
   } finally {
     child.kill();
   }

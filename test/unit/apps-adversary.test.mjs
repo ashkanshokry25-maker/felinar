@@ -56,6 +56,25 @@ async function make (w, name, opts) {
 
 const st = (X) => X.apps.state()
 const conv = (X, i = 0) => st(X).conversations[i]
+
+// What the rendezvous received, as words: every key of every frame and every string value of it, except the values that are random by
+// construction (the two parts of a sealed box, the request id, the knock token and the proof: base64url). A short needle such as Bob or sdp
+// turns up by chance in about 1,700 random characters once in 40 runs or so, which made a search of the raw text fail now and then, so a
+// name or a key is looked for in the keys and in the words, never in a piece of a sealed value. (The raw text still holds the 8-character
+// secret check: a chance match there is out of reach.)
+const SEALED_KEYS = new Set(['iv', 'ct', 'rid', 'knock', 'proof'])
+function wordsIn (frames) {
+  const out = []
+  const walk = (value, key) => {
+    if (typeof value === 'string') {
+      if (!SEALED_KEYS.has(key)) out.push(value)
+    } else if (value && typeof value === 'object') {
+      for (const k of Object.keys(value)) { out.push(k); walk(value[k], k) }
+    }
+  }
+  for (const f of frames) walk(typeof f === 'string' ? JSON.parse(f) : f, '')
+  return out
+}
 const isConnected = (X) => { const c = conv(X); return !!c && c.status === 'connected' }
 const roomOf = (X, id) => st(X).rooms.find((r) => r.id === id)
 
@@ -395,7 +414,25 @@ describe('controls: promises that held', () => {
       if (m.box) assert.deepEqual(Object.keys(m.box).sort(), ['ct', 'iv'])
       if (m.proof !== undefined) assert.match(m.proof, /^[A-Za-z0-9_-]{86}$/, 'the proof is a signature and nothing else')
     }
-    for (const needle of [secret, 'Alice', 'Bob', 'p256:', 'sdp', 'candidate']) assert.ok(!all.includes(needle), 'the rendezvous received ' + needle)
+    assert.ok(!all.includes(secret), 'the rendezvous received the secret')
+    const words = wordsIn(w.rdv.raw)
+    for (const needle of ['Alice', 'Bob', 'p256:', 'sdp', 'candidate']) assert.ok(!words.some((x) => x.includes(needle)), 'the rendezvous received ' + needle)
+  })
+
+  test('control (1): the search of the frames sees a name or a key sent in the clear, and is not fooled by chance in the sealed parts', () => {
+    const needles = ['Alice', 'Bob', 'p256:', 'sdp', 'candidate']
+    const clear = [
+      { v: 1, action: 'pair-open', Alice: 1 }, // a name as a key
+      { v: 1, action: 'pair-open', channel: 'Bob' }, // a name as a value
+      { v: 1, action: 'sdp-offer' }, // signalling words
+      { v: 1, box: { iv: 'x', ct: 'y', candidate: 'z' } }, // inside a box, as a key
+      { v: 1, who: 'p256:abc' }, // a key sent in the clear
+      JSON.stringify({ v: 1, action: 'pair-open', note: 'hello Bob' }) // frames come as text
+    ]
+    for (const f of clear) assert.ok(needles.some((n) => wordsIn([f]).some((x) => x.includes(n))), 'not seen: ' + JSON.stringify(f))
+    // the same needles inside the random parts, as chance can put them there: nothing is seen
+    const chance = JSON.stringify({ v: 1, action: 'pair-knock', channel: 'abcd', box: { iv: 'xBobxsdpx', ct: 'AliceBobsdpcandidate' }, rid: 'Bob12345', knock: 'sdpsdpsdp', proof: 'BobBobBob' })
+    assert.deepEqual(needles.filter((n) => wordsIn([chance]).some((x) => x.includes(n))), [])
   })
 
   test('control (2)(3): a box opens only under the right secret, channel and role', async () => {

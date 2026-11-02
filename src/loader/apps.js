@@ -1,11 +1,17 @@
 // src/loader/apps.js: the service of the apps on the door page (ARCHITECTURE 15.21): direct messages by code and rooms by code.
 //
 //   createApps({ api, config, loadTm, lang, now, random, randomBytes, setTimeoutFn, clearTimeoutFn, limits, createLink, link,
-//                WebSocketImpl }) -> apps
+//                WebSocketImpl, report, linkOptions }) -> apps
 //     api      { identity: { info() -> { pub, short, name } | null, keys() -> WorkingKeys | null, onChange(fn) } } (A.api)
 //     config   the door's apps block { rendezvous: [wss URL], stun: [...], idp }; the first rendezvous is the pair socket
 //     loadTm   () -> Promise<TorrentManager>, called once, at the first accept (nothing joins a lane before approval)
 //     lang     kept for the UI (this service shows no text of its own); now, random, timers: injected clocks for tests
+//     report   (name, fields), optional: usage reports (docs/OBSERVABILITY.md; the page adds a prefix to every name). The service names
+//              code, knock, request, conv, wire, msg, room and notice, one report per transition. A field is a short word, a count,
+//              a boolean, the local id of a conversation or a room, or the 4-character channel of a code; never a text, a name, a
+//              nickname, a key, a box, a proof, a knock token, a lane or the secret half of a code. A field without a value is left out,
+//              and a report that throws is ignored.
+//     linkOptions  more options for the pair socket this service makes (the page passes { report } for the socket's own reports)
 //
 // Nothing leaves the device until the person acts: createApps opens no socket and loads no manager. openCode / createRoom /
 // knock / joinRoom open the pair socket (the UI shows the price first); only accept (and the requester's side of an accepted
@@ -58,7 +64,7 @@ import {
   sealHello, openHello, signAccept, verifyAccept, encodeFrame, decodeFrame, sealDmBody, openDmBody, dmBodySize, roomBodySize,
   sealRoomKey, openRoomKey, sealRoster, openRoster, ROSTER_MAX, sealGroupBody, openGroupBody, envFromWire
 } from './apps-crypto.js'
-import { createLink } from './apps-link.js'
+import { createLink, reportWord as word, reasonWord } from './apps-link.js'
 import { sanitizeText, isEmoji, searchMessages, exportConversation, exportFileName, TEXT_MAX, ROOM_TEXT_MAX } from './apps-format.js'
 
 const MS_DAY = 86400000
@@ -120,6 +126,14 @@ export const LIMITS = Object.freeze({
 })
 
 function noop () {}
+
+// How the opening of this person's code is told in a report: 'opened' (asked for, or after the socket came back), 'new' (the person asked
+// for another one) or 'replaced' (the service made another one itself), and why.
+const OPEN_EVS = new Set(['opened', 'new', 'replaced'])
+function openHow (how) {
+  const h = how && typeof how === 'object' ? how : {}
+  return { ev: OPEN_EVS.has(h.ev) ? h.ev : 'opened', why: word(h.why === undefined ? 'user' : h.why) }
+}
 
 // The calls that return a Promise (see the header): each is wrapped so that it resolves to { error } instead of rejecting.
 const ASYNC_API = Object.freeze([
@@ -225,6 +239,8 @@ export class Apps {
     this._makeLink = typeof deps.createLink === 'function' ? deps.createLink : createLink
     this._WS = deps.WebSocketImpl || null
     this._log = typeof deps.log === 'function' ? deps.log : noop
+    this._report = typeof deps.report === 'function' ? deps.report : null
+    this._linkOptions = deps.linkOptions && typeof deps.linkOptions === 'object' ? deps.linkOptions : null
     this.link = deps.link || null
     this._linkOffs = []
     this.tm = null
@@ -325,6 +341,54 @@ export class Apps {
     try { this._clearT(h) } catch (_) { /* gone */ }
   }
 
+  // ---- usage reports --------------------------------------------------------------------------
+
+  // What happened, never what was said (the fields are listed in the header). A field without a value is left out, and a throw in the
+  // page's function stops here: a report never changes what the service does.
+  _rep (name, fields) {
+    if (!this._report) return
+    const f = {}
+    for (const k of Object.keys(fields)) if (fields[k] !== null && fields[k] !== undefined) f[k] = fields[k]
+    try { this._report(name, f) } catch (_) { /* a report never breaks the service */ }
+  }
+
+  _repConv (conv) {
+    this._rep('conv', { id: conv.id, status: conv.status, reason: conv.reason ? word(conv.reason) : null, incoming: !!conv.incoming })
+  }
+
+  _repRoom (room, why) {
+    this._rep('room', { id: room.id, status: room.status, reason: why || (room.reason ? word(room.reason) : null), members: room.members.length })
+  }
+
+  _repRec (rec) {
+    if (rec.isRoom) this._repRoom(rec)
+    else this._repConv(rec)
+  }
+
+  // A conversation or a room that leaves the list gets one last report, so that no id stays open in the reports.
+  _repGone (rec, why) {
+    if (rec.isRoom) this._rep('room', { id: rec.id, status: 'removed', reason: why, members: rec.members.length })
+    else this._rep('conv', { id: rec.id, status: 'removed', reason: why, incoming: !!rec.incoming })
+  }
+
+  _repCode (ev, why, channel, kind = 'pair') {
+    this._rep('code', { ev, kind, why, channel })
+  }
+
+  _repWire (st, ev, reason) {
+    this._rep('wire', { conv: st.rec.id, ev, kind: st.rec.isRoom ? 'room' : 'pair', reason: reason ? word(reason) : null })
+  }
+
+  _repMsg (rec, status, n) {
+    if (n > 0) this._rep('msg', { conv: rec.id, status, count: n })
+  }
+
+  // A knock that did not go through: the reason is one of this service's own error texts or the slug of the rendezvous' answer.
+  _knockFail (kind, channel, error, reason) {
+    this._rep('knock', { ev: 'error', kind, channel, reason: reason || word(String(error).replace(/ /g, '-')) })
+    return { error }
+  }
+
   _touch () {
     this._version++
     if (this._notifyQueued || !this._listeners.size) return
@@ -378,6 +442,10 @@ export class Apps {
     this._sweepAt = 0
     for (const rec of Array.from(this.lanes.values())) this._leaveLane(rec)
     this.lanes.clear()
+    // what this visit held ends here, and each of it says so once
+    for (const rec of this.convs.values()) this._repGone(rec, 'reset')
+    for (const rec of this.rooms.values()) this._repGone(rec, 'reset')
+    if (this.codeRec) this._repCode('closed', 'reset', this.codeRec.channel)
     if (this.link) {
       try { this.link.close() } catch (_) { /* gone */ }
     }
@@ -476,9 +544,9 @@ export class Apps {
     if (!this.link) {
       if (!this.cfg.rendezvous.length) return null
       try {
-        this.link = this._makeLink({
-          url: this.cfg.rendezvous[0], WebSocketImpl: this._WS, setTimeoutFn: this._setT, clearTimeoutFn: this._clearT, random: this.random
-        })
+        this.link = this._makeLink(Object.assign({}, this._linkOptions, {
+          url: this.cfg.rendezvous[0], WebSocketImpl: this._WS, setTimeoutFn: this._setT, clearTimeoutFn: this._clearT, random: this.random, now: this.now
+        }))
       } catch (_) {
         return null
       }
@@ -515,20 +583,25 @@ export class Apps {
     return { keys, link, epoch: this._epoch }
   }
 
-  /** openCode() -> { code: 'xxxx-xxxx-xxxx' } | { error }: opens (or returns) the code others type to message this person. */
-  async openCode () {
+  /**
+   * openCode() -> { code: 'xxxx-xxxx-xxxx' } | { error }: opens (or returns) the code others type to message this person. The argument
+   * is for this file's own calls and says how the opening is reported ({ ev: 'opened' | 'new' | 'replaced', why }).
+   */
+  async openCode (how) {
     if (this.codeRec) return { code: formatCode(this.codeRec.code) }
     if (this._opening) return this._opening
-    const p = this._openCode()
+    const p = this._openCode(openHow(how))
     this._opening = p
     try {
-      return await p
+      const r = await p
+      if (r.error) this._rep('code', { ev: 'error', kind: 'pair', why: word(String(r.error).replace(/ /g, '-')) })
+      return r
     } finally {
       if (this._opening === p) this._opening = null
     }
   }
 
-  async _openCode () {
+  async _openCode (how) {
     const g = this._gate()
     if (g.error) return g
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -542,6 +615,7 @@ export class Apps {
       if (r.ok) {
         this.codeRec = { code, channel: sp.channel, keyCode, box, registered: true, bad: 0, seen: new Set() }
         this._touch()
+        this._repCode(how.ev, how.why, sp.channel)
         return { code: formatCode(code) }
       }
       if (r.reason !== 'channel-taken') return { error: errorOf(r.reason) }
@@ -551,13 +625,18 @@ export class Apps {
 
   /** newCode() -> { code } | { error }: closes the code and opens another. */
   async newCode () {
+    const old = this.codeRec ? this.codeRec.channel : null
     await this._closeCode()
-    return this.openCode()
+    const r = await this.openCode({ ev: 'new', why: 'user' })
+    if (r.error && old) this._repCode('closed', 'new-failed', old)
+    return r
   }
 
   /** closeCode() -> { ok: true }: nobody can knock any more; pending knocks end. */
   async closeCode () {
+    const channel = this.codeRec ? this.codeRec.channel : null
     await this._closeCode()
+    if (channel) this._repCode('closed', 'user', channel)
     return { ok: true }
   }
 
@@ -565,15 +644,18 @@ export class Apps {
     const rec = this.codeRec
     if (!rec) return
     this.codeRec = null
-    for (const q of Array.from(this.requests.values())) if (q.kind === 'pair') this._dropRequest(q.knock)
+    for (const q of Array.from(this.requests.values())) if (q.kind === 'pair') this._dropRequest(q.knock, 'code-closed')
     this._touch()
     if (this.link) await this.link.closeCode({ kind: 'pair' })
   }
 
   async _replaceCode (why) {
+    const old = this.codeRec ? this.codeRec.channel : null
     await this._closeCode()
-    const r = await this.openCode()
+    const r = await this.openCode({ ev: 'replaced', why })
     this.notice = { kind: r.error ? 'code-closed' : 'code-replaced', why, at: this.now() }
+    if (r.error && old) this._repCode('closed', why, old)
+    this._rep('notice', { kind: this.notice.kind, why: word(why) })
     this._touch()
   }
 
@@ -599,19 +681,22 @@ export class Apps {
    */
   async knock (codeText) {
     const sp = splitCode(codeText)
-    if (!sp) return { error: 'bad code' }
+    if (!sp) return this._knockFail('pair', null, 'bad code')
     const g = this._gate()
-    if (g.error) return g
-    if (this.codeRec && this.codeRec.code === sp.code) return { error: 'own code' }
-    for (const c of this.convs.values()) if (c.status === 'waiting' && c.channel === sp.channel) return { error: 'already knocked' }
-    if (this._waitingCount() >= this.limits.knocksOutMax || !this._knockOk()) return { error: 'rate limited' }
+    if (g.error) return this._knockFail('pair', sp.channel, g.error)
+    if (this.codeRec && this.codeRec.code === sp.code) return this._knockFail('pair', sp.channel, 'own code')
+    for (const c of this.convs.values()) if (c.status === 'waiting' && c.channel === sp.channel) return this._knockFail('pair', sp.channel, 'already knocked')
+    if (this._waitingCount() >= this.limits.knocksOutMax || !this._knockOk()) return this._knockFail('pair', sp.channel, 'rate limited')
     const keyCode = await codeKey(sp.secret, sp.channel)
     const { box } = await sealHello({ keyCode, channel: sp.channel, role: 'knock', keys: g.keys, name: this._me().name, now: this.now(), random: this.randomBytes })
     if (g.epoch !== this._epoch) return { error: 'not signed in' }
+    this._rep('knock', { ev: 'sent', kind: 'pair', channel: sp.channel })
     const r = await g.link.knock({ kind: 'pair', channel: sp.channel, box })
     if (g.epoch !== this._epoch) return { error: 'not signed in' }
-    if (!r.ok) return { error: errorOf(r.reason) }
+    if (!r.ok) return this._knockFail('pair', sp.channel, errorOf(r.reason), reasonWord(r.reason))
     const conv = this._newConv({ status: 'waiting', knock: r.knock, channel: sp.channel, keyCode, codeText: formatCode(sp.code), incoming: false })
+    this._rep('knock', { ev: 'ok', kind: 'pair', channel: sp.channel })
+    this._repConv(conv)
     this._touch()
     return { knock: r.knock, id: conv.id }
   }
@@ -621,6 +706,7 @@ export class Apps {
     for (const c of Array.from(this.convs.values())) {
       if (c.status === 'waiting' && (c.knock === knock || c.id === knock)) {
         this.convs.delete(c.id)
+        this._repGone(c, 'cancelled')
         if (this.link && c.knock) await this.link.cancel({ kind: 'pair', knock: c.knock })
         this._touch()
         return { ok: true }
@@ -629,6 +715,7 @@ export class Apps {
     for (const r of Array.from(this.rooms.values())) {
       if (r.status === 'waiting' && (r.knock === knock || r.id === knock)) {
         this.rooms.delete(r.id)
+        this._repGone(r, 'cancelled')
         if (this.link && r.knock) await this.link.cancel({ kind: 'room', knock: r.knock })
         this._touch()
         return { ok: true }
@@ -637,11 +724,14 @@ export class Apps {
     return { error: 'no request' }
   }
 
-  _dropRequest (knock) {
+  // why: set when the request ends without this person's answer (the requester took it back, the code or the socket went); the answers of
+  // accept and reject say so themselves.
+  _dropRequest (knock, why) {
     const q = this.requests.get(knock)
     if (!q) return
     this._cancel(q.timer)
     this.requests.delete(knock)
+    if (why) this._rep('request', { ev: 'dropped', kind: q.kind, reason: why })
     this._touch()
   }
 
@@ -664,6 +754,7 @@ export class Apps {
     if (room ? !this.rooms.has(room.id) || !room.codeOpen : this.codeRec !== own) return
     if (!opened.ok) {
       own.bad = (own.bad || 0) + 1
+      this._rep('request', { ev: 'turned-away', kind: ev.kind, reason: 'bad-box' })
       if (own.bad >= this.limits.badKnocksMax) {
         if (room) await this._closeRoomCode(room, 'bad-knocks')
         else await this._replaceCode('bad-knocks')
@@ -674,27 +765,33 @@ export class Apps {
     // A box this code already took is a replay (ADV-8): it is turned away at once, so that replays cannot sit in the 16 places of the
     // code for ten minutes and push honest requesters out. A hello that carries this person's own chat key is not a person (ADV-9):
     // K_pair of a key with itself opens this person's own frames, which a sender could reflect as presence and receipts.
-    const turnAway = () => { if (this.link) this.link.reject({ kind: ev.kind, knock: ev.knock }).then(undefined, noop) }
+    const turnAway = (why) => {
+      this._rep('request', { ev: 'turned-away', kind: ev.kind, reason: why })
+      if (this.link) this.link.reject({ kind: ev.kind, knock: ev.knock }).then(undefined, noop)
+    }
     if (own.seen.has(h.n)) {
-      turnAway()
+      turnAway('replay')
       return
     }
     own.seen.add(h.n)
     if (own.seen.size > 256) own.seen.delete(own.seen.values().next().value)
     if (h.pub === this._pub || h.ek === keys.chat.pub || (room && room.members.some((m) => m.pub === h.pub)) || (room && room.members.length >= this.limits.roomMembersMax)) {
-      turnAway()
+      turnAway(h.pub === this._pub || h.ek === keys.chat.pub ? 'self' : (room.members.some((m) => m.pub === h.pub) ? 'member' : 'full'))
       return
     }
     if (this.blocked.has(h.pub)) {
+      this._rep('request', { ev: 'turned-away', kind: ev.kind, reason: 'blocked' })
       this._answerLater(ev)
       return
     }
     const q = { knock: ev.knock, kind: ev.kind, channel: ev.channel, room, hello: h, at: this.now(), timer: null }
     q.timer = this._later(this.limits.requestTtlMs, () => {
       this.requests.delete(q.knock)
+      this._rep('request', { ev: 'expired', kind: q.kind })
       this._touch()
     })
     this.requests.set(q.knock, q)
+    this._rep('request', { ev: 'in', kind: q.kind })
     this._touch()
   }
 
@@ -704,6 +801,13 @@ export class Apps {
    */
   async accept (knock) {
     const q = this.requests.get(knock)
+    const r = await this._accept(knock, q)
+    // the accept itself is told where the rendezvous took it; here only the ones that did not go through
+    if (q && r.error) this._rep('request', { ev: 'accept-error', kind: q.kind, reason: word(String(r.error).replace(/ /g, '-')) })
+    return r
+  }
+
+  async _accept (knock, q) {
     if (!q) return { error: 'no request' }
     const g = this._gate()
     if (g.error) return g
@@ -722,8 +826,10 @@ export class Apps {
     this._dropRequest(knock)
     if (g.epoch !== this._epoch) return { error: 'not signed in' }
     if (!r.ok) return { error: errorOf(r.reason) }
+    this._rep('request', { ev: 'accept', kind: 'pair' })
     const h = q.hello
     const conv = this._newConv({ status: 'connecting', peer: { pub: h.pub, ek: h.ek, name: cleanName(h.name || '') || null }, incoming: true })
+    this._repConv(conv)
     await this._startConv(conv, r.lane)
     return { id: conv.id }
   }
@@ -733,6 +839,7 @@ export class Apps {
     const q = this.requests.get(knock)
     if (!q) return { error: 'no request' }
     this._dropRequest(knock)
+    this._rep('request', { ev: 'reject', kind: q.kind, reason: 'user' })
     if (this.link) await this.link.reject({ kind: q.kind, knock })
     return { ok: true }
   }
@@ -770,6 +877,7 @@ export class Apps {
       rec.status = 'rejected'
       rec.reason = !opened.ok ? 'bad-box' : (own || !keys ? 'bad-key' : 'blocked')
       rec.knock = null
+      this._repRec(rec)
       this._touch()
       return
     }
@@ -779,6 +887,7 @@ export class Apps {
       rec.status = 'rejected'
       rec.reason = 'no-tm'
       rec.knock = null
+      this._repRec(rec)
       this._touch()
       return
     }
@@ -791,6 +900,7 @@ export class Apps {
       rec.members = [{ pub: h.pub, ek: h.ek, name: cleanName(h.name || '') }]
       rec.status = 'connecting'
       rec.p.keyCode = null
+      this._repRoom(rec)
       this._joinRoomLane(rec, ev.lane)
       this._touch()
       return
@@ -799,6 +909,7 @@ export class Apps {
     rec.status = 'connecting'
     rec.codeText = null // the typed code, with the secret in it, is not kept once the answer is in
     rec.p.keyCode = null
+    this._repConv(rec)
     await this._startConv(rec, ev.lane)
   }
 
@@ -808,6 +919,7 @@ export class Apps {
     rec.status = 'rejected'
     rec.reason = ev.reason
     rec.knock = null
+    this._repRec(rec)
     this._touch()
   }
 
@@ -815,15 +927,16 @@ export class Apps {
     const rec = this._waitingByKnock(ev.kind, ev.knock)
     if (!rec) return
     rec.silent = true
+    this._rep('knock', { ev: 'error', kind: ev.kind, channel: rec.channel, reason: 'silent' })
     this._touch()
   }
 
   _onCancelled (ev) {
-    this._dropRequest(ev.knock)
+    this._dropRequest(ev.knock, 'cancelled')
   }
 
   _onLinkGone () {
-    for (const q of Array.from(this.requests.values())) this._dropRequest(q.knock)
+    for (const q of Array.from(this.requests.values())) this._dropRequest(q.knock, 'link-lost')
     if (this.codeRec) this.codeRec.registered = false
     for (const r of this.rooms.values()) if (r.owner) r.registered = false
     for (const rec of [...this.convs.values(), ...this.rooms.values()]) {
@@ -849,6 +962,7 @@ export class Apps {
       if (epoch !== this._epoch || this.codeRec !== rec) return
       if (r.ok) {
         rec.registered = true
+        this._repCode('opened', 'reconnect', rec.channel)
         this._touch()
       } else if (r.reason === 'channel-taken') {
         await this._replaceCode('reopen-failed')
@@ -876,25 +990,31 @@ export class Apps {
       rec.status = 'rejected'
       rec.reason = 'gone'
       rec.lostKnock = null
+      this._repRec(rec)
       this._touch()
       return
     }
     const { box } = await sealHello({ keyCode: rec.p.keyCode, channel: rec.channel, role: 'knock', keys, name: this._me().name, now: this.now(), random: this.randomBytes })
     if (epoch !== this._epoch || rec.status !== 'waiting') return
+    this._rep('knock', { ev: 'sent', kind, channel: rec.channel, reason: 'again' })
     const r = await this.link.knock({ kind, channel: rec.channel, box })
     if (epoch !== this._epoch || rec.status !== 'waiting') return
     if (r.ok) {
       rec.knock = r.knock
       rec.lostKnock = null
       rec.silent = false
+      this._rep('knock', { ev: 'ok', kind, channel: rec.channel, reason: 'again' })
     } else if (r.reason === 'unknown-code') {
+      this._rep('knock', { ev: 'error', kind, channel: rec.channel, reason: 'unknown-code' })
       this._later(this.limits.reknockDelayMs, () => {
         if (rec.status === 'waiting' && !rec.knock && rec.lostKnock) this._reknock(rec, kind).then(undefined, noop)
       })
     } else if (r.reason !== 'link-down' && r.reason !== 'closed') {
+      this._rep('knock', { ev: 'error', kind, channel: rec.channel, reason: reasonWord(r.reason) })
       rec.status = 'rejected'
       rec.reason = r.reason
       rec.lostKnock = null
+      this._repRec(rec)
     }
     this._touch()
   }
@@ -907,16 +1027,19 @@ export class Apps {
       if (!room) return
       room.codeOpen = false
       room.codeClosed = ev.reason === 'expired' ? 'expired' : 'closed'
-      for (const q of Array.from(this.requests.values())) if (q.room === room) this._dropRequest(q.knock)
+      this._repCode('closed', room.codeClosed, ev.channel, 'room')
+      for (const q of Array.from(this.requests.values())) if (q.room === room) this._dropRequest(q.knock, 'code-closed')
       this._touch()
       return
     }
     const rec = this.codeRec
     if (!rec || rec.channel !== ev.channel) return
     this.codeRec = null
-    for (const q of Array.from(this.requests.values())) if (q.kind === 'pair') this._dropRequest(q.knock)
-    const r = await this.openCode()
+    for (const q of Array.from(this.requests.values())) if (q.kind === 'pair') this._dropRequest(q.knock, 'code-closed')
+    const r = await this.openCode({ ev: 'replaced', why: word(ev.reason) })
     this.notice = { kind: r.error ? 'code-closed' : 'code-replaced', why: ev.reason, at: this.now() }
+    if (r.error) this._repCode('closed', word(ev.reason), rec.channel)
+    this._rep('notice', { kind: this.notice.kind, why: word(ev.reason) })
     this._touch()
   }
 
@@ -966,6 +1089,7 @@ export class Apps {
     rec.p.lanes.clear()
     for (const st of Array.from(rec.p.wires)) {
       st.dead = true
+      st.left = true // this service closes it: _wireClosed does not report that as a loss of the connection
       try { st.wire.destroy() } catch (_) { /* gone */ }
     }
     rec.p.wires.clear()
@@ -988,7 +1112,7 @@ export class Apps {
     }
     if (silent >= this.limits.wiresSilentMax) this._kill(oldest, 'crowded')
     const self = this
-    const st = { wire, rec, lane: ih, ready: false, queue: Promise.resolve(), strikes: 0, drops: 0, dead: false, silent: null, heldRoster: null }
+    const st = { wire, rec, lane: ih, ready: false, queue: Promise.resolve(), strikes: 0, drops: 0, dead: false, left: false, silent: null, heldRoster: null }
     class MwAppsExtension {
       constructor (w) { this.wire = w }
       onHandshake () {}
@@ -1037,6 +1161,7 @@ export class Apps {
     this._cancel(st.silent)
     st.silent = null
     rec.p.wireEpoch++
+    this._repWire(st, 'up')
     if (rec.isRoom) this._roomWireUp(rec, st)
     else this._convWireUp(rec)
     this._touch()
@@ -1048,10 +1173,14 @@ export class Apps {
     st.silent = null
     const rec = st.rec
     rec.p.wires.delete(st)
+    this._repWire(st, 'down', st.left ? 'left' : (st.ready ? null : 'never-ready'))
     if (rec.gone) return
     if (!rec.isRoom) {
       if (!this._readyWire(rec)) {
-        if (rec.status === 'connected') rec.status = 'connecting'
+        if (rec.status === 'connected') {
+          rec.status = 'connecting'
+          if (!st.left) this._repConv(rec)
+        }
         rec.typingPeer = false
       } else {
         // another wire to the same person is up: what the closed one carried and nobody acked goes again
@@ -1065,6 +1194,7 @@ export class Apps {
   _kill (st, reason) {
     if (st.dead) return
     st.dead = true
+    this._repWire(st, 'kill', reason)
     this._cancel(st.silent)
     st.silent = null
     st.rec.p.wires.delete(st) // the place is free at once, whether or not the manager closes the wire
@@ -1078,6 +1208,7 @@ export class Apps {
 
   _strike (st, reason) {
     if (st.dead) return
+    this._repWire(st, 'strike', reason)
     st.strikes++
     if (st.strikes >= this.limits.strikesMax) this._kill(st, reason)
   }
@@ -1152,6 +1283,7 @@ export class Apps {
     if (conv.status === 'connecting' && !st.dead && this._readyWire(conv)) {
       conv.status = 'connected'
       conv.connectedAt = t
+      this._repConv(conv)
     }
     this._applyBody(conv, r.body, st)
     this._touch()
@@ -1197,6 +1329,7 @@ export class Apps {
     })
     this._insert(conv, m)
     conv.unread++
+    this._repMsg(conv, 'received', 1)
     this._sendBody(conv, { k: 'ack', id: b.id }).then(undefined, noop)
     this._arm()
   }
@@ -1209,18 +1342,24 @@ export class Apps {
       this._cancel(item.timer)
     }
     const m = conv.byId.get(id)
-    if (m && m.mine && (m.status === 'queued' || m.status === 'sent' || m.status === 'failed')) m.status = 'delivered'
+    if (m && m.mine && (m.status === 'queued' || m.status === 'sent' || m.status === 'failed')) {
+      m.status = 'delivered'
+      this._repMsg(conv, 'delivered', 1)
+    }
   }
 
   _rxRead (conv, b) {
     if (!conv.cfg.receipts || !Number.isSafeInteger(b.upTo)) return
     const now = this.now()
+    let n = 0
     for (const m of conv.messages) {
       if (m.mine && !m.scheduled && m.t <= b.upTo && m.status !== 'read') {
         m.status = 'read'
         m.readAt = now
+        n++
       }
     }
+    this._repMsg(conv, 'read', n)
   }
 
   _rxTyping (conv, b) {
@@ -1319,6 +1458,7 @@ export class Apps {
   _rxBye (conv) {
     if (conv.status === 'left') return
     conv.status = 'left'
+    this._repConv(conv)
     conv.typingPeer = false
     for (const item of conv.p.outbox) this._cancel(item.timer)
     conv.p.outbox.length = 0
@@ -1410,6 +1550,7 @@ export class Apps {
     } catch (_) {
       conv.status = 'rejected'
       conv.reason = 'bad-key'
+      this._repConv(conv)
       this._touch()
       return false
     }
@@ -1417,6 +1558,7 @@ export class Apps {
     if (!this._joinLane(conv, lane, 'chat')) {
       conv.status = 'rejected'
       conv.reason = 'bad-lane'
+      this._repConv(conv)
       this._touch()
       return false
     }
@@ -1463,6 +1605,7 @@ export class Apps {
     const m = conv.byId.get(item.oid)
     if (m && m.mine && (m.status === 'queued' || m.status === 'sent')) {
       m.status = 'failed'
+      this._repMsg(conv, 'failed', 1)
       this._touch()
     }
   }
@@ -1485,6 +1628,7 @@ export class Apps {
     p.flushing = true
     const epoch = this._epoch
     p.flushP = (async () => {
+      let went = 0 // the messages whose status became 'sent' in this flush, told once at its end
       try {
         do {
           p.flushAgain = false
@@ -1504,7 +1648,10 @@ export class Apps {
             item.tries++
             if (item.msg) {
               const m = conv.byId.get(item.oid)
-              if (m && m.mine && (m.status === 'queued' || m.status === 'failed')) m.status = 'sent'
+              if (m && m.mine && (m.status === 'queued' || m.status === 'failed')) {
+                m.status = 'sent'
+                went++
+              }
               this._cancel(item.timer)
               item.timer = this._later(this.limits.ackTimeoutMs, () => this._ackTimeout(conv, item))
               this._touch()
@@ -1513,6 +1660,7 @@ export class Apps {
         } while (p.flushAgain)
       } finally {
         p.flushing = false
+        if (epoch === this._epoch && !conv.gone) this._repMsg(conv, 'sent', went)
       }
     })()
     return p.flushP
@@ -1601,6 +1749,7 @@ export class Apps {
     m.expAt = m.exp ? t + m.exp : null
     m.status = 'queued'
     this._insert(conv, m)
+    this._repMsg(conv, 'queued', 1)
     this._enqueue(conv, this._msgBody(m), { msg: true })
   }
 
@@ -1658,6 +1807,7 @@ export class Apps {
     const body = this._msgBody(m)
     if (dmBodySize(body) > DM_BODY_MAX) return { error: 'too long' }
     this._insert(conv, m)
+    this._repMsg(conv, later ? 'scheduled' : 'queued', 1)
     if (later) this._arm()
     else {
       if (m.expAt) this._arm()
@@ -1833,10 +1983,12 @@ export class Apps {
       if (c.peer.pub !== pub || c.status === 'blocked') continue
       this._wind(c)
       c.status = 'blocked'
+      this._repConv(c)
     }
     for (const q of Array.from(this.requests.values())) {
       if (q.hello.pub !== pub) continue
       this._dropRequest(q.knock)
+      this._rep('request', { ev: 'reject', kind: q.kind, reason: 'blocked' })
       if (this.link) this.link.reject({ kind: q.kind, knock: q.knock }).then(undefined, noop)
     }
     this._touch()
@@ -1846,7 +1998,12 @@ export class Apps {
   /** unblock(pub) -> { ok }: knocks are shown again; a blocked conversation becomes 'left' (a new code starts a new one). */
   async unblock (pub) {
     this.blocked.delete(pub)
-    for (const c of this.convs.values()) if (c.peer.pub === pub && c.status === 'blocked') c.status = 'left'
+    for (const c of this.convs.values()) {
+      if (c.peer.pub === pub && c.status === 'blocked') {
+        c.status = 'left'
+        this._repConv(c)
+      }
+    }
     this._touch()
     return { ok: true }
   }
@@ -2032,6 +2189,7 @@ export class Apps {
     if (conv.status === 'waiting') {
       if (conv.knock) return this.cancelKnock(conv.knock)
       this.convs.delete(conv.id)
+      this._repGone(conv, 'cancelled')
       this._touch()
       return { ok: true }
     }
@@ -2042,6 +2200,7 @@ export class Apps {
     this._wind(conv)
     conv.gone = true
     this.convs.delete(conv.id)
+    this._repGone(conv, 'left')
     this._arm()
     this._touch()
     return { ok: true }
@@ -2074,6 +2233,12 @@ export class Apps {
 
   /** createRoom() -> { id, code } | { error }: a room this person owns; the code lets others ask to join, the owner decides. */
   async createRoom () {
+    const r = await this._createRoom()
+    if (r.error) this._rep('code', { ev: 'error', kind: 'room', why: word(String(r.error).replace(/ /g, '-')) })
+    return r
+  }
+
+  async _createRoom () {
     const g = this._gate()
     if (g.error) return g
     let owned = 0
@@ -2094,6 +2259,8 @@ export class Apps {
           ownerPub: me.pub, ownerEk: g.keys.chat.pub, members: [{ pub: me.pub, ek: g.keys.chat.pub, name: me.name || '' }], seq: 1,
           lane: r.lane, secret: this.randomBytes(32)
         })
+        this._repCode('opened', 'user', sp.channel, 'room')
+        this._repRoom(room)
         this._touch()
         return { id: room.id, code: formatCode(code) }
       }
@@ -2105,19 +2272,22 @@ export class Apps {
   /** joinRoom(codeText) -> { knock, id } | { error }: asks the owner of a room code to let this person in. */
   async joinRoom (codeText) {
     const sp = splitCode(codeText)
-    if (!sp) return { error: 'bad code' }
+    if (!sp) return this._knockFail('room', null, 'bad code')
     const g = this._gate()
-    if (g.error) return g
-    for (const r of this.rooms.values()) if (r.owner && r.code === sp.code) return { error: 'own code' }
-    for (const r of this.rooms.values()) if (r.status === 'waiting' && r.channel === sp.channel) return { error: 'already knocked' }
-    if (this._waitingCount() >= this.limits.knocksOutMax || !this._knockOk()) return { error: 'rate limited' }
+    if (g.error) return this._knockFail('room', sp.channel, g.error)
+    for (const r of this.rooms.values()) if (r.owner && r.code === sp.code) return this._knockFail('room', sp.channel, 'own code')
+    for (const r of this.rooms.values()) if (r.status === 'waiting' && r.channel === sp.channel) return this._knockFail('room', sp.channel, 'already knocked')
+    if (this._waitingCount() >= this.limits.knocksOutMax || !this._knockOk()) return this._knockFail('room', sp.channel, 'rate limited')
     const keyCode = await codeKey(sp.secret, sp.channel)
     const { box } = await sealHello({ keyCode, channel: sp.channel, role: 'knock', keys: g.keys, name: this._me().name, now: this.now(), random: this.randomBytes })
     if (g.epoch !== this._epoch) return { error: 'not signed in' }
+    this._rep('knock', { ev: 'sent', kind: 'room', channel: sp.channel })
     const r = await g.link.knock({ kind: 'room', channel: sp.channel, box })
     if (g.epoch !== this._epoch) return { error: 'not signed in' }
-    if (!r.ok) return { error: errorOf(r.reason) }
+    if (!r.ok) return this._knockFail('room', sp.channel, errorOf(r.reason), reasonWord(r.reason))
     const room = this._newRoom({ owner: false, status: 'waiting', knock: r.knock, channel: sp.channel, keyCode })
+    this._rep('knock', { ev: 'ok', kind: 'room', channel: sp.channel })
+    this._repRoom(room)
     this._touch()
     return { knock: r.knock, id: room.id }
   }
@@ -2133,7 +2303,7 @@ export class Apps {
   async _acceptMember (q, g) {
     const room = q.room
     if (!room || !this.rooms.has(room.id) || !room.codeOpen) {
-      this._dropRequest(q.knock)
+      this._dropRequest(q.knock, 'room-gone')
       return { error: 'no request' }
     }
     if (room.members.length >= this.limits.roomMembersMax) return { error: 'room full' }
@@ -2149,10 +2319,12 @@ export class Apps {
     this._dropRequest(q.knock)
     if (g.epoch !== this._epoch) return { error: 'not signed in' }
     if (!r.ok) return { error: errorOf(r.reason) }
+    this._rep('request', { ev: 'accept', kind: 'room' })
     const h = q.hello
     room.members.push({ pub: h.pub, ek: h.ek, name: cleanName(h.name || '') })
     room.seq++
     this._joinRoomLane(room, room.lane)
+    this._repRoom(room, 'member-joined')
     this._touch()
     await this._publishRoster(room)
     return { id: room.id }
@@ -2163,6 +2335,7 @@ export class Apps {
     if (!this._joinLane(room, lane, 'group')) {
       room.status = room.owner ? room.status : 'rejected'
       room.reason = 'bad-lane'
+      this._repRoom(room)
       return false
     }
     return true
@@ -2172,7 +2345,8 @@ export class Apps {
     if (!room.codeOpen) return
     room.codeOpen = false
     room.codeClosed = why
-    for (const q of Array.from(this.requests.values())) if (q.room === room) this._dropRequest(q.knock)
+    this._repCode('closed', why, room.channel, 'room')
+    for (const q of Array.from(this.requests.values())) if (q.room === room) this._dropRequest(q.knock, 'code-closed')
     this._touch()
     if (this.link) await this.link.closeCode({ kind: 'room', channel: room.channel })
   }
@@ -2192,13 +2366,16 @@ export class Apps {
       // nobody is in the room yet, so the lane the rendezvous minted now is as good as the one it minted first
       room.lane = r.lane
       room.registered = true
+      this._repCode('opened', 'reconnect', room.channel, 'room')
     } else if (r.ok) {
       room.codeOpen = false
       room.codeClosed = 'lane-changed'
+      this._repCode('closed', 'lane-changed', room.channel, 'room')
       await this.link.closeCode({ kind: 'room', channel: room.channel })
     } else if (r.reason === 'channel-taken') {
       room.codeOpen = false
       room.codeClosed = 'channel-taken'
+      this._repCode('closed', 'channel-taken', room.channel, 'room')
     }
     this._touch()
   }
@@ -2317,7 +2494,10 @@ export class Apps {
         // connected; then the frames that waited for the secret are looked at
         await this._applyHeldRoster(room)
         if (epoch !== this._epoch || room.gone) return
-        if (room.status === 'connecting' || room.status === 'waiting') room.status = 'connected'
+        if (room.status === 'connecting' || room.status === 'waiting') {
+          room.status = 'connected'
+          this._repRoom(room)
+        }
         this._applyHeld(room).then(undefined, noop)
         this._flushRoom(room)
         this._touch()
@@ -2377,7 +2557,9 @@ export class Apps {
   _takeRoster (room, st, r, bytes) {
     if (r.seq <= room.seq) return
     room.seq = r.seq
+    const before = room.members.length
     room.members = r.members.map((m) => ({ pub: m.pub, ek: null, name: cleanName(m.name) }))
+    if (room.members.length !== before) this._repRoom(room, 'roster')
     this._applyHeld(room).then(undefined, noop)
     room.p.cache.roster = bytes
     this._relay(room, st, bytes, 'r' + r.seq)
@@ -2434,6 +2616,7 @@ export class Apps {
     if (b.k === 'bye') {
       if (from === room.ownerPub && !room.owner) {
         room.status = 'closed'
+        this._repRoom(room, 'owner-left')
         this._leaveLane(room)
       }
       return
@@ -2445,7 +2628,10 @@ export class Apps {
     const now = this.now()
     const m = { id: b.id, t: Math.min(b.t, now), mine: from === this._pub, from, text, status: null }
     this._insertRoom(room, m)
-    if (!m.mine) room.unread++
+    if (!m.mine) {
+      room.unread++
+      this._repMsg(room, 'received', 1)
+    }
   }
 
   _insertRoom (room, m) {
@@ -2476,6 +2662,7 @@ export class Apps {
     const m = { id, t, mine: true, from: this._pub, text: clean, status: 'queued', body }
     this._insertRoom(room, m)
     room.p.outq.push(m)
+    this._repMsg(room, 'queued', 1)
     this._flushRoom(room)
     this._touch()
     return { id }
@@ -2490,6 +2677,7 @@ export class Apps {
     p.flushing = true
     const epoch = this._epoch
     p.flushP = (async () => {
+      let went = 0 // the room messages that went out in this flush, told once at its end
       try {
         do {
           p.flushAgain = false
@@ -2513,6 +2701,7 @@ export class Apps {
             if (!bytes || !this._roomBroadcast(room, bytes, null)) break
             p.outq.shift()
             m.status = 'sent'
+            went++
             delete m.body
             this._touch()
           }
@@ -2521,6 +2710,7 @@ export class Apps {
         /* a failed seal leaves the message queued */
       } finally {
         p.flushing = false
+        if (epoch === this._epoch && !room.gone) this._repMsg(room, 'sent', went)
       }
     })()
     return p.flushP
@@ -2533,6 +2723,7 @@ export class Apps {
     if (room.status === 'waiting') {
       if (room.knock) return this.cancelKnock(room.knock)
       this.rooms.delete(room.id)
+      this._repGone(room, 'cancelled')
       this._touch()
       return { ok: true }
     }
@@ -2548,10 +2739,11 @@ export class Apps {
       }
     }
     room.gone = true
-    for (const q of Array.from(this.requests.values())) if (q.room === room) this._dropRequest(q.knock)
+    for (const q of Array.from(this.requests.values())) if (q.room === room) this._dropRequest(q.knock, 'room-left')
     this._cancel(room.p.flushTimer)
     this._leaveLane(room)
     this.rooms.delete(room.id)
+    this._repGone(room, 'left')
     this._touch()
     return { ok: true }
   }

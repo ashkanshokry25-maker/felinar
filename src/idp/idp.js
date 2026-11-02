@@ -14,6 +14,9 @@
 //   env: { win, doc, navigator, crypto, indexedDB, location, cards, passkey, store, now, build, wasm, ios,
 //          standalone, verifyPointer, locks, hubSuffixes, sharedOrigins, setTimeout, clearTimeout } (globals by
 //          default; tests inject every one)
+//   Usage reports (docs/OBSERVABILITY.md), off unless tools/build-idp.mjs --obs wrote data-mw-obs on <html>: env.obs (a reporter or
+//   null), env.obsEndpoint (an origin, instead of the attribute), env.obsSend, env.obsRandom and env.obsTimers ({ setTimeout,
+//   clearTimeout }) are for tests. What the page reports, and never reports, is in the block that creates `report` below.
 //
 // Code review v0.3 (security 1, 2, 7 to 10, 19, 20; correctness 3; browser):
 //   - Several windows of this origin may be open (a Settings window, a sign-in popup): every change to the vault or
@@ -57,6 +60,7 @@ import { createCards, sameIdentityOptions, recordSameOffer, approvalAllowed, kit
 import { LinkNewDevice, LinkOldDevice } from './link.js';
 import { decode as qrDecode } from './qr.js';
 import { t } from './strings.js';
+import { createReporter, hideHook, instrumentCards, instrumentHandlers, wantWord } from './obs-client.js';
 
 export const IDP_VERSION = '0.3.0';
 export const ROUND_TIMEOUT_MS = 30000;
@@ -68,6 +72,8 @@ export const FAST_REFUSAL_MS = 1000;
 /** A backup file's download URL stays valid at least this long (iOS asks before it reads it). */
 export const BACKUP_URL_MS = 60000;
 export const BACKUP_FILE_NAME = 'magnet-web-identity-backup.json';
+/** The longest the last usage report holds the window open for its answer (fetch) or its hand-over (beacon); see finalFlush. */
+export const OBS_CLOSE_WAIT_MS = 700;
 
 const idpError = (code, message) => Object.assign(new Error(message || code), { code });
 const rand = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n));
@@ -133,6 +139,25 @@ export function readBuild(doc) {
 
 function buildTag(build) {
   return (build.version + '-' + build.id).replace(/[^\x21-\x7e]/g, '').slice(0, 64) || 'dev';
+}
+
+/**
+ * readObsEndpoint(doc) -> the origin tools/build-idp.mjs --obs wrote as data-mw-obs on <html>, or null: no attribute, or text that
+ * is not an exact origin (https, or http on a loopback host). A page without one reports nothing at all.
+ */
+export function readObsEndpoint(doc) {
+  try {
+    const root = doc && doc.documentElement;
+    const v = root && typeof root.getAttribute === 'function' ? root.getAttribute('data-mw-obs') : null;
+    return typeof v === 'string' && isOrigin(v) ? v : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** reportCode(err) -> the E_ code of an error, or E_INTERNAL: the only part of an error a usage report ever carries. */
+function reportCode(err) {
+  return err && typeof err.code === 'string' && /^E_[A-Z_]+$/.test(err.code) ? err.code : 'E_INTERNAL';
 }
 
 /**
@@ -251,6 +276,7 @@ export function createIdp(envIn = {}) {
   const passkeyEnv = envIn.passkeyEnv || (win ? { navigator: nav, PublicKeyCredential: win.PublicKeyCredential, crypto: globalThis.crypto, location: loc } : undefined);
   const idpOrigin = envIn.idpOrigin || (loc ? loc.origin : 'https://idp.invalid');
   const setT = envIn.setTimeout || ((fn, ms) => setTimeout(fn, ms));
+  const clearT = envIn.clearTimeout || ((h) => clearTimeout(h));
   // The Web Lock of this origin: shared by every window and tab of the identity page (and by every createIdp in a
   // test process, which stands in for several windows). env.locks: null forces the one-window fallback.
   const locks = envIn.locks !== undefined ? envIn.locks : ((nav && nav.locks) || (globalThis.navigator && globalThis.navigator.locks) || null);
@@ -260,7 +286,58 @@ export function createIdp(envIn = {}) {
   const sharedOrigins = (Array.isArray(envIn.sharedOrigins) ? envIn.sharedOrigins : []).concat(SHARED_ORIGINS);
   // Review round PHISH-1, HUB-3: the hub templates of this build (psl.js HUB_TEMPLATES; tests inject env.hubTemplates).
   const hubTemplates = (Array.isArray(envIn.hubTemplates) ? envIn.hubTemplates : HUB_TEMPLATES).map((b) => String(b).toLowerCase());
-  let cards = envIn.cards || null;
+
+  // Usage reports (docs/OBSERVABILITY.md). `obs` exists only when the build named an endpoint; without one `report` does nothing and
+  // no line below changes what the page does. What goes out: the card kind, the outcome of a button as a word from a closed list,
+  // the unlock method, the kind of request and whether it was shared, an error code, a result code and a time. What never does: the
+  // pointer, a key, the origin or short id of any site, a name, or anything typed. Every value comes from a closed list or a
+  // counter, and the reporter masks addresses again. The person agrees by pressing the first card button of any kind (the card
+  // above the buttons names the host); until then events wait in memory and a window closed before that sends nothing.
+  const obsEndpoint = envIn.obsEndpoint !== undefined ? envIn.obsEndpoint : readObsEndpoint(doc);
+  const obsTimers = envIn.obsTimers || {};
+  const obs = envIn.obs !== undefined ? envIn.obs : (typeof obsEndpoint === 'string' && isOrigin(obsEndpoint)
+    ? createReporter({
+      endpoint: obsEndpoint, build: build.id, loader: build.version, now, nav, send: envIn.obsSend, random: envIn.obsRandom,
+      visibility: hideHook(win, doc), setTimeout: obsTimers.setTimeout, clearTimeout: obsTimers.clearTimeout,
+    })
+    : null);
+  const obsHost = obs && typeof obs.inspect === 'function' ? String(obs.inspect().host || '') : '';
+  let obsAllowed = false;
+  const report = obs ? (name, fields) => {
+    try { obs.event(name, fields); } catch (_) { /* a report never breaks a sign-in */ }
+  } : () => {};
+  /** allowReports(): a card button took the person's press, so the events waiting in memory may go out. */
+  function allowReports() {
+    if (!obs || obsAllowed) return;
+    obsAllowed = true;
+    try { obs.allow(true); } catch (_) { /* a report never breaks a press */ }
+  }
+  /**
+   * finalFlush(): the last report, after the answer is posted and before the window closes or goes back to the site. It waits for the
+   * report's own answer, at most OBS_CLOSE_WAIT_MS: the site has its answer already, and where a service worker holds the page and has
+   * no static route for the request (src/idp/sw.js staticRoute: Chromium before 123 has no such API) a request sent in the same breath
+   * as window.close() is lost (measured on Chromium 156 with the route taken out, with fetch keepalive and with a beacon alike); one
+   * that is given its answer, or 150 ms, is not. Without a report there is nothing to wait for and nothing changes.
+   */
+  async function finalFlush() {
+    if (!obs) return;
+    try {
+      const done = obs.flush('final');
+      await new Promise((resolve) => {
+        const timer = setT(resolve, OBS_CLOSE_WAIT_MS);
+        Promise.resolve(done).then(() => { clearT(timer); resolve(); }, () => { clearT(timer); resolve(); });
+      });
+    } catch (_) { /* the window closes either way */ }
+  }
+  /** requestFacts(req, origin, transport) -> the fields of the request event: no origin, no pointer, no key. */
+  function requestFacts(req, origin, transport) {
+    let shared = req.shared === true;
+    try { shared = shared || isSharedOrigin(normalizeOrigin(origin), sharedOrigins); } catch (_) { /* the request is refused further on */ }
+    // ref: the opener's own report id, popup only (a redirect request is page text, and the page that sent it is gone by the time it matters).
+    return { kind: transport, shared, want: wantWord(req.want), ref: transport === 'popup' && req.obs ? req.obs.sid : undefined };
+  }
+
+  let cards = null;
   let store = envIn.store || null;
   // prf: the passkey's PRF output while this window is unlocked with it (review round SEC-1, STALK-1, PHISH-2): every site's
   // root escrow copy is wrapped again under it with a fresh IV, never the stored blob, so no two sites hold the same bytes.
@@ -268,7 +345,13 @@ export function createIdp(envIn = {}) {
   let saltBytes = null;
 
   function ui() {
-    if (!cards) cards = createCards({ doc, win, build, now, idp: idpOrigin });
+    if (!cards) {
+      const base = envIn.cards || createCards({
+        doc, win, build, now, idp: idpOrigin,
+        onCardPress: obs ? allowReports : undefined, obsHost: obs && obsHost ? () => (obsAllowed ? null : obsHost) : undefined,
+      });
+      cards = obs ? instrumentCards(base, report) : base;
+    }
     return cards;
   }
 
@@ -490,6 +573,7 @@ export function createIdp(envIn = {}) {
     const secrets = { rootStar: rootStarBytes, kVault };
     if (root) vault.data.root = b64url.encode(root);
     const p = await protect(secrets, { method, nickname, created });
+    report('unlock', { method: p.method });
     const st = p.method === 'visit' ? await getStore(true) : await getStore();
     const id = await vaultIdOf(rootStarBytes);
     const code = await checkCode(rootStarBytes);
@@ -572,6 +656,7 @@ export function createIdp(envIn = {}) {
       if (!allowCreate) throw idpError('E_USER_CANCELLED', 'no identity on this device');
       return createIdentity();
     }
+    report('unlock', { method: rec.method === 'passkey' ? 'passkey' : 'passphrase' });
     let packed;
     let uv = true;
     let prf = null;
@@ -877,11 +962,18 @@ export function createIdp(envIn = {}) {
   async function handleRequest(req, origin, channel = null, { transport = 'popup' } = {}) {
     const requestId = req && typeof req.requestId === 'string' ? req.requestId : '';
     const answer = (more) => Object.assign({ v: PROTOCOL_VERSION, t: 'mw-signin-res', requestId }, more);
+    const started = now();
+    // result {code, ms}: what the site is told, and the time the whole request took, the person's own time on the cards included.
+    const finish = (res) => {
+      report('result', { code: res.ok ? 'ok' : res.code, ms: Math.max(0, now() - started) });
+      return res;
+    };
     try {
       if (!isOrigin(origin)) throw idpError('E_BAD_REQUEST', 'origin');
       // The identity origin runs the request rules itself; what the page checked proves nothing here.
       const v = validateRequest(req, { transport: 'popup' });
       if (!v.ok) throw idpError('E_BAD_REQUEST', v.reason);
+      if (obs) report('request', requestFacts(req, origin, transport));
       // Review round SEC-2, PHISH-9: a redirect request names its origin in page text that any page can write, so it may only
       // ask for keys or the record read (sealed to the named origin and sent there): no proof, erase, owner action, page
       // creation or legacy key, and nothing it does is remembered as that origin's (runSignIn unverified).
@@ -889,11 +981,13 @@ export function createIdp(envIn = {}) {
       // Review round PHISH-6: a server sign-in never marks a page or an owner action.
       if (req.purpose === 'server' && (req.create === true || req.owner)) throw idpError('E_BAD_REQUEST', 'owner actions are site sign-ins');
       const out = await runSignIn(req, normalizeOrigin(origin), channel, { unverified: transport === 'redirect' });
-      return answer(Object.assign({ ok: true }, out));
+      return finish(answer(Object.assign({ ok: true }, out)));
     } catch (err) {
-      const code = err && typeof err.code === 'string' && /^E_[A-Z_]+$/.test(err.code) ? err.code : 'E_INTERNAL';
+      const code = reportCode(err);
       lastError = code;
-      return answer({ ok: false, code: siteCode(code) });
+      // A cancel is the person's choice, and the result line already says so; every other code is a step that failed.
+      if (code !== 'E_USER_CANCELLED') report('error', { code });
+      return finish(answer({ ok: false, code: siteCode(code) }));
     }
   }
 
@@ -912,6 +1006,7 @@ export function createIdp(envIn = {}) {
       if (want.has('proof') || want.has('record') || want.has('erase')) throw idpError('E_HOST_ONLY_IDENTITY');
       const r = await ui().signin({ origin, shared: true, first: true, unlock: 'visit', hasIdentity: true, purpose: req.purpose });
       if (!r || r.action !== 'continue') throw idpError('E_USER_CANCELLED');
+      report('unlock', { method: 'visit' });
       const bundle = await visitOnlyBundle(origin);
       return { bundle: await seal(BUNDLE_PREFIX, req.epk, bundle, { origin, requestId: req.requestId }) };
     }
@@ -1442,12 +1537,14 @@ export function createIdp(envIn = {}) {
    */
   async function bootSignin() {
     if (await refuseFramed()) return { done: false };
+    report('ready');
     const hash = loc && typeof loc.hash === 'string' ? loc.hash.replace(/^#/, '') : '';
     if (hash) {
       const req = decodeFragment(hash);
       try { if (win.history) win.history.replaceState(null, '', loc.pathname); } catch (_) { /* keep it */ }
       const v = validateRequest(req, { transport: 'redirect' });
       if (!v.ok || !returnUrlOk(req.ret, req.origin)) {
+        report('error', { code: 'E_BAD_REQUEST' });
         await ui().error({ code: 'E_BAD_REQUEST' });
         return { done: false };
       }
@@ -1456,6 +1553,7 @@ export function createIdp(envIn = {}) {
       delete clean.ret;
       const res = await handleRequest(clean, req.origin, null, { transport: 'redirect' });
       if (res.ok) await afterAnswer(); // this tab goes back to the site next, so the kit comes first here
+      if (obs) await finalFlush();
       loc.replace(req.ret + '#' + encodeFragment(res));
       return { done: true, res };
     }
@@ -1477,6 +1575,7 @@ export function createIdp(envIn = {}) {
         if (!v.ok) {
           taken = true;
           win.removeEventListener('message', onMessage);
+          report('error', { code: 'E_BAD_REQUEST' });
           try { win.opener.postMessage({ v: PROTOCOL_VERSION, t: 'mw-signin-res', requestId: typeof data.requestId === 'string' ? data.requestId : '', ok: false, code: 'E_BAD_REQUEST' }, origin); } catch (_) { /* gone */ }
           resolve({ done: false });
           return;
@@ -1487,20 +1586,27 @@ export function createIdp(envIn = {}) {
         try { win.opener.postMessage(res, origin); } catch (_) { /* the site went away */ }
         if (res.ok) await afterAnswer();
         if (res.ok === false && lastError && lastError !== 'E_USER_CANCELLED') await ui().error({ code: lastError });
+        if (obs) await finalFlush(); // after the answer is posted and the last card closed, before the window goes; a page without reports takes no extra turn
         try { win.close(); } catch (_) { /* a window the person opened stays */ }
         resolve({ done: true, res });
       }
       win.addEventListener('message', onMessage);
-      try { win.opener.postMessage({ v: PROTOCOL_VERSION, t: 'mw-idp-ready', build: buildTag(build) }, '*'); } catch (_) { /* opener gone */ }
+      // obs: true tells the opener this page reports, so it may name its own report id in the request; a page that does not report
+      // sends the message it always did.
+      const ready = { v: PROTOCOL_VERSION, t: 'mw-idp-ready', build: buildTag(build) };
+      if (obs) ready.obs = true;
+      try { win.opener.postMessage(ready, '*'); } catch (_) { /* opener gone */ }
     });
   }
 
   /** bootHome(): the IdO home page (Settings, recovery kit, backup file, device link). */
   async function bootHome() {
     if (await refuseFramed()) return;
+    report('ready');
     const st = await getStore();
     // What the buttons need is read when the page is drawn (MF-09): their press goes straight to the passkey call.
     let pre = { own: null };
+    const observe = (handlers) => (obs ? instrumentHandlers(handlers, report) : handlers);
     const render = async () => {
       const state = await st.getState();
       const wrapped = await st.getWrapped();
@@ -1513,7 +1619,7 @@ export function createIdp(envIn = {}) {
       const hubs = Object.keys(state.hubs).map((suffix) => ({ suffix, on: state.hubs[suffix].on }));
       ui().settings(locked ? { hasIdentity: true, locked: true, unlock: wrapped.method, backup: state.backup } : {
         hasIdentity: Boolean(wrapped), unlock: wrapped ? wrapped.method : 'visit', backup: state.backup, checkCode: state.checkCode, links, hubs, sites: Object.keys(state.origins).sort(),
-      }, {
+      }, observe({
         unlockView: () => guard(() => unlock({ allowCreate: false, pre })),
         stopSame: (o) => guard(async () => {
           const r = await stopSame(o, { pre });
@@ -1534,10 +1640,17 @@ export function createIdp(envIn = {}) {
         makeBackup: () => guard(() => makeBackup({ pre })),
         link: () => guard(async () => { if (pre.own) await runLinkOld({ pre }); else await runLinkNew(); }),
         restore: () => guard(() => runRestore()),
-      });
+      }));
     };
     const guard = async (fn) => {
-      try { await fn(); } catch (err) { if (!err || err.code !== 'E_USER_CANCELLED') await ui().error({ code: (err && err.code) || 'E_INTERNAL' }); }
+      try {
+        await fn();
+      } catch (err) {
+        if (!err || err.code !== 'E_USER_CANCELLED') {
+          report('error', { code: reportCode(err) });
+          await ui().error({ code: (err && err.code) || 'E_INTERNAL' });
+        }
+      }
       await render();
     };
     const intent = loc && typeof loc.hash === 'string' ? loc.hash.replace(/^#/, '') : '';
@@ -1564,6 +1677,7 @@ export function createIdp(envIn = {}) {
     unlock, runRestore, runLinkNew, runLinkOld, runKit, afterAnswer, replaceAllKeys, stopSame, hubOff, hubAsk, removeDevice, makeBackup,
     startDownload,
     get session() { return session; },
+    get obs() { return obs; },
   };
 }
 
