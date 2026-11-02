@@ -217,6 +217,9 @@ async function proofCase(rng, A, form, opts = {}) {
         shown = spelled;
         out.label.push('c.' + key + '=' + shown);
         if (seen === undefined) { refuse('number spelled wrongly', 'parse'); break; }
+        // strictJsonParse reads a number literal through a 40-character window (src/identity/signin.js): a longer spelling is
+        // cut there and the rest of it is a syntax error, so the whole text is refused as parse before any field is looked at.
+        if (spelled.length > 40) { refuse('number literal over 40 characters', 'parse'); break; }
       } else {
         c[key] = value;
         out.label.push('c.' + key + '=' + String(shown));
