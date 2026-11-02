@@ -49,7 +49,7 @@ import { IdbChunkStore, idbBackend } from '../files/store-idb.js'
 import { createHubService, createPersonalSite, decodeGenesis, checkGenesis, hubScope, viewAdapters, refreshPersonalPointer, POINTER_KEY } from './personal-site.js'
 // C2 doors (research/v03/S4-doors.md D2 to D6): the light link's fragment, the door candidates and probes, the byte fallback across
 // doors, the ledger's _doors, the door view (a sandboxed frame) and the Doors panel. Every insertion point below is marked "C2 doors".
-import { parseLinkFragment, normalizeRecordText, formatLightLink, parseLightLink, DOOR_PAGE_PATH, FELINAR_SCHEME, isLoopbackDoorHost } from '../common/pointer.js'
+import { parseLinkFragment, normalizeRecordText, formatLightLink, parseLightLink, DOOR_PAGE_PATH, isDoorPagePath, FELINAR_SCHEME, isLoopbackDoorHost } from '../common/pointer.js'
 import {
   doorCandidates, createDoorHealth, probeDoor, fetchFirst, doorTorrentUrls, doorWebseeds, readLedgerDoors, enforceDoorBudget, byteDoors,
   doorsPanelModel, doorsBannerModel, doorLinkFor, doorFiles, mountDoorView, hintAllowed, DOOR_TIMING, DOOR_HEALTH_PREF,
@@ -144,7 +144,7 @@ function safeDecode (s) {
  *  { mode: 'hub-root', hubHost, fragment }          wildcard hub root: label redirect (§3.2)
  *  { mode: 'hub-shared', fragment, path }           one-origin demo hub (§3.3)
  *  { mode: 'shell', scope, path }                   per-domain shell (§3.1)
- *  { mode: 'door', fragment, path }                 C2 doors (S4 D4): /_mw/open.html shows any site by its link, in the door view
+ *  { mode: 'door', fragment, path }                 C2 doors (S4 D4): /_mw/open.html (or /_mw/open) shows any site by its link, in the door view
  * hubMeta comes from <meta name="mw-hub" content="subdomain|shared">. On a dev host (loopback) a
  * pointer fragment without a page pointer opens the shared demo hub, so `npm run demo` needs no flag.
  */
@@ -159,8 +159,9 @@ export function resolveMode (loc, { metaPointer = null, hubMeta = null, dev = fa
   const split = splitHubPath(pathname)
   if (split) return { mode: 'redirect', to: '/#btih:' + split.btih }
   const fragment = parseFragment(hash, search)
-  // C2 doors: the reserved door page of every build; it needs no configuration (no mw-hub meta) and ignores a page tag.
-  if (pathname === DOOR_PAGE_PATH) return { mode: 'door', fragment, path: '/' }
+  // C2 doors: the reserved door page of every build; it needs no configuration (no mw-hub meta) and ignores a page tag. 0.3.1: also at
+  // /_mw/open, where a host with clean URLs (Cloudflare Pages) answers it after a 308 that keeps the link's fragment.
+  if (isDoorPagePath(pathname)) return { mode: 'door', fragment, path: '/' }
   const label = HUB_LABEL_RE.exec(hostname)
   if (label && !metaPointer) {
     return { mode: 'hub-sub', label: label[1], hubHost: label[2], fragment, path: pathFromLocation(loc) }
@@ -4676,7 +4677,9 @@ function runDoorPaste (A) {
   const shared = sharedFragment(A.win.location.search)
   if (shared) {
     try {
-      A.win.location.replace(DOOR_PAGE_PATH + '#' + shared)
+      // the page's own address (/_mw/open.html, or /_mw/open on a host with clean URLs), so no second redirect
+      const page = isDoorPagePath(A.win.location.pathname) ? A.win.location.pathname : DOOR_PAGE_PATH
+      A.win.location.replace(page + '#' + shared)
       return A
     } catch (_) { /* fall through to the box */ }
   }

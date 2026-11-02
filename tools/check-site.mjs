@@ -32,7 +32,7 @@
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 
-import { parsePointer, verifyPointer, verifyRotation, pickRecord, ledgerIdFor, normalizeScope, EXP_WARN_DAYS } from '../src/common/pointer.js';
+import { parsePointer, verifyPointer, verifyRotation, pickRecord, ledgerIdFor, normalizeScope, EXP_WARN_DAYS, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../src/common/pointer.js';
 import { checkDoorJson } from '../src/loader/doors.js';
 import { parseTorrentFile } from '../src/common/torrent-file.js';
 import { resolveTxt, shouldSkipDoh, isWildcardDnsName, isNoTxtPlatformName, magnetTxtName, dohOverrideFromMeta, RESOLVERS } from '../src/loader/doh.js';
@@ -74,6 +74,8 @@ export const DOOR_CHECK_ORIGIN = 'https://door-check.invalid';
 /**
  * checkDoor(url, { fetch, timeoutMs, allowNoCors, log }) → { ok, failures, warnings, results, door } (v0.3 C2 doors). door is the
  * parsed /_mw/door.json (or null). Steps: 'door' (the address), '/mw-sw.js', '/_mw/door.json', 'cors', and one per listed file.
+ * 0.3.1: a host with clean URLs (Cloudflare Pages) answers /_mw/open.html with a redirect to /_mw/open: the door page's bytes are
+ * checked there (an info line), and a loader whose door.json has no pageAlias fails, because it enters door mode only at /_mw/open.html.
  */
 export async function checkDoor(urlText, options = {}) {
   const o = Object.assign({ fetch: globalThis.fetch, timeoutMs: 10000, allowNoCors: false, log: () => {} }, options);
@@ -99,7 +101,7 @@ export async function checkDoor(urlText, options = {}) {
   };
   if (u.protocol === 'http:' && !isLoopbackHost(u.hostname)) add('fail', 'door', 'plain http: a door must be served over https (browsers run the loader only on https:// or localhost)');
   else add('ok', 'door', origin + (u.protocol === 'http:' ? ' (loopback, for local development)' : ''));
-  if (u.pathname !== '/' && u.pathname !== '/_mw/open.html') add('warn', 'door', 'checking ' + origin + '/: a door is the root of its host name (the path ' + u.pathname + ' is ignored)');
+  if (u.pathname !== '/' && u.pathname !== DOOR_PAGE_PATH && u.pathname !== DOOR_PAGE_ALIAS) add('warn', 'door', 'checking ' + origin + '/: a door is the root of its host name (the path ' + u.pathname + ' is ignored)');
 
   // /mw-sw.js: 200, a JavaScript type, no redirect (a redirected worker script fails to register).
   let swBytes = null;
@@ -164,7 +166,20 @@ export async function checkDoor(urlText, options = {}) {
       const url = origin + path;
       target('GET ' + url);
       try {
-        const res = await o.fetch(url, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+        let res = await o.fetch(url, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+        if (path === DOOR_PAGE_PATH && res.status >= 300 && res.status < 400) {
+          // 0.3.1: a host with clean URLs (Cloudflare Pages) answers the door page at /_mw/open after a redirect that keeps a link's
+          // fragment. A loader from 0.3.1 enters door mode there (door.json says so: pageAlias); an older one shows its normal page.
+          const location = res.headers.get('location') || '';
+          let to = null;
+          try { to = new URL(location, url).href; } catch (_) { to = null; }
+          if (to !== origin + DOOR_PAGE_ALIAS) { add('fail', path, 'HTTP ' + res.status + ' redirect to ' + (location || '?') + ': the door page must answer at ' + DOOR_PAGE_PATH + ', or redirect to ' + DOOR_PAGE_ALIAS + ' (clean URLs)'); continue; }
+          const status = res.status;
+          target('GET ' + to);
+          res = await o.fetch(to, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+          if (door.pageAlias === DOOR_PAGE_ALIAS) add('info', path, 'clean URLs: the host answers the door page at ' + DOOR_PAGE_ALIAS + ' (HTTP ' + status + ' from ' + DOOR_PAGE_PATH + '); a link with ' + DOOR_PAGE_PATH + ' follows one redirect, and this loader enters door mode there');
+          else add('fail', path, 'the host answers the door page at ' + DOOR_PAGE_ALIAS + ' (HTTP ' + status + ', clean URLs), where this loader' + (door.version ? ' (' + door.version + ')' : '') + ' does not enter door mode: a link opened at this door shows the loader\'s normal page instead of the site; deploy a kit made from felinar 0.3.1 or newer');
+        }
         if (res.status !== 200) { add('fail', path, 'HTTP ' + res.status); continue; }
         const bytes = await readCapped(res, MAX_DOOR_FILE_BYTES);
         if (bytes.length !== want.bytes || sha(bytes) !== want.sha256) {
@@ -769,7 +784,7 @@ async function main(argv) {
   if (flags.door) {
     // v0.3 C2 doors: a door, not a site (no pointer, no DNS, no trackers).
     log('check-site --door ' + positionals[0]);
-    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists). Each target is printed before it is contacted.');
+    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; the door page also at /_mw/open when the host redirects there). Each target is printed before it is contacted.');
     const result = await checkDoor(positionals[0], { timeoutMs: flags.timeout, allowNoCors: flags.allowNoCors, log });
     if (flags.json) out(JSON.stringify({ url: positionals[0], door: true, ok: result.ok, failures: result.failures, warnings: result.warnings, results: result.results }, null, 2));
     else out((result.ok ? 'OK' : 'FAILED') + ': ' + result.failures + ' failure(s), ' + result.warnings + ' warning(s).');

@@ -1865,7 +1865,7 @@ Object.assign(SCENARIOS, callsScenarios({ run, assert, headed: HEADED }));
 // and released) and E-ZS-1 (no DoH query for a nip.io name). Each publishes a site of its own.
 Object.assign(SCENARIOS, seedScenarios({ run, assert, headed: HEADED }));
 // v0.3 C2 doors (test/e2e/scenarios-doors.mjs, research/v03/S4-doors.md; the doors lane's request 7): DOOR-DOWN, DOOR-HASH,
-// DOOR-GUEST on static doors on 127.0.0.1; with --webkit also DOOR-GUEST-W.
+// DOOR-GUEST and DOOR-CLEAN on static doors on 127.0.0.1; with --webkit also DOOR-GUEST-W.
 Object.assign(SCENARIOS, doorsScenarios({ run, assert, headed: HEADED }));
 // v0.3 accessibility lane (test/e2e/scenarios-a11y.mjs, R 4.2 E-ID-9 and E-SO-12): axe-core on the identity origin, the loader's UI,
 // the drop-in widgets and the social example; E-ID-9B, a keyboard-only sign-in. Self-contained, Chromium only.

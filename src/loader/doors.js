@@ -26,7 +26,7 @@
 // (with door 1 down and nothing cached the browser shows its own error page and no code of ours runs).
 
 import {
-  isDoorHost, doorOrigin, hostOfOrigin, parseDoors, isLoopbackDoorHost, DOOR_PAGE_PATH, DOORS_TOTAL_MAX, HINT_MAX
+  isDoorHost, doorOrigin, hostOfOrigin, parseDoors, isLoopbackDoorHost, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS, DOORS_TOTAL_MAX, HINT_MAX
 } from '../common/pointer.js'
 import { isPublicWebHost } from '../common/magnet.js'
 import {
@@ -228,6 +228,8 @@ export function createDoorHealth ({ load = null, save = null, now = () => Date.n
 /**
  * doorJsonFor({ name, version, buildId, files }) → the object build.mjs writes to /_mw/door.json. files: [{ path, bytes, sha256, sri }]
  * with absolute paths ('/_mw/loader.js'); door.json itself is never listed. Sorted by path, so two builds give the same bytes.
+ * pageAlias (0.3.1) says this loader enters door mode at /_mw/open too, where a host with clean URLs answers the door page;
+ * check-site --door reads it (a door.json without it is an older loader).
  */
 export function doorJsonFor ({ name = 'felinar', version, buildId, files = [] } = {}) {
   const list = {}
@@ -235,7 +237,7 @@ export function doorJsonFor ({ name = 'felinar', version, buildId, files = [] } 
     if (!f || typeof f.path !== 'string' || !f.path.startsWith('/') || f.path === DOOR_JSON_PATH) continue
     list[f.path] = { bytes: f.bytes, sha256: f.sha256, sri: f.sri }
   }
-  return { v: 1, kind: DOOR_JSON_KIND, name, version, buildId, page: DOOR_PAGE_PATH, files: list }
+  return { v: 1, kind: DOOR_JSON_KIND, name, version, buildId, page: DOOR_PAGE_PATH, pageAlias: DOOR_PAGE_ALIAS, files: list }
 }
 
 /**

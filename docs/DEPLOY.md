@@ -1018,13 +1018,17 @@ only and no storage (the table above); and a door kit is checked against the rel
 hand). No
 release gate row G-DR has run on a real host or phone ([DEMO-RESULTS.md](DEMO-RESULTS.md)): doors are tested on loopback
 only (e2e DOOR-DOWN, DOOR-HASH and DOOR-GUEST), apart from 2026-11-01: a phone opened the guest-door view at a dev-server door on
-home Wi-Fi, and a door kit on Cloudflare Pages did not work (the host table below).
+home Wi-Fi, and the 0.3.0 door kit on Cloudflare Pages did not work until the two fixes listed under "Unreleased" in the changelog (the host table below).
 
 ### What a door must serve
 
 - HTTPS at the root of a host name (not a sub-path), like every loader host ([What the host must do](#what-the-host-must-do)).
 - `/mw-sw.js` with status 200, a JavaScript type, `Cache-Control: no-cache` and no redirect.
 - `/_mw/*` byte for byte, with real types: no minifier, image optimiser or other transform that changes bytes.
+- The door page `/_mw/open.html` is one of those files. A host with clean URLs may answer it at `/_mw/open` after a redirect that keeps
+  the link's fragment, as Cloudflare Pages does: a loader with the fix of 0.3.1 (the changelog's "Unreleased" entry) enters door mode at
+  both addresses, its `/_mw/door.json` says so (`pageAlias`), and `check-site --door` checks the bytes at the clean URL; loader 0.3.0
+  shows its normal page there, which `check-site --door` reports as a failure.
 - `/_mw/door.json` with `Access-Control-Allow-Origin: *` and `Cache-Control: no-cache`. It lists every file of the build with its
   sha256 and SRI value. A page probes it to see whether a door answers (a block page answers 200 too, so the content is checked), and
   the Service Worker never answers or keeps it, so a probe of a page's own address reaches the host.
@@ -1036,7 +1040,7 @@ home Wi-Fi, and a door kit on Cloudflare Pages did not work (the host table belo
 | Host (S4 F5) | Loader door | Full door | Door settings |
 |---|---|---|---|
 | GitHub Pages | yes | yes | no custom headers: other doors see this door as "answering, not checked"; `/mw-sw.js` is cached for up to 10 minutes |
-| Cloudflare Pages | **not in 0.3.0** (tried 2026-11-01: Pages answers `/_mw/open.html` with a 308 to `/_mw/open`, where the loader does not enter door mode, and it applies every matching `_headers` rule, so the kit's `/_mw/door.json` rule and its `/_mw/*` rule together send `Access-Control-Allow-Origin: *, *`, which browsers reject; both are fixes for 0.3.x) | no (Range gives 200) | `_headers` and `_redirects` are read |
+| Cloudflare Pages | yes with the fix of 0.3.1, **not with the 0.3.0 kit** (tried 2026-11-01: Pages answers `/_mw/open.html` with a 308 to `/_mw/open`, where loader 0.3.0 does not enter door mode, and it applies every matching `_headers` rule, so the 0.3.0 kit's `/_mw/door.json` rule and its `/_mw/*` rule together sent `Access-Control-Allow-Origin: *, *`, which browsers reject; the loader now enters door mode at `/_mw/open` and the kit sets each header once per path) | no (Range gives 200) | `_headers` and `_redirects` are read; the door page answers at `/_mw/open` |
 | Netlify | yes | yes | `_headers` and `_redirects` are read |
 | Vercel | not tried | not tried | the kit writes `vercel.json` |
 | A rented server | yes | yes | the kit's Caddyfile |

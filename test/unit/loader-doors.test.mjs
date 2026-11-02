@@ -17,13 +17,13 @@ import {
   DOOR_JSON_PATH, DOOR_COPIES_MAX,
 } from '../../src/loader/doors.js';
 import { parseFragment, resolveMode, sdkMode, pastedFragment, sharedFragment, __c2Doors } from '../../src/loader/app.js';
-import { signPointer, formatPointer, parsePointer, verifyPointer, formatLightLink, DOOR_PAGE_PATH } from '../../src/common/pointer.js';
+import { signPointer, formatPointer, parsePointer, verifyPointer, formatLightLink, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../../src/common/pointer.js';
 import { generateKeyPair, exportPublicKey } from '../../src/chain/crypto.js';
 import { encodeGenesis } from '../../src/loader/personal-site.js';
 import { DOOR_TEXT, doorText } from '../../src/loader/strings.js';
 import { createDoorsUi, doorStateText } from '../../src/loader/ui.js';
 import { FakeDocument } from './dropin-fake-dom.mjs';
-import { createCore, PROTO, DOOR_PAGE_PATH as SW_DOOR_PAGE, DOOR_JSON_PATH as SW_DOOR_JSON } from '../../src/sw/core.js';
+import { createCore, PROTO, DOOR_PAGE_PATH as SW_DOOR_PAGE, DOOR_PAGE_ALIAS as SW_DOOR_ALIAS, DOOR_JSON_PATH as SW_DOOR_JSON } from '../../src/sw/core.js';
 import { doorManifestJson, doorPageHtml, doorJson, precacheList, manifestJson, DOOR_JSON } from '../../build.mjs';
 
 const BTIH = '6b3a0d1c5e7f90214365879aabbccddeeff00112';
@@ -426,8 +426,12 @@ test('resolveMode: /_mw/open.html is the door page (mode door, with or without a
   assert.equal(m.mode, 'door');
   assert.equal(m.fragment.kind, 'btih');
   assert.deepEqual(resolveMode(loc(DOOR_PAGE_PATH)), { mode: 'door', fragment: null, path: '/' });
+  // 0.3.1: a host with clean URLs (Cloudflare Pages) answers the door page at /_mw/open: the same mode there
+  assert.deepEqual(resolveMode(loc(DOOR_PAGE_ALIAS)), { mode: 'door', fragment: null, path: '/' });
+  assert.equal(resolveMode(loc(DOOR_PAGE_ALIAS, '#btih:' + BTIH), { metaPointer: 'v=mw1; btih=' + 'f'.repeat(40), hubMeta: 'shared' }).mode, 'door');
   assert.equal(resolveMode(loc('/')).mode, 'shell');
   assert.equal(resolveMode(loc('/_mw/open.htm')).mode, 'shell');
+  assert.equal(resolveMode(loc('/_mw/open/')).mode, 'shell');
   assert.equal(sdkMode('door'), 'hub-shared');
   assert.equal(sdkMode('hub-sub'), 'hub');
 });
@@ -670,6 +674,36 @@ test('SW core: /_mw/door.json always goes to the network; the door page comes fr
   const r2 = await cold.core.handle(swEvent(SW_DOOR_PAGE, { navigate: true }));
   assert.equal(await r2.text(), 'net');
   assert.deepEqual(cold.fetches, ['https://door.test' + SW_DOOR_PAGE]);
+});
+
+test('SW core (0.3.1): a navigation to /_mw/open (a host with clean URLs) is the door page too, from the precache; mw-set-current from it is refused', async () => {
+  assert.equal(SW_DOOR_ALIAS, DOOR_PAGE_ALIAS);
+  const { core } = swCore({ cached: { [SW_DOOR_PAGE]: '<!doctype html><title>door</title>' } });
+  const ev = swEvent(SW_DOOR_ALIAS, { navigate: true });
+  assert.equal(core.owns(ev), true);
+  const res = await core.handle(ev);
+  assert.equal(res.status, 200);
+  assert.equal(await res.text(), '<!doctype html><title>door</title>');
+  assert.equal(res.headers.get('content-security-policy'), "frame-ancestors 'none'");
+  assert.equal(res.headers.get('x-frame-options'), 'DENY');
+  const replies = [];
+  core.message({ data: { proto: PROTO, type: 'mw-set-current', btih: BTIH }, source: { id: 'door-client', url: 'https://door.test' + SW_DOOR_ALIAS }, ports: [{ postMessage: (m) => replies.push(m) }], waitUntil (p) { this.p = p } });
+  await sleep(20);
+  assert.equal(replies[0].ok, false);
+  assert.equal(replies[0].error, 'door-page');
+  assert.equal(core.inspect().current, null);
+});
+
+test('doorJsonFor / build doorJson (0.3.1): door.json names the clean URL of the door page (pageAlias), which check-site --door reads', () => {
+  const dj = doorJsonFor({ version: '0.3.1', buildId: 'abcdef123456', files: [] });
+  assert.equal(dj.page, DOOR_PAGE_PATH);
+  assert.equal(dj.pageAlias, DOOR_PAGE_ALIAS);
+  assert.deepEqual(Object.keys(dj), ['v', 'kind', 'name', 'version', 'buildId', 'page', 'pageAlias', 'files']);
+  const built = JSON.parse(doorJson(new Map([['index.html', Buffer.from('x')]]), { version: '0.3.1', buildId: 'abcdef123456' }).toString('utf8'));
+  assert.equal(built.pageAlias, DOOR_PAGE_ALIAS);
+  assert.deepEqual(Object.keys(built), Object.keys(dj));
+  const entry = { bytes: 1, sha256: 'a'.repeat(64), sri: 'sha256-' + Buffer.alloc(32, 1).toString('base64') };
+  assert.equal(checkDoorJson(Object.assign({}, dj, { files: { '/_mw/open.html': entry, '/_mw/loader.js': entry, '/mw-sw.js': entry } })).ok, true, 'an optional field changes nothing for an older checker');
 });
 
 test('SW core: the door page never sets this origin\'s current site (mw-set-current from it is refused)', async () => {

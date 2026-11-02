@@ -83,6 +83,8 @@ export const ENTRIES = Object.freeze([
 export const DOOR_PAGE = '_mw/open.html';
 export const DOOR_MANIFEST = '_mw/door.webmanifest';
 export const DOOR_JSON = '_mw/door.json';
+/** 0.3.1: the door page's address on a host with clean URLs (src/common/pointer.js DOOR_PAGE_ALIAS); door.json names it as pageAlias. */
+export const DOOR_PAGE_ALIAS = '/_mw/open';
 
 /** The static tags that carry SRI (the host is the trust root; SRI is defence in depth). */
 export const SRI_TARGETS = Object.freeze(['/_mw/boot.js', '/_mw/loader.js']);
@@ -635,7 +637,7 @@ export function doorPageHtml(shellHtml) {
 }
 
 /**
- * doorJson(outputs, { version, buildId }) → the bytes of _mw/door.json: { v: 1, kind: 'felinar-door', name, version, buildId, page,
+ * doorJson(outputs, { version, buildId }) → the bytes of _mw/door.json: { v: 1, kind: 'felinar-door', name, version, buildId, page, pageAlias,
  * files: { '/<path>': { bytes, sha256, sri } } } for every output except door.json and build.json, sorted by path.
  */
 export function doorJson(outputs, { version, buildId }) {
@@ -645,7 +647,7 @@ export function doorJson(outputs, { version, buildId }) {
     const bytes = outputs.get(path);
     files['/' + path] = { bytes: bytes.length, sha256: sha256Hex(bytes), sri: sriFor(bytes) };
   }
-  return Buffer.from(JSON.stringify({ v: 1, kind: 'felinar-door', name: 'felinar', version, buildId, page: '/' + DOOR_PAGE, files }, null, 2) + '\n');
+  return Buffer.from(JSON.stringify({ v: 1, kind: 'felinar-door', name: 'felinar', version, buildId, page: '/' + DOOR_PAGE, pageAlias: DOOR_PAGE_ALIAS, files }, null, 2) + '\n');
 }
 
 // ---------------------------------------------------------------------------------------------

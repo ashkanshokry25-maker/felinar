@@ -26,10 +26,19 @@ function doorFiles() {
   ]);
 }
 
-/** A door on 127.0.0.1. opts: { cors, swRedirect, swType, flip: path, noDoorJson, blockPage }. */
+/**
+ * A door on 127.0.0.1. opts: { cors, swRedirect, swType, flip: path, noDoorJson, blockPage, cleanUrls (0.3.1: /_mw/open.html answers
+ * 308 to /_mw/open and the page is served there, as Cloudflare Pages does), redirectTo (the 308's target), oldLoader (a door.json
+ * without pageAlias: a loader that enters door mode only at /_mw/open.html) }.
+ */
 async function door(opts = {}) {
   const files = doorFiles();
-  const dj = doorJson(files, { version: '0.3.0', buildId: 'abcdef123456' });
+  let dj = doorJson(files, { version: '0.3.0', buildId: 'abcdef123456' });
+  if (opts.oldLoader) {
+    const o = JSON.parse(dj.toString('utf8'));
+    delete o.pageAlias;
+    dj = Buffer.from(JSON.stringify(o));
+  }
   const served = new Map(files);
   if (opts.flip) {
     const b = Buffer.from(served.get(opts.flip));
@@ -48,7 +57,8 @@ async function door(opts = {}) {
       res.writeHead(200, headers);
       return res.end(opts.blockPage ? '<html><body>This site is blocked in your country</body></html>' : dj);
     }
-    const key = path.slice(1);
+    if (opts.cleanUrls && path === '/_mw/open.html') { res.writeHead(308, { location: opts.redirectTo || '/_mw/open' }); return res.end() }
+    const key = opts.cleanUrls && path === '/_mw/open' ? '_mw/open.html' : path.slice(1);
     if (!served.has(key)) { res.writeHead(404); return res.end() }
     const type = key.endsWith('.js') ? (path === '/mw-sw.js' && opts.swType ? opts.swType : 'text/javascript') : key.endsWith('.css') ? 'text/css' : 'text/html';
     res.writeHead(200, { 'content-type': type });
@@ -112,6 +122,25 @@ test('checkDoor: plain http on a public name fails before anything else is belie
   const sub = await checkDoor(d.url + 'some/path', {});
   assert.ok(sub.results.some((r) => r.step === 'door' && r.level === 'warn'));
   assert.equal(sub.failures, 0);
+  const alias = await checkDoor(d.url + '_mw/open', {});
+  assert.ok(!alias.results.some((r) => r.step === 'door' && r.level === 'warn'), 'the clean URL of the door page names the door');
+});
+
+test('checkDoor (0.3.1): a host with clean URLs answers the door page at /_mw/open after a redirect: ok with an info line for a loader that enters door mode there, a failure for an older loader, a failure for a redirect elsewhere; the bytes at the clean URL are checked', async () => {
+  const clean = await door({ cleanUrls: true });
+  let res = await checkDoor(clean.url, {});
+  assert.equal(res.ok, true, JSON.stringify(res.results, null, 1));
+  assert.ok(res.results.some((r) => r.step === '/_mw/open.html' && r.level === 'info' && /clean URLs: the host answers the door page at \/_mw\/open \(HTTP 308/.test(r.message)));
+  assert.equal(levels(res)['/_mw/*'], 'ok');
+  assert.ok(clean.seen.some((s) => s.path === '/_mw/open.html') && clean.seen.some((s) => s.path === '/_mw/open'), 'both addresses were fetched');
+  res = await checkDoor((await door({ cleanUrls: true, oldLoader: true })).url, {});
+  assert.equal(res.ok, false);
+  assert.match(res.results.find((r) => r.step === '/_mw/open.html' && r.level === 'fail').message, /where this loader \(0\.3\.0\) does not enter door mode/);
+  res = await checkDoor((await door({ cleanUrls: true, redirectTo: '/somewhere-else' })).url, {});
+  assert.ok(res.results.some((r) => r.step === '/_mw/open.html' && r.level === 'fail' && /HTTP 308 redirect to \/somewhere-else/.test(r.message)));
+  res = await checkDoor((await door({ cleanUrls: true, flip: '_mw/open.html' })).url, {});
+  assert.equal(res.ok, false);
+  assert.ok(res.results.some((r) => r.step === '/_mw/open.html' && r.level === 'fail' && /transformed file/.test(r.message)));
 });
 
 test('CLI: check-site --door --json exits 0 for a good door and 1 for a bad one', async () => {

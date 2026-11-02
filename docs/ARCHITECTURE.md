@@ -1824,7 +1824,8 @@ call", which would send the call through the owner's relay so that only the rela
 > swarm and signed update continuity; not built, because C2 took only S4's first phase.
 
 The site lives at its key; domains are doors (research/v03/S4-doors.md). A door is any host that serves the loader; every build has the
-door page `/_mw/open.html`, which `resolveMode` answers with mode `door` whatever the page tag or `mw-hub` says. The light link is
+door page `/_mw/open.html` (and `/_mw/open`, where a host with clean URLs such as Cloudflare Pages answers it after a redirect; the
+fix of 0.3.1), which `resolveMode` answers with mode `door` whatever the page tag or `mw-hub` says. The light link is
 `https://<door>/_mw/open.html#<record percent-encoded once>[#mwgen=<blocks>][#mwd=<host>,...]`; the record is signed for the hub scope
 `btih:<hex>` and may carry `org=` (at most 4 owner origins, the identity mirror list: never a third-party host) and `dr=` (one key, a comma
 list of 1 to 8 lowercase `host[:port]`, https implied, http only for loopback; a malformed one is `bad-value`). `#mwd=` holds at most 4

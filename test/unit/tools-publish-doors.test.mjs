@@ -191,17 +191,51 @@ function toolsPinnedTo(keys) {
   return dir;
 }
 
-test('doorKitFiles: CORS on door.json, no-cache on the worker, the root opens the door page, plain words in README-DOOR.txt', () => {
+/**
+ * headersFor(text, path) → { name: [values] } as a host that applies every matching _headers rule sends them (Cloudflare Pages joins
+ * repeated names; Netlify reads the same file): a rule's path is exact, or a glob with '*'.
+ */
+function headersFor(text, path) {
+  const out = {};
+  let matches = false;
+  for (const line of text.split('\n')) {
+    if (!line.trim() || line.startsWith('#')) continue;
+    if (!line.startsWith(' ')) {
+      const re = new RegExp('^' + line.trim().split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
+      matches = re.test(path);
+      continue;
+    }
+    if (!matches) continue;
+    const i = line.indexOf(':');
+    const name = line.slice(0, i).trim().toLowerCase();
+    (out[name] = out[name] || []).push(line.slice(i + 1).trim());
+  }
+  return out;
+}
+
+test('doorKitFiles: CORS on door.json once (0.3.1), no-cache on the worker, the root opens the door page, plain words in README-DOOR.txt', () => {
   const f = doorKitFiles({ version: '0.3.0' });
   assert.deepEqual(Object.keys(f).sort(), ['.nojekyll', 'Caddyfile', 'README-DOOR.txt', '_headers', '_redirects', 'vercel.json']);
-  assert.match(f._headers, /\/_mw\/door\.json\n {2}Access-Control-Allow-Origin: \*\n {2}Cache-Control: no-cache/);
+  assert.match(f._headers, /\/_mw\/door\.json\n {2}Cache-Control: no-cache\n\/_mw\/\*\n {2}Access-Control-Allow-Origin: \*/);
   assert.match(f._headers, /\/mw-sw\.js\n {2}Content-Type: text\/javascript; charset=utf-8\n {2}Cache-Control: no-cache/);
+  // 0.3.1: Cloudflare Pages applies every matching rule and joined the two Access-Control-Allow-Origin rules of the 0.3.0 kit into
+  // "*, *" on /_mw/door.json (browsers refuse that): each header is set once per path, and door.json still gets all four
+  assert.deepEqual(headersFor(f._headers, '/_mw/door.json'), { 'cache-control': ['no-cache'], 'access-control-allow-origin': ['*'], 'x-content-type-options': ['nosniff'], 'referrer-policy': ['no-referrer'] });
+  assert.deepEqual(headersFor(f._headers, '/mw-sw.js'), { 'content-type': ['text/javascript; charset=utf-8'], 'cache-control': ['no-cache'], 'referrer-policy': ['no-referrer'] });
+  for (const p of ['/mw-sw.js', '/_mw/door.json', '/_mw/open.html', '/_mw/open', '/_mw/loader.js', '/ws/site/index.html', '/index.html', '/']) {
+    for (const [name, values] of Object.entries(headersFor(f._headers, p))) assert.equal(values.length, 1, p + ' would send ' + name + ' ' + values.length + ' times');
+  }
   assert.match(f._redirects, /^\/ \/_mw\/open\.html 302$/m);
   const v = JSON.parse(f['vercel.json']);
   assert.deepEqual(v.redirects, [{ source: '/', destination: '/_mw/open.html', permanent: false }]);
-  assert.ok(v.headers.some((h) => h.source === '/_mw/door.json' && h.headers.some((x) => x.key === 'Access-Control-Allow-Origin' && x.value === '*')));
+  assert.ok(v.headers.some((h) => h.source === '/_mw/door.json' && h.headers.length === 1 && h.headers[0].key === 'Cache-Control'));
+  assert.ok(v.headers.some((h) => h.source === '/_mw/(.*)' && h.headers.some((x) => x.key === 'Access-Control-Allow-Origin' && x.value === '*')));
+  assert.equal(v.headers.filter((h) => h.headers.some((x) => x.key === 'Access-Control-Allow-Origin')).length, 2, 'vercel.json: /_mw/(.*) and /ws/(.*) only');
   assert.match(f.Caddyfile, /redir @root \/_mw\/open\.html 302/);
   assert.match(f.Caddyfile, /header \/mw-sw\.js Cache-Control "no-cache"/);
+  assert.match(f.Caddyfile, /header \/_mw\/door\.json Cache-Control "no-cache"/);
+  assert.equal((f.Caddyfile.match(/Access-Control-Allow-Origin/g) || []).length, 2, 'Caddyfile: /_mw/* and /ws/* only');
+  assert.match(f['README-DOOR.txt'], /Cloudflare Pages answers the door page at\n {5}\/_mw\/open/);
   assert.match(f['README-DOOR.txt'], /A link cannot reroute itself/);
   assert.match(f['README-DOOR.txt'], /check-site\.mjs https:\/\/<this host>\/ --door/);
   for (const [name, text] of Object.entries(f)) assert.doesNotMatch(text, BANNED, name);
