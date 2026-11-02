@@ -2151,8 +2151,8 @@ folded in here until the code does it; R 5.4.7 lists those.
 
 > **Status: built on 2026-11-01, not yet reviewed.** Contracts for the apps that a door offers on its bare door page: direct messages and
 > rooms, by a short code. Tested with unit tests on loopback (fakes, the real pairing core, the Node tracker with real WebSocket clients)
-> and in two scripted Chromium runs on loopback (two visitors; a room of four). Run on the public tier (the Cloudflare Worker with pairing on) in headless Chromium on 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4). Not run: a real
-> phone, Safari, Firefox, a screen reader, two networks. The new cryptographic code has had no outside review (R 2.19). What is not built
+> and in two scripted Chromium runs on loopback (two visitors; a room of four). Run on the public tier (the Cloudflare Worker with pairing on) in headless Chromium on 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4), and the same day with one Android phone: on home Wi-Fi at a lab door it signed in, accepted a knock and exchanged messages, and on mobile data (5G) at the demo door its direct link failed. Not run: an iPhone,
+> Safari, Firefox, a screen reader, a direct link across two networks that connects. The new cryptographic code has had no outside review (R 2.19). What is not built
 > is marked **(proposed)**. A review of the protocol and the privacy claims on 2026-11-02 found one blocker (the roster was readable by a
 > connection to the lane that was never accepted) and eight smaller defects; all are fixed, and the rest is in APPS.md, "Known limits". The
 > description for owners is [APPS.md](APPS.md); the exports are in INTERFACES "Apps on the door page"; the
@@ -2300,14 +2300,13 @@ folded in here until the code does it; R 5.4.7 lists those.
   request differently from a closed one, so the 1,048,576 channels can be listed (at the cap of 10 requests a minute a socket, 1,000
   sockets need about 105 minutes: arithmetic, not a run). Block is by the other person's key for this visit, so a reload bypasses it. **(proposed)** A separate
   `_mw/apps.js` entry loaded only by doors with apps. **(proposed)** `verify-release.mjs verify --door-kit` accepting a door kit whose
-  `door.json` carries the block (it names that file today, because the signed list names `door.json` without it). No Cloudflare run, so
-  hibernation and idle pair sockets on the real platform are untested.
+  `door.json` carries the block (it names that file today, because the signed list names `door.json` without it). On 2026-11-02 the demo's rendezvous ran on Cloudflare (a Pages front over a Worker with a Durable Object): pairing worked at the demo door, and a phone on mobile data (5G) did not connect directly, which is the case for the relay above; hibernation and idle pair sockets on the real platform are still untested.
 
 ### 15.22 Usage reports (unreleased)
 
 > **Status: built on 2026-11-02, not yet reviewed.** Contracts for the optional usage reports: what the loader, the apps and the identity page tell an endpoint that the site
 > owner runs, so that the owner can see what happened on a visit. Tested with unit tests on loopback (the reporter, the page's wiring, the hooks of the apps and of the identity page,
-> the Worker's core and front over fakes, and the publish tools). Not run: a real host, Cloudflare, a phone. What is not built is marked **(proposed)**. The description for owners
+> the Worker's core and front over fakes, and the publish tools). On 2026-11-02 it also ran live: the Worker and its Pages front on Cloudflare, headless Chromium visitors at a lab door and on the demo tier, and one phone ([OBSERVABILITY.md](OBSERVABILITY.md), "What was tested live"); not run: Safari, Firefox, many visitors. What is not built is marked **(proposed)**. The description for owners
 > and operators is [OBSERVABILITY.md](OBSERVABILITY.md); the exports, the batch and the routes are in INTERFACES "Usage reports"; the endpoint is
 > [deploy/obs-worker/README.md](../deploy/obs-worker/README.md); the privacy sentences are PRIVACY, "Usage reports". No lawyer has reviewed those sentences.
 
@@ -2372,6 +2371,6 @@ folded in here until the code does it; R 5.4.7 lists those.
   twice, written separately so that the two do not share a gap, and over-mask on purpose. `t` and `n` are the time and the name, so a field of either name is dropped (the count of messages of a conversation
   is `count`). The block lives in `door.json` and not in the pointer, so turning reports on does not change the site's infohash or ask the owner to sign a new pointer. `consent.version` is not raised.
 - **Not built.** **(proposed)** Reports of the calls (`src/calls`); their peer connections are not wrapped. Drop-in pages and the Service Worker send no reports. **(proposed)** A budget of events per session
-  on the page: a loop that raises events forever keeps the queue full and costs one request every 2 seconds, and the Worker's 60 batches a minute per session is the backstop. De-duplication of a retried batch
-  at the endpoint (a repeated `sid` and `seq` is kept, and readers drop it). A per-address quota at the endpoint (it never reads the address, and a script that sends any `Origin` can use up the day's requests).
-  An authenticated sender (the allow list only keeps other websites out of a browser). No Cloudflare run, so the Pages binding to the object, hibernation and the Free plan's counting are untested.
+  on the page: a loop that raises events forever keeps the queue full and costs one request every 2 seconds, and the Worker's 60 batches a minute per session is the backstop. De-duplication of a retried batch is only partly built:
+  the endpoint answers 204 for a repeat of one of the last 8 batches of a session (the same `sid`, `seq` and text) and stores, counts and pushes nothing for it, but that memory ends when its object is rebuilt or the UTC day ends, and a late retry is then stored twice; the readers (`events-tail`, `events-dump`) drop such a repeat. A per-address quota at the endpoint (it never reads the address, and a script that sends any `Origin` can use up the day's requests).
+  An authenticated sender (the allow list only keeps other websites out of a browser). On 2026-11-02 the Worker ran on Cloudflare and the Pages binding to the object worked ([OBSERVABILITY.md](OBSERVABILITY.md), "What was tested live"); hibernation and the Free plan's counting are still untested.

@@ -5591,11 +5591,13 @@ function syncReports (A) {
   else if (typeof A.firstYes === 'boolean') go = A.firstYes ? true : null
   else if (A.consentState === 'accepted') go = true
   else if (A.consentState === 'host-only') go = false
+  // The identity page joins its timeline to this page's through the session id (the ref of its request event). It is handed over while
+  // the choice is still open too, because at a door the sign-in comes before the first yes; a page that said no hands over nothing. The id
+  // is random and names no one, and the identity page sends its own reports only after its own card is pressed.
+  import('../identity/client.js').then((c) => { if (c && typeof c.configure === 'function') c.configure({ obsSid: go === false ? null : r.sid }) }).catch(() => {})
   if (go === null) { A.reportsBlocked = false; return }
   A.reportsBlocked = !go
   try { r.allow(go) } catch (_) { /* a report never breaks the page */ }
-  // The identity page joins its timeline to this page's through the session id (the ref of its request event); null once reports stop.
-  import('../identity/client.js').then((c) => { if (c && typeof c.configure === 'function') c.configure({ obsSid: go ? r.sid : null }) }).catch(() => {})
   refreshReportsUi(A)
 }
 

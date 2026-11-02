@@ -1,9 +1,10 @@
 # Usage reports
 
-> **Status: built on 2026-11-02, unit tested and run end to end on loopback; not yet run on a real host, a real phone or Cloudflare (unreleased).** Written for the code
+> **Status: built on 2026-11-02, unit tested and run end to end on loopback, and then run live the same day: the endpoint on Cloudflare, headless browsers at a lab door and on the demo tier, and one real phone (unreleased).** Written for the code
 > that adds usage reports ([CHANGELOG](../CHANGELOG.md), "Unreleased"). The unit tests cover the reporter, the loader's wiring, the hooks of the apps and
-> of the identity page, the endpoint's core and front over fakes, and the publish tools, and three scripted Chromium scenarios on loopback read what real pages send;
-> what has run, and what has not, is under "What was tested" at the end.
+> of the identity page, the endpoint's core and front over fakes, and the publish tools, and three scripted Chromium scenarios on loopback read what real pages send.
+> The live runs found two defects: the endpoint refused the phone's reports until the reporter sent by `fetch` first, and the identity page's rows carried no `ref` at a door (fixed in the code, not yet run live).
+> What has run, what it showed and what has not is under "What was tested" and "What was tested live" at the end.
 > No lawyer has reviewed the privacy sentences ([PRIVACY](PRIVACY.md#usage-reports-unreleased)). Treat usage reports as a first build.
 
 A site owner can turn on **usage reports** for a site, a door or an identity page. With them on, a visitor's browser tells an endpoint that the owner runs
@@ -65,7 +66,7 @@ Which page reports, and what starts and stops it:
   door page it lasts for the visit). The Diagnostics section of Settings has one line with the state and the counts: sent, waiting, dropped.
 - **Checking a page.** `window.__mwShell.inspect().obs` is `null` on a page with no usable block, and otherwise
   `{ host, enabled, allowed, queued, sent, dropped, batches, lastOk }` with the endpoint's host name only. `allowed: false` means nothing leaves the page.
-  The browser's network panel shows every report: a `POST` of `text/plain` to the endpoint's `/e`, as a beacon or a `fetch`.
+  The browser's network panel shows every report: a `POST` of `text/plain` to the endpoint's `/e`, by `fetch` (a beacon only as the fallback).
 
 ## What is sent
 
@@ -272,7 +273,7 @@ the identity key, the address or the short id of any site, or anything typed.
 | Event | Fields | Raised when |
 |---|---|---|
 | `ready` | | the page is ready, in the sign-in window or its home page |
-| `request` | `kind`, `shared`, `want`, `ref` | a sign-in request arrived: `kind` is `popup` or `redirect`, `shared` whether the site shares its origin, `want` what it asks for, as words of a closed list (the asked parts sorted and joined with `+`, among `keys`, `proof`, `record` and `erase`, such as `keys+proof`). `ref` is a field of this event, not a key of the batch: the opener's own session id, sent only on a popup, only when the opener's page reports and this page said in its ready message that it does, so one operator who runs both endpoints can join the two timelines; a redirect request carries none |
+| `request` | `kind`, `shared`, `want`, `ref` | a sign-in request arrived: `kind` is `popup` or `redirect`, `shared` whether the site shares its origin, `want` what it asks for, as words of a closed list (the asked parts sorted and joined with `+`, among `keys`, `proof`, `record` and `erase`, such as `keys+proof`). `ref` is a field of this event, not a key of the batch: the opener's own session id, sent only on a popup, only when the opener's page has a reporter and its visitor has not said no, and this page said in its ready message that it reports (at a door the sign-in comes before the first yes, so the opener hands the id over while the choice is still open), so one operator who runs both endpoints can join the two timelines; a redirect request carries none |
 | `card` | `kind` | a card was shown |
 | `action` | `name` | a button on a card was pressed, as a word from a closed list |
 | `unlock` | `method` | how the identity was unlocked: `passkey`, `passphrase` or `visit` |
@@ -349,7 +350,7 @@ batch of a day, with every 20th, and by each sweep: 1 + 1,000 + at most 144 a da
 under the limit either way. That is computed from the code, not measured.
 
 What that means for a site: a page sends a batch every 2 seconds at most, while it has something to send, so one page left open for an hour sends at most 1,800 batches
-and a quiet page far fewer, and the cap is reached after about 11 such page-hours in a day (arithmetic from the timer; how many batches a real visit sends has not been
+and a quiet page far fewer, and the cap is reached after about 11 such page-hours in a day (arithmetic from the timer; a headless site visitor sent 9 batches in a 1-minute probe, "What was tested live", and how many batches a visit by a person sends has not been
 measured). Past the cap the endpoint answers 429 until midnight UTC and that day's later reports are lost. A script that sends any `Origin` can also use up the day's
 100,000 requests, after which Cloudflare stops serving the endpoint, your reads included, until the limit resets. The endpoint has no per-address quota to offer
 against that, because it never reads the address. What can run before the Worker is Cloudflare's own: a WAF custom rule on `/e` that blocks a request whose `Origin` is not
@@ -427,12 +428,12 @@ A contributor who adds an event, or a log line, keeps these rules (they are the 
 - **It cannot take back what it holds.** After a visitor turns reports off, what was already sent stays at the endpoint until the retention ends (7 days by default). The
   endpoint holds no name, so the owner cannot tell whose a batch is unless the visitor was signed in (`who`). An owner who needs everything gone at once can delete the
   object ([the Worker's README](../deploy/obs-worker/README.md) says how, and that it cannot be undone).
-- **It has not run live.** See below.
+- **It has had one day of live runs, no more.** On 2026-11-02 it ran on Cloudflare, at a lab door, on the demo tier and on one phone, and the runs showed two defects, both fixed in the code (the way the reporter sends, and the identity page's `ref`); what that covers, and what has not run, is under "What was tested live".
 
 ## What was tested
 
-All of it on 2026-11-02, on one computer, and nothing beyond loopback (127.0.0.1): no real host, no Cloudflare, no real phone, no public network, and no review by anyone
-outside the project of the code or of the privacy sentences. The counts are those of that day's runs.
+All of it on 2026-11-02. The four items below ran on one computer and nothing beyond loopback (127.0.0.1); the runs on Cloudflare, at two doors and on a phone, which came later that
+day, are under "What was tested live". Nobody outside the project has reviewed the code or the privacy sentences. The counts are those of that day's runs.
 
 - **Unit tests**, `node tools/run-unit.mjs`: 3,256 tests, 3,247 pass, none fail, 1 skipped and 8 marked todo (the skip and the todos were there before this change). The files
   that hold usage reports, with their tests: `loader-obs` 95 (the reporter on its own: batches, retries, the masks, `describeTarget`, the peer connection wrapper), `loader-app-obs` 46
@@ -455,8 +456,35 @@ outside the project of the code or of the privacy sentences. The counts are thos
   nothing, and 22 ICE events from a real two-connection WebRTC session with no address anywhere in them. `idp-obs-browser` builds the identity page with `--obs` and drives a popup
   sign-in, a card closed unpressed, the settings page and a redirect sign-in against a loopback collector: the line above the first buttons, silence before a press, the last
   report before the window closes, and the opener's session id as `ref`.
-- **The operator's readers** (`felinar-ops`, `node --test obs/test/*.test.mjs`): 349 tests pass, against loopback servers that speak the endpoint's routes and frames.
-- **Not run:** a real host; Cloudflare (the Pages binding to the object, hibernation and the Free plan's counting are untested, and the Worker's own file has run only over
-  fakes); a real phone; Safari; Firefox and any engine but Chromium for the end-to-end scenarios (the authors of the reporter and of the identity page say they also tried them by
-  hand in Firefox 157 on loopback; that was not repeated here); the calls, which send no reports; and many visitors at once, so how many batches a real visit sends, and the day the
-  cap is reached, are not measured.
+- **The operator's readers** (`felinar-ops`, `node --test obs/test/*.test.mjs`): 349 tests pass, against loopback servers that speak the endpoint's routes and frames; the tail also ran against the live endpoint on 2026-11-02 ([below](#what-was-tested-live)).
+
+### What was tested live
+
+On 2026-11-02, from 09:46 to 13:18 ET (every time below is ET), usage reports ran on real hosts for the first time: the endpoint on Cloudflare, a lab door and the demo tier, headless Chromium visitors and one real phone. They were runs by hand, by scripts and
+by an operator's probe, not a load test, and they make no release gate row pass; [DEMO-RESULTS](DEMO-RESULTS.md#usage-reports-rows-to-add) records them as rows G-OB-1 to G-OB-5. The demo tier runs loader build 6dd2aa98cfe7, the build the lab door ran from 12:43, as a
+test build and not a signed release until 0.3.1 is released. The merged build (main 322261e) has these test numbers: unit 3,256 tests, 0 failures; the end-to-end scenarios APPS-1 to APPS-4 and OBS-1 to OBS-3 pass in Chromium, every request on loopback; fuzz for 60 s over
+30,000 inputs, 0 violations; the examples' own tests, 186; the reporter's browser tests in Chromium 156 and WebKit 27.2; the adversary suite of 62 probes.
+
+| When | What ran | What it showed |
+|---|---|---|
+| 09:46 | The endpoint, deployed: the Worker `felinar-obs-do` (version 9bbd3352, a SQLite-backed Durable Object, no `workers.dev` address) behind the Pages project `felinar-obs` at `https://felinar-obs.pages.dev`. `ALLOW_ORIGINS` names the demo site, the demo door, the demo identity page and the lab door, and `READ_TOKEN` is a Pages secret | A smoke from a Mac. `/healthz` answered `ok`. `/summary.json` answered 404 without the token and JSON with it. `POST /e` answered 403 from a foreign origin, 403 with `Origin: null` and 403 with no `Origin`, 400 for a session id of 13 characters and 204 for a valid batch. A stored row had `10.0.0.7` and `[2001:db8::1]:443` masked to `x.x.x.x`. The live tail connected and printed the hello frame. The Pages project was created with `--force`, once: `wrangler` 4.156 hands `pages project create` to Workers, and the plain command fails (later commands ran directly) |
+| From 10:20 | The lab door (`felinar-demo-lab.pages.dev`, a Cloudflare Pages project) with reports on: loader build fdd689957ed5 from 10:20, and build 6dd2aa98cfe7 (with the transport fix, below) from 12:43. A headless Chromium visitor at 10:20 | `check-site --door`: 0 failures and `[info] door: usage reports to felinar-obs.pages.dev`. The visitor: sign-in ok in 970 ms, `auth.change` with the short id, Messages, the start card's Continue counted as the first yes, the pair socket open, `pair-open` acknowledged in 807 ms, a code opened. 2 batches and 26 events, with no address, no full code and no name in the raw rows |
+| 11:31 | The lab door (build fdd689957ed5) with one real phone, the owner on it (Brave (Chromium), Android 16, Samsung Galaxy Z Flip, home Wi-Fi), and a headless Chromium knocker on a Mac | The knock was sent and acknowledged in 28 ms. The owner accepted 4 s after the knock (the `pair-accepted` push at 11:31:37.8). ICE went from checking to connected in 78 ms, selected pair `host/udp` to `host/udp`. The conversation connected 2 s after the accept, the greeting was delivered 0.8 s after it connected and read 2 s later, two messages from the phone reached the Mac with delivered and read receipts, and an operator line sent through the direct message was delivered |
+| 11:33 to 12:43 | The same phone's reports | None stored: see "A lesson from the phone" below |
+| 12:51 | Two headless browsers at the lab door (build 6dd2aa98cfe7), the owner side and the knocker, both reporting | The knock was acknowledged in 21 ms. The request came in, the accept card was shown and continued, and `pair-accept` was acknowledged in 45 ms. ICE went from checking to connected in 62 ms on both sides, pair `host/udp` to `host/udp`. The conversation connected on both, and messages showed queued, sent, delivered, read and received counts on both sides. A probe script outside this repository then fell into an echo loop for about 30 s (230 message events) and was stopped; it was not a fault of the loader |
+| 13:16 | The demo tier, deployed after the merge (main 322261e). The GitHub Pages tree: the same site (infohash d680ff361bf8e03180ae871e3030bfb9ee99aaf1, unchanged; pointer sequence 1793642022; 398 days left), shell build 6dd2aa98cfe7, `door.json` with the apps block and the obs block. The demo door kit on `felinar-demo-door.pages.dev`. The identity page, rebuilt with `build-idp --obs` (`connect-src 'self' https://felinar-obs.pages.dev`, `data-mw-obs` on the root), on `felinar-demo-id.pages.dev` | `check-site` at the site: 0 failures and 1 warning (the known `max-age` of `mw-sw.js` on GitHub Pages). At the site's own door page and at the demo door: 0 failures and the usage reports info line |
+| 13:17 to 13:18 | A read-back of the demo tier by headless browsers: two site visitors (the operator's live probe, `felinar-ops`, 1 minute), a sign-in at the demo door, and the identity page | The probe passed 4 of 4 checks, and peers met in 0.4 s (median). The two visitors reported as page `site`: `run.start` mode shell, `boot.sw` ok, `pointer.resolved` source meta, `gate.shown` kind consent with the host, `site.fetch` steps start, rendezvous, torrent, download (42 to 49 ms), persist, done (64 to 74 ms), `render.done` at 136 and 139 ms, `gate.choice` accepted, `consent.set` accepted, `tracker.state`, `peers.count` rising to 1, `ice.pair` `host/udp` to `host/udp` and `ledger.sync`; 9 batches and 226 events for one, 9 and 209 for the other. The sign-in at the demo door reported as page `door` (2 batches, 26 events, `who` set). The identity page reported as page `idp` (build 6841e6cbcee3): `ready`, `request`, `card`, `action`, `unlock` and `result` (6 events), and its rows carried no `ref`: the door page handed its session id over only after the first yes, and at a door the sign-in comes first. `syncReports` in `src/loader/app.js` now hands the id over while the choice is still open, and a page whose visitor said no hands over nothing; that change came after the build that ran and has not run live. A scan of all 53 rows of the day (945 events) found 0 IP addresses, 0 full pair codes and 0 names or email addresses |
+| All day | The operator's tools in `felinar-ops` (private): `events-tail`, `events-dump` and `events-summary` (349 tests), and the status line of `scripts/check.sh`, which reads the endpoint when `OBS_READ_TOKEN` is set (the owner sets the secret) | The live tail was used throughout the day |
+
+**A lesson from the phone: a page cannot say what the endpoint stored.** Between 11:33 and 12:43 the phone's Settings showed "Usage reports to felinar-obs.pages.dev: sending. Sent 99, waiting 1, dropped 0", and the endpoint had stored none of those batches. The reporter sent by
+`navigator.sendBeacon`, a no-cors POST, and under the door's `Referrer-Policy: no-referrer` that request carries `Origin: null`, which the Worker refuses by design. A beacon has no answer, so the page counted what the browser took and not what the endpoint kept. The fix, in the
+merged build: `fetch` with `keepalive` in cors mode first, because a cors request carries the page's real `Origin` and its answer says whether the batch was stored (a 2xx answer, for an origin on the allow list), and the beacon only as the fallback. After it, a headless visitor's
+batches arrived over `fetch`; a phone on the demo tier after the fix has not run. After any change to how the reporter sends, compare what Settings says was sent with what `/summary.json` counts.
+
+**A limit found live: the direct link on mobile data.** At 07:08, before the endpoint was deployed, a phone on mobile data (5G) took part in the pairing at the demo door: two knocks were delivered and accepted, but every WebRTC attempt went from ICE checking to disconnected at 15 s and then to
+failed. The app offered again four times, every 20 to 35 s, and the remote candidates were `host` and `srflx` only. The pairing itself (the knock and the accept) worked across the public internet; the direct link needs a relay (TURN) for a peer on mobile data, and the apps have none
+([ARCHITECTURE](ARCHITECTURE.md) 15.21), so a pair with a peer on mobile data does not connect without one (one phone, one run).
+
+**Not run:** a real phone on the demo tier after the transport fix (the phone ran at the lab door, before it); Safari; Firefox and any engine but Chromium for the end-to-end scenarios (the authors of the reporter and of the identity page say they also tried them by hand in Firefox 157 on
+loopback; that was not repeated here); the calls, which send no reports; and many visitors at once, so the day the cap is reached, and how many batches a visit by a person sends (a headless site visitor sent 9 in a 1-minute probe), are not measured. Hibernation of an idle tail and the
+Free plan's counting are still untested, and so are the Cloudflare rules on `/e` that [the Worker's README](../deploy/obs-worker/README.md#privacy) describes.

@@ -1881,7 +1881,7 @@ build.mjs             --update-lock refuses a provenance package's new release w
 > **Status: built on 2026-11-01, not yet reviewed (unreleased).** Direct messages and rooms on the bare door page. Tested with unit tests
 > on loopback (`test/unit/deploy-rtc-pair`, `deploy-rtc-worker`, `tools-tracker-pair`, `loader-apps`, `loader-apps-format`,
 > `loader-apps-rooms`, `loader-apps-ui`, `loader-apps-tracker`, `tools-publish-apps`, `tools-dev-server-apps` and the apps cases of
-> `loader-doors` and `tools-check-door`). Run on the public tier (the Cloudflare Worker with pairing on) in headless Chromium on 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4). Not run: a real phone, Safari, Firefox. The owner-facing
+> `loader-doors` and `tools-check-door`). Run on the public tier (the Cloudflare Worker with pairing on) in headless Chromium on 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4), and the same day with one Android phone: on home Wi-Fi at a lab door it signed in, accepted a knock and exchanged messages, and on mobile data (5G) at the demo door its direct link failed. Not run: an iPhone, Safari, Firefox. The owner-facing
 > description is [APPS.md](APPS.md).
 
 ### The apps block of `/_mw/door.json`, and the tools that write it
@@ -2062,7 +2062,7 @@ src/loader/app.js       run(): a door page with no link and an apps block runs r
 > **Status: built on 2026-11-02, not yet reviewed (unreleased).** The optional usage reports of the loader, the apps and the identity page, and the endpoint that receives them. Tested
 > with unit tests on loopback (`test/unit/loader-obs`, `loader-app-obs`, `loader-apps-obs`, `idp-obs`, `deploy-obs-core`, `deploy-obs-worker`, `tools-apps-block-obs`, `tools-publish-obs`,
 > `tools-dev-server-obs` and the obs cases of `tools-check-door`), by three scripted Chromium scenarios on loopback (OBS-1 to OBS-3 of `test/e2e/scenarios-obs.mjs`, against the stand-in
-> collector of `test/e2e/obs-collector.mjs`) and by `docs-observability`, which holds the event tables of OBSERVABILITY.md to the calls in the code. Not run on a real host or on Cloudflare. The owner-facing description is [OBSERVABILITY.md](OBSERVABILITY.md); the
+> collector of `test/e2e/obs-collector.mjs`) and by `docs-observability`, which holds the event tables of OBSERVABILITY.md to the calls in the code. On 2026-11-02 it also ran live: the endpoint on Cloudflare, headless Chromium visitors at a lab door and on the demo tier, and one phone ([OBSERVABILITY.md](OBSERVABILITY.md), "What was tested live"); not run in Safari or Firefox, or with many visitors. The owner-facing description is [OBSERVABILITY.md](OBSERVABILITY.md); the
 > events are listed there.
 
 ### The obs block of `/_mw/door.json`, and the tools that write it

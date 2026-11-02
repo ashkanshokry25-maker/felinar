@@ -3,9 +3,10 @@
 > **Status: built, not yet reviewed (unreleased).** Written on 2026-11-01 for the code that adds the apps ([CHANGELOG](../CHANGELOG.md),
 > "Unreleased"). Tested with unit tests on loopback (fakes, the real pairing core, and the Node tracker with real WebSocket clients), in
 > two scripted Chromium runs on loopback, one with two visitors and one with a room of four, and, on 2026-11-02, in headless Chromium
-> against the public tier: a rendezvous Worker on Cloudflare, a door and an identity page on Cloudflare Pages, harness only
-> ([What was tested](#what-was-tested)). Not run: a real phone, a real Safari, pairing in WebKit or Firefox, a screen reader, two separate
-> networks. The new cryptographic code has had no outside review, and no
+> against the public tier: a rendezvous Worker on Cloudflare, a door and an identity page on Cloudflare Pages, harness only, and with one
+> Android phone the same day: on home Wi-Fi at a lab door it signed in, accepted a knock and exchanged messages, and on mobile data (5G) at
+> the demo door its direct link failed ([What was tested](#what-was-tested)). Not run: an iPhone, a real Safari, pairing in WebKit or Firefox,
+> a screen reader, a direct link across two networks that connects. The new cryptographic code has had no outside review, and no
 > lawyer has reviewed the privacy sentences ([PRIVACY](PRIVACY.md)). A review of the protocol and the privacy claims on 2026-11-02, which
 > wrote 18 adversary tests (`test/unit/apps-adversary.test.mjs`), found one blocker and eight smaller defects; all are fixed, and what
 > remains is under "Known limits". Treat the apps as a first build.
@@ -310,12 +311,14 @@ The counts before the accept are the measured form of one claim of this page: un
 ("Using the apps", Messages, step 3). They show what this page's code and this rendezvous did in one run in one engine, and they do not
 cover a rendezvous that misbehaves ("Known limits").
 
+**One phone, later that day.** The same day one Android phone (Brave (Chromium), Android 16, Samsung Galaxy Z Flip) ran the pairing on two networks; the rows are G-AP-1, G-AP-2 and G-AP-4 in [DEMO-RESULTS](DEMO-RESULTS.md), and G-OB-3 for its usage reports. On home Wi-Fi, at a lab door (a second door and rendezvous, loader build fdd689957ed5), the owner signed in for the visit, got a code and accepted a knock from a headless Chromium on a Mac on the same network: the knock was acknowledged in 28 ms, the owner accepted 4 s after the knock, ICE went from checking to connected in 78 ms with the selected pair `host/udp` to `host/udp`, the conversation connected 2 s after the accept, the greeting was delivered 0.8 s after it connected and read 2 s later, and two messages from the phone arrived with delivered and read receipts. The count of `RTCPeerConnection` objects before the accept (0) is the headless side's, measured by the probe; the phone's side was not instrumented. On mobile data (5G), at the demo door at 07:08 ET, the same phone accepted two knocks, but every WebRTC attempt failed: ICE went from checking to disconnected at 15 s and then to failed, in four attempts that the app offered again every 20 to 35 s, with remote candidates of the kinds `host` and `srflx` only. The pairing itself (the knock and the accept, through the rendezvous) worked across the public internet; the direct link did not connect for a peer on mobile data, and there is no relay to fall back to ("What an owner gets").
+
 **Not yet run.**
 
-- No real phone has run the apps, neither an iPhone nor an Android phone.
+- No iPhone has run the apps. One Android phone has (above): it paired on home Wi-Fi and did not connect on mobile data.
 - No real Safari has run them, on a desktop or on an iPhone.
 - No pairing has run in WebKit or Firefox: the harness paired only in Chromium.
-- Both browsers ran on one computer, so no run has connected two separate networks, and the door's STUN server has not been tried between two homes.
+- The two harness browsers ran on one computer, and the only run across two networks, with the phone on mobile data (above), did not connect. The door's STUN server has not been tried between two homes.
 - No screen reader has been used on the apps.
 - The demo runs an unsigned test build until 0.3.1 is released: no signed release carries the apps yet.
 
