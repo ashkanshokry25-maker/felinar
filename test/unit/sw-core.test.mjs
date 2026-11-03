@@ -1128,3 +1128,18 @@ test('code review v0.3 round 2: a message the worker could not read (messageerro
   const sw = readFileSync(new URL('../../src/sw/sw.js', import.meta.url), 'utf8');
   assert.match(sw, /addEventListener\('messageerror', \(event\) => \{\n {2}core\.messageError\(event\);/, 'the worker listens for it');
 });
+
+test('door-only origin: with no site of its own, a top-level navigation goes to the host (its root opens the door page), never the shell', async () => {
+  const fetch = shellFetch();
+  fetch.routes[ORIGIN + '/'] = new Response('host answer', { status: 200, headers: { 'Content-Type': 'text/html' } });
+  const made = makeCore({ storage: memoryStorage(), clients: fakeClients([client('door-1', { url: ORIGIN + '/_mw/open' })]), fetch });
+  await made.core.install({ waitUntil() {} });
+  await made.core.activate({ waitUntil() {} });
+  const r = await send(made.core, { proto: PROTO, type: 'mw-set-current', btih: exampleSite().infoHash }, { source: { id: 'door-1', frameType: 'top-level', url: ORIGIN + '/_mw/open' } });
+  assert.equal(r.replies[0].ok, false, 'the door page never sets a current site');
+  const top = await serve(made.core, nav('/', { resultingClientId: 'door-2' }));
+  assert.equal(await text(top), 'host answer', 'the host answered the root, so its redirect to the door page applies');
+  fetch.routes[ORIGIN + '/'] = new Error('offline');
+  const offline = await serve(made.core, nav('/', { resultingClientId: 'door-3' }));
+  assert.match(await text(offline), /\/_mw\/boot\.js/, 'offline, the shell is still the answer, as before');
+});
