@@ -543,7 +543,7 @@ test('uaOf: the browser family and mobile, never the string; every iOS browser i
   const ua = (userAgent, extra = {}) => uaOf(Object.assign({ userAgent }, extra));
   assert.deepEqual(ua('Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'), { browser: 'chromium', mobile: false });
   assert.deepEqual(ua('Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/120.0 Safari/537.36 Edg/120.0'), { browser: 'chromium', mobile: false });
-  assert.deepEqual(ua('Mozilla/5.0 (Linux; Android 14; SM-F776W) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36'), { browser: 'chromium', mobile: true });
+  assert.deepEqual(ua('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36'), { browser: 'chromium', mobile: true });
   assert.deepEqual(ua('Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0'), { browser: 'firefox', mobile: false });
   assert.deepEqual(ua('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'), { browser: 'webkit', mobile: false });
   assert.deepEqual(ua('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/120.0 Mobile/15E148 Safari/604.1'), { browser: 'webkit', mobile: true });
