@@ -2054,7 +2054,19 @@ export function createCore(options) {
     if (foreign) return serveDropinFile(event, req, url);
     const mode = computeMode() || 'dropin';
     if (mode === 'shell') {
-      if (isTopLevel(req)) return serveShell(event, req, url);
+      if (isTopLevel(req)) {
+        // A door-only origin has no site of its own: its pages belong to the host, whose root opens the door page. Serving the shell
+        // there booted a site with no pointer ("Could not find this site's address") on every visit after the first. Offline, the
+        // shell is still the answer, as before.
+        if (!state.current) {
+          try {
+            return await env.fetch(req);
+          } catch (_) {
+            /* the host is unreachable: the shell below */
+          }
+        }
+        return serveShell(event, req, url);
+      }
       if (!isNavigation(req) && (await classifyClient(event)) === 'shell') return env.fetch(req);
       return serveShellSite(event, req, url);
     }
