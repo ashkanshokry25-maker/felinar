@@ -95,10 +95,24 @@ test('the numbers INTERFACES, APPS and ARCHITECTURE state for the relay are the 
   assert.ok(RELAY_LANE.includes('50,000 ms') && ARCH_RELAY.includes('50 seconds') && APPS_RELAY_SECTION.includes('50 seconds'));
 });
 
+// The page keeps its socket under the caps above by itself (finding A-3 of verify round 0): the link counts its socket's minute and holds a frame
+// back until it has room. The numbers the documents give for that are the link's own, and they stay under the caps of pair.js.
+test('the minute a page keeps for its socket: APPS, ARCHITECTURE and INTERFACES give the link\'s numbers as the code holds them, under the caps of pair.js', () => {
+  assert.ok(LINK.RELAY_BUDGET > 0 && LINK.RELAY_BUDGET < PAIR.DEFAULT_CAPS.relayPerMin, 'the relayed frames a page sends a minute stay under relayPerMin');
+  assert.ok(LINK.MESSAGE_BUDGET > LINK.RELAY_BUDGET && LINK.MESSAGE_BUDGET < PAIR.DEFAULT_CAPS.messagesPerMin, 'the messages a page sends a minute stay under messagesPerMin');
+  assert.ok(flat(APPS_RELAY_SECTION).includes('(' + LINK.RELAY_BUDGET + ' relayed frames and ' + LINK.MESSAGE_BUDGET + ' messages a minute)'), 'APPS "Messages through the rendezvous"');
+  assert.ok(flat(ARCH_RELAY).includes(LINK.RELAY_BUDGET + ' relayed frames and ' + LINK.MESSAGE_BUDGET + ' messages, holding a frame back'), 'ARCHITECTURE 15.21');
+  assert.ok(INTERFACES.includes('relayBudget = ' + LINK.RELAY_BUDGET + ', messageBudget = ' + LINK.MESSAGE_BUDGET), 'INTERFACES createLink');
+  assert.ok(flat(INTERFACES).includes('relayBudget relayed frames (RELAY_BUDGET, ' + LINK.RELAY_BUDGET + ') and messageBudget frames in all (MESSAGE_BUDGET, ' + LINK.MESSAGE_BUDGET + ')'), 'INTERFACES the socket\'s minute');
+});
+
 test('every counter pair.js reports for the relay is named in INTERFACES, counts only', () => {
   const stats = PAIR.createPairing({ random: (len) => new Uint8Array(len), now: () => Date.UTC(2026, 10, 7, 12, 0, 0) }).stats();
   const relayFields = Object.keys(stats).filter((k) => !['codes', 'knocks'].includes(k));
-  assert.deepEqual(relayFields.sort(), ['joinsRefused', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays']);
+  // the seven fields of plan 3.2 and `evicted` (members evicted from a full lane today, DECISIONS DEC-1), exactly (finding B-2 of verify round 0:
+  // DEC-1 has landed, so a stats() that lost the field must fail here)
+  const expected = ['evicted', 'joinsRefused', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays'];
+  assert.deepEqual(relayFields.sort(), expected);
   const line = RELAY_LANE.slice(RELAY_LANE.indexOf('Stats '), RELAY_LANE.indexOf('Hibernation'));
   for (const k of relayFields) assert.ok(line.includes(k), 'INTERFACES does not name the counter ' + k);
   assert.match(line, /Counts only: no lane id, no frame, no address/);
@@ -140,6 +154,18 @@ test('INTERFACES names the link methods, events and report reasons of the relay,
   assert.ok(INTERFACES.includes('{"v":1,"action":"pair-ping"}') && INTERFACES.includes('keepaliveMs'));
 });
 
+test('INTERFACES names the strings and the conversation reason of the Decide phase (DEC-3 apps.price.hidden, DEC-5 no-path and apps.status.noPath), and the strings exist in both languages', () => {
+  const view = between(INTERFACES, '### The view and the hooks in the loader', 'src/loader/ui.js');
+  for (const k of ['apps.price.hidden', 'apps.price.hiddenRoom', 'apps.status.noPath']) {
+    assert.ok(view.includes(k), 'INTERFACES "The view" does not name ' + k);
+    assert.ok(typeof APPS_TEXT.en[k] === 'string' && APPS_TEXT.en[k].length > 0, 'no English ' + k);
+    assert.ok(typeof APPS_TEXT.fr[k] === 'string' && APPS_TEXT.fr[k].length > 0, 'no French ' + k);
+  }
+  const service = between(INTERFACES, 'apps.state() ->', 'Calls       every call');
+  assert.ok(service.includes("'no-path'"), 'INTERFACES apps.state() does not name the conversation reason no-path');
+  assert.ok(service.includes("'bad-lane'"), 'INTERFACES apps.state() does not name the conversation reason bad-lane');
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // The door.json keys: doors.js, tools/apps-block.mjs, the flags and the documents
 
@@ -172,6 +198,13 @@ test('APPS.md quotes the relay-first price card, its extra line and the status l
   const apps = flat(APPS);
   assert.ok(apps.includes(flat(APPS_TEXT.en['apps.price.text'])), 'APPS.md does not quote apps.price.text as the code holds it');
   assert.ok(apps.includes(flat(APPS_TEXT.en['apps.price.direct'])), 'APPS.md does not quote apps.price.direct as the code holds it');
+  // DEC-3: the denial is its own paragraph, shown only when direct links are off, and the price text ends before it
+  for (const k of ['apps.price.hidden', 'apps.price.hiddenRoom']) assert.ok(apps.includes('"' + APPS_TEXT.en[k] + '"'), 'APPS.md does not quote ' + k);
+  assert.match(APPS_TEXT.en['apps.price.text'], /never what\.$/);
+  assert.match(APPS_TEXT.en['apps.price.room'], /never what\.$/);
+  assert.match(apps, /a card never states that the other person does not see your address and then takes it back/);
+  // DEC-5: the line of a conversation with no usable path, in the troubleshooting table, with what to do
+  assert.ok(apps.includes('"' + APPS_TEXT.en['apps.status.noPath'] + '"'), 'APPS.md does not quote apps.status.noPath');
   assert.ok(apps.includes('"' + APPS_TEXT.en['apps.status.relayed'] + '"'), 'APPS.md does not quote apps.status.relayed');
   assert.ok(apps.includes('"' + APPS_TEXT.en['apps.status.connected'] + '"'), 'APPS.md still quotes apps.status.connected');
   // the sentence of before is gone from the page that describes what the card says (it stays in the strings for relay "none")
@@ -221,7 +254,9 @@ test('CHANGELOG.md [Unreleased] records the relay, the two keys, the view and th
   const flatUnreleased = flat(UNRELEASED);
   for (const needle of ['Messages through the rendezvous (relay-first', '`pair-join`', '`pair-relay`', 'RELAY_LANE', '--no-relay-lane', '`relays`', '`joinsRefused`',
     'gains two optional keys, `relay`', '`apps-relay`', '`apps-transport`', '--apps-relay rendezvous|none', 'appsTransportOf', 'Connected through the rendezvous', '`apps.lane`',
-    'which is every block published before this change', '"relay": "none"', 'apps.price.textDirect']) {
+    'which is every block published before this change', '"relay": "none"', 'apps.price.textDirect',
+    // the Decide phase: DEC-1 (a vanished member does not block its replacement), DEC-3 (the denial as its own paragraph), DEC-5 (no usable path is visible)
+    '`memberStaleMs`', '`lane full`', '`apps.price.hidden`', '`no-path`', '`apps.status.noPath`']) {
     assert.ok(flatUnreleased.includes(needle), 'the CHANGELOG does not say ' + JSON.stringify(needle));
   }
   assert.ok(flatUnreleased.includes('not yet run on a real network'), 'the entry says the relay has not run on a real network');
@@ -271,12 +306,21 @@ test('the whole documents that were touched have no em or en dash and no curly q
 test('the passages that state a benefit state its condition: what the rendezvous sees comes with what it does not, and the address claim with the direct link', () => {
   const apps = flat(APPS_RELAY_SECTION);
   assert.match(apps, /Relays carry sealed messages of three fixed sizes and cannot read them/);
-  assert.match(apps, /your network address, unless the door turns direct links on and one connects/);
+  // With direct links on, the connection offers and answers carry each browser's address to the other before any link exists (the tracker client
+  // makes non-trickle offers with every candidate gathered, src/loader/connectivity.js): the address claim is tied to turning direct links on,
+  // never to a link connecting (findings C-1 and C-2 of verify round 0)
+  assert.match(apps, /your network address, unless the door turns direct links on \(its connection offers carry the address, connected or not\)/);
   assert.match(apps, /does not say that it works there/);
   assert.match(apps, /This page does not say|so this page does not say/);
   const privacy = flat(PRIVACY_APPS);
   assert.match(privacy, /the other person does not see your network address/);
-  assert.match(privacy, /A door whose `door.json` also says `direct` `"on"` lets the browsers try a direct link as well: when one connects, each learns the other's network address/);
+  assert.match(privacy, /A door whose `door.json` also says `direct` `"on"` lets the browsers try a direct link as well: their connection offers and answers, which the rendezvous carries on the lane as any tracker does, hold each browser's network address, so each person's browser receives the other's address whether or not a link connects/);
+  for (const [name, text] of [['APPS.md', flat(APPS)], ['PRIVACY.md', privacy], ['ARCHITECTURE.md', flat(ARCH)]]) {
+    assert.doesNotMatch(text, /(?:and|when) one connects|a direct link connects, each|connects two browsers, each sees/, name + ' ties the address to a link connecting');
+  }
+  // the owner of the door is denied addresses only with the condition (C-4): the code gives none, unless the owner logs them or hosts the rendezvous
+  assert.doesNotMatch(privacy, /not messages or addresses/);
+  assert.match(privacy, /gives the owner no addresses, unless the owner adds code that logs them or hosts the rendezvous on a machine of their own/);
   assert.match(privacy, /can be ordered to record the addresses that connect to it and can be barred from saying so/);
   // the benefit of the default is never stated without the host's view of the address
   assert.match(privacy, /see the lane's id, the network address of each socket, when each message is sent and one of three size classes/);

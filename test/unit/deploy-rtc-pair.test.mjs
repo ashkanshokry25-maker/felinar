@@ -36,7 +36,8 @@ function conn(name) {
 /**
  * A world: the pure core with a clock, counter-based random bytes, the lanes it allowed and the storage ops it asked for.
  * known is what the host's laneExpiry(hex) answers (lane -> expiry ms): the lanes the core minted, and any a test adds;
- * opts.hostExpiry === false gives the core no laneExpiry at all, and opts.relay: false switches the relay lane off.
+ * opts.hostExpiry === false gives the core no laneExpiry at all, opts.relay: false switches the relay lane off, and opts.liveness is the
+ * host's liveness(conn) (DECISIONS DEC-1: the time of the socket's last keepalive the platform answered).
  */
 function world(opts = {}) {
   let clock = T0;
@@ -50,7 +51,7 @@ function world(opts = {}) {
     return a;
   };
   const p = createPairing({
-    random, now: () => clock, caps: opts.caps, relay: opts.relay,
+    random, now: () => clock, caps: opts.caps, relay: opts.relay, liveness: opts.liveness,
     allowLane: (hex, exp) => { if (opts.refuseLanes) return false; lanes.push([hex, exp]); known.set(hex, exp); return true; },
     laneExpiry: opts.hostExpiry === false ? undefined : (hex) => known.get(hex) || 0,
     persist: (o) => ops.push(...o),
@@ -58,10 +59,10 @@ function world(opts = {}) {
   return { p, lanes, known, ops, tick: (ms) => { clock += ms; }, now: () => clock };
 }
 /**
- * The seven relay fields of stats() (plan 3.2). The tests written before the relay lane pin the pairing counts and the tracker's
- * counts exactly; they do it through noRelay(stats), which drops these seven, and the relay tests pin the seven themselves.
+ * The eight relay fields of stats() (plan 3.2, and evicted from DECISIONS DEC-1). The tests written before the relay lane pin the
+ * pairing counts and the tracker's counts exactly; they do it through noRelay(stats), which drops these eight, and the relay tests pin them.
  */
-const relayFields = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused'];
+const relayFields = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
 const noRelay = (stats) => { const out = Object.assign({}, stats); for (const k of relayFields) delete out[k]; return out; };
 const say = (w, from, msg) => w.p.message(from, Object.assign({ v: 1 }, msg));
 const to = (r, c) => (Array.isArray(r) ? r : r.replies).filter(([x]) => x === c).map(([, o]) => o);
@@ -711,6 +712,148 @@ test('relay join: one socket holds at most 8 lanes; a ninth is refused, a lane i
   assert.equal(PAIR.DEFAULT_CAPS.lanesPerSocket, 8);
 });
 
+test('relay join (DEC-1): a member that showed no life for more than memberStaleMs does not block its replacement: a join to the full lane evicts it through the leave path, the others hear left then joined, the host is told whom to close, and it is counted', () => {
+  const w = relayWorld();
+  const [a, b, c] = ['a', 'b', 'c'].map(conn);
+  joinLane(w, a);
+  joinLane(w, b);
+  a.take();
+  // 2 minutes later: a pinged, b said nothing since its join (a phone that changed networks: its old socket is half open here)
+  w.tick(PAIR.DEFAULT_CAPS.memberStaleMs);
+  say(w, a, { action: 'pair-ping' });
+  a.take();
+  const early = joinLane(w, c, { rid: 'e' });
+  fails(early, c, 'lane full');
+  assert.equal(early.evicted, undefined, 'exactly memberStaleMs of silence is not yet older than it');
+  w.tick(1);
+  const r = joinLane(w, c, { rid: 'j3' });
+  assert.deepEqual(to(r, c), [{ action: 'pair-join', lane: LANE, peers: 1, rid: 'j3' }], 'c takes the place of b');
+  assert.deepEqual(to(r, a), [{ action: 'pair-left', lane: LANE, peers: 0 }, { action: 'pair-joined', lane: LANE, peers: 1 }], 'the path of a socket that closed, then the newcomer');
+  assert.deepEqual(to(r, b), [], 'the evicted socket is told nothing here: the host closes it');
+  assert.deepEqual(r.evicted, [b], 'whom the host closes (code 1000) and releases');
+  assert.equal(r.changed, true);
+  assert.equal(r.problem, null);
+  assert.deepEqual(w.p.attachmentOf(b), { c: [], q: [] }, 'b is in no lane any more');
+  assert.deepEqual(w.p.attachmentOf(c).l, [[LANE, 'pair']]);
+  fails(relayTo(w, b, frameOf(8), { rid: 'x' }), b, 'unknown lane');
+  assert.deepEqual(to(relayTo(w, c, frameOf(8)), a), [{ action: 'pair-relayed', lane: LANE, f: frameOf(8) }], 'a frame reaches the new member');
+  const s = w.p.stats();
+  assert.deepEqual([s.evicted, s.joinsRefused, s.relays], [1, 1, 1], 'the early refusal was counted as a refusal, the eviction as an eviction');
+  // the host then closes b as it closes any socket: nothing of it is left in the lane, so nobody is told twice
+  assert.deepEqual(w.p.close(b), []);
+  assert.deepEqual([w.p.stats().relays, w.p.attachmentOf(a).l.length], [1, 1]);
+  assert.deepEqual(w.ops, [], 'nothing about an eviction is written to storage');
+  // the counter belongs to the UTC day like the others
+  w.tick(2 * HOUR);
+  assert.equal(w.p.stats().evicted, 0, 'a new UTC day starts it at 0');
+  assert.equal(PAIR.DEFAULT_CAPS.memberStaleMs, 120000, 'about 2.4 keepalives of 50 seconds');
+});
+
+test('relay join (DEC-1): liveness is the later of the last message here and what the host knows (the keepalive the platform answered); the host is asked about the members of the full lane only; a lane whose members are all live still answers lane full', () => {
+  const asked = [];
+  const alive = new Map(); // conn -> the time the host's platform last answered its ping
+  const w = relayWorld({ liveness: (x) => { asked.push(x.name); return alive.has(x) ? alive.get(x) : undefined; } });
+  const [a, b, c, d, e] = ['a', 'b', 'c', 'd', 'e'].map(conn);
+  joinLane(w, a);
+  joinLane(w, b);
+  const other = laneN(5);
+  w.known.set(other, T0 + LANE_TTL_MS);
+  joinLane(w, d, {}, 'pair', other);
+  // 10 minutes of silence from both; the platform answered b's ping a minute ago (seen(), in the Worker), a's never
+  w.tick(10 * MIN);
+  alive.set(b, w.now() - MIN);
+  alive.set(d, w.now());
+  asked.length = 0;
+  const r = joinLane(w, c, { rid: 'j' });
+  assert.deepEqual(asked.sort(), ['a', 'b'], 'the host is asked about a and b, not about d in another lane and not about c');
+  assert.deepEqual(to(r, c), [{ action: 'pair-join', lane: LANE, peers: 1, rid: 'j' }], 'a is gone, b is kept');
+  assert.deepEqual(r.evicted, [a]);
+  assert.deepEqual(to(r, b), [{ action: 'pair-left', lane: LANE, peers: 0 }, { action: 'pair-joined', lane: LANE, peers: 1 }]);
+  assert.deepEqual(to(r, d), [], 'another lane hears nothing');
+  // both live now (c just joined, the platform answered b): a fifth socket is refused, nobody is evicted, only the members are asked about
+  alive.set(b, w.now());
+  asked.length = 0;
+  const full = joinLane(w, e, { rid: 'f' });
+  fails(full, e, 'lane full');
+  assert.equal(full.evicted, undefined);
+  assert.deepEqual(asked.sort(), ['b', 'c']);
+  assert.deepEqual([w.p.stats().evicted, w.p.stats().joinsRefused], [1, 1]);
+  // what the host answers only moves a time forward: an answer in the past, or none, leaves the last message here as the time
+  w.tick(10 * MIN);
+  alive.set(c, w.now() - 20 * MIN);
+  alive.delete(b);
+  say(w, b, { action: 'pair-ping' });
+  b.take();
+  const again = joinLane(w, e, { rid: 'g' });
+  assert.deepEqual(to(again, e), [{ action: 'pair-join', lane: LANE, peers: 1, rid: 'g' }], 'c went silent for 10 minutes and the host knows nothing fresher: evicted; b pinged just now: kept');
+  assert.deepEqual(again.evicted, [c]);
+  assert.equal(w.p.stats().evicted, 2);
+});
+
+test('relay join (DEC-1): a room evicts every stale member at once and the newcomer sees who is left; a pair lane whose two members both vanished starts over with the joiner alone; a joiner at its own cap is refused before anyone is evicted', () => {
+  const w = relayWorld();
+  const room = laneN(3);
+  w.known.set(room, T0 + LANE_TTL_MS);
+  const members = Array.from({ length: 16 }, (_, i) => conn('m' + i));
+  for (const m of members) joinLane(w, m, {}, 'room', room);
+  for (const m of members) m.take();
+  w.tick(3 * MIN);
+  const silent = [members[2], members[7], members[15]];
+  for (const m of members) if (!silent.includes(m)) { say(w, m, { action: 'pair-ping' }); m.take(); }
+  const late = conn('late');
+  const r = joinLane(w, late, { rid: 'r' }, 'room', room);
+  assert.deepEqual(to(r, late), [{ action: 'room-join', lane: room, peers: 13, rid: 'r' }]);
+  assert.deepEqual(r.evicted, silent);
+  assert.deepEqual(to(r, members[0]).map((m) => [m.action, m.peers]), [['room-left', 14], ['room-left', 13], ['room-left', 12], ['room-joined', 13]], 'each eviction is a left with the count of those who remain, then the newcomer');
+  for (const m of silent) assert.deepEqual(w.p.attachmentOf(m), { c: [], q: [] });
+  assert.equal(w.p.stats().evicted, 3);
+
+  // a pair lane whose both members vanished: the joiner is alone in a fresh record
+  const [a, b, c] = ['a', 'b', 'c'].map(conn);
+  joinLane(w, a);
+  joinLane(w, b);
+  w.tick(3 * MIN);
+  const alone = joinLane(w, c, { rid: 'c' });
+  assert.deepEqual(to(alone, c), [{ action: 'pair-join', lane: LANE, peers: 0, rid: 'c' }]);
+  assert.deepEqual(alone.evicted, [a, b]);
+  assert.deepEqual([w.p.stats().relays, w.p.stats().evicted], [2, 5]);
+  assert.deepEqual(w.p.attachmentOf(c).l, [[LANE, 'pair']]);
+
+  // a socket that holds 8 lanes already cannot join: too many lanes, and the stale members of the lane it asked for are left alone
+  const many = conn('many');
+  for (let i = 10; i < 18; i++) { w.known.set(laneN(i), T0 + LANE_TTL_MS); joinLane(w, many, {}, 'pair', laneN(i)); }
+  const [x, y] = ['x', 'y'].map(conn);
+  w.known.set(laneN(20), T0 + LANE_TTL_MS);
+  joinLane(w, x, {}, 'pair', laneN(20));
+  joinLane(w, y, {}, 'pair', laneN(20));
+  w.tick(3 * MIN);
+  const refused = joinLane(w, many, { rid: 'n' }, 'pair', laneN(20));
+  fails(refused, many, 'too many lanes');
+  assert.equal(refused.evicted, undefined, 'nobody is evicted for a socket that could not join anyway');
+  assert.deepEqual(w.p.attachmentOf(x).l, [[laneN(20), 'pair']]);
+  assert.equal(w.p.stats().evicted, 5);
+});
+
+test('relay join (DEC-1): a socket restored after a wake counts as alive from the host\'s time t in its attachment, or from the wake itself when the host keeps none', () => {
+  const w = relayWorld();
+  const [a, b] = ['a', 'b'].map(conn);
+  joinLane(w, a);
+  joinLane(w, b);
+  const saved = JSON.parse(JSON.stringify(w.p.attachmentOf(a)));
+  // the object is rebuilt 3 minutes later: the host keeps the seconds of a socket's last message in the attachment as t (rtc.js does)
+  const w2 = relayWorld();
+  w2.tick(3 * MIN);
+  const [a2, b2, c2] = ['a2', 'b2', 'c2'].map(conn);
+  w2.p.attach(a2, Object.assign({ t: Math.floor(T0 / 1000) }, saved));
+  w2.p.attach(b2, saved); // no t kept: as alive as the wake
+  assert.equal(w2.p.stats().relays, 1);
+  const r = joinLane(w2, c2, { rid: 'j' });
+  assert.deepEqual(r.evicted, [a2], 'the time the host kept says a2 has been silent for 3 minutes; b2 has no time and is as alive as the wake');
+  assert.deepEqual(to(r, c2), [{ action: 'pair-join', lane: LANE, peers: 1, rid: 'j' }]);
+  assert.deepEqual(to(r, b2), [{ action: 'pair-left', lane: LANE, peers: 0 }, { action: 'pair-joined', lane: LANE, peers: 1 }]);
+  assert.equal(w2.p.stats().evicted, 1);
+});
+
 test('relay: a lane has one kind, the kind of its first joiner; the other kind\'s actions on it find no lane', () => {
   const w = relayWorld();
   const a = conn('a');
@@ -789,7 +932,7 @@ test('relay: the three sealed DM frames fit the pair frame limit with room to sp
   assert.ok(Buffer.byteLength(widest) < MAX_PAIR_BYTES);
 });
 
-test('relay caps: the 121st relay in a minute is refused and the window slides; refused frames are counted; the 151st message of any kind returns close; pings are never counted', () => {
+test('relay caps: the 121st relay in a minute is refused and the window slides; refused frames are counted; the 151st message of any kind returns close', () => {
   const w = relayWorld();
   const [a, b] = ['a', 'b'].map(conn);
   joinLane(w, a);
@@ -812,8 +955,8 @@ test('relay caps: the 121st relay in a minute is refused and the window slides; 
   const [c, d] = ['c', 'd'].map(conn);
   joinLane(w2, c);
   joinLane(w2, d);
-  for (let i = 0; i < 1000; i++) assert.deepEqual(to(say(w2, c, { action: 'pair-ping' }), c), [{ action: 'pair-pong' }]);
-  // message 1 was c's join; messages 2 to 121 are relays and all are forwarded; 122 to 150 are relays the rate cap refuses
+  // message 1 was c's join; messages 2 to 121 are relays and all are forwarded; 122 to 150 are relays the rate cap refuses (a ping
+  // would count as a message too since DECISIONS DEC-2: the ping test below has that case)
   for (let i = 0; i < 120; i++) relayTo(w2, c, f);
   for (let i = 0; i < 29; i++) fails(relayTo(w2, c, f, { rid: 'x' }), c, 'too many relays');
   const flood = relayTo(w2, c, f, { rid: 'x151' });
@@ -923,7 +1066,7 @@ test('relay leave and close: the others are told left with their own count; the 
   assert.deepEqual(w2.p.takeTouched(), [], 'closed sockets are not listed');
 });
 
-test('relay ping: a pong for any ping, nothing changes, no cap counts it; the strings are the ones the platform answers without waking the object', () => {
+test('relay ping: a pong for any ping, nothing changes; a ping that reaches this module counts toward messagesPerMin and toward no relay cap (DEC-2); the strings are the ones the platform answers without waking the object', () => {
   assert.equal(PAIR.PING_TEXT, '{"v":1,"action":"pair-ping"}');
   assert.equal(PAIR.PONG_TEXT, '{"action":"pair-pong"}');
   assert.deepEqual(JSON.parse(PAIR.PING_TEXT), { v: 1, action: 'pair-ping' });
@@ -933,11 +1076,27 @@ test('relay ping: a pong for any ping, nothing changes, no cap counts it; the st
     const r = w.p.message(a, msg);
     assert.deepEqual(r, { replies: [[a, { action: 'pair-pong' }]], changed: false, problem: null }, JSON.stringify(msg));
   }
-  // not counted: a thousand pings leave the whole message allowance to the real messages
-  for (let i = 0; i < 1000; i++) w.p.message(a, { v: 1, action: 'pair-ping' });
-  for (let i = 0; i < 150; i++) assert.equal(joinLane(w, a).close, undefined);
-  assert.equal(joinLane(w, a).close, 'too many messages');
   assert.equal(w.p.stats().codes + w.p.stats().knocks, 0);
+  // DECISIONS DEC-2: on the Worker only the exact PING_TEXT is answered by the platform without waking the object; a ping of any other
+  // shape wakes it and reaches this module, so it counts toward the socket's messages a minute like any message (a flood of near misses
+  // closes the socket like a flood of anything else), and toward no relay cap. The Node tracker has no auto-response: every ping counts there.
+  const w2 = relayWorld();
+  const [c, d] = ['c', 'd'].map(conn);
+  joinLane(w2, c); // message 1
+  joinLane(w2, d);
+  for (let i = 0; i < 120; i++) assert.deepEqual(to(say(w2, c, { action: 'pair-ping', junk: i }), c), [{ action: 'pair-pong' }]); // messages 2 to 121
+  assert.equal(only(relayTo(w2, c, frameOf(8), { rid: 'r' }), c).peers, 1, 'after 120 pings the first relay goes through: pings count toward no relay cap'); // 122
+  assert.deepEqual([w2.p.stats().relayRate, w2.p.stats().relayed], [0, 1]);
+  for (let i = 0; i < 28; i++) assert.equal(say(w2, c, { action: 'pair-ping' }).close, undefined); // 123 to 150
+  const over = say(w2, c, { action: 'pair-ping' }); // the 151st
+  assert.equal(over.close, 'too many messages', 'the 151st message of the minute is a ping: the host closes the socket all the same');
+  assert.deepEqual(to(over, c), [{ action: 'pair-ping', 'failure reason': 'too many messages' }], 'told why, once, and no pong');
+  assert.deepEqual(to(over, d), []);
+  assert.deepEqual([w2.p.stats().relayed, w2.p.stats().relayRate, w2.p.stats().relays], [1, 0, 1], 'no relay counter moved for a ping');
+  // a page pings once every 50 seconds: 1.2 a minute against 150. A thousand of them over 14 hours never come near the cap.
+  const w3 = relayWorld();
+  const e = conn('e');
+  for (let i = 0; i < 1000; i++) { assert.equal(say(w3, e, { action: 'pair-ping' }).close, undefined); w3.tick(50 * 1000); }
 });
 
 test('relay off (relay: false): join, relay and leave all say so, nothing is kept, a ping still gets its pong; each refused join is counted', () => {
@@ -1052,10 +1211,10 @@ test('relay: a lane that runs out is dropped by the sweep, its members are marke
   assert.equal(w.p.nextExpiry(), Infinity);
 });
 
-test('relay stats: the seven fields, counts and a UTC day only; no lane, no frame', () => {
+test('relay stats: the eight fields, counts and a UTC day only; no lane, no frame', () => {
   const w = relayWorld();
   const [a, b] = ['a', 'b'].map(conn);
-  assert.deepEqual(w.p.stats(), { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: 20231114, relayBusy: 0, relayRate: 0, joinsRefused: 0 });
+  assert.deepEqual(w.p.stats(), { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: 20231114, relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 });
   joinLane(w, a);
   joinLane(w, b);
   relayTo(w, a, frameOf(100, 'Q'));
@@ -1063,7 +1222,7 @@ test('relay stats: the seven fields, counts and a UTC day only; no lane, no fram
   const c = conn('c');
   fails(joinLane(w, c), c, 'lane full');
   const s = w.p.stats();
-  assert.deepEqual(relayFields.map((k) => typeof s[k]), Array(7).fill('number'));
+  assert.deepEqual(relayFields.map((k) => typeof s[k]), Array(relayFields.length).fill('number'));
   assert.deepEqual([s.relays, s.relayed, s.relayBytes, s.joinsRefused], [1, 2, 123, 1]);
   const text = JSON.stringify(s);
   assert.equal(text.includes(LANE), false);
@@ -1376,7 +1535,7 @@ test('rtc.js: with pairing off the frames are answered, nothing is kept, and the
   const j = h.r.message(conn('j'), frame({ action: 'pair-join', lane: LANE, rid: 'j' }));
   assert.equal(j.problem, 'pairing is off on this rendezvous');
   const s = h.r.stats();
-  assert.deepEqual(relayFields.map((k) => s[k]), [0, 0, 0, 20231114, 0, 0, 0]);
+  assert.deepEqual(relayFields.map((k) => s[k]), [0, 0, 0, 20231114, 0, 0, 0, 0]);
 });
 
 // ---------------------------------------------------------------------------------------------- the relay lane inside rtc.js
@@ -1470,6 +1629,46 @@ test('rtc.js relay: seen(conn, ms) is how a ping the platform answered keeps a s
   assert.equal(typeof h.r.seen, 'function');
 });
 
+test('rtc.js relay (DEC-1): a member\'s liveness is its st.last, the later of its last message and seen(); the host\'s probe runs for the members of the full lane only; the evicted conn comes back in the result; stats carry evicted', () => {
+  const probed = [];
+  const h = rendezvous({ probe: (c) => probed.push(c.name) });
+  const { a, b, lane } = minted(h);
+  const x = conn('x');
+  const y = conn('y');
+  h.r.message(x, joinFrame(lane));
+  h.r.message(y, joinFrame(lane));
+  x.take();
+  y.take();
+  h.tick(3 * 60 * 1000);
+  h.r.seen(x, h.now() - 30 * 1000); // the platform answered x's ping half a minute ago (worker.js reads it in the probe); y neither pinged nor sent
+  probed.length = 0;
+  const z = conn('z');
+  const res = h.r.message(z, joinFrame(lane, { rid: 'j' }));
+  assert.deepEqual(probed.sort(), ['x', 'y'], 'the probe ran for the two members of that lane: not for the code owner a, the knocker b or the joiner z');
+  assert.deepEqual([res.pair, res.relay, res.changed, res.problem], [true, true, true, null]);
+  assert.deepEqual(res.evicted, [y], 'the host closes y with code 1000 and releases it');
+  assert.deepEqual(z.take(), [{ action: 'pair-join', lane, peers: 1, rid: 'j' }]);
+  assert.deepEqual(x.take(), [{ action: 'pair-left', lane, peers: 0 }, { action: 'pair-joined', lane, peers: 1 }]);
+  assert.deepEqual(y.take(), []);
+  assert.equal(h.r.stats().evicted, 1);
+  assert.equal('l' in h.r.attachmentOf(y), false, 'the saved state of y shows no lane');
+  // the host's close path, as worker.js and the tracker run it: nothing of y is left in the lane
+  assert.deepEqual(h.r.close(y), { touched: [] });
+  assert.equal(h.r.stats().sockets, 4, 'a, b, x and z');
+  assert.deepEqual([a.take(), b.take()], [[], []], 'the pairing sockets heard nothing of it');
+  // a member that sent a frame is as alive as one that pinged: the next newcomer finds the lane full, and only the two members are probed
+  probed.length = 0;
+  h.tick(3 * 60 * 1000);
+  h.r.message(x, relayFrame(lane, 'abcd'));
+  h.r.seen(z, h.now());
+  z.take();
+  const w = conn('w');
+  assert.equal(h.r.message(w, joinFrame(lane, { rid: 'k' })).problem, 'lane full');
+  assert.deepEqual(probed.sort(), ['x', 'z']);
+  assert.deepEqual([h.r.stats().evicted, h.r.stats().joinsRefused, h.r.stats().relays], [1, 1, 1]);
+  assert.equal(JSON.stringify(h.r.stats()).includes(lane), false);
+});
+
 test('rtc.js relay: the saved state of a socket carries its lanes as l, and a wake gives the membership back', () => {
   const h = rendezvous();
   const { lane } = minted(h);
@@ -1525,7 +1724,7 @@ test('rtc.js relay: the counts are in stats() beside the older ones; a frame of 
   assert.equal(h.r.message(a, relayFrame(lane, 'x'.repeat(7701), { rid: 'e' })).problem, 'invalid frame');
   const s = h.r.stats();
   assert.deepEqual(noRelay(s), { open: false, uploads: false, allowed: 1, swarms: 0, unlisted: 0, peers: 0, sockets: 2, interval: 120, codes: 1, knocks: 0, lanes: 1 });
-  assert.deepEqual(relayFields.map((k) => s[k]), [1, 1, 7512, 20231114, 0, 0, 0]);
+  assert.deepEqual(relayFields.map((k) => s[k]), [1, 1, 7512, 20231114, 0, 0, 0, 0]);
   assert.equal(JSON.stringify(s).includes(lane), false, 'the counts name no lane');
 });
 
@@ -1537,7 +1736,8 @@ test('rtc.js relay: the 151st message returns close (the host closes the socket 
   assert.deepEqual(flood.take(), [{ action: 'pair-pong' }]);
   assert.equal(h.r.message(flood, announce(A_HASH, peer('f'))).problem, MIXED, 'a pair socket cannot announce');
   flood.take();
-  for (let i = 0; i < 150; i++) assert.equal(h.r.message(flood, joinFrame(laneN(1))).close, undefined);
+  // the ping was message 1 (DECISIONS DEC-2: a ping that reaches the core counts); the refused announce never reached it; 149 joins make 150
+  for (let i = 0; i < 149; i++) assert.equal(h.r.message(flood, joinFrame(laneN(1))).close, undefined);
   flood.take();
   const res = h.r.message(flood, joinFrame(laneN(1), { rid: 'x' }));
   assert.equal(res.close, 'too many messages');

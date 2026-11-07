@@ -1166,15 +1166,20 @@ describe('the view and the service together, as app.js wires them', () => {
 describe('the line that names the host of the reports', () => {
   const HOST = 'reports.example.test';
   const LINE = (host, lang = 'en') => appsText('apps.price.reports', lang, { host });
+  // DECISIONS DEC-3: on the door these views show (the shipped default, relay through the rendezvous and direct off) the price is two
+  // paragraphs, the text and then, as a paragraph of its own, that the other person (the members) do not see the address; the line that
+  // names the host comes after both. Before DEC-3 the denial was the last sentence of the text, and the counts here were one less.
+  const PRICE = (lang = 'en') => [appsText('apps.price.text', lang), appsText('apps.price.hidden', lang)];
+  const PRICE_ROOM = (lang = 'en') => [appsText('apps.price.room', lang), appsText('apps.price.hiddenRoom', lang)];
 
   test('the start card shows it, once, after the price and before the buttons, when there is a host', async () => {
     const v = view({}, { reportsHost: HOST });
     click(tile(v, 'messages'));
     const paras = cardParas(v);
-    assert.equal(paras.length, 2);
-    assert.equal(paras[0], appsText('apps.price.text', 'en'));
-    assert.equal(paras[1], LINE(HOST));
-    assert.ok(paras[1].includes(HOST));
+    assert.equal(paras.length, 3);
+    assert.deepEqual(paras.slice(0, 2), PRICE());
+    assert.equal(paras[2], LINE(HOST));
+    assert.ok(paras[2].includes(HOST));
     assert.deepEqual(v.only('card'), [{ kind: 'start', ev: 'show' }]);
   });
 
@@ -1182,23 +1187,23 @@ describe('the line that names the host of the reports', () => {
     for (const hostOpt of [undefined, '', '   ', null, () => '', () => null, () => { throw new Error('x'); }, 42]) {
       const v = view({}, { reportsHost: hostOpt });
       click(tile(v, 'messages'));
-      assert.deepEqual(cardParas(v), [appsText('apps.price.text', 'en')], String(hostOpt));
+      assert.deepEqual(cardParas(v), PRICE(), String(hostOpt));
     }
     const r = view({}, { reportsHost: undefined });
     r.app.show('rooms');
     click(one(r, 'room-create'));
-    assert.deepEqual(cardParas(r), [appsText('apps.price.room', 'en')]);
+    assert.deepEqual(cardParas(r), PRICE_ROOM());
   });
 
   test('the host can be a function, asked each time a card opens: a visitor who turned the reports off gets no line', async () => {
     let host = HOST;
     const v = view({}, { reportsHost: () => host });
     click(tile(v, 'messages'));
-    assert.equal(cardParas(v).length, 2);
+    assert.equal(cardParas(v).length, 3);
     click(one(v, 'card-cancel'));
     host = '';
     click(one(v, 'code-show'));
-    assert.deepEqual(cardParas(v), [appsText('apps.price.text', 'en')]);
+    assert.deepEqual(cardParas(v), PRICE());
   });
 
   test('the other price cards that can start something carry it; the card for accepting a request does not', async () => {
@@ -1212,7 +1217,7 @@ describe('the line that names the host of the reports', () => {
     v.app.node.findAll((n) => attr(n, 'data-role') === 'accept' && shown(n)).forEach((b) => click(b));
     const paras = cardParas(v);
     assert.ok(!paras.includes(LINE(HOST)), 'the accept card');
-    assert.equal(paras.length, 2, 'the price and the check');
+    assert.equal(paras.length, 3, 'the price, who does not see the address (DEC-3), and the check');
     const k = view({}, { reportsHost: HOST });
     k.app.show('messages');
     click(one(k, 'card-cancel'));
@@ -1225,8 +1230,9 @@ describe('the line that names the host of the reports', () => {
     const v = view({}, { reportsHost: HOST, lang: 'fr' });
     click(tile(v, 'messages'));
     const paras = cardParas(v);
-    assert.equal(paras[1], LINE(HOST, 'fr'));
-    assert.ok(paras[1].includes(HOST));
+    assert.deepEqual(paras.slice(0, 2), PRICE('fr'));
+    assert.equal(paras[2], LINE(HOST, 'fr'));
+    assert.ok(paras[2].includes(HOST));
     assert.notEqual(LINE(HOST, 'fr'), LINE(HOST, 'en'));
   });
 

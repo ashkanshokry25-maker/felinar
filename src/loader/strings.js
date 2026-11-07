@@ -1174,10 +1174,12 @@ function lookupC2 (table, key, lang, params) {
 // conversations, a conversation) and Rooms. English and French have the same keys and the same placeholders (test/unit/loader-apps-ui.test.mjs).
 // English is ASCII. Presence reads "Connected to you now" for a direct link and "Connected through the rendezvous" for the relay; no text calls
 // anyone online, and none promises more than the page does. The price sentence (relay-first build, plan 3.8) says what the rendezvous and
-// whoever hosts it see (the network address, when a message is sent and roughly how much, never what) and that the other person does not
-// see the address; a door that also turns direct links on adds apps.price.direct, which says that a direct link shows each side the other's
-// address, and a door with relay "none" shows today's sentences (apps.price.textDirect and roomDirect). None of the texts holds the digit 8
-// (the code is twelve characters), a dash, or a claim the CONTRIBUTING wording rules forbid. ------------------------------------------------
+// whoever hosts it see (the network address, when a message is sent and roughly how much, never what); that the other person (the members) do
+// not see the address is a sentence of its own, apps.price.hidden and apps.price.hiddenRoom, shown as its own paragraph only when the door keeps
+// direct links off (DECISIONS DEC-3: a card may not state the denial and then take it back); a door that turns direct links on shows
+// apps.price.direct in its place, which says that a direct link shows each side the other's address, and a door with relay "none" shows today's
+// sentences (apps.price.textDirect and roomDirect). apps.status.noPath is the line of a conversation or room whose only path the rendezvous
+// refused (DEC-5). None of the texts holds the digit 8 (the code is twelve characters), a dash, or a claim the CONTRIBUTING wording rules forbid.
 export const APPS_TEXT = Object.freeze({
   en: Object.freeze({
     'apps.docTitle': 'Apps',
@@ -1232,8 +1234,10 @@ export const APPS_TEXT = Object.freeze({
     'apps.err.send': 'The message was not sent. Try again.',
     'apps.err.generic': 'That did not work. Try again.',
     'apps.price.title': 'What this costs your privacy',
-    'apps.price.text': 'Codes and requests pass through this door\'s rendezvous. After the other person accepts, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what. The other person does not see your address.',
-    'apps.price.room': 'Codes and requests pass through this door\'s rendezvous. After a member is accepted, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what. The members do not see your address.',
+    'apps.price.text': 'Codes and requests pass through this door\'s rendezvous. After the other person accepts, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what.',
+    'apps.price.room': 'Codes and requests pass through this door\'s rendezvous. After a member is accepted, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what.',
+    'apps.price.hidden': 'The other person does not see your address.',
+    'apps.price.hiddenRoom': 'The members do not see your address.',
     'apps.price.direct': 'This door also tries a direct link between you, which shows each side the other\'s network address.',
     'apps.price.textDirect': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the other\'s network address.',
     'apps.price.roomDirect': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until a member is accepted; then you connect directly and each side learns the other\'s network address.',
@@ -1269,6 +1273,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.status.notConnected': 'Not connected, last connected {time}',
     'apps.status.notConnectedYet': 'Not connected',
     'apps.status.connecting': 'Connecting...',
+    'apps.status.noPath': 'This door\'s rendezvous does not carry messages; ask the door\'s owner to update it',
     'apps.status.waiting': 'Waiting for approval',
     'apps.status.rejected': 'Rejected',
     'apps.status.left': 'Left',
@@ -1524,8 +1529,10 @@ export const APPS_TEXT = Object.freeze({
     'apps.err.send': 'Le message n\'a pas été envoyé. Réessayez.',
     'apps.err.generic': 'Cela n\'a pas fonctionné. Réessayez.',
     'apps.price.title': 'Ce que cela coûte à votre vie privée',
-    'apps.price.text': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois que l\'autre personne a accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu. L\'autre personne ne voit pas votre adresse.',
-    'apps.price.room': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois qu\'un membre est accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu. Les membres ne voient pas votre adresse.',
+    'apps.price.text': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois que l\'autre personne a accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu.',
+    'apps.price.room': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois qu\'un membre est accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu.',
+    'apps.price.hidden': 'L\'autre personne ne voit pas votre adresse.',
+    'apps.price.hiddenRoom': 'Les membres ne voient pas votre adresse.',
     'apps.price.direct': 'Cette porte essaie aussi un lien direct entre vous, qui montre à chacun l\'adresse réseau de l\'autre.',
     'apps.price.textDirect': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant que l\'autre personne n\'a pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
     'apps.price.roomDirect': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant qu\'un membre n\'est pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
@@ -1561,6 +1568,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.status.notConnected': 'Pas connecté, dernière connexion {time}',
     'apps.status.notConnectedYet': 'Pas connecté',
     'apps.status.connecting': 'Connexion...',
+    'apps.status.noPath': 'Le point de rendez-vous de cette porte ne transporte pas les messages; demandez au propriétaire de la porte de le mettre à jour',
     'apps.status.waiting': 'En attente d\'approbation',
     'apps.status.rejected': 'Refusée',
     'apps.status.left': 'Parti',

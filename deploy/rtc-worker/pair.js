@@ -2,11 +2,13 @@
 // Pure, no platform code and no dependency, so rtc.js (the Cloudflare Worker's core), tools/tracker.mjs (the Node tracker) and
 // the unit tests drive the same state machine with fake connections.
 //
-//   createPairing({ random, now, allowLane, laneExpiry, persist, caps, relay })
+//   createPairing({ random, now, allowLane, laneExpiry, liveness, persist, caps, relay })
 //     -> { message(conn, msg), close(conn), sweep(nowMs), attach(conn, saved), attachmentOf(conn), load(entries),
 //          takeTouched(), nextExpiry(), ownsLive(conn), stats() }
 //   message() answers { replies, changed, problem } and, when the socket sent more than caps.messagesPerMin messages in a minute,
 //   close: 'too many messages' as well: the host closes that socket with code 1008 and then calls close(conn) as for any socket.
+//   When a join evicted members that had gone silent (DECISIONS DEC-1, below) it answers evicted: [conn, ...] as well: the host
+//   closes each of those sockets with code 1000 if it is still open and then calls close(conn) for it as for any socket.
 //
 // What the rendezvous is to a pairing: a blind relay. A code is 12 characters, shown xxxx-xxxx-xxxx. The first 4 are the CHANNEL,
 // the only part of a code this module ever sees; the last 8 are the SECRET (40 bits), which stays on the clients. A hello
@@ -45,9 +47,19 @@
 //                                       { action, lane, peers, rid } (peers = sockets written to, 0 when alone)
 //   C <kind>-leave { lane, rid? }    -> the others get { action: '<kind>-left', lane, peers }; the sender is answered only with a rid;
 //                                       a socket that closes leaves every lane it joined, with the same push
-//   C pair-ping (exactly PING_TEXT)  -> R { action: 'pair-pong' } (PONG_TEXT); never a failure, not counted by any cap, changes nothing
+//   C pair-ping (exactly PING_TEXT)  -> R { action: 'pair-pong' } (PONG_TEXT); changes nothing; like any message, the 151st of a
+//                                       minute fails with 'too many messages' (and the host closes the socket). It counts toward
+//                                       messagesPerMin like any message that reaches this module and toward no relay cap (DECISIONS
+//                                       DEC-2): on the Worker the platform answers the exact text before the object wakes, so only a
+//                                       ping of another shape gets here, and a flood of those must close the socket like any flood
 // A lane is the 40-hex id the host allowed (laneExpiry(hex) answers its expiry in ms, 0 when it was never minted or has run out);
 // a pair lane holds 2 sockets, a room lane 16, a socket joins 8 lanes at most, and a lane has one kind, the kind of its first joiner.
+// A member that vanished must not block its own replacement (DECISIONS DEC-1): a phone that changed networks leaves a half-open socket
+// here that no close ever reaches. So a join to a full lane first reads each member's last sign of life, the later of its last message
+// here and what the host knows (liveness(conn): in the Worker the time the platform last answered the socket's ping, read at that
+// moment for the members of that lane only); a member silent for longer than caps.memberStaleMs leaves the lane as a closed socket
+// does (the others get <kind>-left with the new count), the newcomer takes its place, and message() lists it under evicted for the host
+// to close (code 1000) and release. A lane whose members are all live still answers lane full; the page asks again later.
 // f is the sealed frame as 4 to 7,700 base64url characters. This module never parses, stores or logs f: it checks the alphabet and
 // the length, passes the same string on, and counts characters. Failures (the usual { action, rid?, 'failure reason' }, never naming
 // the lane): invalid lane, unknown lane (not minted, run out, or the sender is not a member), lane full, too many lanes,
@@ -59,8 +71,9 @@
 // ['delete', key]] for the rows 'chan:<channel>' -> { kind, box, lane, exp } (the Durable Object keeps them in ctx.storage);
 // allowLane(hex, expMs) is called when a lane is minted and answers false when the host refuses another lane. A host that
 // hibernates keeps the state of a socket in its attachment: attachmentOf(conn) gives { c: owned codes, q: pending knocks of the
-// requester, l: relay lanes when there are any } (a few hundred bytes), attach(conn, saved) takes it back after a wake, and
-// load(entries) takes the stored rows back first. Pending knocks are therefore not written to storage, and they survive a
+// requester, l: relay lanes when there are any } (a few hundred bytes), attach(conn, saved) takes it back after a wake (and reads the
+// host's t, the seconds of the socket's last message, as its last sign of life; without one the wake is), and load(entries) takes the
+// stored rows back first. Pending knocks are therefore not written to storage, and they survive a
 // hibernation on the requester's socket. A host that gives no laneExpiry gets the lanes this module minted itself (allowLane
 // answered true), which is enough for a host that keeps no lanes of its own across a restart.
 
@@ -107,11 +120,12 @@ export const DEFAULT_CAPS = Object.freeze({
   maxOpensPerMinute: 10, // codes one socket may open
   maxRooms: 4, // rooms one socket may own
   relayPerMin: 120, // relayed frames one socket may send in a minute; more get 'too many relays'
-  messagesPerMin: 150, // messages of any kind but a ping one socket may send in a minute; the next one closes the socket (1008)
+  messagesPerMin: 150, // messages of any kind one socket may send in a minute, a ping that reaches this module included (DEC-2); the next one closes the socket (1008)
   relayDayMax: 20000, // relayed frames per object per UTC day; then 'relay is busy' (the Free plan counts 100,000 requests a day: README, "Relay")
   lanesPerSocket: 8, // relay lanes one socket may join (the list rides in its attachment, which stays under 2 KB)
   pairLaneMembers: 2, // sockets in a pair lane
   roomLaneMembers: 16, // sockets in a room lane
+  memberStaleMs: 120000, // a member of a full lane silent for longer (no message, no keepalive the host saw) makes room for a joiner (DEC-1): about 2.4 keepalives of 50 s
 });
 
 const CHANNEL_RE = new RegExp('^[' + CODE_ALPHABET + ']{' + CHANNEL_LENGTH + '}$');
@@ -258,9 +272,9 @@ function defaultRandom(n) {
   return bytes;
 }
 
-export function createPairing({ random = defaultRandom, now = () => Date.now(), allowLane = null, laneExpiry = null, persist = null, caps = {}, relay = true } = {}) {
+export function createPairing({ random = defaultRandom, now = () => Date.now(), allowLane = null, laneExpiry = null, liveness = null, persist = null, caps = {}, relay = true } = {}) {
   const cap = Object.assign({}, DEFAULT_CAPS, caps);
-  const relayOn = relay !== false; // RELAY_LANE / --no-relay-lane: off answers every join and relay with 'relay is off on this rendezvous'
+  const relayOn = relay !== false; // RELAY_LANE / --no-relay-lane: off answers every join, relay and leave with 'relay is off on this rendezvous'
   const channels = new Map(); // channel -> { kind, owner: conn|null, box, lane: hex|null, exp: ms, knocks: Set<knock> }
   const owned = new Map(); // conn -> Set<channel>
   const knocks = new Map(); // knock -> { channel, kind, requester: conn, at: ms } (the requester's box is forwarded, never kept)
@@ -268,10 +282,11 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
   const knockLog = new Map(); // conn -> [ms] (the last minute's knocks)
   const openLog = new Map(); // conn -> [ms] (the last minute's opens)
   const relayLog = new Map(); // conn -> [ms] (the last minute's relayed frames; only frames that passed the checks)
-  const messageLog = new Map(); // conn -> [ms] (the last minute's messages of any kind but a ping)
+  const messageLog = new Map(); // conn -> [ms] (the last minute's messages of any kind, a ping that reaches this module included: DEC-2)
   const relays = new Map(); // lane -> { kind, members: Set<conn>, exp: ms } (memory only: a relay keeps no row and no frame)
   const joined = new Map(); // conn -> Set<lane> (the lanes a socket is a member of, 8 at most)
   const minted = new Map(); // lane -> exp ms: the lanes this core allowed, kept only when the host gives no laneExpiry
+  const lastMsg = new Map(); // conn -> ms of its last message here, a ping included: half of a member's liveness (DEC-1); the host's liveness(conn) is the other half
   const touched = new Set(); // conns whose attachment-relevant state moved since takeTouched()
   // The relay's counters belong to one UTC day (relayDay) and start again when it changes. They are in memory: a new deployment
   // starts them at 0 as well (README, "Relay"). They hold counts and characters only, never a frame or a lane.
@@ -281,7 +296,8 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
   let relayBusy = 0; // frames refused by the day cap today
   let relayRate = 0; // frames refused by the per-minute cap today
   let joinsRefused = 0; // joins refused today, for any reason
-  let cur = null; // the operation in progress: { replies, ops, problem, touched, close }
+  let evicted = 0; // members evicted today from a full lane they had gone silent in (DEC-1)
+  let cur = null; // the operation in progress: { replies, ops, problem, touched, close, evicted }
 
   const say = (to, obj) => { cur.replies.push([to, obj]); };
   const mark = (conn) => { if (conn) { touched.add(conn); cur.touched.add(conn); } };
@@ -298,7 +314,7 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
   /** run(fn) -> the finished operation; its storage ops go to persist() before the caller sends any reply. */
   function run(fn) {
     const outer = cur;
-    cur = { replies: [], ops: [], problem: null, touched: new Set(), close: null };
+    cur = { replies: [], ops: [], problem: null, touched: new Set(), close: null, evicted: [] };
     try {
       fn();
     } catch (err) {
@@ -351,7 +367,7 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
     const day = utcDay(t);
     if (day === relayDay) return;
     relayDay = day;
-    relayed = relayBytes = relayBusy = relayRate = joinsRefused = 0;
+    relayed = relayBytes = relayBusy = relayRate = joinsRefused = evicted = 0;
   }
 
   /** noteLane(hex, exp): remembers a lane this core allowed, when the host gives no laneExpiry to ask. */
@@ -567,12 +583,41 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
     for (const other of rec.members) say(other, { action: rec.kind + '-left', lane, peers: rec.members.size - 1 });
   }
 
+  /**
+   * liveAt(conn) -> ms: the socket's last sign of life, the later of its last message here (a ping included) and what the host knows
+   * (liveness(conn): in the Worker the time the platform last answered its keepalive ping, read at this moment; DECISIONS DEC-1).
+   */
+  function liveAt(conn) {
+    let at = lastMsg.get(conn) || 0;
+    if (typeof liveness === 'function') {
+      const known = liveness(conn);
+      if (typeof known === 'number' && Number.isFinite(known) && known > at) at = known;
+    }
+    return at;
+  }
+
+  /**
+   * evictStale(lane, rec, t): a join found the lane full (DEC-1). Every member silent for longer than cap.memberStaleMs leaves through
+   * the path of a socket that closed (the others get <kind>-left with the new count) and is listed for the host to close and release.
+   * The host is asked about these members only, never about every socket.
+   */
+  function evictStale(lane, rec, t) {
+    for (const member of Array.from(rec.members)) {
+      if (t - liveAt(member) <= cap.memberStaleMs) continue;
+      leaveLane(member, lane, rec);
+      cur.evicted.push(member);
+      rollDay(t);
+      evicted++;
+    }
+  }
+
   function relayJoin(conn, msg, rid, kind) {
     const action = kind + '-join';
     if (!relayOn) return refuseJoin(conn, action, rid, 'relay is off on this rendezvous');
     if (!isLane(msg.lane)) return refuseJoin(conn, action, rid, 'invalid lane');
     const lane = msg.lane;
-    const exp = laneExp(lane, now());
+    const t = now();
+    const exp = laneExp(lane, t);
     if (!exp) return refuseJoin(conn, action, rid, 'unknown lane');
     let rec = relays.get(lane);
     if (rec && rec.kind !== kind) return refuseJoin(conn, action, rid, 'unknown lane'); // a lane has one kind: its first joiner's
@@ -580,8 +625,14 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
       say(conn, withRid({ action, lane, peers: rec.members.size - 1 }, rid));
       return;
     }
-    if (rec && rec.members.size >= (kind === 'room' ? cap.roomLaneMembers : cap.pairLaneMembers)) return refuseJoin(conn, action, rid, 'lane full');
+    // the joiner's own cap first: nobody is evicted for a socket that could not join anyway (DEC-1)
     if (joined.has(conn) && joined.get(conn).size >= cap.lanesPerSocket) return refuseJoin(conn, action, rid, 'too many lanes');
+    const seats = kind === 'room' ? cap.roomLaneMembers : cap.pairLaneMembers;
+    if (rec && rec.members.size >= seats) {
+      evictStale(lane, rec, t);
+      rec = relays.get(lane); // gone when every member had vanished: the joiner starts the lane again
+      if (rec && rec.members.size >= seats) return refuseJoin(conn, action, rid, 'lane full');
+    }
     if (!rec) relays.set(lane, (rec = { kind, members: new Set(), exp }));
     rec.members.add(conn);
     joinedSet(conn).add(lane);
@@ -628,12 +679,17 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
   function handle(conn, msg) {
     const action = msg.action;
     const rid = ridOf(msg);
-    // Every message but a ping counts against the socket's minute (plan 3.2): over the cap the host closes the socket with 1008. The
-    // refused message gets one failure reply, so a request in flight fails at once with the reason instead of timing out.
+    // Every message that reaches this module counts against the socket's minute (plan 3.2), a ping included (DECISIONS DEC-2): over
+    // the cap the host closes the socket with 1008. The refused message gets one failure reply, so a request in flight fails at once
+    // with the reason instead of timing out.
     if (rateExceeded(messageLog, conn, now(), cap.messagesPerMin)) {
       cur.close = 'too many messages';
       return fail(conn, String(action).slice(0, 64), rid === false ? undefined : rid, 'too many messages');
     }
+    // A keepalive ping is answered whatever it carries and changes nothing (plan 3.4); it counted above like any message (DEC-2): on
+    // the Worker the platform answers the exact PING_TEXT before the object wakes, so a ping that gets here woke it, and a flood of
+    // such pings must close the socket like a flood of anything else. The Node tracker and the unit tests get every ping here.
+    if (action === 'pair-ping') return say(conn, { action: 'pair-pong' });
     if (rid === false) return fail(conn, action, undefined, 'invalid rid');
     if (msg.v !== PAIR_VERSION) return fail(conn, action, rid, 'unsupported version');
     switch (action) {
@@ -660,16 +716,16 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
   }
 
   /**
-   * message(conn, msg) -> { replies: [[conn, obj], ...], changed, problem, close? }: msg is a parsed JSON object whose action isPairAction.
-   * close is set (to the reason, 'too many messages') when the socket is over its allowance: the host closes it with code 1008.
+   * message(conn, msg) -> { replies: [[conn, obj], ...], changed, problem, close?, evicted? }: msg is a parsed JSON object whose action
+   * isPairAction. close is set (to the reason, 'too many messages') when the socket is over its allowance: the host closes it with code
+   * 1008. evicted lists the members a join to a full lane evicted (DEC-1): the host closes each with code 1000 and calls close() for it.
    */
   function message(conn, msg) {
-    // A keepalive ping is answered whatever it carries, changes nothing and no cap counts it (plan 3.4). On the Worker the platform
-    // answers the exact PING_TEXT before the object wakes; this is the answer for the Node tracker, the unit tests and any other text.
-    if (msg && msg.action === 'pair-ping') return { replies: [[conn, { action: 'pair-pong' }]], changed: false, problem: null };
+    lastMsg.set(conn, now()); // every message is a sign of life, a ping too (DEC-1)
     const done = run(() => handle(conn, msg));
     const out = { replies: done.replies, changed: done.touched.has(conn), problem: done.problem };
     if (done.close !== null) out.close = done.close;
+    if (done.evicted.length) out.evicted = done.evicted;
     return out;
   }
 
@@ -692,6 +748,7 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
     openLog.delete(conn);
     relayLog.delete(conn);
     messageLog.delete(conn);
+    lastMsg.delete(conn);
     owned.delete(conn);
     asked.delete(conn);
     joined.delete(conn);
@@ -751,11 +808,16 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
     });
   }
 
-  /** attach(conn, saved) -> replies: a socket restored after a wake takes back its codes (c) and its pending knocks (q). */
+  /**
+   * attach(conn, saved) -> replies: a socket restored after a wake takes back its codes (c), its pending knocks (q) and its relay lanes
+   * (l). Its last sign of life (DEC-1) is the host's time of its last message when the host keeps one in the attachment (t, in seconds:
+   * rtc.js writes it), else the wake itself, so a wake never makes a live member look silent to the next join of its full lane.
+   */
   function attach(conn, saved) {
     const replies = [];
     if (!saved || typeof saved !== 'object') return replies;
     const t = now();
+    lastMsg.set(conn, typeof saved.t === 'number' && saved.t > 0 ? saved.t * 1000 : t);
     if (Array.isArray(saved.c)) {
       for (const entry of saved.c.slice(0, cap.maxRooms + 1)) {
         const channel = Array.isArray(entry) ? entry[0] : null;
@@ -841,10 +903,10 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
     return Boolean(set && set.size);
   }
 
-  /** stats() -> counts only (plan 3.2): codes and knocks held now, relay lanes with a member, and today's relay counters with the UTC day they belong to. */
+  /** stats() -> counts only (plan 3.2, DEC-1): codes and knocks held now, relay lanes with a member, and today's relay counters (evicted among them) with the UTC day they belong to. */
   function stats() {
     rollDay(now());
-    return { codes: channels.size, knocks: knocks.size, relays: relays.size, relayed, relayBytes, relayDay, relayBusy, relayRate, joinsRefused };
+    return { codes: channels.size, knocks: knocks.size, relays: relays.size, relayed, relayBytes, relayDay, relayBusy, relayRate, joinsRefused, evicted };
   }
 
   return { message, close, sweep, attach, attachmentOf, load, takeTouched, nextExpiry, ownsLive, stats };

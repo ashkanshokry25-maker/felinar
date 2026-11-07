@@ -45,6 +45,9 @@
 //     code, codeClosed, ownerPub, members: [{ pub, short, name, you, owner }], messages: [{ id, t, mine, from: { pub, short,
 //     name }, text, fmt, status: 'queued' | 'sent' | null }], unread, draft, peers, via }
 //   request { knock, kind: 'pair' | 'room', roomId, from: { pub, short, name }, at }
+//   reason, on a conversation or a room, is a word of this file; 'no-path' says the door's rendezvous refused the only path for good (its
+//     relay is off, or it is from before the relay) and no direct link is tried, so nothing would ever connect (DECISIONS DEC-5); it is
+//     cleared when a join works again. A full lane is not a reason: its join is asked again (DEC-1).
 // Calls return Promises that resolve to a result or { error: <one of ERRORS> } and never reject (the names in docs/INTERFACES.md
 // are kept; a few are added). The synchronous ones are marked (sync).
 //   code      openCode() -> { code }   newCode() -> { code }   closeCode() -> { ok }
@@ -143,30 +146,39 @@ function noop () {}
 const RELAY_WIRE = Object.freeze({ destroyed: false, extended () {}, destroy () {} })
 
 // What a failure of the relay lane is called in a report (apps.lane { ev }): words of this file, never the rendezvous' own text. A socket that
-// holds its 8 lanes is 'full' like a lane that holds its members; the minute and the message caps are 'rate'.
+// holds its 8 lanes is 'full' like a lane that holds its members; the minute and the message caps are 'rate'. 'invalid action' as the answer
+// to a join is a rendezvous from before the relay existed: the relay is off there (DECISIONS DEC-1).
 const LANE_FAIL = Object.freeze({
   'invalid-lane': 'invalid', 'unknown-lane': 'unknown', 'lane-full': 'full', 'too-many-lanes': 'full', 'relay-is-off-on-this-rendezvous': 'off',
-  'relay-is-busy': 'busy', 'too-many-relays': 'rate', 'too-many-messages': 'rate'
+  'invalid-action': 'off', 'relay-is-busy': 'busy', 'too-many-relays': 'rate', 'too-many-messages': 'rate'
 })
 
+// A join refused with 'lane full' is not final (DEC-1): the member in the way may be a socket the rendezvous has not found dead yet (a phone
+// that changed networks leaves one behind), which it evicts on a later join once that socket is stale. The join is asked again after these
+// waits, the last one again and again, while the conversation or room exists and the socket is open. The relay being off is final (DEC-5).
+const FULL_RETRY_MS = Object.freeze([3000, 10000, 30000, 60000])
+
+// The refusals that mean the rendezvous carries no messages at all: its switch is off, or it is from before the relay (DEC-1, DEC-5)
+const isRelayOff = (reason) => reason === 'relay-is-off-on-this-rendezvous' || reason === 'invalid-action'
+
 // The page's own events (amendment A3). The service takes deps.onVisible(fn) -> off and deps.onOnline(fn) -> off so that tests fake them, and
-// without them it listens itself, through globalThis and guarded by typeof, so that Node never throws. The second event's name is written in
-// two pieces: the wording tests ban the word for presence in this file, and an event name is not presence wording.
-const BACK_EVENT = 'on' + 'line'
+// without them it listens itself, through globalThis and guarded by typeof, so that Node never throws. The two functions name the page's
+// document and the DOM event of the network coming back plainly (DECISIONS DEC-4: the code says what it does); the wording scan of
+// test/unit/loader-apps.test.mjs, which bans that event's name as presence wording and the document as DOM access everywhere else in this
+// file, cuts these two functions out as its one documented exception.
 
 function pageVisible (fn) {
-  const d = typeof globalThis !== 'undefined' ? globalThis.document : undefined
-  if (!d || typeof d.addEventListener !== 'function') return noop
-  const h = () => { if (d.visibilityState === 'visible') fn() }
-  d.addEventListener('visibilitychange', h)
-  return () => { try { d.removeEventListener('visibilitychange', h) } catch (_) { /* gone */ } }
+  if (typeof globalThis === 'undefined' || typeof globalThis.document !== 'object' || !globalThis.document) return noop
+  if (typeof globalThis.document.addEventListener !== 'function') return noop
+  const h = () => { if (globalThis.document.visibilityState === 'visible') fn() }
+  globalThis.document.addEventListener('visibilitychange', h)
+  return () => { try { globalThis.document.removeEventListener('visibilitychange', h) } catch (_) { /* gone */ } }
 }
 
 function pageBack (fn) {
-  const g = typeof globalThis !== 'undefined' ? globalThis : null
-  if (!g || typeof g.addEventListener !== 'function') return noop
-  g.addEventListener(BACK_EVENT, fn)
-  return () => { try { g.removeEventListener(BACK_EVENT, fn) } catch (_) { /* gone */ } }
+  if (typeof globalThis === 'undefined' || typeof globalThis.addEventListener !== 'function') return noop
+  globalThis.addEventListener('online', fn)
+  return () => { try { globalThis.removeEventListener('online', fn) } catch (_) { /* gone */ } }
 }
 
 // How the opening of this person's code is told in a report: 'opened' (asked for, or after the socket came back), 'new' (the person asked
@@ -1016,10 +1028,14 @@ export class Apps {
   }
 
   _onLinkGone () {
-    // the rendezvous drops the lanes of a lost socket: every relay lane is out of use until it is joined again on the next open
+    // the rendezvous drops the lanes of a lost socket: every relay lane is out of use until it is joined again on the next open; a join that
+    // waited to be asked again (DEC-1) waits for that open instead, where _rejoinAll asks
     for (const rec of Array.from(this.lanes.values())) {
       const st = rec.p ? rec.p.rst : null
-      if (st && !st.left && !st.dead) this._relayState(st, { joined: false, peers: 0, why: 'link-lost' })
+      if (!st) continue
+      this._cancel(st.retry)
+      st.retry = null
+      if (!st.left && !st.dead) this._relayState(st, { joined: false, peers: 0, why: 'link-lost' })
     }
     for (const q of Array.from(this.requests.values())) this._dropRequest(q.knock, 'link-lost')
     if (this.codeRec) this.codeRec.registered = false
@@ -1185,6 +1201,8 @@ export class Apps {
       // the relay lane: leave it at the rendezvous (the other side hears pair-left) and mark the st dead with left set, as a wire is
       const wasUsable = this._relayUsable(r)
       const inLane = r.joined
+      this._cancel(r.retry) // a join that waited to be asked again (DEC-1) ends with the lane
+      r.retry = null
       r.left = true
       r.dead = true
       r.ready = false
@@ -1208,7 +1226,9 @@ export class Apps {
   _newRelaySt (rec, lane, kind) {
     return {
       wire: RELAY_WIRE, rec, lane, kind, ready: false, queue: Promise.resolve(), strikes: 0, drops: 0, dead: false, left: false, silent: null,
-      heldRoster: null, relay: true, peers: 0, joined: false, pending: false
+      heldRoster: null, relay: true, peers: 0, joined: false, pending: false,
+      // the join asked again after 'lane full' (DEC-1): its timer, how many times it was asked again, and whether 'full' was told this episode
+      retry: null, tries: 0, fullTold: false
     }
   }
 
@@ -1232,6 +1252,13 @@ export class Apps {
     return st ? (st.relay ? 'relay' : 'direct') : null
   }
 
+  /** Whether a live relay st of a live conversation or room holds this lane now (a leave for it would take its seat away). */
+  _relayHolds (lane) {
+    const rec = this.lanes.get(lane)
+    const st = rec && rec.p ? rec.p.rst : null
+    return !!st && st.lane === lane && !st.left && !rec.gone
+  }
+
   /** The relay st that a push of the link is about: the lane must be one this service joined and not left, of the same kind. */
   _relayOf (ev) {
     const rec = this.lanes.get(ev.lane)
@@ -1253,9 +1280,10 @@ export class Apps {
     const wasUsable = this._relayUsable(st)
     const more = n > st.peers
     this._relayState(st, { joined: true, peers: n })
-    // a member came into a room this person owns while the lane was in use: the roster and the sealed room secrets go again, so that the one
-    // who came has them (when the lane comes into use, _relayUp sends them; a direct wire gets them when it comes up)
-    if (wasUsable && more && st.rec.isRoom && st.rec.owner && this._relayUsable(st)) this._sendRoomState(st.rec, st).then(undefined, noop)
+    // a member came into a room this person owns while the lane was in use: the roster goes again, with the sealed secrets of the members the
+    // owner has not heard from, so that the one who came has what it needs (when the lane comes into use, _relayUp sends them; a direct wire
+    // gets the whole state when it comes up). A burst of such pushes makes one more run, not one each (_relayRoomState)
+    if (wasUsable && more && st.rec.isRoom && st.rec.owner && this._relayUsable(st)) this._relayRoomState(st.rec).then(undefined, noop)
   }
 
   _onLeft (ev) {
@@ -1342,12 +1370,21 @@ export class Apps {
     return false
   }
 
-  // A frame or a join the rendezvous refused. The rate and the day caps leave the lane in use (the frame waits, the person may retry); a lane the
-  // rendezvous does not know any more (it ran out) and a rendezvous that switched relaying off are out of use until a join works again.
+  // A frame the rendezvous refused. The rate and the day caps leave the lane in use (the frame waits, the person may retry). 'unknown lane' after
+  // the lane was joined means the rendezvous forgot this socket (it evicted it as stale, or its object restarted: DEC-1): the lane is out of use
+  // and joined once more at once; what nobody acked goes again when it is usable (_relayUp moves the epoch); a second refusal is told by
+  // _relayJoin and the lane waits for the next open of the socket. A rendezvous that switched relaying off is out of use until a join works
+  // again, and the conversation says no-path when it has no other path (DEC-5).
   _relayFailed (st, reason) {
     const ev = LANE_FAIL[reason]
     if (ev) this._repLane(ev, st.peers)
-    if (reason === 'unknown-lane' || reason === 'relay-is-off-on-this-rendezvous') this._relayState(st, { joined: false, peers: 0, why: ev })
+    if (reason === 'unknown-lane') {
+      this._relayState(st, { joined: false, peers: 0, why: ev })
+      this._relayJoin(st, false).then(undefined, noop)
+    } else if (isRelayOff(reason)) {
+      this._relayState(st, { joined: false, peers: 0, why: ev })
+      this._noPath(st.rec)
+    }
   }
 
   /**
@@ -1374,43 +1411,98 @@ export class Apps {
     const epoch = this._epoch
     this._repLane('join', st.peers)
     const r = await link.join(st.lane, st.kind)
-    if (epoch !== this._epoch || rec.gone || st.dead || st.left) return { ok: false, reason: 'stopped' }
+    if (epoch !== this._epoch || rec.gone || st.dead || st.left) {
+      // The conversation or room ended while the join was on its way, so _leaveLane had nothing to leave yet, and the rendezvous made this socket
+      // a member all the same: it is left now. Otherwise the socket would keep a seat in the lane, and one of its 8, until it closes, and the
+      // other side would write to a page that drops what it gets (finding A-2 of verify round 0). A path that strikes closed (dead, not left)
+      // keeps its seat as _kill does; after a sign-out the socket itself is closed.
+      if (r.ok && epoch === this._epoch && this.link === link && (st.left || rec.gone) && !this._relayHolds(st.lane)) {
+        link.leave(st.lane, st.kind).then(undefined, noop)
+      }
+      return { ok: false, reason: 'stopped' }
+    }
     if (r.ok) {
       const n = this._peersOk(st, r.peers)
       this._repLane('joined', n === null ? 0 : n)
       st.pending = false
+      st.tries = 0
+      st.fullTold = false
+      this._cancel(st.retry)
+      st.retry = null
+      if (rec.reason === 'no-path') rec.reason = null // the rendezvous carries messages after all (DEC-5)
       if (again) rec.p.wireEpoch++ // a lane joined again after the socket came back: what nobody acked goes again
       this._relayState(st, { joined: true, peers: n === null ? 0 : n })
       return { ok: true }
     }
-    const ev = LANE_FAIL[r.reason]
-    if (ev) this._repLane(ev, st.peers)
-    if (r.reason === 'too-many-lanes') st.pending = true
+    if (r.reason === 'lane-full') {
+      // DEC-1: 'full' is told once per episode (the first refusal), and the join is asked again on the schedule of FULL_RETRY_MS
+      if (!st.fullTold) {
+        st.fullTold = true
+        this._repLane('full', st.peers)
+      }
+      this._retryJoin(st)
+    } else {
+      const ev = LANE_FAIL[r.reason]
+      if (ev) this._repLane(ev, st.peers)
+      if (r.reason === 'too-many-lanes') st.pending = true
+      if (isRelayOff(r.reason)) this._noPath(rec) // the only path is refused for good: nothing is asked again (DEC-5)
+    }
     return { ok: false, reason: r.reason }
   }
 
   /**
+   * DEC-1: the join of a full lane is asked again after 3 s, 10 s, 30 s and then every 60 s (through the injected setTimeout, so tests drive
+   * it), for as long as the conversation or room exists and the socket is open. A socket that is lost ends the schedule (_onLinkGone):
+   * _rejoinAll asks on the next open, and a refusal there starts the schedule again without telling 'full' a second time.
+   */
+  _retryJoin (st) {
+    this._cancel(st.retry)
+    const wait = FULL_RETRY_MS[Math.min(st.tries, FULL_RETRY_MS.length - 1)]
+    st.tries++
+    st.retry = this._later(wait, () => {
+      st.retry = null
+      if (st.rec.gone || st.dead || st.left || st.joined || !this.link || this.link.state !== 'open') return
+      this._relayJoin(st, false).then(undefined, noop)
+    })
+  }
+
+  /**
+   * DEC-5: a conversation or room whose only path the rendezvous refused for good (its relay is off, or it is from before the relay) says so
+   * with reason 'no-path' instead of 'connecting' for ever; state() shows it and the UI tells the person. A direct lane the manager holds
+   * (direct on, with WebRTC on the page) is a path that may still come up, so nothing is said then. _relayJoin clears it when a join works.
+   */
+  _noPath (rec) {
+    if (rec.gone || rec.p.lanes.size > 0 || rec.reason === 'no-path') return
+    rec.reason = 'no-path'
+    if (rec.isRoom) this._repRoom(rec)
+    else this._repConv(rec)
+    this._touch()
+  }
+
+  /**
    * The socket came back (plan 3.6): the lanes of the live conversations and rooms are joined again, newest first and at most 8 (the socket's
-   * own cap; the rest join when one of the 8 ends). A lane that strikes had closed starts clean.
+   * own cap; the rest join when one of the 8 ends). A lane that strikes had closed starts clean. A lane the cap leaves out is marked pending,
+   * as one refused with 'too many lanes' is, so that _fillLanes joins it when a place comes free; without the mark a lane that had been joined
+   * before the socket went would wait for the next loss of the socket instead (finding A-1 of verify round 0).
    */
   async _rejoinAll () {
     if (!this.link) return
     const list = []
+    const seen = new Set()
     for (const rec of Array.from(this.lanes.values()).reverse()) {
-      const st = rec.p ? rec.p.rst : null
-      if (!st || st.left || rec.gone || list.length >= this.limits.relayLanesMax) continue
-      if (!list.some((x) => x.rec === rec)) list.push(st)
-    }
-    const jobs = []
-    for (let st of list) {
+      let st = rec.p ? rec.p.rst : null
+      if (!st || st.left || rec.gone || seen.has(rec)) continue
+      seen.add(rec)
       if (st.dead) {
-        const fresh = this._newRelaySt(st.rec, st.lane, st.kind)
-        st.rec.p.rst = fresh
-        st = fresh
+        st = this._newRelaySt(rec, st.lane, st.kind)
+        rec.p.rst = st
       }
-      jobs.push(this._relayJoin(st, true))
+      this._cancel(st.retry) // the socket is back: a full lane is asked now, or when a place is free, not by the schedule of before (DEC-1)
+      st.retry = null
+      if (list.length < this.limits.relayLanesMax) list.push(st)
+      else st.pending = true
     }
-    await Promise.all(jobs)
+    await Promise.all(list.map((st) => this._relayJoin(st, true)))
   }
 
   // A lane ended: a lane the socket had no place for is joined now.
@@ -1434,6 +1526,8 @@ export class Apps {
   _abandonRelay (rec) {
     const r = rec.p.rst
     if (!r || r.left) return
+    this._cancel(r.retry)
+    r.retry = null
     r.left = true
     r.dead = true
     r.ready = false
@@ -2644,7 +2738,11 @@ export class Apps {
       p: {
         lanes: new Map(), wires: new Set(), rst: null, wireEpoch: 0, secret: o.secret || null, keyCode: o.keyCode || null, sendN: 0,
         seen: new Map(), rx: this._bucket(lim.roomAcceptPerMin, lim.roomAcceptPerMin), tx: this._bucket(lim.sendPerMin, lim.sendPerMin),
-        pending: [], outq: [], rosters: new Map(), keyFrames: new Map(), cache: { roster: null, keys: new Map() }, flushP: null, flushing: false, flushAgain: false, flushTimer: null, reknocks: 0
+        pending: [], outq: [], rosters: new Map(), keyFrames: new Map(), cache: { roster: null, keys: new Map() }, flushP: null, flushing: false, flushAgain: false, flushTimer: null, reknocks: 0,
+        // the room state on the relay (finding A-3 of verify round 0). The owner's side: needKey, the members it has not heard from since it
+        // accepted them, whose sealed secrets it still puts on the relay; one run of _relayRoomState at a time (stateP), and stateAgain when a
+        // call came while it ran. A member's side: keyEpk, the epk of the box that gave it the secret, and inAt, when its last 'in' went on the relay.
+        needKey: new Set(), stateP: null, stateBusy: false, stateAgain: false, keyEpk: null, inAt: null
       }
     }
     this.rooms.set(room.id, room)
@@ -2745,6 +2843,7 @@ export class Apps {
     this._rep('request', { ev: 'accept', kind: 'room' })
     const h = q.hello
     room.members.push({ pub: h.pub, ek: h.ek, name: cleanName(h.name || '') })
+    room.p.needKey.add(h.pub) // its sealed secret goes on the relay until the owner hears from it (_relayRoomState)
     room.seq++
     await this._joinRoomLane(room, room.lane)
     this._repRoom(room, 'member-joined')
@@ -2851,11 +2950,12 @@ export class Apps {
     return bytes
   }
 
-  async _keyFrames (room) {
+  // The room secret sealed to each member (cached per member); with only, to the members in that set alone.
+  async _keyFrames (room, only = null) {
     const keys = this._keys()
     const out = []
     for (const m of room.members) {
-      if (m.pub === room.ownerPub) continue
+      if (m.pub === room.ownerPub || (only && !only.has(m.pub))) continue
       let bytes = room.p.keyFrames.get(m.pub)
       if (!bytes) {
         const payload = await sealRoomKey({ keys, memberEk: m.ek, secret: room.p.secret, lane: room.lane, ownerPub: room.ownerPub })
@@ -2870,7 +2970,8 @@ export class Apps {
   /**
    * The owner gives every wire the roster sealed under the room secret, then the secret sealed to each member's key. The roster goes
    * first: a member that has no secret yet keeps it, and reads it when its secret arrives, so the room shows its members when it shows
-   * as connected. A wire that is not a member's sees boxes it cannot open.
+   * as connected. A wire that is not a member's sees boxes it cannot open. The relay gets what _relayRoomState puts on it, not all of it, and
+   * the accept does not wait for it: when the socket's minute is full (apps-link.js) those frames wait in the link, the accept does not.
    */
   async _publishRoster (room) {
     const epoch = this._epoch
@@ -2878,11 +2979,14 @@ export class Apps {
     const roster = await this._rosterFrame(room)
     const keys = await this._keyFrames(room)
     if (epoch !== this._epoch || room.gone) return
-    await this._roomSend(room, roster)
-    for (const k of keys) await this._roomSend(room, k)
+    this._roomBroadcast(room, roster, null)
+    for (const k of keys) this._roomBroadcast(room, k, null)
+    this._relayRoomState(room).then(undefined, noop)
   }
 
+  // The whole state on one direct wire (its peer may be any member); on the relay, _relayRoomState. The first frame a wire refuses ends it.
   async _sendRoomState (room, st) {
+    if (st.relay) return this._relayRoomState(room)
     const epoch = this._epoch
     const roster = await this._rosterFrame(room)
     const keys = await this._keyFrames(room)
@@ -2891,6 +2995,72 @@ export class Apps {
       await this._put(st, roster)
       for (const k of keys) await this._put(st, k)
     } catch (_) { /* a closing wire */ }
+  }
+
+  /**
+   * The owner's room state on the relay (finding A-3 of verify round 0). One frame there reaches everyone in the lane at once, and every frame
+   * counts against the owner's socket at the rendezvous (plan 3.2: 120 relays and 150 messages a minute, and the next message closes the
+   * socket), so the owner no longer puts the whole state there at each accept and each joined push: a pass puts the roster once, then the
+   * sealed secrets of the members in needKey only, those the owner has not heard from since it accepted them (a member says { k: 'in' } when it
+   * holds the secret, _sayIn, and any frame it writes says the same, _applyGroup). One run goes at a time: the calls that come while it runs (a
+   * burst of joined pushes, as when every socket of a room comes back at once) make one more pass, not one each. The first frame the relay does
+   * not take ends a pass; what it did not send goes at the next call (the next joined push, or the lane coming back into use).
+   */
+  _relayRoomState (room) {
+    const p = room.p
+    if (p.stateBusy) {
+      p.stateAgain = true
+      return p.stateP
+    }
+    p.stateBusy = true
+    const epoch = this._epoch
+    p.stateP = (async () => {
+      try {
+        do {
+          p.stateAgain = false
+          const st = p.rst
+          if (!room.owner || room.gone || epoch !== this._epoch || !st || !this._relayUsable(st) || !this._keys()) return
+          const roster = await this._rosterFrame(room)
+          const keys = await this._keyFrames(room, p.needKey)
+          if (epoch !== this._epoch || room.gone) return
+          // the roster first (a member keeps it until its secret comes); the first frame the relay does not take ends this pass, since the ones
+          // after it would not go either, and a call that came meanwhile still makes one more pass
+          for (const bytes of [roster, ...keys]) {
+            if (!(await this._put(st, bytes))) break
+          }
+        } while (p.stateAgain)
+      } finally {
+        p.stateBusy = false
+      }
+    })()
+    return p.stateP
+  }
+
+  /**
+   * A member says once to the room that it holds the secret: { k: 'in' }, a group frame like any other, on every path it has (finding A-3 of
+   * verify round 0). The owner then stops putting that member's sealed secret on the relay. When the owner puts it there again (it did not
+   * hear the first word) and the member sees its own box come back, it says it again (again), at most once a minute on the relay, so a replay
+   * of that box by someone else in the lane costs it little. Only on a door with the relay: without it the owner gives each new wire the whole
+   * state, as it always did.
+   */
+  async _sayIn (room, again = false) {
+    const p = room.p
+    const keys = this._keys()
+    if (room.owner || room.gone || !p.secret || !keys || this.cfg.relay !== 'rendezvous') return
+    const t = this.now()
+    if (again && p.inAt !== null && t - p.inAt < 60000) return
+    const st = p.rst
+    const onRelay = !!st && this._relayUsable(st)
+    if (onRelay) p.inAt = t // before the awaits below: a second call while this word is on its way does not say it twice
+    const epoch = this._epoch
+    const sealed = await sealGroupBody({ keys, secret: p.secret, lane: room.lane, body: { k: 'in' }, now: t, n: p.sendN++, random: this.randomBytes })
+    if (epoch !== this._epoch || room.gone) return
+    const bytes = encodeFrame(T.GROUP, sealed.payload)
+    if (!bytes) return
+    this._fresh(p.seen, 'g' + sealed.id, sealed.t)
+    this._roomBroadcast(room, bytes, null)
+    // the word went on the relay, or it did not: then the next time the owner's box comes back it is said again at once
+    if (onRelay && !(await this._put(st, bytes)) && p.inAt === t) p.inAt = null
   }
 
   _roomWireUp (room, st) {
@@ -2929,8 +3099,9 @@ export class Apps {
     if (!room.p.secret) {
       const secret = await openRoomKey({ keys: this._keys(), ownerEk: room.ownerEk, payload, lane: st.lane, ownerPub: room.ownerPub })
       if (epoch !== this._epoch || room.gone) return
-      if (secret) {
+      if (secret && !room.p.secret) {
         room.p.secret = secret
+        room.p.keyEpk = payload.epk // the box that gave it: when it comes again, the owner did not hear this member say 'in' (_sayIn)
         // the roster that came first is read now (it names who may write, and who is in the room), and only then does the room show as
         // connected; then the frames that waited for the secret are looked at
         await this._applyHeldRoster(room)
@@ -2941,9 +3112,14 @@ export class Apps {
         }
         this._applyHeld(room).then(undefined, noop)
         this._flushRoom(room)
+        this._sayIn(room).then(undefined, noop) // the owner stops putting this member's secret on the relay when it hears this (finding A-3)
         this._touch()
         return
       }
+      if (secret) return // the same box by another path, opened while the first was: nothing more to do
+    } else if (payload.epk === room.p.keyEpk) {
+      this._sayIn(room, true).then(undefined, noop) // the owner put this member's own box on the relay again: it did not hear 'in'
+      return
     } else if (room.p.cache.keys.has(payload.epk)) {
       return
     }
@@ -3056,6 +3232,9 @@ export class Apps {
       if (room.p.pending.length < this.limits.pendingGroupMax) room.p.pending.push({ r, at })
       return
     }
+    // whoever writes to the room holds its secret ({ k: 'in' } says only that, _sayIn): the owner stops putting that member's sealed secret on
+    // the relay (_relayRoomState, finding A-3 of verify round 0)
+    if (room.owner) room.p.needKey.delete(from)
     if (b.k === 'bye') {
       if (from === room.ownerPub && !room.owner) {
         room.status = 'closed'

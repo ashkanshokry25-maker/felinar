@@ -19,9 +19,9 @@ const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
 const bin = (hex) => Buffer.from(hex, 'hex').toString('binary');
 const peer = (ch) => ch.repeat(20);
-// The tests written before the relay lane pin stats() exactly; they do it through noRelay(stats), which drops the seven relay
-// fields (plan 3.2), and the relay tests below pin those seven themselves.
-const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused'];
+// The tests written before the relay lane pin stats() exactly; they do it through noRelay(stats), which drops the eight relay
+// fields (plan 3.2, and evicted from DECISIONS DEC-1), and the relay tests below pin those eight themselves.
+const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
 const noRelay = (stats) => { const out = Object.assign({}, stats); for (const k of RELAY_FIELDS) delete out[k]; return out; };
 
 /** A fake connection: collects what the core sends, parsed. */
@@ -896,6 +896,81 @@ test('the object: the 151st message of a minute gets its reason, the socket is c
   assert.equal(storage.rows.has('chan:abcd'), false, 'and so did its code');
 });
 
+test('the object (DEC-1): a join to a full lane evicts the member that showed no life for 2 minutes; the platform\'s answers to pings are read for that lane\'s members only, at that moment; the evicted socket is closed with 1000 and released like one that closed, the kept one hears left then joined', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: T0 });
+  const storage = fakeStorage();
+  const owner = fakeWs('owner');
+  const req = fakeWs('req');
+  const other = fakeWs('other');
+  const fresh = fakeWs('fresh');
+  const ctx = fakeCtx([], storage);
+  const obj = new Rendezvous(ctx, ENV);
+  await obj.ready;
+  for (const ws of [owner, req, other, fresh]) await join(obj, ws);
+  const lane = await acceptedLane(obj, owner, req);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-join', lane }));
+  await obj.webSocketMessage(other, frame({ action: 'pair-open', channel: 'wxyz', box: BOX })); // a pair socket in no lane
+  for (const ws of [owner, req, other]) take(ws);
+  // 3 minutes: the owner's page pings through the platform (the object never wakes); the requester's phone changed networks and its socket is silent
+  for (let i = 0; i < 3; i++) { t.mock.timers.tick(60 * 1000); await ctx.deliver(obj, owner, PING); }
+  assert.equal(ctx.wakes, 0);
+  take(owner);
+  // the object is rebuilt first (a wake): the saved times of both sockets are 3 minutes old, and only the platform's answers tell them apart
+  const ctx2 = fakeCtx([owner, req, other, fresh], storage);
+  const woken = new Rendezvous(ctx2, ENV);
+  await woken.ready;
+  const probed = [];
+  const stamps = ctx2.getWebSocketAutoResponseTimestamp;
+  ctx2.getWebSocketAutoResponseTimestamp = function (ws) { probed.push(ws.name); return stamps.call(this, ws); };
+  // the requester's new socket asks to join: the lane is full, the owner is alive by its pings, the old socket is not
+  await woken.webSocketMessage(fresh, frame({ action: 'pair-join', lane, rid: 'j' }));
+  assert.deepEqual(probed.sort(), ['owner', 'req'], 'the platform was asked about the two members of that lane and nobody else');
+  assert.deepEqual(take(fresh), [{ action: 'pair-join', lane, peers: 1, rid: 'j' }]);
+  assert.deepEqual(take(owner), [{ action: 'pair-left', lane, peers: 0 }, { action: 'pair-joined', lane, peers: 1 }]);
+  assert.deepEqual(req.closed, { code: 1000, reason: 'replaced' }, 'the evicted socket is closed, normally');
+  assert.deepEqual([owner.closed, other.closed, fresh.closed], [null, null, null]);
+  assert.equal(woken.conns.has(req), false, 'and released by the object');
+  assert.equal(woken.core.stats().sockets, 3, 'owner, other and fresh remain');
+  assert.deepEqual(fresh.attachment.l, [[lane, 'pair']]);
+  assert.equal(JSON.stringify(Array.from(storage.rows)).includes('evict'), false, 'nothing about it is written to storage');
+  const st = await (await woken.fetch(new Request('https://rtc.example/stats.json'))).json();
+  assert.deepEqual([st.evicted, st.relays, st.joinsRefused, st.sockets], [1, 1, 0, 3]);
+  // a frame from the owner reaches the new socket, and nothing more is written to the old one
+  await woken.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f: 'abcd' }));
+  assert.deepEqual(take(fresh), [{ action: 'pair-relayed', lane, f: 'abcd' }]);
+  assert.deepEqual(req.sent, []);
+  // both members live: a third socket is refused, the platform is asked about the two members only, nobody is closed
+  probed.length = 0;
+  const third = fakeWs('third');
+  await join(woken, third);
+  await woken.webSocketMessage(third, frame({ action: 'pair-join', lane, rid: 't' }));
+  assert.deepEqual(take(third), [{ action: 'pair-join', rid: 't', 'failure reason': 'lane full' }]);
+  assert.deepEqual(probed.sort(), ['fresh', 'owner']);
+  assert.deepEqual([fresh.closed, owner.closed], [null, null]);
+  assert.equal(woken.core.stats().evicted, 1);
+});
+
+test('the object (DEC-2): a ping that wakes the object counts like any message: the 151st near miss in a minute closes the socket with 1008; the exact text, answered by the platform, never does', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: T0 });
+  const ctx = fakeCtx([], fakeStorage());
+  const obj = new Rendezvous(ctx, ENV);
+  await obj.ready;
+  const ws = fakeWs('near');
+  await join(obj, ws);
+  for (let i = 0; i < 1000; i++) await ctx.deliver(obj, ws, PING);
+  assert.deepEqual([ctx.wakes, ws.closed], [0, null], 'the exact text never reaches the core');
+  ws.sent.length = 0;
+  const near = '{"v":1, "action":"pair-ping"}';
+  for (let i = 0; i < 150; i++) assert.equal(await ctx.deliver(obj, ws, near), true);
+  assert.deepEqual([ctx.wakes, ws.closed], [150, null], '150 near misses woke it 150 times and were answered');
+  assert.equal(ws.sent.filter((m) => m.action === 'pair-pong').length, 150);
+  await ctx.deliver(obj, ws, near);
+  assert.deepEqual(ws.closed, { code: 1008, reason: 'too many messages' }, 'the 151st message of the minute, a ping, closes the socket');
+  assert.deepEqual(ws.sent.pop(), { action: 'pair-ping', 'failure reason': 'too many messages' });
+  assert.equal(obj.core.stats().sockets, 0, 'released like any socket that closes');
+});
+
 test('worker fetch: the object is handed a fresh request with only the upgrade headers; a stats request carries no header and no token', async () => {
   const seen = [];
   const env = Object.assign({}, ENV, { RTC: { idFromName: (n) => n, get: () => ({ fetch: async (req) => { seen.push(req); return new Response('from the object'); } }) } });
@@ -941,7 +1016,7 @@ test('worker fetch: the headers are read by name, one at a time, and request.cf 
   for (const prop of ['cf', 'signal', 'referrer', 'mode', 'credentials', 'integrity', 'body']) assert.equal(props.has(prop), false, prop);
 });
 
-test('/stats.json of the object carries the seven relay fields: counts and a UTC day, no lane and no frame', async (t) => {
+test('/stats.json of the object carries the eight relay fields: counts and a UTC day, no lane and no frame', async (t) => {
   const { owner, req, obj } = await pairedObject(t);
   const lane = await acceptedLane(obj, owner, req);
   await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
@@ -950,10 +1025,10 @@ test('/stats.json of the object carries the seven relay fields: counts and a UTC
   await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f }));
   await obj.webSocketMessage(req, frame({ action: 'pair-relay', lane, f }));
   const st = await (await obj.fetch(new Request('https://rtc.example/stats.json'))).json();
-  assert.deepEqual(Object.fromEntries(RELAY_FIELDS.map((k) => [k, st[k]])), { relays: 1, relayed: 2, relayBytes: 200, relayDay: 20231114, relayBusy: 0, relayRate: 0, joinsRefused: 0 });
+  assert.deepEqual(Object.fromEntries(RELAY_FIELDS.map((k) => [k, st[k]])), { relays: 1, relayed: 2, relayBytes: 200, relayDay: 20231114, relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 });
   assert.equal(JSON.stringify(st).includes(lane), false);
   assert.equal(JSON.stringify(st).includes('QUJD'), false);
-  assert.deepEqual(Object.keys(st).sort(), ['allowed', 'codes', 'interval', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'sockets', 'swarms', 'unlisted', 'uploads']);
+  assert.deepEqual(Object.keys(st).sort(), ['allowed', 'codes', 'evicted', 'interval', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'sockets', 'swarms', 'unlisted', 'uploads']);
 });
 
 test('wrangler.jsonc: observability is off, RELAY_LANE is "1", no token and no hash in the file, and the header says how to deploy behind a Pages front', () => {

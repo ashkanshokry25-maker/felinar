@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import WebSocket from 'ws';
 
 import { createTracker } from '../../tools/tracker.mjs';
-import { PairLink, createLink, reportWord, reasonWord, reasonCode, BACKOFF_MS, KEEPALIVE_MS } from '../../src/loader/apps-link.js';
+import { PairLink, createLink, reportWord, reasonWord, reasonCode, BACKOFF_MS, KEEPALIVE_MS, PONG_WAIT_MS, RELAY_BUDGET, MESSAGE_BUDGET } from '../../src/loader/apps-link.js';
 import { createApps, LIMITS } from '../../src/loader/apps.js';
 import { EXT_NAME, T, encodeFrame, sealDmBody, shortIdOf } from '../../src/loader/apps-crypto.js';
 import { b64url } from '../../src/chain/canonical.js';
@@ -246,6 +246,63 @@ describe('the pair link: join, relay and leave', () => {
     assert.deepEqual(await L[0].link.relay(lane, 'pair', bytesOf(200)), { ok: false, reason: 'unknown-lane' });
     assert.deepEqual(await L[0].link.leave(lane, 'room'), { ok: true });
     await until(() => L[1].ev.some(([n, d]) => n === 'left' && d.peers === 1), 'left, with the count that is left');
+  });
+});
+
+// The rendezvous counts what one socket sends in a sliding minute (plan 3.2): past 120 relayed frames it refuses them, and past 150 messages of
+// any kind it closes the socket, which ends every lane, code and knock of the page at once. Every lane of a page shares that one socket, so the
+// link keeps its own minute under those caps (RELAY_BUDGET, MESSAGE_BUDGET) and a request that would go over waits for room: a page never trips
+// the caps by itself (finding A-3 of verify round 0).
+describe('the minute of the socket: the link stays under the caps of the rendezvous', () => {
+  test('300 frames put on the relay at once are never refused and never close the socket: RELAY_BUDGET go now and the rest as the minute has room; a join does not wait behind them', async () => {
+    assert.ok(RELAY_BUDGET > 0 && RELAY_BUDGET < 120 && MESSAGE_BUDGET > RELAY_BUDGET && MESSAGE_BUDGET < 150, 'under the caps of the rendezvous (plan 3.2)');
+    const w = makeWorld();
+    const lane = mint(w);
+    const A = linkOf(w);
+    const B = linkOf(w);
+    await A.link.join(lane, 'pair');
+    await B.link.join(lane, 'pair');
+    const answers = [];
+    for (let i = 0; i < 300; i++) A.link.relay(lane, 'pair', bytesOf(40, i % 200)).then((r) => answers.push(r));
+    await until(() => answers.length === RELAY_BUDGET, 'the frames of the first minute are answered');
+    await settle(20);
+    const relaysSent = () => A.link._ws.sent.filter((t) => JSON.parse(t).action === 'pair-relay').length;
+    assert.deepEqual([answers.length, relaysSent()], [RELAY_BUDGET, RELAY_BUDGET], 'the others wait in the link, unsent');
+    const other = mint(w);
+    assert.deepEqual(await A.link.join(other, 'pair'), { ok: true, peers: 0 }, 'a join goes at once: the minute has room for it');
+    // and in the same turn, as before the minute existed: a sign-out writes its leaves and then closes the socket
+    const ws = A.link._ws;
+    const before = ws.sent.length;
+    const leaving = A.link.leave(other, 'pair');
+    assert.equal(ws.sent.length, before + 1, 'the leave was written at once, while relayed frames wait');
+    assert.deepEqual(await leaving, { ok: true });
+    w.advance(60000);
+    await until(() => answers.length === 2 * RELAY_BUDGET, 'the frames of the next minute');
+    w.advance(60000);
+    await until(() => answers.length === 300, 'and the rest');
+    assert.ok(answers.every((r) => r.ok === true && r.peers === 1), JSON.stringify(answers.find((r) => !r.ok)));
+    assert.equal(A.link.state, 'open');
+    assert.deepEqual(A.names().filter((n) => n === 'gone'), [], 'the socket was never closed');
+    assert.deepEqual(A.got.filter((r) => r.name === 'reply' && r.fields.ok === false), [], 'nothing was refused');
+    await until(() => B.ev.filter(([n]) => n === 'relayed').length === 300, 'every frame reached the other side, once');
+  });
+
+  test('past MESSAGE_BUDGET frames of any kind in a minute every request waits, a join included; one that waits fails as closed when the socket goes, and the new socket starts a minute of its own', async () => {
+    const w = makeWorld();
+    const lane = mint(w);
+    const A = linkOf(w);
+    for (let i = 0; i < MESSAGE_BUDGET; i++) assert.equal((await A.link.join(lane, 'pair')).ok, true, 'join ' + (i + 1));
+    let held = null;
+    const waiting = A.link.join(lane, 'pair').then((r) => { held = r; });
+    await settle(20);
+    assert.equal(held, null, 'the next one waits for the minute');
+    assert.equal(A.link._ws.sent.length, MESSAGE_BUDGET, 'and was not sent');
+    A.link.drop();
+    await waiting;
+    assert.deepEqual(held, { ok: false, reason: 'closed' });
+    w.advance(1000); // the back off: a new socket, and a new minute at the rendezvous
+    await until(() => A.link.state === 'open', 'the socket is back');
+    assert.deepEqual(await A.link.join(lane, 'pair'), { ok: true, peers: 0 }, 'at once');
   });
 });
 
@@ -711,6 +768,37 @@ describe('after the accept: the relay is joined, the manager is not made', () =>
     assert.equal(conv(B).unread, 2, 'two messages in all');
   });
 
+  // Plan 3.6: every change of the relay path between usable and not usable moves the conversation's epoch, so that _flush sends again what the
+  // other path never acked. A direct wire that dies while the relay is out of use moves nothing (there is no path left to send on): only the
+  // relay coming back can, and without its move the message lost on the wire would wait for a later change (finding B-1 of verify round 0).
+  test('a message the direct wire took and lost goes again, once, through the relay when the relay comes back after that wire died', async () => {
+    const w = makeWorld();
+    const { A, B, a } = await pairUp(w, BOTH);
+    await until(() => conv(A).via === 'direct' && conv(B).via === 'direct', 'the direct wire is preferred');
+    const recA = A.apps.lanes.get(laneOf(A));
+    assert.ok(recA && recA.p.rst, 'A holds a relay path for the conversation');
+    // B's socket goes: A's relay is out of use and A talks on the direct wire alone
+    B.link.drop();
+    await until(() => !recA.p.rst.ready, 'A: the relay is out of use');
+    assert.equal(conv(A).via, 'direct');
+    // from now on the direct wire loses every frame: A writes, the frame goes on the wire and is lost there
+    w.net.drops = () => true;
+    await A.apps.send(a, 'lost on the wire');
+    await until(() => conv(A).messages[0].status === 'sent', 'sent on the direct wire');
+    // the wire dies and none can come up again: A has no path left and is connecting
+    w.net.canConnect = () => false;
+    w.net.pause();
+    w.net.dropAll();
+    await until(() => conv(A).status === 'connecting', 'A is connecting');
+    // B's socket is back after its back off and joins the lane: the relay is usable again, and the message goes again through it
+    w.advance(1000);
+    await until(() => recA.p.rst.ready, 'A: the relay is usable again');
+    await until(() => conv(B).messages.length === 1 && conv(A).messages[0].status === 'delivered', 'the message reached B through the relay', 4000);
+    await settle(10);
+    assert.equal(conv(B).messages.length, 1, 'shown once');
+    assert.ok(w.rdv.relayStats().relayed > 0, 'it went through the relay');
+  });
+
   test('direct off constructs no manager: loadTm is never called, FakeNetwork.canConnect is not even asked, whatever the network can do', async () => {
     const w = makeWorld();
     let asked = 0;
@@ -786,6 +874,32 @@ describe('the relay going away and coming back', () => {
     assert.equal(A.link._ws.sent.some((t) => JSON.parse(t).action === 'pair-join' && JSON.parse(t).lane === lanes[0]), false, 'the oldest waits');
     assert.equal(LIMITS.relayLanesMax, 8, 'the shipped number is the Worker\'s cap of lanes for a socket');
     assert.ok(sent.id);
+  });
+
+  // Plan 3.6 and docs/APPS.md: the lanes beyond the socket's cap join when one of the others ends. A lane that was joined before the socket went
+  // and that the reopen left out must wait for that place too, not until the socket goes again (finding A-1 of verify round 0).
+  test('after a reopen, a lane the socket had no place for joins when one of the joined lanes ends', async () => {
+    const w = makeWorld({ caps: { lanesPerSocket: 2 } }); // both ends shortened the same way, as above
+    const A = await mk(w, 'Alice', Object.assign({ limits: { relayLanesMax: 2 } }, RELAY));
+    const Bs = [];
+    for (const name of ['Bea', 'Bo', 'Bi']) Bs.push(await mk(w, name, RELAY));
+    const { code } = await A.apps.openCode();
+    for (const B of Bs) await B.apps.knock(code);
+    await until(() => st(A).requests.length === 3, 'three requests');
+    for (const q of st(A).requests.slice()) assert.ok((await A.apps.accept(q.knock)).id);
+    const connected = () => st(A).conversations.filter((c) => c.status === 'connected');
+    await until(() => connected().length === 2, 'two connected before the drop');
+    A.link.drop();
+    await until(() => A.link.state === 'backoff', 'A lost its socket');
+    w.advance(1000);
+    await until(() => A.link.state === 'open', 'A is back');
+    await until(() => connected().length === 2, 'two connected after the reopen');
+    const out = st(A).conversations.find((c) => c.status !== 'connected');
+    assert.ok(out, 'one conversation did not fit the socket');
+    assert.deepEqual(await A.apps.leave(connected()[0].id), { ok: true });
+    await until(() => st(A).conversations.find((c) => c.id === out.id).status === 'connected', 'the conversation left out got the place that came free');
+    assert.equal(st(A).conversations.find((c) => c.id === out.id).via, 'relay');
+    assert.equal(A.link._ws.conn.joined.size, 2, 'and the socket holds its 2 lanes');
   });
 
   test('the numbers as shipped: a socket holds 8 lanes, a ninth conversation waits for a place and gets it when one of the others ends', async () => {
@@ -996,6 +1110,114 @@ describe('rooms through the relay', () => {
     await until(() => !w.rdv.relays.has(lane), 'both are out of the lane, which is gone');
     assert.equal(framesOf(w, 'room-leave').length, 3, 'each of the three left once');
   });
+
+  // Finding A-3 of verify round 0. Over the relay one frame of the owner reaches every member at once, and every frame counts against the
+  // owner's socket at the rendezvous (plan 3.2: 120 relays and 150 messages a minute, the next message closes the socket). The owner used to put
+  // the whole room state (the roster and the sealed secret of EVERY member) on the relay at each accept and again at each member's joined push,
+  // about 2 (1 + j) frames for the j-th member: a room of 12 filled at one accept every 4 seconds closed the owner's socket. Now the roster goes
+  // once per call, and of the sealed secrets only those of the members the owner has not heard from: a member says { k: 'in' } once it holds the
+  // secret, and any frame it writes says the same.
+  /**
+   * fillRoom(w, n, stepMs): an owner and n members on the relay; the owner accepts them one after the other, the clock moving stepMs after each.
+   * Between two accepts the test waits, in real time, until the owner has heard the new member say 'in', as it does within a round trip on a real
+   * network, long before the next accept: so the count of frames does not depend on how fast this machine opens the sealed boxes.
+   */
+  async function fillRoom (w, n, stepMs) {
+    const O = await mk(w, 'Olive', RELAY);
+    const Ms = [];
+    for (let i = 1; i <= n; i++) Ms.push(await mk(w, 'Member' + i, RELAY));
+    const r = await O.apps.createRoom();
+    assert.ok(r.id, JSON.stringify(r));
+    const ids = [];
+    for (const M of Ms) {
+      const j = await M.apps.joinRoom(r.code);
+      assert.ok(j.id, JSON.stringify(j));
+      ids.push(j.id);
+    }
+    await until(() => st(O).requests.length === n, 'the join requests');
+    const ownerConn = connOf(O);
+    const roomO = O.apps.rooms.get(r.id);
+    for (const q of st(O).requests.slice()) {
+      assert.equal((await O.apps.acceptMember(q.knock)).id, r.id);
+      await until(() => roomO.p.needKey.size === 0, 'the owner heard the new member say it holds the secret');
+      w.advance(stepMs);
+    }
+    const roomOf = (X, id) => st(X).rooms.find((x) => x.id === id);
+    const inRoom = () => Ms.filter((M, i) => roomOf(M, ids[i]).status === 'connected').length;
+    return { O, Ms, id: r.id, ids, ownerConn, roomOf, inRoom };
+  }
+  const refusedOf = (X) => X.reports.filter((x) => x.name === 'link.reply' && x.fields.ok === false).map((x) => x.fields.reason);
+  const goneOf = (X) => X.reports.filter((x) => x.name === 'link.gone').map((x) => x.fields.why);
+
+  test('a room that fills at one accept every 4 seconds: the owner keeps its socket, nothing it sends is refused, every member holds the key, and the owner puts 4 frames on the relay per member, not the whole room each time', async () => {
+    assert.ok(CORE_RELAY, 'this test needs the real pairing core (deploy/rtc-worker/pair.js), whose caps are those of the Worker');
+    const w = makeWorld();
+    const n = 15;
+    const { O, Ms, id, ids, ownerConn, roomOf, inRoom } = await fillRoom(w, n, 4000);
+    await until(() => inRoom() === n, 'every member holds the key');
+    assert.deepEqual(goneOf(O), [], 'the owner\'s socket was never closed');
+    assert.deepEqual(refusedOf(O), [], 'nothing the owner sent was refused');
+    assert.equal(connOf(O), ownerConn);
+    // per member at most: the roster and the new member's sealed secret at the accept, and both again at its joined push (the accept's copy
+    // may come before the member is in the lane). The whole state twice per member was 2 (1 + j) frames, 270 for a room of 16.
+    const relays = w.rdv.log.filter((e) => e.conn === ownerConn && e.action === 'room-relay').length;
+    assert.ok(relays <= 4 * n, 'the owner put ' + relays + ' frames on the relay for ' + n + ' members');
+    for (const M of Ms) assert.equal(sentBy(w, M, 'room-relay'), 1, M.name + ' said once that it holds the secret');
+    assert.equal(w.rdv.relayStats().relayRate, 0);
+    await O.apps.sendRoom(id, 'all fifteen are in');
+    await until(() => Ms.every((M, i) => roomOf(M, ids[i]).messages.some((m) => m.text === 'all fifteen are in')), 'a message of the owner reaches every member');
+  });
+
+  test('a full room whose sockets all come back at once, as after a restart of the rendezvous: the owner\'s new socket is never refused or closed, sends a roster per return at most, and every member still holds the key', async () => {
+    assert.ok(CORE_RELAY, 'this test needs the real pairing core (deploy/rtc-worker/pair.js), whose caps are those of the Worker');
+    const w = makeWorld();
+    const n = 15;
+    const { O, Ms, id, ids, roomOf, inRoom } = await fillRoom(w, n, 4000);
+    await until(() => inRoom() === n, 'the room is full and every member holds the key');
+    w.advance(61000); // a fresh minute at the rendezvous
+    await settle(20);
+    O.reports.length = 0;
+    for (const X of [O, ...Ms]) X.link.drop(); // the object restarted: every socket is lost at once
+    await settle(20);
+    w.advance(1500); // and all come back after the same back off
+    await until(() => [O, ...Ms].every((X) => X.link.state === 'open'), 'every socket is back');
+    const ownerConn = connOf(O);
+    await until(() => roomOf(O, id).peers === n, 'every member is in the lane again');
+    assert.equal(await quiet(w, O, 'room-relay') <= n + 1, true, 'a roster per return at most');
+    assert.deepEqual(refusedOf(O), [], 'nothing the owner sent was refused');
+    assert.deepEqual(goneOf(O), ['closed'], 'the owner\'s socket was lost once, by the restart, and never closed by the rendezvous');
+    assert.equal(connOf(O), ownerConn);
+    assert.equal(inRoom(), n, 'every member still holds the key');
+    for (const M of Ms) assert.equal(refusedOf(M).length, 0, M.name);
+    await O.apps.sendRoom(id, 'after the restart');
+    await until(() => Ms.every((M, i) => roomOf(M, ids[i]).messages.some((m) => m.text === 'after the restart')), 'the next message reaches every member');
+  });
+
+  test('a member says once that it holds the room secret and the owner stops putting it on the relay; a joined push then costs the owner the roster alone; a member who sees its own sealed secret again says it again', async () => {
+    const w = makeWorld();
+    const { O, Ms, id, roomOf } = await roomUp(w, RELAY);
+    const [M1, M2] = Ms;
+    const roomO = O.apps.rooms.get(id);
+    await until(() => roomO.p.needKey.size === 0, 'the owner heard from both members');
+    for (const M of Ms) assert.equal(await quiet(w, M, 'room-relay'), 1, M.name + ' said it once');
+    // M2's socket goes and comes back: its joined push gets the roster from the owner, and no sealed secret
+    const before = await quiet(w, O, 'room-relay');
+    M2.link.drop();
+    await until(() => roomOf(O, id).peers === 1, 'the owner sees M2 go');
+    w.advance(1000);
+    await until(() => roomOf(O, id).peers === 2, 'and come back');
+    assert.equal(await quiet(w, O, 'room-relay') - before, 1, 'one frame: the roster');
+    // the owner did not hear M1 (as if its word had been lost): at the next joined push it puts M1's sealed secret on the relay, and M1, seeing
+    // its own again, says again that it holds it (at most once a minute)
+    w.advance(60000);
+    roomO.p.needKey.add(M1.person.keys.pub);
+    const m1Before = await quiet(w, M1, 'room-relay');
+    M2.link.drop();
+    await until(() => roomOf(O, id).peers === 1, 'the owner sees M2 go again');
+    w.advance(1000);
+    await until(() => roomO.p.needKey.size === 0, 'M1 said it again and the owner heard it');
+    assert.equal(await quiet(w, M1, 'room-relay') - m1Before, 1);
+  });
 });
 
 describe('leaving ends the lane at the rendezvous', () => {
@@ -1029,6 +1251,35 @@ describe('leaving ends the lane at the rendezvous', () => {
     await until(() => w2.rdv.relays.get(lane2).members.size === 1, 'A is out of the lane');
     assert.deepEqual(sent.map((t) => JSON.parse(t)).filter((m) => m.action === 'pair-leave').map((m) => m.lane), [lane2]);
     assert.equal(st(P.A).conversations.length, 0);
+  });
+
+  // Plan 3.6: the leave paths send leave. A conversation left while its join is still on the way had nothing to leave yet, and the join's answer
+  // then made the socket a member all the same: it kept a seat in the lane (and one of its 8) until it closed (finding A-2 of verify round 0).
+  test('a conversation left while its join is on the way leaves the lane when the join is answered: the socket keeps no seat in it', async () => {
+    const w = makeWorld();
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    const { code } = await A.apps.openCode();
+    assert.ok((await B.apps.knock(code)).knock);
+    await until(() => st(A).requests.length === 1, 'the request');
+    // A's join is held on its way until the conversation has been left
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const join = A.link.join.bind(A.link);
+    A.link.join = async (lane, kind) => { await gate; return join(lane, kind); };
+    const accepting = A.apps.accept(st(A).requests[0].knock);
+    await until(() => A.apps.lanes.size === 1, 'the join is on its way');
+    const lane = laneOf(A);
+    const leaving = A.apps.leave(conv(A).id);
+    await settle(10);
+    release();
+    await accepting;
+    await leaving;
+    await until(() => sentBy(w, A, 'pair-leave') === 1, 'the leave went once the join was answered');
+    await until(() => A.link._ws.conn.joined.size === 0, 'A\'s socket holds no lane at the rendezvous');
+    assert.equal(st(A).conversations.length, 0);
+    await until(() => w.rdv.relays.has(lane) && w.rdv.relays.get(lane).members.size === 1, 'B is alone in the lane');
+    assert.equal(sentBy(w, A, 'pair-leave'), 1, 'and only once');
   });
 });
 
@@ -1090,23 +1341,24 @@ describe('what the service tells, and what it never tells', () => {
     assert.equal(A.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'off').length, 1, 'once per side');
     assert.equal(B.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'off').length, 1);
     assert.equal(conv(A).status, 'connecting', 'no error card: the conversation just does not connect without a path');
-    assert.equal(conv(A).reason, null);
+    assert.equal(conv(A).reason, 'no-path'); // DECISIONS DEC-5: the only path was refused for good, and the conversation says so (was null)
     scan([A, B], forbiddenOf(w, ['Alice', 'Bob']));
   });
 });
 
-describe('joins that fail', () => {
-  /**
-   * A rendezvous that refuses every relay join with this text (the direct path, FakeNetwork, is not touched). It answers in front of the
-   * rendezvous, as plan 3.1 shapes a failure ({ action, rid, 'failure reason' }), so the stub and the real core are refused alike.
-   */
-  function refuseJoins (w, text) {
-    const orig = w.rdv.handle.bind(w.rdv);
-    w.rdv.handle = (conn, m) => (m && /^(?:pair|room)-join$/.test(m.action)
-      ? w.rdv._send(conn, Object.assign({ action: m.action }, typeof m.rid === 'string' ? { rid: m.rid } : {}, { 'failure reason': text }))
-      : orig(conn, m));
-  }
+/**
+ * A rendezvous that refuses every relay join with this text while `when()` says so (always, by default; the direct path, FakeNetwork, is not
+ * touched). It answers in front of the rendezvous, as plan 3.1 shapes a failure ({ action, rid, 'failure reason' }), so the stub and the real
+ * core are refused alike; when `when()` says no, the join goes through to the rendezvous itself.
+ */
+function refuseJoins (w, text, when = () => true) {
+  const orig = w.rdv.handle.bind(w.rdv);
+  w.rdv.handle = (conn, m) => (when() && m && /^(?:pair|room)-join$/.test(m.action)
+    ? w.rdv._send(conn, Object.assign({ action: m.action }, typeof m.rid === 'string' ? { rid: m.rid } : {}, { 'failure reason': text }))
+    : orig(conn, m));
+}
 
+describe('joins that fail', () => {
   test('a lane the rendezvous does not know, with no direct path: the conversation is rejected as bad-lane; with a direct path it goes on and only says unknown', async () => {
     const w = makeWorld();
     refuseJoins(w, 'unknown lane');
@@ -1195,6 +1447,350 @@ describe('joins that fail', () => {
   });
 });
 
+// The orchestrator's decisions on the lane (DECISIONS.md: DEC-1 client side, DEC-5 service side). A full lane is not final: the member in the
+// way may be a socket the rendezvous has not found dead yet, so the join is asked again; a socket the rendezvous forgot joins once more; and a
+// conversation whose only path is refused for good says so instead of connecting for ever.
+describe('DEC-1 and DEC-5: a full lane is asked again, an evicted socket joins again, a refused only path says no-path', () => {
+  const joins = (w, action = 'pair-join') => framesOf(w, action).length;
+  const evs = (X) => X.reports.filter((r) => r.name === 'apps.lane').map((r) => r.fields.ev);
+  const toldFull = (X) => evs(X).filter((ev) => ev === 'full').length;
+  const told = (X, ev) => X.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === ev).length;
+  /** A owns a code, B knocks, A accepts; the pair is left to the rendezvous (no wait for a connection). */
+  async function acceptBetween (A, B) {
+    const { code } = await A.apps.openCode();
+    await B.apps.knock(code);
+    await until(() => st(A).requests.length === 1, 'the request');
+    const acc = await A.apps.accept(st(A).requests[0].knock);
+    assert.ok(acc.id, JSON.stringify(acc));
+  }
+
+  test('lane full is not final: the join is asked again after 3, 10 and 30 seconds and then every minute while the conversation lives and the socket is open; full is told once per side; the first free place connects the pair', async () => {
+    const w = makeWorld();
+    let full = true;
+    refuseJoins(w, 'lane full', () => full);
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    await acceptBetween(A, B);
+    await until(() => toldFull(A) === 1 && toldFull(B) === 1, 'both told full');
+    assert.equal(joins(w), 2);
+    assert.deepEqual([conv(A).status, conv(B).status], ['connecting', 'connecting']);
+    assert.deepEqual([conv(A).reason, conv(B).reason], [null, null], 'a full lane is no refusal of the path');
+    let expected = 2;
+    for (const wait of [3000, 10000, 30000, 60000, 60000, 60000]) {
+      w.advance(wait - 1);
+      await settle(10);
+      assert.equal(joins(w), expected, 'nothing is asked a tick before ' + wait + ' ms');
+      w.advance(1);
+      expected += 2;
+      await until(() => joins(w) === expected, 'both ask again at ' + wait + ' ms');
+      await settle(10); // the refusal comes back and the next try is scheduled before the clock moves on
+    }
+    assert.deepEqual([toldFull(A), toldFull(B)], [1, 1], 'full is told once per episode, not once per try');
+    assert.deepEqual([conv(A).status, conv(B).status], ['connecting', 'connecting']);
+    full = false; // a place is free (the rendezvous evicted the stale member): the next try joins
+    w.advance(60000);
+    await until(() => isConnected(A) && isConnected(B), 'both connected after the retry');
+    assert.deepEqual([conv(A).via, conv(B).via], ['relay', 'relay']);
+    assert.equal(joins(w), expected + 2, 'one more join each, and none after');
+    await A.apps.send(conv(A).id, 'through at last');
+    await until(() => conv(B).messages.length === 1 && conv(A).messages[0].status === 'delivered', 'delivered');
+    assert.deepEqual([toldFull(A), toldFull(B)], [1, 1]);
+    assert.deepEqual(evs(A).slice(0, 2), ['join', 'full']);
+    assert.ok(evs(A).includes('joined'));
+    for (const ev of evs(A).concat(evs(B))) assert.ok(['join', 'full', 'joined'].includes(ev), ev);
+    scan([A, B], forbiddenOf(w, ['through at last']));
+  });
+
+  test('the retry ends with the conversation and waits out a lost socket: a left conversation asks nothing again, and a socket that is back asks at once through the rejoin', async () => {
+    const w = makeWorld();
+    let full = true;
+    refuseJoins(w, 'lane full', () => full);
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    await acceptBetween(A, B);
+    await until(() => toldFull(A) === 1 && toldFull(B) === 1, 'both told full');
+    // A leaves while the retry waits: its timer is cancelled with the conversation (B keeps asking)
+    await A.apps.leave(conv(A).id);
+    w.advance(3000);
+    await until(() => joins(w) === 3, 'B asks again, A does not');
+    await settle(10);
+    w.advance(10000);
+    await until(() => joins(w) === 4, 'B again');
+    await settle(10);
+    // B loses its socket: the retry stops, and the lane is joined by the rejoin when the socket is back, not by the retry
+    B.link.drop();
+    await until(() => B.link.state === 'backoff', 'B lost its socket');
+    w.advance(1000); // the back off: the socket opens again and _rejoinAll asks for the lane at once
+    await until(() => joins(w) === 5, 'the rejoin asks at once');
+    await settle(10);
+    assert.equal(toldFull(B), 1, 'still one full for B: the episode goes on');
+    w.advance(30000 - 1000);
+    await settle(10);
+    assert.equal(joins(w), 5, 'the old schedule did not fire beside the rejoin');
+  });
+
+  test('a room lane that is full is asked again too; the member who waited comes in when a place is free, with the roster and the key', async () => {
+    const w = makeWorld({ caps: { roomLaneMembers: 2 } }); // the owner and one member fill it; the second member waits for a place
+    const O = await mk(w, 'Olive', RELAY);
+    const M1 = await mk(w, 'Mia', RELAY);
+    const M2 = await mk(w, 'Max', RELAY);
+    const r = await O.apps.createRoom();
+    assert.ok(r.id, JSON.stringify(r));
+    const roomOf = (X) => st(X).rooms[0];
+    const j1 = await M1.apps.joinRoom(r.code);
+    await until(() => st(O).requests.length === 1, 'the first request');
+    await O.apps.acceptMember(st(O).requests[0].knock);
+    await until(() => roomOf(M1).status === 'connected', 'the first member holds the key');
+    const j2 = await M2.apps.joinRoom(r.code);
+    await until(() => st(O).requests.length === 1, 'the second request');
+    await O.apps.acceptMember(st(O).requests[0].knock);
+    await until(() => toldFull(M2) === 1, 'the second member is told the lane is full');
+    assert.equal(roomOf(M2).status, 'connecting');
+    assert.equal(roomOf(M2).reason, null);
+    const before = joins(w, 'room-join');
+    w.advance(3000);
+    await until(() => joins(w, 'room-join') === before + 1, 'asked again after 3 seconds');
+    await settle(10);
+    assert.equal(toldFull(M2), 1);
+    // the first member leaves: a place is free, and the next try takes it
+    const lane = laneOf(O);
+    await M1.apps.leaveRoom(j1.id);
+    await until(() => w.rdv.relays.get(lane).members.size === 1, 'the owner is alone in the lane');
+    w.advance(10000);
+    await until(() => roomOf(M2).status === 'connected', 'the second member is in, with the key');
+    assert.equal(roomOf(M2).via, 'relay');
+    assert.equal(toldFull(M2), 1, 'told once');
+    await O.apps.sendRoom(r.id, 'welcome at last');
+    await until(() => roomOf(M2).messages.length === 1, 'a room message reaches the member who waited');
+    assert.ok(j2.id);
+  });
+
+  test('unknown lane after the lane was joined (this socket was evicted, or the rendezvous restarted): the lane is joined once more and what nobody acked goes again, once; a lane that is gone for good is told and left alone', async () => {
+    const w = stubWorld(); // the stub: its membership can be edited behind the client's back, as an eviction does
+    const { A, B, a } = await pairUp(w, RELAY);
+    const lane = laneOf(A);
+    await A.apps.send(a, 'before');
+    await until(() => conv(B).messages.length === 1 && conv(A).messages[0].status === 'delivered', 'delivered');
+    const joinsBefore = joins(w);
+    // the rendezvous forgets A: evicted as stale, or its object came back empty
+    const connA = A.link._ws.conn;
+    const rec = w.rdv.relays.get(lane);
+    rec.members.delete(connA);
+    connA.joined.delete(lane);
+    await A.apps.send(a, 'after the eviction');
+    await until(() => conv(B).messages.length === 2, 'the message reaches B after the rejoin');
+    await until(() => conv(A).messages[1].status === 'delivered', 'and is acked');
+    assert.equal(joins(w), joinsBefore + 1, 'one more join, from A');
+    assert.equal(conv(B).messages.filter((m) => m.text === 'after the eviction').length, 1, 'once');
+    assert.deepEqual(evs(A).slice(-3), ['unknown', 'join', 'joined']);
+    assert.deepEqual([conv(A).status, conv(A).via], ['connected', 'relay']);
+    assert.equal(rec.members.has(connA), true, 'A is a member again');
+    // the lane itself is gone (it ran out at the rendezvous): the one rejoin is refused, told, and nothing loops or waits
+    rec.members.delete(connA);
+    connA.joined.delete(lane);
+    w.rdv.lanes.delete(lane);
+    const joinsThen = joins(w);
+    await A.apps.send(a, 'into the void');
+    await until(() => told(A, 'unknown') === 3, 'refused twice more: the relay, then the one rejoin');
+    await settle(20);
+    assert.equal(joins(w), joinsThen + 1, 'one rejoin and no more');
+    assert.equal(conv(A).status, 'connecting');
+    w.advance(120000);
+    await settle(20);
+    assert.equal(joins(w), joinsThen + 1, 'and none later: unknown is not asked again on a schedule');
+    assert.equal(conv(A).messages[2].status, 'failed', 'the message is failed after the ack timeout, as a message nobody acks is');
+  });
+
+  /**
+   * halfOpen(w, X): the network under X's socket is gone without a word, as when a phone changes networks: what the page sends goes nowhere,
+   * nothing reaches the page, and no close ever reaches the rendezvous, which keeps the socket a member of its lanes. The page finds out by
+   * its keepalive (no answer within PONG_WAIT_MS) and gives the socket up. -> the conn the rendezvous still holds.
+   */
+  function halfOpen (w, X) {
+    const ws = X.link._ws;
+    const conn = ws.conn;
+    conn.deliver = null; // the rendezvous' replies and pushes to this socket are lost
+    ws.send = function (text) {
+      if (this.readyState !== 1) throw new Error('socket is not open');
+      this.sent.push(text); // and what the page writes never arrives
+    };
+    ws.close = function () { // the page gives the socket up; no close handshake reaches the rendezvous
+      if (this.readyState >= 2) return;
+      this.readyState = 2;
+      w.rdv.sockets.delete(this);
+      setImmediate(() => { this.readyState = 3; this._emit('close', {}); });
+    };
+    return conn;
+  }
+
+  // The case DEC-1 exists for, end to end on the real client and the real core (D-integrate, D-server Ask 2): the stub tests above refuse the
+  // join in front of the rendezvous; here nothing is faked but the network, and the core itself evicts the socket the roaming phone left behind.
+  test('a roaming phone on the real core: B\'s socket goes half open, its new socket finds the lane full and asks again on the schedule, the core evicts the silent socket once it is older than memberStaleMs, and what both wrote meanwhile goes once each way', async () => {
+    assert.ok(CORE_RELAY, 'this test needs the real pairing core (deploy/rtc-worker/pair.js)');
+    const STALE_MS = 120000; // DEFAULT_CAPS.memberStaleMs of pair.js (DECISIONS DEC-1)
+    const w = makeWorld();
+    // the time of every join the rendezvous gets, by socket
+    const joinsAt = [];
+    const handle = w.rdv.handle.bind(w.rdv);
+    w.rdv.handle = (conn, m) => {
+      if (m && m.action === 'pair-join') joinsAt.push({ conn: conn.id, t: w.clock.now() });
+      return handle(conn, m);
+    };
+    // the clock moves in steps of 5 seconds with the pages' work done in between, so that every pong is in before its watchdog looks
+    // (PONG_WAIT_MS is 10 seconds); one jump of a minute would fire a ping and its watchdog together and drop a healthy socket
+    const run = async (ms) => {
+      for (let left = ms; left > 0; left -= 5000) {
+        w.advance(Math.min(5000, left));
+        await settle(10);
+      }
+    };
+    const { A, B, a, b } = await pairUp(w, Object.assign({ linkOptions: { keepaliveMs: KEEPALIVE_MS } }, RELAY));
+    const lane = laneOf(A);
+    const aConn = connOf(A);
+    await A.apps.send(a, 'before the roaming');
+    await until(() => conv(B).messages.length === 1 && conv(A).messages[0].status === 'delivered', 'a message before');
+    const lastWord = w.clock.now(); // the old socket's last message reached the core now (its ack); the clock has not moved since the pairing
+    const old = halfOpen(w, B);
+    await A.apps.send(a, 'written while Bob roams');
+    await B.apps.send(b, 'written by Bob while roaming');
+    await settle(10);
+    // the keepalive: A's ping reaches the core (A stays live), B's goes nowhere; with no answer in PONG_WAIT_MS B's page gives the socket up
+    await run(KEEPALIVE_MS + PONG_WAIT_MS);
+    await until(() => B.link.state === 'backoff', 'B gave its half-open socket up');
+    assert.equal(old.closed, false, 'no close reached the rendezvous');
+    assert.ok(w.rdv.relays.get(lane).members.has(old), 'the old socket is still a member of the lane');
+    assert.deepEqual([conv(A).status, connOf(A)], ['connected', aConn], 'and A cannot tell');
+    // the new socket opens after the back off and joins at once: the lane is full of A and the old socket, silent for about a minute
+    await run(BACKOFF_MS[0]);
+    await until(() => toldFull(B) === 1, 'B is told the lane is full');
+    const bNew = connOf(B);
+    assert.notEqual(bNew, old.id);
+    assert.deepEqual([conv(B).status, conv(B).reason], ['connecting', null], 'a full lane is no refusal of the path');
+    // DEC-1: B asks again on the schedule; the core evicts the old socket at the first join after it has been silent past memberStaleMs
+    for (let i = 0; i < 40 && !(isConnected(B) && conv(B).via === 'relay'); i++) await run(5000);
+    await until(() => isConnected(A) && isConnected(B) && conv(B).via === 'relay', 'both connected again through the relay');
+    const tried = joinsAt.filter((j) => j.conn === bNew);
+    const letIn = tried[tried.length - 1];
+    assert.ok(tried.length >= 4, 'the rejoin and the retries of 3, 10 and 30 seconds came before: ' + tried.length);
+    assert.ok(tried.slice(0, -1).every((j) => j.t - lastWord <= STALE_MS), 'every refused join came while the old socket was within memberStaleMs');
+    assert.ok(letIn.t - lastWord > STALE_MS, 'the join let in came after the old socket had been silent past memberStaleMs');
+    assert.ok(letIn.t - tried[tried.length - 2].t >= 60000, 'and it was the retry of a minute later');
+    const byNumber = (x, y) => x - y;
+    assert.deepEqual(joinsAt.filter((j) => j.conn !== bNew).map((j) => j.conn).sort(byNumber), [aConn, old.id].sort(byNumber), 'nobody else joined again: A kept its socket all along');
+    assert.deepEqual([connOf(A), connOf(B)], [aConn, bNew]);
+    await until(() => old.closed, 'the host closes and releases the evicted socket');
+    assert.equal(w.rdv.conns.has(old), false);
+    assert.equal(w.rdv.relayStats().evicted, 1, 'one member evicted today');
+    const members = w.rdv.relays.get(lane).members;
+    assert.deepEqual([members.size, members.has(old), members.has(B.link._ws.conn)], [2, false, true], 'A and B\'s new socket');
+    // what both wrote while B roamed goes once each way and is acked
+    await until(() => conv(B).messages.some((m) => !m.mine && m.text === 'written while Bob roams'), 'A\'s message at B');
+    await until(() => conv(A).messages.some((m) => !m.mine && m.text === 'written by Bob while roaming'), 'B\'s message at A');
+    const acked = (X) => X.apps.state().conversations[0].messages.filter((m) => m.mine).every((m) => m.status === 'delivered' || m.status === 'read');
+    await until(() => acked(A) && acked(B), 'acked both ways');
+    await settle(30);
+    assert.equal(conv(B).messages.filter((m) => m.text === 'written while Bob roams').length, 1, 'once at B');
+    assert.equal(conv(A).messages.filter((m) => m.text === 'written by Bob while roaming').length, 1, 'once at A');
+    assert.deepEqual([toldFull(A), toldFull(B)], [0, 1], 'full was told once, to B, for the whole episode');
+    assert.ok(evs(A).includes('left') && evs(A).includes('joined'), 'A heard the old socket leave and the new one join: ' + evs(A).join(','));
+    scan([A, B], forbiddenOf(w, ['before the roaming', 'written while Bob roams', 'written by Bob while roaming']));
+  });
+
+  test('invalid action as the answer to a join (a rendezvous from before the relay) is the relay being off: told as off, no retry, and the conversation says no-path', async () => {
+    const w = makeWorld();
+    refuseJoins(w, 'invalid action');
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    await acceptBetween(A, B);
+    await until(() => told(A, 'off') === 1 && told(B, 'off') === 1, 'both told off');
+    assert.deepEqual([evs(A), evs(B)], [['join', 'off'], ['join', 'off']]);
+    await until(() => conv(A).reason === 'no-path' && conv(B).reason === 'no-path', 'both say no-path');
+    assert.deepEqual([conv(A).status, conv(B).status], ['connecting', 'connecting']);
+    w.advance(10 * 60000);
+    await settle(10);
+    assert.equal(joins(w), 2, 'off is final: no join is asked again');
+    // with direct on and a network that connects, the pair goes direct and nothing is wrong with it
+    const w2 = makeWorld();
+    refuseJoins(w2, 'invalid action');
+    const P = await pairUp(w2, BOTH);
+    assert.deepEqual([conv(P.A).via, conv(P.A).reason, conv(P.B).reason], ['direct', null, null]);
+    assert.ok(P.A.reports.some((r) => r.name === 'apps.lane' && r.fields.ev === 'off'));
+  });
+
+  test('the relay off at the rendezvous with no direct path: the conversation says no-path in state() and in its usage report, stays connecting, asks no join again; a direct path that exists keeps it quiet; direct on without WebRTC is no path either', async () => {
+    const w = makeWorld({ relayLane: false });
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    await acceptBetween(A, B);
+    await until(() => conv(A).reason === 'no-path' && conv(B).reason === 'no-path', 'both say no-path');
+    assert.deepEqual([conv(A).status, conv(B).status], ['connecting', 'connecting']);
+    for (const X of [A, B]) {
+      assert.equal(told(X, 'off'), 1, X.name + ' told off once');
+      const saidSo = X.reports.filter((r) => r.name === 'apps.conv' && r.fields.reason === 'no-path');
+      assert.equal(saidSo.length, 1, X.name + ' said so once');
+      assert.equal(saidSo[0].fields.status, 'connecting');
+    }
+    w.advance(10 * 60000);
+    await settle(10);
+    assert.equal(joins(w), 2, 'off is final: no join is asked again');
+    assert.deepEqual([conv(A).reason, conv(B).reason], ['no-path', 'no-path'], 'and it stays said');
+    scan([A, B], forbiddenOf(w));
+    // direct on and a network that connects: a path exists, nothing is said
+    const w2 = makeWorld({ relayLane: false });
+    const P = await pairUp(w2, BOTH);
+    assert.deepEqual([conv(P.A).via, conv(P.A).reason, conv(P.B).reason], ['direct', null, null]);
+    // direct on but no WebRTC on the page: the relay was the only path, and it is refused
+    const w3 = makeWorld({ relayLane: false });
+    const noRtc = async () => { throw Object.assign(new Error('no webrtc here'), { code: 'E_UNSUPPORTED' }); };
+    const C = await mk(w3, 'Carol', Object.assign({ deps: { loadTm: noRtc } }, BOTH));
+    const D = await mk(w3, 'Dave', Object.assign({ deps: { loadTm: noRtc } }, BOTH));
+    await acceptBetween(C, D);
+    await until(() => conv(C).reason === 'no-path' && conv(D).reason === 'no-path', 'no path on either side');
+    assert.equal(told(C, 'direct-unavailable'), 1);
+  });
+
+  test('rooms likewise: with the relay off and direct off the owner\'s room and the member\'s room say no-path, in state() and in the usage report', async () => {
+    const w = makeWorld({ relayLane: false });
+    const O = await mk(w, 'Olive', RELAY);
+    const M = await mk(w, 'Mia', RELAY);
+    const r = await O.apps.createRoom();
+    assert.ok(r.id, JSON.stringify(r));
+    const roomOf = (X) => st(X).rooms[0];
+    const j = await M.apps.joinRoom(r.code);
+    assert.ok(j.id, JSON.stringify(j));
+    await until(() => st(O).requests.length === 1, 'the request');
+    assert.equal(roomOf(O).reason, null, 'nothing joins a lane before approval, so nothing is refused yet');
+    const status = roomOf(O).status;
+    assert.equal((await O.apps.acceptMember(st(O).requests[0].knock)).id, r.id);
+    await until(() => roomOf(O).reason === 'no-path', 'the owner\'s room says so once its lane is refused, at the first accept');
+    assert.equal(roomOf(O).status, status, 'the owner\'s room stays what it was');
+    await until(() => roomOf(M).reason === 'no-path', 'the member\'s room too');
+    assert.equal(roomOf(M).status, 'connecting');
+    for (const X of [O, M]) assert.ok(X.reports.some((x) => x.name === 'apps.room' && x.fields.reason === 'no-path'), X.name);
+    assert.equal(told(O, 'off') + told(M, 'off'), 2);
+    w.advance(10 * 60000);
+    await settle(10);
+    assert.equal(joins(w, 'room-join'), 2, 'no join is asked again');
+  });
+
+  test('when the rendezvous carries messages again (its socket comes back with the relay on) the lane is joined on the rejoin and no-path is cleared', async () => {
+    const w = stubWorld({ relayLane: false }); // the stub: its switch moves half-way through, which a redeploy of the Worker does
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    await acceptBetween(A, B);
+    await until(() => conv(A).reason === 'no-path' && conv(B).reason === 'no-path', 'both say no-path');
+    w.rdv.relayLane = true;
+    A.link.drop();
+    B.link.drop();
+    await until(() => A.link.state === 'backoff' && B.link.state === 'backoff', 'both sockets lost');
+    w.advance(1000);
+    await until(() => isConnected(A) && isConnected(B), 'both connected through the relay');
+    assert.deepEqual([conv(A).reason, conv(B).reason, conv(A).via], [null, null, 'relay']);
+    await A.apps.send(conv(A).id, 'carried after all');
+    await until(() => conv(B).messages.length === 1 && conv(A).messages[0].status === 'delivered', 'delivered');
+  });
+});
+
 describe('the page comes back', () => {
   test('visible and back open a socket the page lost at once, without waiting for the back off; a link that was never started or was closed stays shut', async () => {
     const w = makeWorld();
@@ -1239,7 +1835,7 @@ describe('the page comes back', () => {
     const saved = { document: globalThis.document, add: globalThis.addEventListener, remove: globalThis.removeEventListener };
     const handlers = new Map();
     const log = [];
-    const BACK = 'on' + 'line';
+    const BACK = 'online'; // the DOM event's name, written as it is (DECISIONS DEC-4): it is protocol, not presence wording
     globalThis.document = {
       visibilityState: 'hidden',
       addEventListener (type, fn) { handlers.set('doc:' + type, fn); log.push('doc+' + type); },
@@ -1571,7 +2167,7 @@ for (const kind of ['stub', 'core']) {
       await until(() => A.reports.some((r) => r.fields.ev === 'off') && B.reports.some((r) => r.fields.ev === 'off'), 'told as off on both sides');
       for (const X of [A, B]) assert.equal(X.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'off').length, 1, X.name);
       assert.equal(conv(A).status, 'connecting');
-      assert.equal(conv(A).reason, null);
+      assert.equal(conv(A).reason, 'no-path'); // DECISIONS DEC-5: the only path was refused for good, and the conversation says so (was null)
       // the same rendezvous with direct on: the pair connects by the wire, the relay is told off and costs nothing
       const w2 = world({ relayLane: false });
       const P = await pairUp(w2, BOTH);
@@ -1665,7 +2261,8 @@ describe('against the Node tracker over real sockets on loopback', () => {
     assert.ok((await A.apps.accept(st(A).requests[0].knock)).id);
     await until(() => A.reports.some((r) => r.fields.ev === 'off') && B.reports.some((r) => r.fields.ev === 'off'), 'told off');
     for (const X of [A, B]) assert.equal(X.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'off').length, 1, X.name);
-    assert.deepEqual([conv(A).status, conv(A).reason, conv(B).reason], ['connecting', null, null]);
+    // DECISIONS DEC-5: with the relay off and direct off the conversation says no-path instead of connecting for ever (the reasons were null)
+    assert.deepEqual([conv(A).status, conv(A).reason, conv(B).reason], ['connecting', 'no-path', 'no-path']);
     assert.equal(t.stats().relays, 0);
   });
 

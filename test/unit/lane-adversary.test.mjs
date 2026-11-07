@@ -15,7 +15,8 @@
 //   LADV-6  a joined push with peers 999 is not taken, and a rendezvous that lies about who is in the lane loses and doubles no message
 //   LADV-7  the rendezvous echoing a frame back to its sender: no message twice, no receipt of ours settled by our own read receipt
 //   LADV-8  a pong with a payload feeds the watchdog and goes nowhere else
-//   LADV-9  a ping flood: the platform answers the exact text without waking the object; the core answers any ping, counts none, closes nothing
+//   LADV-9  a ping flood: the platform answers the exact text without waking the object; the core answers any other ping with the bare pong and
+//           counts it toward messagesPerMin and no relay cap, so a flood is closed at the 151st message of the minute (DECISIONS DEC-2)
 //   LADV-10 the frame text, the lane id and the message text, searched in every report, log line, inspect-like state and the page
 //   LADV-L  the e2e launch policy: an extra switch cannot take the local-only policy of a test browser away
 import { test, describe, afterEach } from 'node:test';
@@ -782,26 +783,46 @@ function platform() {
 }
 
 describe('LADV-9 a ping flood', () => {
-  test('LADV-9 the core answers a ping of any shape with a pong, counts none, closes nothing, and the socket still has its whole allowance', () => {
+  // DECISIONS DEC-2 (W1 Open 2): on the Worker the platform answers the exact keepalive text before the object wakes (the next test), so a ping
+  // that reaches the core has another shape and woke the object. It counts toward messagesPerMin like any message, so a flood of them is closed
+  // like a flood of anything else, and toward no relay cap; it is still answered with the bare pong and changes nothing.
+  test('LADV-9 the core answers a ping of any shape with the bare pong, counts it toward messagesPerMin and no relay cap, and the 151st message of the minute closes the socket (DEC-2)', () => {
     const r = rig();
-    const { a, b } = pairOnLane(r);
+    const { a, b } = pairOnLane(r); // a's join is the first message of its minute (the rig's clock stands still)
     const before = r.core.stats();
-    let closes = 0;
+    const closes = [];
     let changed = 0;
     for (let i = 0; i < 10000; i++) {
       const out = r.send(a, i % 3 === 0 ? { action: 'pair-ping' } : i % 3 === 1 ? { action: 'pair-ping', rid: 'x' + i, junk: MARK } : { action: 'pair-ping', f: frame(i), lane: LANE });
-      if (out.close) closes++;
+      if (out.close) closes.push(i);
       if (out.changed) changed++;
     }
     const answers = r.take(a);
-    assert.equal(answers.length, 10000);
-    assert.ok(answers.every((m) => JSON.stringify(m) === PONG), 'every answer is exactly the pong: no payload comes back');
-    assert.deepEqual([closes, changed], [0, 0]);
+    assert.equal(answers.length, 10000, 'one answer for each ping');
+    const allowed = CAPS.messagesPerMin - 1; // the join and 149 pings make the 150 messages of the minute
+    assert.ok(answers.slice(0, allowed).every((m) => JSON.stringify(m) === PONG), 'every ping under the cap gets exactly the pong: no payload comes back');
+    assert.equal(closes[0], allowed, 'the 150th ping, the 151st message of the minute, is the first the core refuses: the host closes the socket (1008)');
+    assert.equal(closes.length, 10000 - allowed, 'and so is every later one (this rig never closes the socket; a host does at the first)');
+    for (const m of answers.slice(allowed)) {
+      assert.deepEqual(Object.keys(m).filter((k) => k !== 'rid'), ['action', 'failure reason'], 'one failure reply, no pong: ' + JSON.stringify(m).slice(0, 80));
+      assert.equal(m.action, 'pair-ping');
+      assert.equal(m['failure reason'], 'too many messages');
+    }
+    const said = JSON.stringify(answers);
+    assert.equal(said.includes(MARK) || said.includes(LANE) || said.includes('Zz9_-'), false, 'nothing a ping carried comes back: not its junk, its lane or its f');
+    assert.equal(changed, 0, 'no ping changed anything');
     assert.deepEqual(r.take(b), [], 'B heard nothing of them');
-    assert.deepEqual(r.core.stats(), before, 'no counter moved');
-    // 10,000 pings did not use up the 150 messages: 120 relays still go through
-    for (let i = 1; i <= CAPS.relayPerMin; i++) r.send(a, { action: 'pair-relay', lane: LANE, f: frame(i) });
-    assert.equal(r.take(b).length, CAPS.relayPerMin);
+    assert.deepEqual(r.core.stats(), before, 'no counter moved: a ping is no relay, no refused join and no eviction');
+    // toward no relay cap: B, whose minute holds its join alone, sends 29 pings and still has all 120 relays of the minute (if pings counted
+    // toward relayPerMin only 91 would pass); its 151st message, a ping again, is refused and closes the socket like any other
+    for (let i = 0; i < 29; i++) assert.equal(r.send(b, { action: 'pair-ping' }).close, undefined);
+    for (let i = 1; i <= CAPS.relayPerMin; i++) assert.equal(r.send(b, { action: 'pair-relay', lane: LANE, f: frame(i) }).close, undefined, 'relay ' + i);
+    assert.equal(r.take(a).filter((m) => m.action === 'pair-relayed').length, CAPS.relayPerMin, 'all 120 frames reached the other socket');
+    assert.equal(r.core.stats().relayRate, 0, 'no frame was refused by the relay cap');
+    r.take(b);
+    const over = r.send(b, { action: 'pair-ping' });
+    assert.equal(over.close, 'too many messages');
+    assert.deepEqual(r.take(b), [{ action: 'pair-ping', 'failure reason': 'too many messages' }], 'told why, once, and no pong');
   });
 
   test('LADV-9 the client\'s ping text, the core\'s and the Worker\'s registered request are the same bytes, and a flood of it never wakes the object', async () => {
@@ -832,8 +853,8 @@ describe('LADV-9 a ping flood', () => {
     assert.ok(ws.sent.every((t) => t === PONG));
     assert.ok(p.stamps.get(ws) instanceof Date, 'and the time of the last answer is kept, for the idle sweep (plan 3.4)');
     assert.equal(ws.closed, null);
-    // controls: a text that is not byte for byte that ping wakes the object (so the counter counts), and the core still answers it with a pong. Whether such a
-    // near miss should count against the allowance is an open question of W1's report (W1.md, Open 2): nothing here pins the answer.
+    // controls: a text that is not byte for byte that ping wakes the object (so the counter counts), and the core still answers it with a pong. Such a near
+    // miss counts toward the socket's messages a minute (DECISIONS DEC-2): the test above pins it on the core, deploy-rtc-worker's DEC-2 test on the object.
     const near = clientText.replace('"v":1', '"v":1 ');
     await p.deliver(obj, ws, near);
     await p.deliver(obj, ws, JSON.stringify({ v: 1, action: 'pair-ping', rid: 'r' }));

@@ -129,7 +129,9 @@ export class FakeRendezvous {
     const rid = typeof m.rid === 'string' && m.rid.length <= 16 ? m.rid : undefined
     const reply = (obj) => this._send(conn, rid ? Object.assign({}, obj, { rid }) : obj)
     const fail = (reason) => reply({ action: m.action, 'failure reason': reason })
-    // plan 3.2: every message but a ping counts against the socket's minute; over the cap the socket gets one failure reply and is closed (1008)
+    // plan 3.2: every message but a ping counts against the socket's minute; over the cap the socket gets one failure reply and is closed (1008).
+    // The stub models the Worker for the client's own ping, the exact keepalive text, which the platform answers before the object wakes, so
+    // it counts nowhere; a ping of another shape that reaches the core counts (DECISIONS DEC-2): CoreRendezvous runs the real rule
     const t = this.now()
     conn.msgTimes = (conn.msgTimes || []).filter((x) => t - x < 60000)
     if (conn.msgTimes.length >= this.caps.messagesPerMin) {
@@ -467,6 +469,10 @@ export const CoreRendezvous = realCore
       for (const [to, obj] of out.replies) this._send(to, obj)
       // a socket over its allowance of messages is closed by the host (code 1008) after the one failure reply (plan 3.2)
       if (out.close) setImmediate(() => this.closeSocketOf(conn))
+      // DECISIONS DEC-1: the members a join evicted from a full lane (silent past memberStaleMs) are closed by the host (code 1000) if still
+      // open, and released as a closed socket is, whether or not the close reaches anyone (worker.js drop(), tools/tracker.mjs releasePair):
+      // the page of a half-open socket has usually given it up already, so only the release is left to do
+      for (const gone of out.evicted || []) setImmediate(() => { this.closeSocketOf(gone); this.closeConn(gone) })
     }
 
     closeConn (conn) {

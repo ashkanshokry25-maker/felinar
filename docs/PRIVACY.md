@@ -931,12 +931,13 @@ browsers a private lane, served for 24 hours. From the accept on, the messages p
 device, under a key that only the people in the conversation or the room hold, and the rendezvous forwards it to the others on the lane. So the rendezvous, and whoever hosts it, see the lane's id, the network
 address of each socket, when each message is sent and one of three size classes of the sealed message, and never what it says; the other person does not see your network address. The host
 of a rendezvous can be ordered to record the addresses that connect to it and can be barred from saying so. A door whose `door.json` also says `direct` `"on"` lets the browsers try a direct
-link as well: when one connects, each learns the other's network address (in a room, every member can connect to every other member), the price card says so, and the rendezvous carries
-their connection offers and answers on the lane, as any tracker does. The rendezvous minted the lane, so it can join it like a member: it then sees sealed frames only (it can count the people in
+link as well: their connection offers and answers, which the rendezvous carries on the lane as any tracker does, hold each browser's network address, so each person's browser receives
+the other's address whether or not a link connects (in a room, every member's), and the price card says so. The rendezvous minted the lane, so it can join it like a member: it then sees sealed frames only (it can count the people in
 a room by the number of key boxes) and reads no name, key or message, because the member list of a room is sealed under the room's secret
 like the messages; it can also take one of the two places of a lane, which stops the relay for that conversation without letting it read anything. The owner of the door sees counts, not
-messages or addresses: the lanes open, the frames and characters forwarded today and the frames refused (`/stats.json` of the rendezvous), and, if the door sends usage reports, the counts and
-words of the reports. At a door messages live in the page's memory only (no cookie, no storage, no ledger), and a reload,
+messages: the lanes open, the frames and characters forwarded today and the frames refused (`/stats.json` of the rendezvous), and, if the door sends usage reports, the counts and
+words of the reports. The rendezvous's code gives the owner no addresses, unless the owner adds code that logs them or hosts the rendezvous on a machine of their own (then the owner is its
+host, above). At a door messages live in the page's memory only (no cookie, no storage, no ledger), and a reload,
 a sign-out or closing the page ends them; a person who exports a conversation saves a plain file with its text and both public keys. A
 disappearing-message timer is the author's: a message that its author set to disappear goes from the reader's screen too, a copy the reader
 pinned or saved as well, and the reader sees a mark on it from the start. A

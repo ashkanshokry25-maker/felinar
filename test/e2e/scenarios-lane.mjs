@@ -1,7 +1,7 @@
 // test/e2e/scenarios-lane.mjs: the relay lane of the apps (plan relay-first-2026-11-07, section 6.4; docs/APPS.md, "Messages through the
 // rendezvous") through the real built loader, the real identity origin and the Node tracker as the door's rendezvous, all on 127.0.0.1, with
 // test/e2e/obs-collector.mjs standing in for the usage report endpoint. Run with
-// `node test/e2e/run.mjs --only LANE-1,LANE-2,LANE-3,LANE-4,LANE-5,LANE-6`.
+// `node test/e2e/run.mjs --only LANE-1,LANE-2,LANE-3,LANE-4,LANE-5,LANE-6,LANE-7`.
 //
 //   LANE-1  relay when a direct link is impossible: a door whose block says relay rendezvous, direct on. Visitor B's Chromium cannot make a
 //           direct link (a probe on a blank page proves it before the pairing, and proves that A can). After the accept the conversation connects
@@ -17,6 +17,11 @@
 //           Browser): sign-in, code, knock, accept, messages both ways with Delivered and Read, via relay; run.start reports webrtc false; no error card
 //   LANE-6  the default door with normal Chromium on both sides: no RTCPeerConnection is constructed on either page (two counters), the door names a
 //           STUN server and none is contacted, the reports hold no ice event, no lane is announced to the tracker, messages both ways via relay
+//   LANE-7  rooms through the relay (DECISIONS DEC-6: APPS-4 runs on the legacy door, A6): the shipped default door (no relay or direct token, which A2
+//           resolves to relay rendezvous and direct off) with an owner and two members in three browser processes; the roster of three on all three; a
+//           message from the owner and one from a member fan out to the other two over the relay, each shown once with the sender named (the sender's tick
+//           says Sent: a room carries no per-member acks, so it shows no Delivered); no RTCPeerConnection on any page, no manager, no announce; the reports
+//           hold room-join, apps.lane joined and apps.wire up via relay for the room; the lane id and the texts are in no report, log line, inspect() or page
 //
 // How a visitor cannot make a direct link (LANE-1): first choice is the launch argument --force-webrtc-ip-handling-policy=disable_non_proxied_udp
 // with no proxy, which leaves the engine with no candidate at all. A probe (two peer connections in one blank page) checks it; when the engine
@@ -30,7 +35,7 @@
 // in inspect(), in the loader's log and the console, and in the page (text and attributes; a message text only where messages are drawn).
 //
 // Real clicks only, as in scenarios-apps.mjs: every button of the apps acts on a trusted click, so the scenarios press with the mouse and type with the
-// keyboard. Chromium only. Each scenario opens two browsers of its own (separate processes, fresh profiles).
+// keyboard. Chromium only. Each scenario opens its own browsers (two, three for LANE-7; separate processes, fresh profiles).
 
 import { Visitor, launchChromium, waitUntil, sleep, StepError, shellState, clickLoaderCard, isLocalUrl, peerConnectionCount } from './lib.mjs';
 import { driveIdp } from './idp-driver.mjs';
@@ -39,7 +44,7 @@ import { createDevServer } from '../../tools/dev-server.mjs';
 import { createTracker } from '../../tools/tracker.mjs';
 import { appsText } from '../../src/loader/strings.js';
 
-export const LANE_ORDER = ['LANE-1', 'LANE-2', 'LANE-3', 'LANE-4', 'LANE-5', 'LANE-6'];
+export const LANE_ORDER = ['LANE-1', 'LANE-2', 'LANE-3', 'LANE-4', 'LANE-5', 'LANE-6', 'LANE-7'];
 
 const TX = (key, params) => appsText(key, 'en', params);
 const ALPHA = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -216,18 +221,21 @@ function domScanInPage(arg) {
   return { scanned, hits };
 }
 
-// Runs in the page: the messages of the open conversation as plain data.
-function readMessages() {
-  return Array.from(document.querySelectorAll('[data-role="messages"] li[data-msg]')).map((li) => {
+// Runs in the page: the messages of a list as plain data: '[data-role="messages"]' (the open conversation) or '[data-role="room-messages"]' (the open
+// room, LANE-7). `from` is the sender's label a room draws on another member's message; a conversation names nobody there.
+function readMessages(listSel) {
+  return Array.from(document.querySelectorAll(listSel + ' li[data-msg]')).map((li) => {
     const q = (s) => li.querySelector(s);
     const body = q('[data-role="body"]');
     const tick = q('[data-role="ticks"]') || q('[data-role="state"]');
+    const from = q('[data-role="from"]');
     return {
       id: li.getAttribute('data-msg'),
       mine: li.getAttribute('data-mine') === '1',
       status: li.getAttribute('data-status') || '',
       text: body ? body.textContent : '',
       tick: tick ? (tick.getAttribute('aria-label') || tick.textContent) : null,
+      from: from ? from.textContent : null,
     };
   });
 }
@@ -311,8 +319,8 @@ class Party {
     return this.page.locator(sel + ':visible').count();
   }
 
-  messages() {
-    return this.page.evaluate(readMessages);
+  messages(listSel = '[data-role="messages"]') {
+    return this.page.evaluate(readMessages, listSel);
   }
 
   /** The id the person sees for this page: a visit identity has no name, so the header is just "xxxx-xxxx". */
@@ -439,12 +447,12 @@ export function laneScenarios({ run, assert, headed = false }) {
     }
   }
 
-  /** Polls the visible messages of a party until pred(messages) is truthy; returns the messages. A timeout says what they were. */
-  async function waitMessages(P, pred, label, timeoutMs = 30000) {
+  /** Polls the visible messages of a party (the open conversation, or the list `listSel` names) until pred(messages) is truthy; returns the messages. A timeout says what they were. */
+  async function waitMessages(P, pred, label, timeoutMs = 30000, listSel = undefined) {
     let last = null;
     try {
       return await waitUntil(async () => {
-        last = await P.messages();
+        last = await P.messages(listSel);
         return pred(last) ? last : null;
       }, { timeoutMs, stepMs: 150, label: P.name + ': ' + label });
     } catch (err) {
@@ -493,22 +501,41 @@ export function laneScenarios({ run, assert, headed = false }) {
   }
 
   /**
-   * Answers the price card of the given kind ('start', 'knock', 'accept') with Continue, after checking its words against the door's tokens (expect):
-   * with relay rendezvous the card has the relay sentence, with direct on one more line, with relay none neither (the text of before the relay is shown).
-   * mark: { at } gets the time of the click. Returns the card text.
+   * Answers the price card of the given kind ('start', 'knock', 'accept', and the room kinds 'room-create', 'room-join', 'room-accept') with Continue,
+   * after checking its words against the door's tokens (expect; apps-ui.js priceSpec): with relay rendezvous the card has the relay sentence, never the
+   * direct-only text of before the relay, and then, as its own paragraph, either the sentence that the other person (the members) do not see your address
+   * (direct off; apps.price.hidden, apps.price.hiddenRoom) or the direct line (direct on), never both (DECISIONS DEC-3 and DEC-8); with relay none the
+   * direct-only text alone. A card that can be a first yes names the report host; the accept cards carry the check line instead. whileShown() runs while
+   * the card is on screen (nothing has left the page yet); mark: { at } gets the time of the click on Continue. Returns the card text.
+   * One helper for the pair and the room cards (D-integrate folded LANE-7's room helper in here, so the rooms of LANE-7 are held to DEC-3 as well).
    */
-  async function continueCard(P, kind, { collector, expect, mark = null }) {
+  async function continueCard(P, kind, { collector, expect, mark = null, whileShown = null }) {
     await waitApps(P, (a) => a.card === kind, 'the ' + kind + ' card', 10000);
     const text = await P.text('[data-role="card"]');
-    const accept = kind === 'accept';
-    assert(text.indexOf(must(accept ? 'apps.accept.title' : 'apps.price.title')) >= 0, P.name + ': the title of the ' + kind + ' card: ' + text);
-    const relaySentence = must('apps.price.text');
-    if (expect.relay === 'none') assert(text.indexOf(relaySentence) < 0, P.name + ': the ' + kind + ' card of a door with relay none says that messages pass through the rendezvous: ' + text);
-    else assert(text.indexOf(relaySentence) >= 0, P.name + ': the relay sentence (apps.price.text) is not on the ' + kind + ' card: ' + text);
-    if (expect.relay !== 'none') {
-      assert((text.indexOf(must('apps.price.direct')) >= 0) === (expect.direct === 'on'), P.name + ': the direct line (apps.price.direct) ' + (expect.direct === 'on' ? 'is missing from' : 'is on') + ' the ' + kind + ' card: ' + text);
+    const accept = kind === 'accept' || kind === 'room-accept';
+    const room = kind.indexOf('room') === 0;
+    assert(text.indexOf(must(accept ? (room ? 'apps.accept.titleRoom' : 'apps.accept.title') : 'apps.price.title')) >= 0, P.name + ': the title of the ' + kind + ' card: ' + text);
+    const relayKey = room ? 'apps.price.room' : 'apps.price.text';
+    const directOnlyKey = room ? 'apps.price.roomDirect' : 'apps.price.textDirect';
+    const relaySentence = must(relayKey);
+    const directOnly = must(directOnlyKey);
+    const hidden = must(room ? 'apps.price.hiddenRoom' : 'apps.price.hidden');
+    const paras = await P.page.evaluate(() => Array.from(document.querySelectorAll('[data-role="card"] p')).map((n) => n.innerText.replace(/\s+/g, ' ').trim()));
+    if (expect.relay === 'none') {
+      assert(text.indexOf(directOnly) >= 0 && text.indexOf(relaySentence) < 0, P.name + ': the ' + kind + ' card of a door with relay none does not show the direct-only text (' + directOnlyKey + ') alone: ' + text);
+      assert(text.indexOf(hidden) < 0, P.name + ': the ' + kind + ' card of a door with relay none carries the relay card\'s sentence that the other side does not see the address: ' + text);
+    } else {
+      assert(text.indexOf(relaySentence) >= 0, P.name + ': the relay sentence (' + relayKey + ') is not on the ' + kind + ' card: ' + text);
+      assert(text.indexOf(directOnly) < 0, P.name + ': the ' + kind + ' card carries the direct-only text (' + directOnlyKey + ') on a door with the relay: ' + text);
+      const direct = expect.direct === 'on';
+      assert((text.indexOf(must('apps.price.direct')) >= 0) === direct, P.name + ': the direct line (apps.price.direct) ' + (direct ? 'is missing from' : 'is on') + ' the ' + kind + ' card: ' + text);
+      // DEC-3: the denial is a paragraph of its own right after the relay sentence when direct is off, and absent when direct is on
+      assert(paras.includes(hidden) === !direct, P.name + ': the paragraph "' + hidden + '" ' + (direct ? 'is on' : 'is missing from') + ' the ' + kind + ' card, or is not a paragraph of its own: ' + JSON.stringify(paras));
+      if (!direct) assert(paras.indexOf(hidden) === paras.indexOf(relaySentence) + 1, P.name + ': the denial does not follow the relay sentence on the ' + kind + ' card: ' + JSON.stringify(paras));
     }
-    if (kind !== 'accept') assert(text.indexOf(must('apps.price.reports', { host: collector.host })) >= 0, P.name + ': the ' + kind + ' card does not say where the usage reports go (' + collector.host + '): ' + text);
+    if (!accept) assert(text.indexOf(must('apps.price.reports', { host: collector.host })) >= 0, P.name + ': the ' + kind + ' card does not say where the usage reports go (' + collector.host + '): ' + text);
+    assert((text.indexOf(must('apps.price.check')) >= 0) === accept, P.name + ': the check line (apps.price.check) ' + (accept ? 'is missing from' : 'is on') + ' the ' + kind + ' card: ' + text);
+    if (whileShown) await whileShown();
     if (mark) mark.at = Date.now();
     await P.press('[data-role="card-continue"]');
     await waitApps(P, (a) => a.card === null, 'the ' + kind + ' card closes', 10000);
@@ -613,9 +640,11 @@ export function laneScenarios({ run, assert, headed = false }) {
       for (const view of ['conversation', 'list']) {
         if (view === 'list') {
           const a = await P.apps();
-          if (a.view === 'conversation') {
+          // an open conversation goes back to the Messages list, an open room (LANE-7) to the Rooms list
+          if (a.view === 'conversation' || a.view === 'room') {
+            const list = a.view === 'room' ? 'rooms' : 'messages';
             await P.press('[data-role="back"]');
-            await waitApps(P, (x) => x.view === 'messages', 'back at the list', 5000);
+            await waitApps(P, (x) => x.view === list, 'back at the ' + list + ' list', 5000);
           }
         }
         const all = needles.lane.concat(needles.frame).map((v, i) => ({ id: 'secret' + i, v })).concat(needles.text.map((v, i) => ({ id: 'text' + i, v })));
@@ -673,18 +702,21 @@ export function laneScenarios({ run, assert, headed = false }) {
 
   const mine = (P) => (sessions) => sessions.find((x) => x.who.includes(P.short));
 
-  /** The sessions of the collector for the two parties, once everything they report is in. -> Map party -> session */
-  async function sessionsOf(collector, A, B) {
-    await settled(collector, [{ obs: () => A.obs(), session: mine(A) }, { obs: () => B.obs(), session: mine(B) }]);
+  /** The sessions of the collector for the given parties (two, or the three of LANE-7), once everything they report is in. -> Map party -> session */
+  async function sessionsFor(collector, parties) {
+    await settled(collector, parties.map((P) => ({ obs: () => P.obs(), session: mine(P) })));
     const sessions = Array.from(collector.sessions().values());
     const out = new Map();
-    for (const P of [A, B]) {
+    for (const P of parties) {
       const found = sessions.filter((x) => x.who.includes(P.short));
       assert(found.length === 1, P.name + ' (' + P.short + ') is in ' + found.length + ' sessions of the collector');
       out.set(P, found[0]);
     }
     return out;
   }
+
+  /** The sessions of the collector for the two parties, once everything they report is in. -> Map party -> session */
+  const sessionsOf = (collector, A, B) => sessionsFor(collector, [A, B]);
 
   const count = (events, pattern) => events.filter((e) => matchEvent(e, pattern)).length;
   const noIce = (x, who) => assert(!x.events.some((e) => /^ice\./.test(e.n)), who + ' reported an ice event: ' + x.events.filter((e) => /^ice\./.test(e.n)).map((e) => e.n).slice(0, 4).join(' '));
@@ -795,21 +827,26 @@ export function laneScenarios({ run, assert, headed = false }) {
     return s;
   }
 
-  /** What a page sent to the rendezvous for the relay (plan 3.1): only these fields, frames within the size, f in the alphabet. */
-  function assertRelayWire(P, { joined = true } = {}) {
-    const out = framesJson(P, 'out').filter((f) => f.msg && /^pair-(join|relay|leave)$/.test(String(f.msg.action)));
-    const allowed = { 'pair-join': ['v', 'action', 'lane', 'rid'], 'pair-relay': ['v', 'action', 'lane', 'f', 'rid'], 'pair-leave': ['v', 'action', 'lane', 'rid'] };
+  /**
+   * What a page sent to the rendezvous for the relay (plan 3.1): only these fields, frames within the size, f in the alphabet. `kind` is the prefix of the
+   * actions, 'pair' (a conversation) or 'room' (LANE-7); `minRelays` is how many relay requests this page must have made (a room member who wrote nothing made 0).
+   */
+  function assertRelayWire(P, { joined = true, kind = 'pair', minRelays = 2 } = {}) {
+    const re = new RegExp('^' + kind + '-(join|relay|leave)$');
+    const out = framesJson(P, 'out').filter((f) => f.msg && re.test(String(f.msg.action)));
+    const allowed = { [kind + '-join']: ['v', 'action', 'lane', 'rid'], [kind + '-relay']: ['v', 'action', 'lane', 'f', 'rid'], [kind + '-leave']: ['v', 'action', 'lane', 'rid'] };
     for (const { msg, raw } of out) {
       assert(Object.keys(msg).every((k) => allowed[msg.action].indexOf(k) >= 0), bad(P.name + ' ' + msg.action + ' carries other fields', Object.keys(msg)));
       assert(msg.v === 1 && LANE_RE.test(String(msg.lane)), bad(P.name + ' ' + msg.action, { v: msg.v, lane: typeof msg.lane }));
-      if (msg.action === 'pair-relay') assert(FRAME_RE.test(String(msg.f)) && Buffer.byteLength(raw) <= 8192, P.name + ' relayed a frame outside the plan: ' + String(msg.f).length + ' characters, ' + Buffer.byteLength(raw) + ' bytes');
+      if (msg.action === kind + '-relay') assert(FRAME_RE.test(String(msg.f)) && Buffer.byteLength(raw) <= 8192, P.name + ' relayed a frame outside the plan: ' + String(msg.f).length + ' characters, ' + Buffer.byteLength(raw) + ' bytes');
     }
     if (joined) {
-      assert(out.some((f) => f.msg.action === 'pair-join'), P.name + ' sent no pair-join');
-      assert(out.filter((f) => f.msg.action === 'pair-relay').length >= 2, P.name + ' sent ' + out.filter((f) => f.msg.action === 'pair-relay').length + ' pair-relay requests');
+      assert(out.some((f) => f.msg.action === kind + '-join'), P.name + ' sent no ' + kind + '-join');
+      const relays = out.filter((f) => f.msg.action === kind + '-relay').length;
+      assert(relays >= minRelays, P.name + ' sent ' + relays + ' ' + kind + '-relay requests (at least ' + minRelays + ' expected)');
     }
     for (const { msg } of framesJson(P, 'in')) {
-      if (/^pair-relayed$/.test(String(msg.action))) assert(Object.keys(msg).sort().join() === 'action,f,lane' && FRAME_RE.test(msg.f) && LANE_RE.test(msg.lane), bad(P.name + ' got a pair-relayed push of another shape', Object.keys(msg)));
+      if (String(msg.action) === kind + '-relayed') assert(Object.keys(msg).sort().join() === 'action,f,lane' && FRAME_RE.test(msg.f) && LANE_RE.test(msg.lane), bad(P.name + ' got a ' + kind + '-relayed push of another shape', Object.keys(msg)));
     }
     return out.length;
   }
@@ -1228,6 +1265,198 @@ export function laneScenarios({ run, assert, headed = false }) {
         const lines = [A, B].map((P) => P.name + ' ' + sess.get(P).events.length + ' events').join(', ');
         await finish(ctx, [A, B]);
         return 'zero peer connections on both pages with a STUN server named; connected via relay in ' + connectMs + ' ms (target ' + WITHIN_MS + ' ms met); ' + lines + '; ' + searched + ' texts and characters searched, none found';
+      });
+    },
+  };
+
+  // ------------------------------------------------------------------------------------------- LANE-7
+  // DECISIONS DEC-6 (I2 Unresolved 1): APPS-4 proves a room on the direct wire of the legacy door (A6), so this scenario proves a room through the relay.
+
+  /** The messages of a party's open room (the list the room draws). */
+  const waitRoomMessages = (P, pred, label, timeoutMs = 30000) => waitMessages(P, pred, label, timeoutMs, '[data-role="room-messages"]');
+
+  /**
+   * A room message crosses from `from` to every party of `to`: shown once at each, with the sender named; at the sender it is its own and its tick says
+   * Sent. A room carries no per-member acks (apps.js reports a room's messages as queued, sent and received only), so no Delivered is shown and none is asked for. -> the id
+   */
+  async function roomSend(from, to, text) {
+    await from.loc('[data-role="room-composer"]').fill(text);
+    await from.page.keyboard.press('Enter');
+    for (const P of to) {
+      const got = await waitRoomMessages(P, (m) => m.some((x) => !x.mine && x.text === text), 'the room message of ' + from.name + ' at ' + P.name);
+      const hits = got.filter((x) => x.text === text);
+      assert(hits.length === 1 && hits[0].from === from.short, bad(P.name + ' shows the message of ' + from.name + ' (once, with the sender named)', hits.map((x) => [x.mine, x.from, x.status])));
+    }
+    const sent = await waitRoomMessages(from, (m) => m.some((x) => x.mine && x.text === text && x.status === 'sent'), 'the message is Sent at ' + from.name);
+    const mineMsg = sent.find((x) => x.mine && x.text === text);
+    assert(sent.filter((x) => x.text === text).length === 1 && mineMsg.tick === must('apps.msg.sent') && mineMsg.from === null, bad(from.name + ' its own room message', mineMsg));
+    return mineMsg.id;
+  }
+
+  /** The roster a party's room draws: [{ pub, label, marks }]. */
+  const readRoster = (P) => P.page.evaluate(() => Array.from(document.querySelectorAll('[data-role="roster"] li.mw-apps-member')).map((li) => ({
+    pub: li.getAttribute('data-pub'),
+    label: li.firstElementChild ? li.firstElementChild.textContent : '',
+    marks: Array.from(li.querySelectorAll('.mw-apps-mark')).map((m) => m.textContent),
+  })));
+
+  S['LANE-7'] = {
+    title: 'rooms through the relay: the shipped default door (no relay or direct token: relay rendezvous, direct off); an owner and two members in three browser processes; the roster of three on all three; a message from the owner and one from a member fan out to the other two over the relay; no RTCPeerConnection on any page; the lane id and the texts are in no report, log line, inspect() JSON or page',
+    async fn(ctx, step) {
+      await closeLeftovers(ctx);
+      const k = await kit(ctx, step);
+      // Both tokens absent: the door.json of a door made before the relay existed, which A2 resolves to relay rendezvous and direct off (the new default).
+      const door = await doorFor(ctx, step, { relay: undefined, direct: undefined, label: 'the shipped default: no relay token, no direct token' });
+      const { collector } = k;
+      const tracker = ctx.stack.tracker;
+      collector.clear();
+      const run0 = run.violations.length;
+      const expect = { relay: 'rendezvous', direct: 'off' };
+      const texts = { o: 'welcome to the room ' + MARK + '-seven', m: 'hello from a member ' + MARK + '-seven-2' };
+      const rows = (P) => P.page.locator('[data-role="room-requests"] li.mw-apps-request');
+      const [O, M1, M2] = await step('three browsers (separate processes, fresh profiles), all with WebRTC: an owner and two members open the door and sign in for this visit', async () => {
+        const out = [];
+        for (const name of ['LANE7O', 'LANE7M1', 'LANE7M2']) out.push(await newParty(ctx, name));
+        for (const P of out) {
+          await P.page.goto('about:blank');
+          assert((await P.page.evaluate(() => typeof window.RTCPeerConnection)) === 'function', P.name + ' has no RTCPeerConnection (the scenario needs a browser that could make one and does not)');
+          await openDoor(P, door);
+          await signIn(P);
+        }
+        assert(new Set(out.map((P) => P.short)).size === 3, 'two parties share a short id');
+        return out;
+      }, 60000);
+      return noted(collector, 'LANE-7', async () => {
+        const base = relayStats(tracker);
+        const t0 = Date.now();
+        const code = await step('the owner creates a room (the price card: the room sentence, then the members-do-not-see-your-address paragraph, no direct line, the report host); a code and a lane minted at the rendezvous; no socket before Continue; no manager, no peer connection, no announce', async () => {
+          await O.press('[data-app="rooms"]');
+          await waitApps(O, (x) => x.view === 'rooms', 'the rooms view', 5000);
+          await O.press('[data-role="room-create"]');
+          await continueCard(O, 'room-create', { collector, expect, whileShown: async () => assert(O.tap.sockets.length === 0, 'the owner opened a socket before Continue') });
+          const a = await waitApps(O, (x) => x.view === 'room' && x.rooms.length === 1 && x.link === 'open', 'the room view with an open link', 20000);
+          assert(a.rooms[0].role === 'owner' && a.rooms[0].members === 1 && a.rooms[0].status === 'open' && a.tm === false, bad('the owner\'s room', { room: a.rooms[0], tm: a.tm }));
+          const shown = await O.text('[data-role="room-code"]');
+          assert(CODE_RE.test(shown), 'the room code: ' + shown);
+          assert((await O.text('[data-role="status-line"]')) === must('apps.rooms.status.open'), 'the owner\'s status line: ' + (await O.text('[data-role="status-line"]')));
+          const ids = lanesOf(O);
+          assert(ids.length === 1, 'the rendezvous told the owner ' + ids.length + ' lanes');
+          assert((await peerConnectionCount(O.page)) === 0 && O.v.announces.length === 0, 'the owner made a peer connection or announced before any member');
+          return shown;
+        });
+        await step('the two members ask to join with the code (the price card first: the room sentence, then the members-do-not-see-your-address paragraph, no direct line, the report host); the owner sees two requests; nobody has a peer connection or a manager', async () => {
+          for (const P of [M1, M2]) {
+            await P.press('[data-app="rooms"]');
+            await waitApps(P, (x) => x.view === 'rooms', 'the rooms view', 5000);
+            await P.loc('[data-role="join-input"]').fill(code);
+            await P.press('[data-role="join-button"]');
+            await continueCard(P, 'room-join', { collector, expect, whileShown: async () => assert(P.tap.sockets.length === 0, P.name + ' opened a socket before Continue') });
+            await waitUntil(async () => (await P.text('[data-role="join-note"]')) === must('apps.rooms.joinSent'), { timeoutMs: 10000, label: P.name + ': the "request sent" note' });
+            await waitApps(P, (x) => x.rooms.length === 1 && x.rooms[0].status === 'waiting', 'a waiting room', 10000);
+          }
+          await waitApps(O, (x) => x.requests === 2, 'two requests at the owner', 30000);
+          await waitUntil(async () => (await rows(O).count()) === 2, { timeoutMs: 10000, label: 'two request rows' });
+          for (const P of [O, M1, M2]) {
+            const a = await P.apps();
+            assert((await peerConnectionCount(P.page)) === 0 && a.tm === false && P.v.announces.length === 0, P.name + ' has a peer connection, a manager or an announce before any decision');
+          }
+        }, 60000);
+        const tAccept = { at: 0 };
+        let connectMs = 0;
+        await step('the owner accepts both (the accept card: the room sentence, the members-do-not-see-your-address paragraph and the check line, no direct line); within 10 s of the last accept the room of three shows on all three, no manager, no error card', async () => {
+          for (const P of [M1, M2]) {
+            await rows(O).filter({ hasText: P.short }).locator('[data-role="accept"]').click({ timeout: 5000 });
+            await continueCard(O, 'room-accept', { collector, expect, mark: tAccept });
+            await waitUntil(async () => (await rows(O).filter({ hasText: P.short }).count()) === 0, { timeoutMs: 10000, label: 'the row of ' + P.name + ' goes' });
+          }
+          // the owner's room stays "Open for members" while its code is open; a member's room is "Connected" (as APPS-4 reads them)
+          const okStatus = (P) => (P === O ? ['open', 'connected'] : ['connected']);
+          await Promise.all([O, M1, M2].map((P) => waitApps(P, (x) => x.rooms.length === 1 && x.rooms[0].members === 3 && okStatus(P).indexOf(x.rooms[0].status) >= 0, 'a room of three that is ' + okStatus(P).join(' or '), 30000)));
+          connectMs = Date.now() - tAccept.at;
+          assert(connectMs <= WITHIN_MS, 'the room of three took ' + connectMs + ' ms after the last accept (the plan says ' + WITHIN_MS + ' ms)');
+          for (const P of [M1, M2]) {
+            await P.press('[data-role="room-list"] [data-room]');
+            await waitApps(P, (x) => x.view === 'room', 'the room view', 5000);
+          }
+          for (const P of [O, M1, M2]) {
+            const a = await P.apps();
+            // inspect() lists a room without `via` (apps-ui.js reads only a conversation's via in this build, A1); the path of the room is proved below
+            // by the reports (apps.wire up, kind room, via relay) and by the zero peer connections on every page.
+            assert(a.tm === false, P.name + ' loaded a manager');
+            const status = a.rooms[0].status;
+            assert((await P.text('[data-role="status-line"]')) === must('apps.rooms.status.' + status), P.name + ' status line "' + (await P.text('[data-role="status-line"]')) + '" for ' + status);
+            const e = await P.page.evaluate(() => { const n = document.querySelector('.mw-error:not([hidden])'); return n ? n.textContent.replace(/\s+/g, ' ').trim() : null; });
+            assert(e === null, P.name + ' shows an error card: ' + e);
+          }
+        }, 60000);
+        await step('the roster of three (the owner marked, "you" on each) is the same on all three', async () => {
+          const rosters = [];
+          for (const P of [O, M1, M2]) {
+            const r = await readRoster(P);
+            rosters.push(r);
+            assert(r.length === 3 && new Set(r.map((x) => x.pub)).size === 3, P.name + ' roster ' + JSON.stringify(r));
+            for (const q of [O, M1, M2]) assert(r.some((x) => x.label === q.short), P.name + ' roster has no ' + q.name + ': ' + JSON.stringify(r));
+            const owners = r.filter((x) => x.marks.indexOf(must('apps.rooms.owner')) >= 0);
+            const yous = r.filter((x) => x.marks.indexOf(must('apps.rooms.you')) >= 0);
+            assert(owners.length === 1 && owners[0].label === O.short, P.name + ' roster owner mark ' + JSON.stringify(r));
+            assert(yous.length === 1 && yous[0].label === P.short, P.name + ' roster "you" mark ' + JSON.stringify(r));
+          }
+          const keys = (r) => r.map((x) => x.pub).sort().join();
+          assert(keys(rosters[0]) === keys(rosters[1]) && keys(rosters[1]) === keys(rosters[2]), 'the three rosters list different people');
+        });
+        await step('a message from the owner fans out to both members, and one from a member to the other two: each shows once at each receiver with the sender named; the sender\'s tick says Sent (a room shows no Delivered: it has no per-member acks)', async () => {
+          await roomSend(O, [M1, M2], texts.o);
+          await roomSend(M1, [O, M2], texts.m);
+        }, 60000);
+        await step('no RTCPeerConnection was constructed on any page (the run\'s wrapper, the legacy name, the calls only a connection can take), no manager, no announce; the rendezvous counted one relay lane and the frames, hit no cap; the pages sent only the fields and sizes of the plan, in the room form', async () => {
+          for (const P of [O, M1, M2]) {
+            assert((await peerConnectionCount(P.page)) === 0, P.name + ' constructed ' + (await peerConnectionCount(P.page)) + ' peer connections (the run\'s wrapper)');
+            const w = await P.page.evaluate(() => window.__mwLane);
+            assert(w && w.made === 0 && w.alias === 0 && w.calls === 0, bad(P.name + ' peer connection use (made, alias, calls)', w));
+            assert((await P.apps()).tm === false, P.name + ' loaded a manager');
+            assert(P.v.announces.length === 0 && framesJson(P, 'out').every((f) => f.msg.action !== 'announce'), P.name + ' announced a lane to the rendezvous');
+            assert(sentActions(P).every((a) => !/^pair-(join|relay|leave)$/.test(a)), P.name + ' used the pair form of a relay action for a room: ' + sentActions(P).join(', '));
+          }
+          const lanes = lanesOf(O, M1, M2);
+          assert(lanes.length === 1, 'the pages saw ' + lanes.length + ' lane ids (the room\'s one is expected)');
+          assert(!tracker.announces.some((x) => x.t >= t0 && String(x.btih) === lanes[0]), 'the tracker saw an announce for the room\'s lane');
+          const s = relayStats(tracker);
+          assert(s.relays - base.relays === 1, bad('relay lanes (now minus before)', { now: s.relays, before: base.relays }));
+          assert(s.relayed - base.relayed >= 2 && s.relayBytes > base.relayBytes, bad('relayed frames (now minus before; two messages at least)', { now: s.relayed, before: base.relayed }));
+          assert(s.relayBusy === base.relayBusy && s.relayRate === base.relayRate && s.joinsRefused === base.joinsRefused, bad('a cap was hit by honest traffic', { now: s, before: base }));
+          assertRelayWire(O, { kind: 'room', minRelays: 1 });
+          assertRelayWire(M1, { kind: 'room', minRelays: 1 });
+          assertRelayWire(M2, { kind: 'room', minRelays: 0 });
+        });
+        const sess = await step('the reports of all three hold link.sent room-join, apps.lane joined, apps.wire up (kind room, via relay) in that order, a successful room-join reply, apps.room with three members; apps.msg sent at the two senders and received at every receiver; no direct wire, no kill, no ice or peer event, run.start webrtc true', async () => {
+          const out = await sessionsFor(collector, [O, M1, M2]);
+          for (const [P, x] of out) {
+            const start = firstOf(x.events, { n: 'run.start' });
+            assert(start && start.webrtc === true, bad(P.name + ' run.start', start));
+            noIce(x, P.name);
+            assert(!x.events.some((e) => /^peer\./.test(e.n)), P.name + ' reported a peer event: ' + x.events.filter((e) => /^peer\./.test(e.n)).map((e) => e.n).slice(0, 4).join(' '));
+            const r = inOrder(x.events, ['run.start', { n: 'link.sent', action: 'room-join' }, { n: 'apps.lane', ev: 'joined' }, { n: 'apps.wire', ev: 'up', kind: 'room', via: 'relay' }]);
+            assert(r.ok, P.name + ': ' + r.link + ' is not after ' + r.after + ' in ' + x.events.map((e) => e.n + (e.ev ? ':' + e.ev : e.status ? ':' + e.status : '')).join(' ').slice(0, 900));
+            assert(firstOf(x.events, { n: 'link.reply', action: 'room-join', ok: true }), P.name + ': no successful room-join reply in the reports');
+            assert(firstOf(x.events, { n: 'apps.room', members: 3 }), P.name + ': no apps.room with three members in the reports: ' + JSON.stringify(x.events.filter((e) => e.n === 'apps.room').map((e) => [e.status, e.members])));
+            if (P !== O) assert(firstOf(x.events, { n: 'apps.room', status: 'connected' }), P.name + ': no apps.room connected in the reports');
+            assert(firstOf(x.events, { n: 'apps.msg', status: 'received' }), P.name + ': the reports do not hold a received message');
+            if (P !== M2) assert(firstOf(x.events, { n: 'apps.msg', status: 'sent' }) && firstOf(x.events, { n: 'link.reply', action: 'room-relay', ok: true }), P.name + ': the reports do not hold a sent message and a successful room-relay reply');
+            assert(!x.events.some((e) => matchEvent(e, { n: 'apps.wire', via: 'direct' })), P.name + ' reported a direct wire');
+            assert(!x.events.some((e) => matchEvent(e, { n: 'apps.wire', ev: 'kill' })), P.name + ' killed a wire');
+            const refused = x.events.filter((e) => e.n === 'apps.lane' && ['join', 'joined', 'left'].indexOf(e.ev) < 0);
+            assert(refused.length === 0, bad(P.name + ' apps.lane says the lane did not work', refused.map((e) => e.ev)));
+          }
+          return out;
+        });
+        const searched = await step('the lane id (nor any 9 characters of it), the sealed frames and the message texts are in no report, log line, inspect() JSON or page outside the room\'s message list', () => assertNoSecrets([O, M1, M2], collector, [texts.o, texts.m], 'LANE-7'));
+        await step('nothing left 127.0.0.1, and the rendezvous never saw a message text in the clear', async () => {
+          assertNetwork([O, M1, M2], door, collector, run0);
+          for (const P of [O, M1, M2]) for (const dir of ['in', 'out']) assert(P.tap.frames.filter((f) => f.dir === dir).every((f) => f.payload.indexOf(MARK) < 0), P.name + ' ' + dir + ': a message marker is in a frame of the rendezvous socket');
+        });
+        const lines = [O, M1, M2].map((P) => P.name + ' ' + sess.get(P).events.length + ' events').join(', ');
+        await finish(ctx, [O, M1, M2]);
+        return 'a room of three through the relay on the shipped default door, the roster on all three ' + connectMs + ' ms after the last accept (target ' + WITHIN_MS + ' ms met); two messages fanned out; zero peer connections on three pages; ' + lines + '; ' + searched + ' texts and characters searched for the lane id, frames and texts, none found';
       });
     },
   };

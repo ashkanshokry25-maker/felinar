@@ -80,8 +80,8 @@ npx felinar publish ./site --name my-site --scope example.com --key owner.jwk --
   shows only when offers go unanswered, which a loader retries after 120 s here instead of 24; a lower `INTERVAL_S` costs
   requests. A scrape must name its infohashes (a bare scrape answers an empty list, as the Node tracker does).
 - `/stats.json?token=<STATS_TOKEN>` prints `{ open, uploads, allowed, swarms, unlisted, peers, sockets, interval, codes, knocks, lanes,
-  relays, relayed, relayBytes, relayDay, relayBusy, relayRate, joinsRefused }` when `STATS_TOKEN` is set to a long random value; with
-  it empty the counts are not served. `codes`, `knocks` and `lanes` are the pairing's (below) and the seven after them the relay's
+  relays, relayed, relayBytes, relayDay, relayBusy, relayRate, joinsRefused, evicted }` when `STATS_TOKEN` is set to a long random value;
+  with it empty the counts are not served. `codes`, `knocks` and `lanes` are the pairing's (below) and the eight after them the relay's
   ([Relay](#relay)); like the others they name no infohash, code, knock or lane.
 
 ## Pairing
@@ -117,8 +117,8 @@ answered `{ action, 'failure reason': 'socket already used for another protocol'
 | `room-open`, `room-knock`, `room-accept`, `room-reject`, `room-cancel`, `room-close` | the same, with `room-` in place of `pair-`. `room-open` mints and allows the lane at once and answers `{ action: 'room-open', channel, lane, rid }`; a socket owns at most 4 rooms; `room-close { channel }` names the room; `room-accept { knock, proof, rid }` answers the owner `{ action: 'room-accepted', knock, rid }` and the requester `{ action: 'room-accepted', knock, lane, channel, box, proof }` |
 | `pair-join { lane, rid }` | joins the relay lane `lane` (the 40 hex the accept handed to both sides): `{ action: 'pair-join', lane, peers, rid }`, `peers` being the other sockets in it, and each of them gets `{ action: 'pair-joined', lane, peers }`. Joining again is the same answer and no push. Errors: `invalid lane`, `unknown lane` (never minted, or past its 24 hours), `lane full`, `too many lanes`, `relay is off on this rendezvous` |
 | `pair-relay { lane, f, rid }` | `f` is a sealed frame as 4 to 7,700 base64url characters. Every other socket in the lane gets `{ action: 'pair-relayed', lane, f }`; the sender gets `{ action: 'pair-relay', lane, peers, rid }` only when it sent a `rid` (`peers`: the sockets it was written to, 0 when alone). Errors: `invalid lane`, `unknown lane` (the sender is not in the lane), `invalid frame`, `too many relays`, `relay is busy`, `relay is off on this rendezvous` |
-| `pair-leave { lane, rid }` | the sender is answered only when it sent a `rid`; the others get `{ action: 'pair-left', lane, peers }`. A socket that closes leaves every lane it joined, with the same push. Leaving a lane one is not in is quiet |
-| `pair-ping` | exactly `{"v":1,"action":"pair-ping"}`: answered `{ action: 'pair-pong' }` (on the Worker by the platform, without waking the object). Never a failure, and no cap counts it |
+| `pair-leave { lane, rid }` | the sender is answered only when it sent a `rid`; the others get `{ action: 'pair-left', lane, peers }`. A socket that closes leaves every lane it joined, with the same push. Leaving a lane one is not in is quiet. Errors: `invalid lane`, `relay is off on this rendezvous` (a failure is answered with or without a `rid`) |
+| `pair-ping` | exactly `{"v":1,"action":"pair-ping"}`: answered `{ action: 'pair-pong' }` (on the Worker by the platform, without waking the object, so no cap counts it). A ping that reaches `pair.js` (any other shape on the Worker, every ping on the Node tracker) gets the same pong and counts toward the 150 messages a minute, never toward a relay cap ("Relay", below) |
 | `room-join`, `room-relay`, `room-leave` | the same for the lane of a room, with `room-` in place of `pair-`; the pushes are `room-joined`, `room-relayed` and `room-left` |
 
 A reply goes to the sender only when it has something to say (`pair-cancel` and `pair-close` answer a `rid` and nothing else).
@@ -139,7 +139,7 @@ to an owner whose code ran out after 24 hours. The same pushes exist with `room-
 | knocks and opens | 10 a minute per socket (`too many requests`, `too many codes`) |
 | codes in all, lanes in all | 4,096 and 10,000 (`too many codes`, `too many lanes`) |
 | relayed frames | 120 a minute per socket (`too many relays`); 20,000 a UTC day for the object (`relay is busy`) |
-| messages of any kind but a ping | 150 a minute per socket; the next one closes the socket with code 1008 (`too many messages`) |
+| messages of any kind, a ping that reaches `pair.js` included | 150 a minute per socket; the next one closes the socket with code 1008 (`too many messages`) |
 | relay lanes | 8 per socket (`too many lanes`); 2 sockets in a pair lane and 16 in a room lane (`lane full`) |
 
 What the rendezvous learns: channels, when knocks happen, lane ids and the addresses of the sockets, as any relay does; never
@@ -215,10 +215,10 @@ without telling you. The Worker reads none of that: it hands the Durable Object 
 upgrade needs, it never reads `request.cf`, and `wrangler.jsonc` switches the platform's own logs (`observability`) off. That is a
 statement about this code, not a promise about what the host does.
 
-**Caps.** Per socket: 120 relayed frames a minute (`too many relays`); 150 messages of any kind but a ping a minute, and the next
-one closes the socket with code 1008 (`too many messages`); 8 lanes (`too many lanes`); 2 sockets in a pair lane and 16 in a room
-lane (`lane full`). For the whole object: 20,000 relayed frames a UTC day, after which every relay is answered `relay is busy` until
-00:00 UTC. The numbers are `DEFAULT_CAPS` in `pair.js` (a test keeps this section equal to them). The day cap and the counters are
+**Caps.** Per socket: 120 relayed frames a minute (`too many relays`); 150 messages of any kind a minute (a ping that reaches the
+object counts as one, see below), and the next one closes the socket with code 1008 (`too many messages`); 8 lanes (`too many lanes`);
+2 sockets in a pair lane and 16 in a room lane (`lane full`). For the whole object: 20,000 relayed frames a UTC day, after which every
+relay is answered `relay is busy` until 00:00 UTC. The numbers are `DEFAULT_CAPS` in `pair.js` (a test keeps this section equal to them). The day cap and the counters are
 in memory, so a new deployment starts them again at 0; `/stats.json` shows today's counts and the UTC day they belong to. A frame is
 counted when it is accepted for forwarding, including one sent while the other side was away (it is written to nobody and costs a
 request all the same).
@@ -237,16 +237,32 @@ so a socket that only pings is never closed as idle. A page that gets no pong wi
 connects again. A socket that sends nothing and pings nothing is closed by the sweep after 20 minutes; a page that was frozen (a phone
 with the screen off) joins its lanes again when it wakes. The Node tracker answers a ping itself.
 
+**Pings that reach the object count.** Only that exact text is answered by the platform. A ping of any other shape (a space, a
+`rid`, one more field) wakes the object; `pair.js` answers it with the same pong, and it counts toward the 150 messages a minute like
+any message and toward no relay cap, so a flood of near-miss pings closes the socket like a flood of anything else. The Node tracker
+has no auto-response, so there every ping reaches `pair.js` and is counted: a page's one ping every 50 seconds is 1.2 a minute against 150.
+
+**A member that vanished does not block its replacement.** A phone that changes networks leaves its old socket half open here: no
+close ever arrives, and its lane looks full to the page's new socket. So a join to a full lane first reads each member's last sign of
+life, the later of its last message and the platform's last answer to its ping (`getWebSocketAutoResponseTimestamp`, read at that moment
+for the members of that lane only, never for every socket). A member silent for longer than `memberStaleMs` (120,000 ms, about 2.4
+keepalives) is evicted through the same path as a socket that closed: the others get `pair-left` with the new count, then `pair-joined`
+for the newcomer, which takes its place; its socket is closed with code 1000 if it is still open and released like any socket that
+closed. A lane whose members are all live still answers `lane full`, and the page asks again later. `/stats.json` counts the members
+evicted today as `evicted`. The Node tracker does the same from its message times.
+
 **The off switch.** `RELAY_LANE` is `"1"` in `wrangler.jsonc`; any other value than `"0"` leaves the relay on. With `"0"` (or
 `--no-relay-lane` on the Node tracker) every join, relay and leave is answered `relay is off on this rendezvous`, and the pairing keeps
 working. A door whose block says `"direct": "on"` still connects its two pages directly.
 
 **Limits worth knowing.** A socket that disappears without closing (a phone that changed networks) stays a member of its lane until
-the idle sweep closes it, up to 25 minutes (20 minutes of silence, looked at every 5): until then a pair lane can look full to the
-page that replaces it, and a frame written to the vanished socket reaches nobody, so the sending page gets no acknowledgement and
-handles that as it does for any message that is not acknowledged. Nothing is stored: a frame sent while the other socket is away is
+its replacement joins (above: after 2 minutes of silence) or the idle sweep closes it (20 minutes of silence, looked at every 5): until
+then a frame written to the vanished socket reaches nobody, so the sending page gets no acknowledgement and handles that as it does
+for any message that is not acknowledged, and a replacement that comes within those 2 minutes is answered `lane full` and asks again.
+Nothing is stored: a frame sent while the other socket is away is
 written to nobody (`peers: 0` in the answer to a request with a `rid`) and the page sends it again after the other side joins. There
-is no per-address quota; only the two members and the rendezvous know a lane's id, and whoever knows it can fill its places. A frame
+is no per-address quota; only the members of the lane (two for a pair; for a room, every member the owner accepted, including one who has
+left) and the rendezvous know a lane's id, and whoever knows it can fill its places. A frame
 is never opened, so a member that sends garbage is not noticed here; the receiving page drops it.
 
 ### Deploying the Worker and the front
@@ -319,7 +335,8 @@ with a fake platform: rows in storage, a wake with the sockets' attachments, the
 platform, pairing under `wrangler dev` or with a real loader against the Worker, and load.
 
 The relay lane was added on 2026-11-07 and has unit tests only: `test/unit/deploy-rtc-pair.test.mjs` (the state machine: join,
-relay, leave and ping, the caps, the day counter and its reset, the saved state and a wake), `test/unit/deploy-rtc-worker.test.mjs`
+relay, leave and ping, the caps, the day counter and its reset, the saved state and a wake, the eviction of a member that went silent and
+the counting of pings that reach the core), `test/unit/deploy-rtc-worker.test.mjs`
 (the object on a fake platform: the exact auto-response texts, pings that never wake the object, the sweep, the rebuilt upgrade
 request, `wrangler.jsonc`), `test/unit/deploy-rtc-front.test.mjs` (the front and its Pages copy, the names the code never reads, the
 numbers of this README) and `test/unit/tools-tracker-pair.test.mjs` (the Node tracker with real WebSocket clients on loopback). Not

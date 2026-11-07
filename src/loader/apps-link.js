@@ -5,7 +5,7 @@
 // minted and every sealed frame of their conversation goes through it, so a conversation does not depend on a direct link.
 //
 //   createLink({ url, WebSocketImpl, setTimeoutFn, clearTimeoutFn, random, backoffMs, knockSilentMs, knockExpireMs,
-//                requestTimeoutMs, keepaliveMs, pongWaitMs, log, report, now }) -> PairLink
+//                requestTimeoutMs, keepaliveMs, pongWaitMs, log, report, now, relayBudget, messageBudget }) -> PairLink
 //
 //   link.state            'idle' (not started or closed) | 'connecting' | 'open' | 'backoff' (waiting to retry)
 //   link.connect()        starts the socket (also ends a back off wait at once); nothing is opened before the first call
@@ -50,6 +50,13 @@
 // nothing at all came from the socket in that time (no pong and no other frame) the socket is half open (a laptop that slept, a phone
 // that changed networks): the link treats it as lost and reconnects with its back off. A pong is no event and no report.
 //
+// The socket's minute: the rendezvous counts what one socket sends in a sliding minute (120 relayed frames, then 'too many relays'; 150
+// messages of any kind, then it closes the socket), and every lane of the page shares the socket. So the link counts its own minute and keeps
+// under relayBudget relayed frames (RELAY_BUDGET, 100) and messageBudget frames in all (MESSAGE_BUDGET, 120): a request that would go over
+// waits in the link, relayed frames in the order they came, until the minute has room, and fails with 'closed' when the socket goes first. A
+// ping and send() are counted, never held. A page therefore never trips those caps by itself. The ms of a reply is timed from the moment the
+// request was sent, after any wait.
+//
 // report(name, fields) is optional (usage reports, docs/OBSERVABILITY.md; the page adds a prefix to every name). It hears, as flat
 // objects of words and counts: state { state, prev }, open { attempt }, gone { why }, backoff { attempt, ms, why }, sent { action }
 // (a frame went out), reply { action, ok, reason, ms } (the ms of a pair-relay reply is the relay round trip), timeout { action, ms }
@@ -80,11 +87,17 @@ export const LEAVE_TIMEOUT_MS = 3000
 export const FRAME_CHARS_MAX = 7700 // the base64url characters of one relayed frame (5,775 bytes), so that the request stays under 8,192 bytes
 export const PEERS_MAX = 64
 export const PING_TEXT = '{"v":1,"action":"pair-ping"}'
+// The socket's own minute, kept under the caps the rendezvous counts per socket (plan 3.2: 120 relayed frames and 150 messages a minute). The
+// margins cover what the link sends without holding it (a ping, a cancel) and a network that delivers a stalled minute late, in one go.
+export const RELAY_BUDGET = 100
+export const MESSAGE_BUDGET = 120
+const MINUTE_MS = 60000
 
 const LANE_RE = /^[0-9a-f]{40}$/
 const TOKEN_RE = /^[A-Za-z0-9_-]{1,32}$/
 const PROOF_RE = /^[A-Za-z0-9_-]{86}$/
 const FRAME_RE = /^[A-Za-z0-9_-]{4,7700}$/
+const RELAY_ACTION_RE = /^(?:pair|room)-relay$/
 const KINDS = new Set(['pair', 'room'])
 const REASONS = new Set(['rejected', 'expired', 'closed', 'gone'])
 const PUSH_RE = /^(pair|room)-(request|accepted|rejected|cancelled|close|relayed|joined|left)$/
@@ -147,7 +160,8 @@ export class PairLink {
   constructor ({
     url, WebSocketImpl = null, setTimeoutFn = null, clearTimeoutFn = null, random = null, backoffMs = BACKOFF_MS,
     knockSilentMs = KNOCK_SILENT_MS, knockExpireMs = KNOCK_EXPIRE_MS, requestTimeoutMs = REQUEST_TIMEOUT_MS,
-    openWaitMs = OPEN_WAIT_MS, keepaliveMs = 0, pongWaitMs = PONG_WAIT_MS, log = null, report = null, now = null
+    openWaitMs = OPEN_WAIT_MS, keepaliveMs = 0, pongWaitMs = PONG_WAIT_MS, log = null, report = null, now = null,
+    relayBudget = RELAY_BUDGET, messageBudget = MESSAGE_BUDGET
   } = {}) {
     this.url = checkUrl(url)
     this.WS = WebSocketImpl || (typeof WebSocket === 'function' ? WebSocket : null)
@@ -172,6 +186,12 @@ export class PairLink {
     this._keepTimer = null
     this._pongTimer = null
     this._heard = 0 // text frames received on this link: the watchdog of the keepalive asks whether anything came since the ping
+    this.relayBudget = relayBudget > 0 ? relayBudget : RELAY_BUDGET
+    this.messageBudget = messageBudget > 0 ? messageBudget : MESSAGE_BUDGET
+    this._outT = [] // when each frame this socket sent in the last minute went (every frame: a request, a send, a ping)
+    this._relayT = [] // the same for the relayed frames among them
+    this._held = [] // { relay, resolve }: requests waiting for room in the socket's minute, in the order they came
+    this._heldTimer = null
     this._pending = new Map() // rid -> { resolve, timer }
     this._waiters = [] // { resolve, timer }: calls waiting for the socket to open
     this._knocks = new Map() // kind:knock -> { silent, expire }
@@ -254,6 +274,9 @@ export class PairLink {
       if (this._ws !== ws) return
       const tries = this._attempt
       this._attempt = 0
+      // the rendezvous counts per socket: a new socket starts a minute of its own
+      this._outT.length = 0
+      this._relayT.length = 0
       this._set('open')
       this._rep('open', { attempt: tries })
       this._flushWaiters(true)
@@ -277,6 +300,7 @@ export class PairLink {
     }
     this._stopKeepalive()
     this._failPending('closed')
+    this._failHeld()
     this._clearKnocks()
     if (this._stopped) {
       this._flushWaiters(false)
@@ -312,6 +336,7 @@ export class PairLink {
     }
     this._stopKeepalive()
     this._failPending('closed')
+    this._failHeld()
     this._clearKnocks()
     this._flushWaiters(false)
     this._set('idle')
@@ -364,7 +389,7 @@ export class PairLink {
     this._keepTimer = null
     if (this._state !== 'open') return
     const mark = this._heard
-    this._sendText(PING_TEXT)
+    if (this._sendText(PING_TEXT)) this._take(false) // counted in the socket's minute (a ping that reaches pair.js counts there: DEC-2), never held
     if (this._pongTimer !== null) this._clearT(this._pongTimer)
     this._pongTimer = this._setT(() => {
       this._pongTimer = null
@@ -398,13 +423,16 @@ export class PairLink {
     const text = this._frame(action, fields, null)
     if (text === null) return false
     const ok = this._sendText(text)
-    if (ok) this._rep('sent', { action: reportWord(action) })
+    if (ok) {
+      this._take(false) // counted in the socket's minute, never held (a cancel: the rendezvous already caps the knocks it ends)
+      this._rep('sent', { action: reportWord(action) })
+    }
     return ok
   }
 
   /** request(action, fields, { timeoutMs }) -> Promise<{ ok: true, reply } | { ok: false, reason }>. */
   async request (action, fields = {}, { timeoutMs = this.requestTimeoutMs } = {}) {
-    const at = this._now()
+    let at = this._now()
     if (!this.WS) return this._answered(action, at, { ok: false, reason: 'link-down' })
     if (this._state !== 'open') {
       const up = await this.whenOpen()
@@ -413,6 +441,17 @@ export class PairLink {
     const rid = b64url.encode(randomBytes(6))
     const text = this._frame(action, fields, rid)
     if (text === null) return this._answered(action, at, { ok: false, reason: 'too-big' })
+    // the socket's minute: a request that would take the socket over the caps of the rendezvous waits here (_hold), and fails as closed when
+    // the socket goes first; its time and its timeout then start when it is sent, so the ms of a reply stays the round trip (plan 3.5). With
+    // room, and nothing of its kind waiting before it, it goes at once, in this same turn, as it always did (a sign-out writes its leaves
+    // before it closes the socket, even while relayed frames wait).
+    const relay = RELAY_ACTION_RE.test(action)
+    if (this._held.some((h) => h.relay === relay) || !this._fits(relay)) {
+      if (!(await this._hold(relay))) return this._answered(action, at, { ok: false, reason: 'closed' })
+      at = this._now()
+    } else {
+      this._take(relay)
+    }
     return new Promise((resolve) => {
       const entry = { resolve, timer: null, action, at }
       entry.timer = this._setT(() => {
@@ -450,6 +489,66 @@ export class PairLink {
       this._clearT(e.timer)
       e.resolve(this._answered(e.action, e.at, { ok: false, reason }))
     }
+  }
+
+  // ---- the socket's minute (finding A-3 of verify round 0) ---------------------------------------------------------------------
+  //
+  // The rendezvous counts what one socket sends in a sliding minute (plan 3.2): past 120 relayed frames it refuses them, past 150 messages of any
+  // kind it closes the socket, and the page loses every lane, code and knock at once. Every lane of the page shares this socket, so the link
+  // keeps its own count of the minute, under those caps (relayBudget, messageBudget): a request that would go over waits here until a frame of
+  // the minute runs out, the relayed frames in the order they came (a request of another kind is not held behind them while the minute has
+  // room for it). So a page never trips the caps by itself. A ping and a send() are counted and never held.
+
+  _fits (relay) {
+    const t = this._now()
+    while (this._outT.length && t - this._outT[0] >= MINUTE_MS) this._outT.shift()
+    while (this._relayT.length && t - this._relayT[0] >= MINUTE_MS) this._relayT.shift()
+    return this._outT.length < this.messageBudget && (!relay || this._relayT.length < this.relayBudget)
+  }
+
+  _take (relay) {
+    const t = this._now()
+    this._outT.push(t)
+    if (relay) this._relayT.push(t)
+  }
+
+  /** _hold(relay) -> Promise<boolean>: true when the request may go (its place in the minute is taken), false when the socket went first. */
+  _hold (relay) {
+    return new Promise((resolve) => {
+      this._held.push({ relay, resolve })
+      this._pump()
+    })
+  }
+
+  _pump () {
+    if (this._heldTimer !== null) {
+      this._clearT(this._heldTimer)
+      this._heldTimer = null
+    }
+    for (let i = 0; i < this._held.length;) {
+      const h = this._held[i]
+      if (!this._fits(h.relay)) {
+        i++
+        continue
+      }
+      this._held.splice(i, 1)
+      this._take(h.relay)
+      h.resolve(true)
+    }
+    if (!this._held.length || !this._outT.length) return
+    // the next look is when the oldest frame of the minute runs out (each relayed frame is in _outT too, so that one is never later)
+    this._heldTimer = this._setT(() => {
+      this._heldTimer = null
+      this._pump()
+    }, Math.max(1, this._outT[0] + MINUTE_MS - this._now()))
+  }
+
+  _failHeld () {
+    if (this._heldTimer !== null) {
+      this._clearT(this._heldTimer)
+      this._heldTimer = null
+    }
+    for (const h of this._held.splice(0)) h.resolve(false)
   }
 
   // ---- receiving ------------------------------------------------------------------------------

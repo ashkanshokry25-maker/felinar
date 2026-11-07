@@ -1935,10 +1935,10 @@ tools/demo.mjs          --stun <stun: URL> (repeat, at most 4), --apps-relay, --
 tools/tracker.mjs       --no-pairing; createTracker({ ..., pairing (undefined: on when deploy/rtc-worker/pair.js is there; false; true: or an error), maxLanes = 10000,
                         pairSweepMs = 30000, now, random }) -> { ..., pairing: boolean, pairSweep(nowMs) }; loadPairModule(specifier) -> module | null;
                         stats() and /stats.json gain codes, knocks, lanes
-                        relay-first: --no-relay-lane, option relayLane (default true): false answers every join and relay with 'relay is off on this rendezvous'; stats gain the
+                        relay-first: --no-relay-lane, option relayLane (default true): false answers every join, relay and leave with 'relay is off on this rendezvous'; stats gain the
                         relay fields of "The relay lane" below
 deploy/rtc-worker       var PAIRING ("1" default, "0" = a tracker only); /stats.json gains codes, knocks, lanes
-                        relay-first: var RELAY_LANE ("1" default, "0" = every join and relay answers 'relay is off on this rendezvous'); "observability": { "enabled": false } in
+                        relay-first: var RELAY_LANE ("1" default, "0" = every join, relay and leave answers 'relay is off on this rendezvous'); "observability": { "enabled": false } in
                         wrangler.jsonc; /stats.json gains the relay fields of "The relay lane" below
 ```
 
@@ -2002,27 +2002,47 @@ Where       the pair socket of the page, after the accept: the owner joins with 
 Messages    C pair-join   { lane, rid? }      lane = the 40 lowercase hex characters the accept handed to both sides
                           -> R { action: 'pair-join', lane, peers, rid? }, peers = the OTHER sockets in the lane; and to every other member
                              { action: 'pair-joined', lane, peers } (peers = the members other than the receiver). A join by a socket already in the lane is idempotent: the reply, no push.
-                             Failures: invalid lane (not 40 lowercase hex) | unknown lane (laneExpiry(hex) says 0: never minted, or run out) | lane full (pair 2, room 16)
-                             | too many lanes (8 per socket) | relay is off on this rendezvous
+                             Failures: invalid lane (not 40 lowercase hex) | unknown lane (laneExpiry(hex) says 0: never minted, or run out) | lane full (pair 2, room 16, once the
+                             stale members are evicted: Caps below; a page tries such a join again after 3, 10 and 30 s and then every 60 s while the conversation or room exists
+                             and its socket is open, and tells apps.lane full once per episode)
+                             | too many lanes (8 per socket) | relay is off on this rendezvous (and, from a rendezvous that is older than the relay, invalid action: the page treats
+                             both as no relay here and, with no direct link, marks the conversation 'no-path')
             C pair-relay  { lane, f, rid? }   f = the sealed frame as base64url without padding, /^[A-Za-z0-9_-]{4,7700}$/ (the three sealed message sizes are 686, 2,051 and 7,512 characters)
                           => every other member { action: 'pair-relayed', lane, f }; -> the sender only when rid is present { action: 'pair-relay', lane, peers, rid }, peers = the sockets it was
                              written to (0 when alone: the sender keeps the frame unsent). The module never parses, stores or logs f.
-                             Failures: invalid lane | unknown lane (the sender is not a member) | invalid frame | too many relays (the minute cap) | relay is busy (the day cap) | relay is off on this rendezvous
+                             Failures: invalid lane | unknown lane (the sender is not a member; a page whose lane was joined takes it for an eviction or a restart of the object,
+                             joins once more, and sends again what nobody acked) | invalid frame | too many relays (the minute cap) | relay is busy (the day cap) | relay is off on
+                             this rendezvous
             C pair-leave  { lane, rid? }      a reply only with rid; => the others { action: 'pair-left', lane, peers }. A socket that closes leaves every lane it joined (the same push).
-            C pair-ping   exactly {"v":1,"action":"pair-ping"} -> R {"action":"pair-pong"}: no rid, never a failure, not counted by any cap, changes nothing. On the Worker the platform answers it
-                          without waking the object (setWebSocketAutoResponse); pair.js answers it too, so the Node tracker and the tests behave the same
-Caps        120 relayed frames a minute per socket; 150 messages of any kind a minute per socket, pings excepted (the next one closes the socket, code 1008); 20,000 relayed frames per object
-            per UTC day, counted in memory (a redeploy resets it); 8 lanes per socket; 2 sockets in a pair lane, 16 in a room lane
+                             Leaving a lane the socket is not in is a quiet no-op. Failures: invalid lane | relay is off on this rendezvous (a failure is answered with or
+                             without a rid)
+            C pair-ping   exactly {"v":1,"action":"pair-ping"} -> R {"action":"pair-pong"}: no rid, changes nothing. On the Worker the platform answers it without waking the object
+                          (setWebSocketAutoResponse), so no cap counts it there; pair.js answers any ping with the same pong, and a ping that reaches it (any other shape on the
+                          Worker, every ping on the Node tracker) counts toward the 150 messages a minute and toward no relay cap, so the 151st message of a minute, a ping too,
+                          gets the failure too many messages and closes the socket
+Caps        120 relayed frames a minute per socket; 150 messages of any kind a minute per socket, a ping that reaches pair.js included (the next one closes the socket, code 1008); 20,000 relayed frames per object
+            per UTC day, counted in memory (a redeploy resets it); 8 lanes per socket; 2 sockets in a pair lane, 16 in a room lane. A join to a full lane first evicts the members
+            whose last message or keepalive is older than memberStaleMs (120,000 ms; the host may override) through the path of a socket close (the others get -left, the evicted
+            socket is closed with 1000 if still open); a lane whose members are all live still answers lane full. The joiner's own too many lanes is checked first, so
+            nobody is evicted for a socket that could not join anyway
 Stats       stats() and /stats.json (Worker and Node tracker) gain relays (lanes with at least one member), relayed (frames forwarded today), relayBytes (characters of f forwarded today),
-            relayDay (UTC yyyymmdd), relayBusy (frames refused by the day cap today), relayRate (frames refused by the minute cap today), joinsRefused (joins refused today, for any reason)
-            Counts only: no lane id, no frame, no address
+            relayDay (UTC yyyymmdd), relayBusy (frames refused by the day cap today), relayRate (frames refused by the minute cap today), joinsRefused (joins refused today, for any reason),
+            evicted (members evicted from a full lane today). Counts only: no lane id, no frame, no address
 Hibernation the pair socket's attachment gains l: [[lane, kind], ...], at most 8 entries of 40 hex, beside c and q; attach() rebuilds the lanes from it and drops those laneExpiry says are
             gone. Nothing is written to storage for the relay
 Keepalive   the page sends the ping text once every 50,000 ms while the socket is open and expects a pong within 10 s; with none, and no other frame either, it takes the socket for lost and connects again
 deploy/rtc-worker/pair.js
-            PING_TEXT, PONG_TEXT, MAX_FRAME_CHARS = 7700, isRelayAction(action), utcDay(ms); DEFAULT_CAPS gains relayPerMin, messagesPerMin, relayDayMax, lanesPerSocket, pairLaneMembers, roomLaneMembers
-            createPairing({ ..., laneExpiry, relay }): laneExpiry(hex) -> ms | 0 (rtc.js answers from its lanes); relay: false answers every join and relay 'relay is off on this rendezvous'
-            message(conn, msg) may also return close: 'too many messages' (the host closes the socket with code 1008, then calls close(conn)); attachmentOf(conn) -> { c, q, l }
+            PING_TEXT, PONG_TEXT, MAX_FRAME_CHARS = 7700, isRelayAction(action), utcDay(ms); DEFAULT_CAPS gains relayPerMin, messagesPerMin, relayDayMax, lanesPerSocket, pairLaneMembers,
+            roomLaneMembers, memberStaleMs (120000)
+            createPairing({ ..., laneExpiry, liveness, relay }): laneExpiry(hex) -> ms | 0 (rtc.js answers from its lanes); liveness(conn) -> ms, what the host knows of the socket's last
+            keepalive (rtc.js: its record of the socket, which worker.js refreshes from getWebSocketAutoResponseTimestamp through probe(conn) for the members of a full lane only, at
+            that moment); a member's liveness is the later of it and the socket's last message here; relay: false answers every join, relay and leave 'relay is off on this rendezvous'
+            message(conn, msg) may also return close: 'too many messages' (the host closes the socket with code 1008, then calls close(conn)) and evicted: [conn, ...] (the members a
+            join evicted: the host closes each with code 1000 if still open and calls close(conn) for it); attachmentOf(conn) -> { c, q, l }; attach(conn, saved) takes the
+            host's t (seconds of the socket's last message, rtc.js writes it) as the restored socket's last sign of life, or the wake itself without one
+deploy/rtc-worker/rtc.js
+            createRendezvous({ ..., probe }): probe(conn) runs right before a member's liveness is read, for the members of a full lane only; pairMessage passes evicted through,
+            and stats() carries evicted (0 with pairing off)
 ```
 
 ### The sealing and the frames, `mw-apps-v1` (`src/loader/apps-crypto.js`; the service is `src/loader/apps.js`)
@@ -2049,7 +2069,8 @@ Frames      [0x01][type][JSON payload], at most 16,384 bytes
             0x05 GROUP     { tag, epk, iv, ct }   sealGroup under the room secret, epoch id 1, group id = the lane, the sender's signature inside
 Bodies      { k: 'msg', id, t, text, fmt: 'md1', reply?, exp?, prio? }  { k: 'ack', id }  { k: 'read', upTo }  { k: 'typing', on }  { k: 'react', id, emoji | null, t, o? }
             { k: 'edit', id, text, t, o? }  { k: 'del', id, o? }  { k: 'cfg', exp, receipts, t, o? }  { k: 'name', name }  { k: 'bye' }
-            id is 16 random base64url characters, t is Unix ms, text at most 3,500 characters (rooms 2,000; only 'msg' and 'bye' in a room), emoji at most 8 code points,
+            id is 16 random base64url characters, t is Unix ms, text at most 3,500 characters (rooms 2,000; only 'msg', 'bye' and 'in' in a room: { k: 'in' } is the word a member sends
+            once it holds the room secret, so that the owner stops putting that member's sealed secret on the relay), emoji at most 8 code points,
             no spaces and not a name every object has (toString, constructor, ...). exp on a msg is its author's timer; cfg.exp and cfg.receipts say what the sender does
             (the reader keeps them as peerCfg and never lets them change its own timer); a cfg whose t is more than 5 minutes from the reader's clock is dropped, and a
             timer a reader receives counts for at least 10 seconds. The reader keeps the last 20 earlier texts of an edited message
@@ -2074,12 +2095,16 @@ apps.state() -> { signedIn, me: { pub, short, name } | null, ready, link: 'conne
                   cfg: { relay: 'rendezvous' | 'none', direct: 'off' | 'on' } (the door's tokens, resolved; the view reads it defensively and takes a missing one for 'rendezvous' and 'off'),
                   conversations, rooms, requests: [{ knock, kind: 'pair' | 'room', roomId, from: { pub, short, name }, at }], snippets, blocked }
   conversation { id, peer: { pub, short, name, nick }, status: 'waiting' | 'connecting' | 'connected' | 'rejected' | 'left' | 'blocked', via: 'direct' | 'relay' | null (what carries
-    it now; a ready direct wire is preferred to the relay), reason, knock, code,
+    it now; a ready direct wire is preferred to the relay), reason (null, or why it is rejected or cannot connect: 'no-path' when the rendezvous refused the join, or a relay half-way,
+    as off, or did not know the action, and no direct lane is held (direct off, or direct on on a page whose WebRTC could not be loaded), so it cannot connect and the view says so;
+    a join that works again clears it; 'bad-lane' when the lane was unknown or invalid and there is no direct
+    path; 'bad-key', 'bad-box', 'blocked', 'no-tm', 'gone', or the word of a refused request: 'rejected', 'expired', 'closed', or a failure text of the rendezvous as a slug), knock, code,
     incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, cfg: { exp, receipts, typing } (this person's own, not the door's: exp is the
     default timer of what this person writes), peerCfg: { exp, receipts } (what the other person told; display only), compare,
     compareText, draft, note, typingPeer, messages: [{ id, t, mine, text, fmt, reply, status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | null, readAt,
     edits: [{ t, text }], editedAt, deleted, reactions: { emoji: [pub] }, pinned, saved, important, prio, exp, expAt, sendAt, scheduled }] }
-  room { id, owner, status: 'waiting' | 'open' | 'connecting' | 'connected' | 'rejected' | 'closed', via (best effort; the view reads only the conversation's), code, codeClosed,
+  room { id, owner, status: 'waiting' | 'open' | 'connecting' | 'connected' | 'rejected' | 'closed', via (best effort; the view reads only the conversation's), reason ('no-path' and
+    'bad-lane' as for a conversation), code, codeClosed,
     ownerPub, members: [{ pub, short, name, you, owner }], messages: [{ id, t, mine, from, text, status: 'queued' | 'sent' | null }], unread, draft }
 Calls       every call that is not marked (sync) returns a Promise that resolves to a result or { error } and never rejects; an error is one of ERRORS (spaced phrases such
             as 'unknown code', 'rate limited', 'too long', 'no manager')
@@ -2095,7 +2120,8 @@ ERRORS, LIMITS (exported): the numbers of APPS.md "Limits"; tests shorten times 
 Signing out, or becoming another identity, drops everything: sockets, lanes, conversations, timers. Nothing was stored.
 src/loader/apps-link.js
             createLink(opts) -> PairLink({ url, WebSocketImpl, setTimeoutFn, clearTimeoutFn, random, backoffMs = [1000, 2000, 4000, 8000, 15000, 30000], knockSilentMs = 30000,
-              knockExpireMs = 600000, requestTimeoutMs = 15000, openWaitMs = 10000, keepaliveMs = 0, pongWaitMs = 10000, log }); url must be wss: (ws: on loopback)
+              knockExpireMs = 600000, requestTimeoutMs = 15000, openWaitMs = 10000, keepaliveMs = 0, pongWaitMs = 10000, relayBudget = 100, messageBudget = 120, log });
+              url must be wss: (ws: on loopback)
             link.state 'idle' | 'connecting' | 'open' | 'backoff'; connect(); close(); whenOpen(ms); send(action, fields); request(action, fields, { timeoutMs }) ->
               { ok: true, reply } | { ok: false, reason } (reason: the failure text as a slug, or link-down | closed | timeout | too-big | bad-reply)
             link.on(event, fn) -> off: state, open, gone, request, accepted ({ kind, knock, lane, channel, box, proof | null }), rejected, cancelled, closed, silent,
@@ -2108,6 +2134,10 @@ src/loader/apps-link.js
               so link.sent, link.reply and link.timeout report them
             keepalive: with keepaliveMs > 0 the link sends {"v":1,"action":"pair-ping"} (this byte string) every keepaliveMs while the socket is open and treats the socket as lost when no pong,
               and no other frame, comes within pongWaitMs (10 s); the answer, pair-pong, is no event; apps.js passes keepaliveMs 50000
+            the socket's minute: the link counts what its socket sends in a sliding minute and keeps under relayBudget relayed frames (RELAY_BUDGET, 100) and
+              messageBudget frames in all (MESSAGE_BUDGET, 120), under the 120 and 150 the rendezvous allows a socket: a request that would go over waits in the link
+              (relayed frames in their order), its time and its timeout start when it is sent, and it fails with 'closed' when the socket goes first; a ping and
+              send() are counted, never held; a new socket starts a minute of its own
             report reasons (reasonWord) gain: invalid-lane, unknown-lane, lane-full, too-many-lanes, relay-is-off-on-this-rendezvous, invalid-frame, too-many-relays, relay-is-busy, too-many-messages
 ```
 
@@ -2117,13 +2147,16 @@ src/loader/apps-ui.js   createAppsUi({ root, ui, service, lang, appsText, action
                           -> { node, render, show(view, id), back, inspect, destroy, nodes }
                         a model-driven view: it draws service.state() and calls the service; every handler is trustedOnly, every form is prevented, text from other people goes in
                         with textContent and createTextNode only, and no storage API is called
-                        relay-first: the price card follows state().cfg (relay 'rendezvous' and direct 'off' when missing): apps.price.text or apps.price.room; direct 'on' adds
-                        apps.price.direct after it; relay 'none' shows apps.price.textDirect or apps.price.roomDirect, the texts of before. The status line of a connected conversation is
-                        apps.status.relayed when conversation.via is 'relay' and apps.status.connected otherwise. The conversation tools hold a text line (data-role tool-transport)
+                        relay-first: the price card follows state().cfg (relay 'rendezvous' and direct 'off' when missing): apps.price.text or apps.price.room, then one paragraph of
+                        its own: apps.price.hidden (apps.price.hiddenRoom for a room) with direct 'off', apps.price.direct in its place with direct 'on', never both; relay 'none'
+                        shows apps.price.textDirect or apps.price.roomDirect, the texts of before. The status line of a connected conversation is apps.status.relayed when
+                        conversation.via is 'relay' and apps.status.connected otherwise; a conversation (connecting or rejected) or a room (open, connecting or rejected) whose
+                        reason is 'no-path' reads apps.status.noPath in its view and in the lists. The conversation tools hold a text line (data-role tool-transport)
                         with the way it travels and the door's tokens: apps.tool.transport with apps.via.relay | apps.via.direct | apps.via.none
 src/loader/strings.js   APPS_TEXT { en, fr } (the same keys in both), appsText(key, lang, params) (English fallback, {param} placeholders, '' for an unknown key); relay-first keys:
-                        apps.price.text, apps.price.room (the relay default), apps.price.direct, apps.price.textDirect, apps.price.roomDirect (the texts of before), apps.status.relayed,
-                        apps.tool.transport, apps.via.relay, apps.via.direct, apps.via.none; no text holds the digit 8
+                        apps.price.text, apps.price.room (the relay default), apps.price.hidden, apps.price.hiddenRoom (the denial, a paragraph of its own), apps.price.direct,
+                        apps.price.textDirect, apps.price.roomDirect (the texts of before), apps.status.relayed, apps.status.noPath, apps.tool.transport, apps.via.relay, apps.via.direct,
+                        apps.via.none; no text holds the digit 8
 src/loader/ui.js        createUI(): showApps(node), hideApps(), appsSlot (#mw-apps, role main, hidden until showApps); while the view is up the bar's height is measured
                         into --mw-apps-bar
 src/loader/app.js       run(): a door page with no link and an apps block runs runDoorApps(A, apps, deps), else runDoorPaste; readAppsBlock(A) -> block | null;

@@ -18,8 +18,8 @@
 
 The bare door page of a door that offers apps shows "Apps" in place of the box that opens a link. People who sign in there for the visit
 can message each other one to one, or meet in a small room, by a short code. The messages are sealed on the device (only the people in the
-conversation can open them), pass through the door's rendezvous, which cannot read them, unless the door also turns on direct links, and are kept in
-memory only, for as long as the page stays open. This page describes what the apps do, how to use them, what they leave out and why. The contracts
+conversation can open them), pass through the door's rendezvous, which cannot read them (on a door that also turns direct links on, a direct link
+carries them while one is ready), and are kept in memory only, for as long as the page stays open. This page describes what the apps do, how to use them, what they leave out and why. The contracts
 are in [ARCHITECTURE](ARCHITECTURE.md) 15.21 and [INTERFACES](INTERFACES.md); who sees what is in [PRIVACY](PRIVACY.md).
 
 ## What an owner gets
@@ -81,9 +81,11 @@ Nothing was written to the device.
 
 1. **Show your code.** The first time you open Messages, a card says "What this costs your privacy": "Codes and requests pass through this
    door's rendezvous. After the other person accepts, your messages pass through it too, sealed: the rendezvous and whoever hosts it see
-   your network address, when you send and roughly how much, never what. The other person does not see your address." A door that turns direct
-   links on adds a line: "This door also tries a direct link between you, which shows each side the other's network address." A door that
-   sets `relay` to `none` shows the card as it was before messages passed through the rendezvous. On a door that sends usage reports the card adds a line that names their host ("What is stored, and what is seen"). "Continue" shows your code, like `abcd-efgh-2345`, with "Copy" and "New code". "Not now" leaves a "Show my
+   your network address, when you send and roughly how much, never what." On a door that keeps direct links off (the default) a paragraph of
+   its own follows: "The other person does not see your address." A door that turns direct links on shows in its place "This door also tries a
+   direct link between you, which shows each side the other's network address.": a card never states that the other person does not see your
+   address and then takes it back. A door that sets `relay` to `none` shows the card as it was before messages passed through the rendezvous.
+   On a door that sends usage reports the card adds a line that names their host ("What is stored, and what is seen"). "Continue" shows your code, like `abcd-efgh-2345`, with "Copy" and "New code". "Not now" leaves a "Show my
    code" button. A code works while this page is open, and for 24 hours at the most. Read it to the person you want to message.
 2. **Or knock.** Under "Message someone" type "Their code" and press "Knock" (if you have not seen the card yet, it comes first). The
    request waits for their approval for 10 minutes. If no open code starts with the first four characters you typed, the page says "No one
@@ -120,7 +122,8 @@ one with the notice "Your code was replaced by a new one because several request
 ### Rooms
 
 1. **Create a room.** "Create a room" gives a code, the way Messages does: "Each person who knocks needs your approval before anything
-   connects." The accept card says the same as for Messages, in terms of members.
+   connects." The accept card says the same as for Messages, in terms of members ("After a member is accepted, your messages pass through it
+   too", then, on a door that keeps direct links off, "The members do not see your address.").
 2. **Join a room.** Type the room code under "Join a room". The owner approves you; then you connect.
 3. **Talk.** Everyone sees who is in the room ("Members (n)", with "owner" and "you") and each message with its sender. Messages are
    encrypted with a secret that the owner sends, sealed, to each accepted member. The list of members travels sealed under the same
@@ -145,7 +148,8 @@ never changes, so a person who leaves still holds it. Make a new room instead.
 | "A code has twelve characters, letters and numbers, like abcd-efgh-2345." | the text is not a code | check the length |
 | "Too many tries. Wait a minute and try again." | 10 requests a minute from this page, 8 waiting at once | wait |
 | "Rejected" | the owner said no, closed the code or left, or the request ran out after 10 minutes | ask again |
-| "Connecting..." for a long time after an accept | the other person's page has not joined the lane yet (closed, asleep or offline), or the page that replaced a lost connection met `lane full` while the rendezvous still holds the old one (up to 25 minutes), or the rendezvous is busy, off or out of reach. On a door that turns direct links on, a direct link may also be failing, which does not stop the messages through the rendezvous | wait, or ask the other person to keep the page open; the door's owner can look at the counts of the rendezvous ([Messages through the rendezvous](#messages-through-the-rendezvous)) |
+| "Connecting..." for a long time after an accept | the other person's page has not joined the lane yet (closed, asleep or offline), or the page that replaced a lost connection met `lane full` while the rendezvous still held the old one (the rendezvous drops a member silent for 2 minutes when a new one joins a full lane, and the page tries the join again after 3, 10 and 30 seconds and then every minute), or the rendezvous is out of reach (a rendezvous whose relay is off shows the line below instead). On a door that turns direct links on, a direct link may also be failing, which does not stop the messages through the rendezvous | wait, or ask the other person to keep the page open; the door's owner can look at the counts of the rendezvous ([Messages through the rendezvous](#messages-through-the-rendezvous)) |
+| "This door's rendezvous does not carry messages; ask the door's owner to update it" | the rendezvous answered the join with `relay is off on this rendezvous`, or it is from before the relay and did not know the action, and the door keeps direct links off: the conversation (or the room) has no way to connect, and the page does not keep trying | the door's owner turns the relay on at the rendezvous or updates it, or sets the door's `direct` to `"on"` or its `relay` to `"none"`; the visitors then reload the door page |
 | "That message is too long." | more than 3,500 characters (2,000 in a room), or the sealed body does not fit one frame | shorten it; text in scripts with 2- or 3-byte letters reaches the frame limit earlier |
 
 ## Messages through the rendezvous
@@ -167,9 +171,9 @@ Tor Browser or over a VPN yet, so this page does not say that it works there.
 
 | Who | Sees | Cannot see |
 |---|---|---|
-| The other person | the messages, the keys of the conversation, when you send | your network address, unless the door turns direct links on and one connects |
+| The other person | the messages, the keys of the conversation, when you send | your network address, unless the door turns direct links on (its connection offers carry the address, connected or not) |
 | The rendezvous and whoever hosts it | your network address, the id of the lane, when each message is sent and one of three size classes of the sealed message | what a message says, names, keys |
-| The door's owner | counts: the lanes open, the frames and characters forwarded today, the frames refused (`/stats.json`), and, if the door sends usage reports, the counts and words of the reports | content; addresses, unless the owner adds code that logs them |
+| The door's owner | counts: the lanes open, the frames and characters forwarded today, the frames refused, the members evicted from a full lane (`/stats.json`), and, if the door sends usage reports, the counts and words of the reports | content; addresses, unless the owner adds code that logs them |
 | The network you are on (an office, a provider) | a secure connection to the rendezvous's host, its timing and volume | the other person's address, content |
 | A STUN server | nothing: with direct links off the page makes no `RTCPeerConnection` and asks no STUN server | |
 
@@ -183,8 +187,8 @@ rendezvous sees beyond the pairing it already did is the lane id with the time a
 |---|---|---|
 | `relay` | `"rendezvous"` (the default when the key is absent) | after the accept both pages join the lane at the rendezvous and every sealed message goes through it |
 | | `"none"` | the page does not join a lane at the rendezvous; the apps behave as they did before this change, with direct links only |
-| `direct` | `"off"` (the default when the key is absent) | the page makes no `RTCPeerConnection` for the apps, loads no torrent manager and announces no lane; the card has no line about direct links |
-| | `"on"` | the page also tries a direct link, as before; when one is ready it is used in place of the relay, and the card adds the line about both addresses |
+| `direct` | `"off"` (the default when the key is absent) | the page makes no `RTCPeerConnection` for the apps, loads no torrent manager and announces no lane; the card says, in a paragraph of its own, that the other person does not see your address |
+| | `"on"` | the page also tries a direct link, as before; when one is ready it is used in place of the relay, and the card shows the line about both addresses in place of that paragraph |
 
 `relay` `"none"` with no `direct` key means direct `"on"`, which is how a door behaved before this change, so a door.json with `relay` `"none"`
 restores that behaviour. A block that says `relay` `"none"` and `direct` `"off"` leaves no way to connect and is refused by the tools and by
@@ -205,13 +209,18 @@ links to connect. The door's owner can set `relay` to `"none"`. Neither takes a 
 | Members of a lane | 2 for a conversation, 16 for a room | `lane full` |
 | One frame | at most 7,700 characters of base64url (the largest sealed message is 7,512) | `invalid frame` |
 
-A page sends a small keepalive once every 50 seconds. The Worker is set to have the platform answer it without waking the rendezvous's object, and
-the relay's caps do not count it; how the Free plan counts that answer has not been measured. A page
-that stops answering is closed after 20 minutes and joins its lanes again when it wakes. The day cap is set below the 100,000 requests a day of the
+A page keeps itself under the first two: it counts what its socket sends in a minute and holds a frame back, in order, until the minute has
+room (100 relayed frames and 120 messages a minute), so a busy page, or a room owner letting many people in, waits instead of being refused or
+closed (tested on loopback fakes and the real pairing core).
+
+A page sends a small keepalive once every 50 seconds. The Worker is set to have the platform answer it without waking the rendezvous's object, so
+no cap counts it there; on the Node tracker it counts as one of the 150 messages a minute (1.2 a minute). How the Free plan counts that answer has
+not been measured. A page that stops answering is closed after 20 minutes and joins its lanes again when it wakes. The day cap is set below the 100,000 requests a day of the
 Workers Free plan so that pairing itself does not meet that limit; how the plan counts WebSocket messages has not been measured either, and the cap
 may change when it has.
 
-**What is and is not built.** Built: the relay through the rendezvous, the two keys, the card and the status line, the tools line, the counts. Not built:
+**What is and is not built.** Built: the relay through the rendezvous, the two keys, the card and the status line, the line of a conversation or room whose
+rendezvous does not carry messages, the tools line, the counts. Not built:
 a second carrier for when this rendezvous is busy or gone, a list of rendezvous copies, any carrier on another host, and a direct link per contact.
 
 ## Limits
@@ -362,8 +371,8 @@ lane it hands out, the network addresses of the sockets (as any relay does), and
 the sealed messages of the two browsers on the lane, so it also sees when each is sent and one of three size classes; with direct links on, it
 carries their connection offers and answers on the lane, as every tracker does. It never sees names, keys, the last eight characters
 of a code, a message, or which identity talks to which, unless it records a box and guesses that code's secret offline ("Known limits"). By
-default the other person does not see your network address; once a door that turns direct links on connects two browsers, each sees the
-other's (in a room, every member can connect to every other member). A connection to a lane that was never accepted (the rendezvous minted the lane,
+default the other person does not see your network address; once a door turns direct links on, the browsers' connection offers carry each one's
+address to the other, whether or not a direct link connects (in a room, every member can try to connect to every other member). A connection to a lane that was never accepted (the rendezvous minted the lane,
 so it can join it like a member) sees only sealed frames: it can count the people in a room by the number of key boxes, and it reads no name, no key
 and no message. Details: [PRIVACY](PRIVACY.md) and [ARCHITECTURE](ARCHITECTURE.md) 15.21.
 
@@ -442,13 +451,17 @@ What is not fixed, in plain words. Each is a cost the design accepts today, or a
   can join before the second person does. The second person then meets `lane full` and no message passes through the rendezvous for that
   conversation; on a door that turns direct links on, a direct link can still connect. The one who took the place reads nothing: every frame is
   sealed under a key it lacks. A new code ends it.
-- **A phone that changes network can find its lane full for a while.** A socket that disappears without closing stays a member of its lane until the rendezvous
-  closes it as idle, up to 25 minutes (20 minutes of silence, looked at every 5). Until then the page that replaces it can meet `lane full`, and a message written to the
-  vanished socket reaches nobody, so it is not acknowledged and goes again. Nothing is stored for the relay: a message sent while the other side is away waits in the
+- **A phone that changes network can find its lane full for a few minutes.** A socket that disappears without closing stays a member of its lane until a join to
+  that full lane finds it silent for longer than 2 minutes (`memberStaleMs`) and the rendezvous evicts it, or until the rendezvous closes it as idle after 20 minutes of
+  silence. Until then the page that replaces it meets `lane full` and asks again after 3, 10 and 30 seconds and then every minute, so by the arithmetic of these numbers
+  it is back in about 3 minutes after the old socket last spoke (tested on loopback fakes, not on a real network). A message written to the vanished socket reaches
+  nobody, so it is not acknowledged and goes again once the page is back in. Nothing is stored for the relay: a message sent while the other side is away waits in the
   sender's page, which has to stay open, and goes after the other side has joined.
-- **The relay is as available as its host.** Messages through the rendezvous stop when the rendezvous is off (`RELAY_LANE` `"0"`), busy (the day cap of 20,000
-  frames, until 00:00 UTC) or unreachable, and the Workers Free plan's own limits apply to it; the conversation waits at "Connecting..." and unsent
-  messages stay queued while the page is open. A second carrier is not built.
+- **The relay is as available as its host.** Messages through the rendezvous stop when the rendezvous is unreachable (the conversation waits at
+  "Connecting..."), off (`RELAY_LANE` `"0"`; with no direct link the conversation reads "This door's rendezvous does not carry messages; ask the door's
+  owner to update it") or busy (the day cap of 20,000 frames, until 00:00 UTC: the line may still read connected, and a message that gets no answer in
+  20 seconds is shown as not sent), and the Workers Free plan's own limits apply to it. Unsent messages stay queued while the page is open. A second
+  carrier is not built.
 - **A message that the other person sent and you pinned still goes when their timer says so**, as above.
 
 ## Prior art and design notes
@@ -484,7 +497,7 @@ PAKEs, WebRTC privacy, pairing-code design) made recommendations. Where the buil
 | A single-use code that lives about 10 minutes and is burned after three bad requests or a second valid one | A code lives while the page is open (24 hours at the most), takes any number of requests, each approved or rejected on its own, and is replaced after five requests the owner cannot open. A request is accepted once (its nonce) and only within 10 minutes of its time |
 | Bind the channel and the role into the key derivation and the box, and sign the chat key with the identity key | Done: the channel is in the key derivation, the channel and the role are in the box's associated data and in the signature, and the identity key signs the hello that carries the chat key |
 | Open a WebRTC connection only after approval, and send the offer and the DTLS fingerprint sealed | The first half only: no connection exists before the accept, and with the default (direct links off) none exists after it either. Offers and answers, when a door turns direct links on, travel through the rendezvous unsealed, as with any tracker. The messages are sealed under the pair key whatever the path |
-| Never ask for the camera or the microphone | Done: the apps never do. In browsers that keep local addresses behind mDNS names unless a page holds that permission, this keeps them hidden; the public address shows to the other person only when a door turns direct links on and one connects |
+| Never ask for the camera or the microphone | Done: the apps never do. In browsers that keep local addresses behind mDNS names unless a page holds that permission, this keeps them hidden; the public address goes to the other person only on a door that turns direct links on: the browsers' connection offers carry it, whether or not a direct link connects |
 | Rooms by full mesh of pairwise sealing, or sender keys with a rekey on every join and leave | One room secret, sealed by the owner to each member, and signed group messages. No rekey |
 | No stored gift wraps, no messages held by a relay, no ledger for private messages | Done |
 

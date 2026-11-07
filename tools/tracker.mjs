@@ -33,9 +33,11 @@
 // everything in memory. --no-pairing turns it off.
 // The relay lane (deploy/rtc-worker/README.md, "Relay"): the two sockets of a lane the pairing minted may pass sealed frames
 // through the tracker (pair-join, pair-relay, pair-leave), which is how a message gets through when the two browsers cannot reach
-// each other. It is on by default, under caps (120 frames a minute, 150 messages a minute, 20,000 frames a UTC day); a socket over
-// its allowance of messages is closed with code 1008. --no-relay-lane keeps the pairing and turns the relay off. The tracker never
-// reads a frame: pair.js checks its alphabet and length and passes the same string on.
+// each other. It is on by default, under caps (120 frames a minute, 150 messages a minute, a ping included since the tracker has no
+// platform to answer it first, 20,000 frames a UTC day); a socket over its allowance of messages is closed with code 1008. A join to a
+// full lane evicts a member silent for more than 2 minutes (DECISIONS DEC-1: a phone that changed networks left a half-open socket):
+// that socket is closed with 1000 and released, and /stats.json counts it as evicted. --no-relay-lane keeps the pairing and turns the
+// relay off. The tracker never reads a frame: pair.js checks its alphabet and length and passes the same string on.
 // pair.js lives in deploy/, which the npm package and the Docker images of deploy/ do not copy: without the file the tracker
 // starts with pairing off (and says so) instead of failing to start.
 
@@ -402,14 +404,18 @@ export async function createTracker(options = {}) {
   // bittorrent-tracker sends 'stopped' on close for the socket's first peer id only; the others would stay in their
   // swarms until the process restarts (SCALE-10: one socket with a fresh peer id per announce kept the tracker full).
   const onClose = server._onWebSocketClose.bind(server);
-  server._onWebSocketClose = (socket) => {
-    if (pairing && socket && socket.mwProto === 'pair') {
-      try {
-        deliver(pairing.close(socket)); // its codes are released, its knocks cancelled
-      } catch (err) {
-        server.emit('warning', err);
-      }
+  // A pair socket that closes is released: its codes go (pending knocks get gone), its knocks are cancelled, its lanes are left. The
+  // same path runs at once for a member a join evicted (DEC-1): a half-open socket answers no close handshake for up to 30 seconds.
+  const releasePair = (socket) => {
+    if (!pairing || !socket || socket.mwProto !== 'pair') return;
+    try {
+      deliver(pairing.close(socket));
+    } catch (err) {
+      server.emit('warning', err);
     }
+  };
+  server._onWebSocketClose = (socket) => {
+    releasePair(socket);
     if (socket && socket.mwPeers) {
       for (const [infoHash, ids] of socket.mwPeers) {
         const swarm = server.torrents[infoHash];
@@ -459,6 +465,14 @@ export async function createTracker(options = {}) {
       socket.close(1008, reason);
     } catch (_) { /* already gone */ }
   };
+  // A member a join evicted from a full lane (DECISIONS DEC-1: silent for longer than memberStaleMs, by its message times here) has
+  // left the lane already; its socket is closed normally (1000) if it is still open, and released now as a closed socket is.
+  const evictSocket = (socket) => {
+    try {
+      socket.close(1000, 'replaced');
+    } catch (_) { /* already gone */ }
+    releasePair(socket);
+  };
   const rawSize = (raw) => (Buffer.isBuffer(raw) ? raw.length : Buffer.byteLength(String(raw), 'utf8'));
   server._onWebSocketRequest = (socket, opts, raw) => {
     if (pairing) {
@@ -486,6 +500,7 @@ export async function createTracker(options = {}) {
           const res = pairing.message(socket, msg);
           deliver(res.replies);
           if (res.close) closeSocket(socket, res.close);
+          if (res.evicted) for (const gone of res.evicted) evictSocket(gone);
         } catch (err) {
           server.emit('warning', err); // a defect in the pairing must not take the tracker down (the library does the same for bad input)
           refuse('internal error');
@@ -518,10 +533,11 @@ export async function createTracker(options = {}) {
       peers += (swarm.complete || 0) + (swarm.incomplete || 0);
     }
     // the relay's counts come from the pairing (counts and a UTC day, never a lane or a frame); with pairing off they are 0
-    const p = pairing ? pairing.stats() : { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(clock()), relayBusy: 0, relayRate: 0, joinsRefused: 0 };
+    const p = pairing ? pairing.stats() : { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(clock()), relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 };
     return {
       open: Boolean(o.open), uploads: unlistedServed(), allowed: o.open ? null : allow.size, torrents, unlisted: unlistedCount, peers, codes: p.codes, knocks: p.knocks, lanes: lanes.size,
       relays: p.relays, relayed: p.relayed, relayBytes: p.relayBytes, relayDay: p.relayDay, relayBusy: p.relayBusy, relayRate: p.relayRate, joinsRefused: p.joinsRefused,
+      evicted: p.evicted,
     };
   };
 

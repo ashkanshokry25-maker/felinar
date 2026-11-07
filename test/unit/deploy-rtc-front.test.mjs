@@ -228,7 +228,8 @@ test('README.md states the numbers the code enforces and the names it answers wi
   assert.equal(DEFAULT_CAPS.pairLaneMembers, 2);
   assert.equal(DEFAULT_CAPS.roomLaneMembers, 16);
   assert.ok(flat.includes(n(DEFAULT_CAPS.relayPerMin) + ' relayed frames a minute'));
-  assert.ok(flat.includes(n(DEFAULT_CAPS.messagesPerMin) + ' messages of any kind but a ping a minute'));
+  assert.ok(flat.includes(n(DEFAULT_CAPS.messagesPerMin) + ' messages of any kind a minute'));
+  assert.ok(flat.includes('a ping that reaches the object counts as one'), 'DECISIONS DEC-2: a ping that wakes the object counts');
   assert.ok(flat.includes(n(DEFAULT_CAPS.relayDayMax) + ' relayed frames a UTC day'));
   assert.ok(flat.includes(DEFAULT_CAPS.lanesPerSocket + ' lanes (`too many lanes`)'));
   assert.ok(flat.includes(DEFAULT_CAPS.pairLaneMembers + ' sockets in a pair lane and ' + DEFAULT_CAPS.roomLaneMembers + ' in a room lane'));
@@ -237,7 +238,12 @@ test('README.md states the numbers the code enforces and the names it answers wi
   assert.ok(flat.includes('514, 1,538 and 5,634 bytes, which is 686, 2,051 and 7,512 base64url characters'));
   assert.ok(md.includes(PING_TEXT) && md.includes(PONG_TEXT), 'the exact ping and pong texts');
   assert.ok(flat.includes('every 50 seconds') && flat.includes('within 10 seconds') && flat.includes('after ' + PEER_TTL_S / 60 + ' minutes'));
-  assert.ok(flat.includes('up to 25 minutes (20 minutes of silence, looked at every 5)'));
+  // DECISIONS DEC-1: a vanished member is evicted when its replacement joins; the sweep's 20 minutes stay the limit for a socket nobody replaces
+  assert.equal(DEFAULT_CAPS.memberStaleMs, 120000);
+  assert.ok(flat.includes(n(DEFAULT_CAPS.memberStaleMs) + ' ms') && flat.includes('`memberStaleMs`'), 'the eviction threshold');
+  assert.ok(flat.includes('20 minutes of silence, looked at every 5'));
+  assert.ok(flat.includes('closed with code 1000') && flat.includes('`evicted`'));
+  assert.equal(flat.includes('up to 25 minutes'), false, 'the lock-out of up to 25 minutes is gone');
   assert.ok(flat.includes('100,000 requests a day') && flat.includes('`RELAY_LANE`') && flat.includes('`--no-relay-lane`') && flat.includes('observability'));
   assert.ok(flat.includes('nothing general-purpose'), 'the sentence about what the relay is not');
   assert.ok(flat.includes('forwards only sealed pair frames between two members of a lane the rendezvous itself minted after an accept, under caps'));
@@ -249,7 +255,7 @@ test('README.md states the numbers the code enforces and the names it answers wi
   }
   // every field /stats.json answers is in the README
   const fields = Object.keys(createRendezvous({ allow: new Set(['a'.repeat(40)]) }).stats());
-  assert.equal(fields.length, 18);
+  assert.equal(fields.length, 19);
   for (const field of fields) assert.ok(md.includes(field), 'the stats field ' + field);
   // and the files of the front are named
   for (const name of ['front.js', 'pages/public/_worker.js', 'pages/wrangler.toml']) assert.ok(md.includes(name), name);

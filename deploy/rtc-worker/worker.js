@@ -8,7 +8,10 @@
 //
 // The relay lane (pair.js, README.md "Relay"): the object passes sealed frames between the sockets of a lane the rendezvous minted,
 // keeps the membership on the sockets' attachments (never in storage) and asks the platform to answer a client's keepalive ping
-// itself, so a ping does not wake the object (how the Free plan counts that answer is not measured yet). The Worker and the object read no client address: the upgrade request is
+// itself, so a ping does not wake the object (how the Free plan counts that answer is not measured yet). When a join finds its lane full,
+// the core asks for each member's last sign of life and the object reads the platform's last answer to that member's ping right then
+// (DECISIONS DEC-1: for the members of that lane only); a member silent for longer than memberStaleMs is evicted, and the object closes
+// its socket with code 1000 and releases it as it does a socket that closed. The Worker and the object read no client address: the upgrade request is
 // rebuilt with only the headers the WebSocket needs, and neither request.cf nor any address, Origin, Referer or User-Agent header is
 // read anywhere in this file (a unit test scans for them). Workers Logs stay off in wrangler.jsonc.
 import { createRendezvous, parseAllow, MAX_MESSAGE_BYTES, ATTACHMENT_REFRESH_S } from './rtc.js';
@@ -58,7 +61,7 @@ export function coreFromEnv(env, now, extra = {}) {
     allow: allow.set, uploads: allow.uploads || env.UPLOADS === '1', open: env.OPEN === '1',
     intervalS: Number.isFinite(intervalS) && intervalS >= 10 ? intervalS : undefined, now,
     pairing: env.PAIRING !== '0',
-    relayLane: env.RELAY_LANE !== '0', // "0" answers every join and relay with 'relay is off on this rendezvous'; absent or anything else is on
+    relayLane: env.RELAY_LANE !== '0', // "0" answers every join, relay and leave with 'relay is off on this rendezvous'; absent or anything else is on
   }, extra));
 }
 
@@ -67,7 +70,9 @@ export class Rendezvous {
     this.ctx = ctx;
     this.env = env;
     this.writes = []; // storage writes started by the core, awaited before the handler returns
-    this.core = coreFromEnv(env, undefined, { persist: (ops) => this.persist(ops) });
+    // probe (DEC-1): before the core reads a lane member's liveness, the platform's last answer to that member's ping is read and
+    // passed to seen(), for the members of the full lane only (alive() below is the same reading the wake and the sweep do)
+    this.core = coreFromEnv(env, undefined, { persist: (ops) => this.persist(ops), probe: (conn) => this.alive(conn.ws, conn) });
     this.conns = new Map(); // ws -> conn
     this.written = new Map(); // conn -> ms: when its attachment was last written (rtc-worker-lane-2)
     // A client pings every 50 s with exactly this text; the platform answers it without waking the object (plan 3.4, D6), and
@@ -165,6 +170,12 @@ export class Rendezvous {
       try { ws.close(1008, r.close); } catch (_) { /* already gone */ }
       await this.drop(ws);
       return;
+    }
+    // DEC-1: the join evicted members silent for longer than memberStaleMs (a phone that changed networks left a half-open socket here);
+    // each has left the lane already, and is now closed normally if it is still open and released like a socket that closed
+    for (const gone of r.evicted || []) {
+      try { gone.ws.close(1000, 'replaced'); } catch (_) { /* already gone */ }
+      await this.drop(gone.ws);
     }
     const at = Date.now();
     // rtc-worker-lane-2: a periodic announce changes no membership, so the stored time would stay at the last join and an object

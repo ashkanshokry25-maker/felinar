@@ -466,8 +466,10 @@ export function appsScenarios({ run, assert, headed = false }) {
   /**
    * Answers the price card of the given kind ('start', 'knock', 'accept', 'room-create', 'room-join', 'room-accept') with Continue, after
    * checking its words; whileShown() runs while the card is on screen (nothing has left the page yet). Returns the card text.
-   * The price is the one of the door the party opened (plan 3.8): the relay text on the shipped default, the direct-only text of before
-   * the relay on a door with relay none; never the other one, and never the "also tries a direct link" line (no door here asks for it).
+   * The price is the one of the door the party opened (plan 3.8, DECISIONS DEC-3 and DEC-8): on the shipped default the relay text and then,
+   * as its own paragraph, the sentence that the other person (the members) do not see your address (apps.price.hidden, apps.price.hiddenRoom;
+   * every door here keeps direct links off); on a door with relay none the direct-only text of before the relay and no such paragraph. Never
+   * the other door's text, and never the "also tries a direct link" line (no door here asks for it).
    */
   async function continueCard(P, kind, { check = false, whileShown = null } = {}) {
     await waitApps(P, (a) => a.card === kind, 'the ' + kind + ' card', 10000);
@@ -477,9 +479,16 @@ export function appsScenarios({ run, assert, headed = false }) {
     const legacy = !!(P.door && P.door.relay === 'none');
     const price = legacy ? (room ? 'apps.price.roomDirect' : 'apps.price.textDirect') : (room ? 'apps.price.room' : 'apps.price.text');
     const other = legacy ? (room ? 'apps.price.room' : 'apps.price.text') : (room ? 'apps.price.roomDirect' : 'apps.price.textDirect');
+    const hidden = room ? 'apps.price.hiddenRoom' : 'apps.price.hidden';
+    // a key the table does not have gives '', which every indexOf finds: so the sentence must exist before it is looked for
+    assert(TX(hidden).length > 0, 'src/loader/strings.js has no English text for ' + hidden);
     assert(text.indexOf(TX(accept ? (room ? 'apps.accept.titleRoom' : 'apps.accept.title') : 'apps.price.title')) >= 0, P.name + ': the title of the ' + kind + ' card: ' + text);
     assert(text.indexOf(TX(price)) >= 0, P.name + ': the price (' + price + ') is not on the ' + kind + ' card: ' + text);
     assert(text.indexOf(TX(other)) < 0 && text.indexOf(TX('apps.price.direct')) < 0, P.name + ': the ' + kind + ' card carries ' + other + ' or apps.price.direct, which this door does not ask for: ' + text);
+    // DEC-3 (DEC-8): with direct off the denial is its own paragraph after the price; the text of before the relay (relay none) has no such paragraph
+    const paras = await P.page.evaluate(() => Array.from(document.querySelectorAll('[data-role="card"] p')).map((n) => n.innerText.replace(/\s+/g, ' ').trim()));
+    assert(paras.includes(TX(hidden)) === !legacy, P.name + ': the paragraph "' + TX(hidden) + '" ' + (legacy ? 'is on' : 'is missing from') + ' the ' + kind + ' card, or is not a paragraph of its own: ' + JSON.stringify(paras));
+    if (!legacy) assert(paras.indexOf(TX(hidden)) === paras.indexOf(TX(price)) + 1, P.name + ': the denial does not follow the price on the ' + kind + ' card: ' + JSON.stringify(paras));
     assert((text.indexOf(TX('apps.price.check')) >= 0) === check, P.name + ': the "' + TX('apps.price.check') + '" line ' + (check ? 'is missing from' : 'is on') + ' the ' + kind + ' card: ' + text);
     if (whileShown) await whileShown();
     await P.press('[data-role="card-continue"]');
@@ -1223,8 +1232,11 @@ export function appsScenarios({ run, assert, headed = false }) {
           assert(text.indexOf('p256:') < 0 && text.toLowerCase().indexOf(secret) < 0, P.name + ' sent a key or the secret');
           await assertNothingStored(P, kept.get(P), needles.concat([A.short.replace('-', ''), B.short.replace('-', ''), 'p256:']));
         }
-        assert(framesJson(B, 'out').every((f) => f.msg.action === 'pair-knock' || f.msg.action === 'announce'), 'B said something else to the rendezvous: ' + JSON.stringify(framesJson(B, 'out').map((f) => f.msg.action)));
-        const aSaid = Array.from(new Set(framesJson(A, 'out').map((f) => f.msg.action)));
+        // DECISIONS DEC-7: the keepalive (plan 3.4: the link writes pair-ping every 50 s while its socket is open) is not an action a person took, so it is
+        // left out of what A and B "said"; with it in, a run that crossed the 50 s mark would fail here by the clock, not because a page said something new.
+        const saidBy = (P) => framesJson(P, 'out').map((f) => f.msg.action).filter((a) => a !== 'pair-ping');
+        assert(saidBy(B).every((a) => a === 'pair-knock' || a === 'announce'), 'B said something else to the rendezvous: ' + JSON.stringify(saidBy(B)));
+        const aSaid = Array.from(new Set(saidBy(A)));
         assert(aSaid.every((x) => ['pair-open', 'pair-accept', 'pair-close', 'announce'].indexOf(x) >= 0), 'A said ' + aSaid.join());
         return leakCheck([A, B], { run0, needles, door });
       });

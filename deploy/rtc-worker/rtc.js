@@ -3,7 +3,7 @@
 // the apps (pair.js), an allow list and caps, with no runtime dependency, so a unit test drives it with fake connections and the
 // Worker wraps it around hibernating sockets.
 //
-//   createRendezvous({ allow, uploads, open, intervalS, maxUnlisted, maxPerSocket, now, pairing, relayLane, persist, random, pairCaps, maxLanes })
+//   createRendezvous({ allow, uploads, open, intervalS, maxUnlisted, maxPerSocket, now, pairing, relayLane, probe, persist, random, pairCaps, maxLanes })
 //     -> { attach(conn, saved), message(conn, text), close(conn), stale(conn, nowMs), seen(conn, ms), attachmentOf(conn), stats(),
 //          allowLane(hex, expMs), restore({ chans, lanes }), sweep(nowMs), nextExpiry() }
 //
@@ -32,9 +32,12 @@
 // restore() before it attaches the sockets. message() on a pair frame also returns touched (the other conns whose attachment
 // moved: the host rewrites them) and pair: true; relay: true when the frame was one of the relay lane's (join, relay, leave, ping:
 // none opens a code or a knock, so the host's alarm has nothing new to wait for); and close: <reason> when the socket sent more
-// than the allowance of messages in a minute (the host closes it with code 1008). A platform that answers the keepalive ping
-// itself, without waking the object (worker.js), tells the core with seen(conn, ms) when it last did, so the idle sweep sees a
-// socket that only pings as alive.
+// than the allowance of messages in a minute (the host closes it with code 1008); and evicted: [conn, ...] when a join to a full lane
+// evicted members that had gone silent (DECISIONS DEC-1: the host closes each with code 1000 if it is still open and calls close(conn)
+// for it). A platform that answers the keepalive ping itself, without waking the object (worker.js), tells the core with
+// seen(conn, ms) when it last did, so the idle sweep sees a socket that only pings as alive. The pair core asks this core for a
+// member's liveness, which is that same time, st.last (the later of its last message and seen()); the host's probe(conn), when given,
+// runs right before that for the members of the full lane only (worker.js reads the platform's auto-response timestamp there).
 
 import { createPairing, isPairAction, isRelayAction, frameTooLarge, utcDay, MIXED, MAX_PAIR_BYTES, MAX_LANES, CHAN_KEY, LANE_KEY } from './pair.js';
 
@@ -134,7 +137,7 @@ export function messageProblem(msg) {
 
 export function createRendezvous({
   allow = new Set(), uploads = false, open = false, intervalS = INTERVAL_S, maxUnlisted = MAX_UNLISTED_SWARMS, maxPerSocket = MAX_SWARMS_PER_SOCKET,
-  now = () => Date.now(), pairing: pairOn = true, relayLane = true, persist = null, random, pairCaps, maxLanes = MAX_LANES,
+  now = () => Date.now(), pairing: pairOn = true, relayLane = true, probe = null, persist = null, random, pairCaps, maxLanes = MAX_LANES,
 } = {}) {
   // conn -> { peerId: hex|null, swarms: Map<hex, { complete }>, last: ms, proto: null|'tracker'|'pair' }
   const conns = new Map();
@@ -215,11 +218,18 @@ export function createRendezvous({
     return left;
   }
 
-  // laneExpiry: the relay joins only lanes this rendezvous minted, and asks the same map the announce branch serves them from
+  // laneExpiry: the relay joins only lanes this rendezvous minted, and asks the same map the announce branch serves them from.
+  // liveness (DEC-1): a member's last sign of life is st.last, the later of its last message and seen(); the host's probe runs first,
+  // for that member only, so the Worker can read the platform's answer to its ping at that moment and pass it to seen().
   const pairs = pairOn ? createPairing({
     random, now, caps: pairCaps, persist: flush, relay: relayLane !== false,
     allowLane: (hex, exp) => addLane(hex, exp, true),
     laneExpiry: (hex) => lanes.get(hex) || 0,
+    liveness: (conn) => {
+      if (typeof probe === 'function') probe(conn);
+      const st = conns.get(conn);
+      return st ? st.last : 0;
+    },
   }) : null;
 
   /** attach(conn, saved): a new connection, or one restored from its saved state ({ p, s: [[hex, complete], ...], t } or { k: 'pair', c, q, l?, t }). */
@@ -339,6 +349,7 @@ export function createRendezvous({
     const res = { changed: fresh || out.changed, problem: out.problem, touched: pairs.takeTouched().filter((c) => c !== conn), pair: true };
     if (isRelayAction(msg.action)) res.relay = true;
     if (out.close) res.close = out.close; // over the allowance of messages: the host closes the socket (1008)
+    if (out.evicted) res.evicted = out.evicted; // members a join evicted (DEC-1): the host closes each (1000) and calls close() for it
     return res;
   }
 
@@ -449,10 +460,11 @@ export function createRendezvous({
     let peers = 0;
     for (const s of swarms.values()) peers += s.peers.size;
     // the relay's counts are the pairing's (pair.js stats): counts and a UTC day, never a lane or a frame; with pairing off they are 0
-    const p = pairs ? pairs.stats() : { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(now()), relayBusy: 0, relayRate: 0, joinsRefused: 0 };
+    const p = pairs ? pairs.stats() : { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(now()), relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 };
     return {
       open, uploads, allowed: allow.size, swarms: swarms.size, unlisted, peers, sockets: conns.size, interval: intervalS, codes: p.codes, knocks: p.knocks, lanes: lanes.size,
       relays: p.relays, relayed: p.relayed, relayBytes: p.relayBytes, relayDay: p.relayDay, relayBusy: p.relayBusy, relayRate: p.relayRate, joinsRefused: p.joinsRefused,
+      evicted: p.evicted,
     };
   }
 

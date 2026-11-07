@@ -2226,9 +2226,12 @@ folded in here until the code does it; R 5.4.7 lists those.
   rendezvous answers with the count of the other sockets on the lane and pushes `pair-joined { lane, peers }` to them. A sealed message goes as `pair-relay { lane, f }`, `f` being the
   frame as base64url (at most 7,700 characters; the three sizes of a sealed message are 686, 2,051 and 7,512), and arrives at every other member as `pair-relayed { lane, f }`; the
   sender's reply, when it asked with a `rid`, carries the number of sockets the frame was written to (0 when it is alone: it keeps the message queued). `pair-leave` and the closing of a socket
-  push `pair-left { lane, peers }`. A lane holds 2 sockets (16 for a room) and a socket 8 lanes, and a lane that the rendezvous never minted or that ran out is `unknown lane`. The
-  rendezvous does not parse, store or log `f`. Caps: 120 relayed frames and 150 messages of any kind a minute from a socket (the next closes it) and 20,000 relayed frames a UTC day for the
-  object (`relay is busy` after, counted in memory); the counts are in `/stats.json`. `RELAY_LANE` `"0"` (the Worker) or `--no-relay-lane` (the Node tracker) makes every join and relay answer
+  push `pair-left { lane, peers }`. A lane holds 2 sockets (16 for a room) and a socket 8 lanes, and a lane that the rendezvous never minted or that ran out is `unknown lane`. A join
+  to a full lane first evicts the members whose last message or keepalive is older than `memberStaleMs` (120 seconds by default), so a page that lost its socket is not locked out of
+  its own lane while the rendezvous still holds the old one, and a page whose join was answered `lane full` tries again (after 3, 10 and 30 seconds, then every minute). The
+  rendezvous does not parse, store or log `f`. Caps: 120 relayed frames and 150 messages of any kind a minute from a socket (the next closes it; a
+  page keeps itself under both, 100 relayed frames and 120 messages, holding a frame back until its socket's minute has room) and 20,000 relayed frames a UTC day for the
+  object (`relay is busy` after, counted in memory); the counts are in `/stats.json`. `RELAY_LANE` `"0"` (the Worker) or `--no-relay-lane` (the Node tracker) makes every join, relay and leave answer
   `relay is off on this rendezvous`. A page pings with the exact text `{"v":1,"action":"pair-ping"}` every 50 seconds and the Worker answers without waking its object. The contract is
   INTERFACES "The relay lane".
 - **Before and after approval.** Until the owner accepts, only pair frames move: the tracker has no swarm for the lane, no page holds an
@@ -2263,7 +2266,9 @@ folded in here until the code does it; R 5.4.7 lists those.
   goes when it runs out (a pinned or saved copy too), never below 10 seconds on the reader's side; a received `cfg` says what the other
   person does (shown as `peerCfg`), never changes the reader's own timer, and is dropped when its `t` is more than 5 minutes from the
   reader's clock; a `cfg` is announced with the time of the announcement each time a wire comes up. A reaction is a string of at most 8
-  code points that is not a name every object has (`toString`, `constructor`); the earlier texts of an edited message are kept to the last 20. A room carries `msg` and `bye`. Formatting `md1` is `*bold*`, `_italic_`,
+  code points that is not a name every object has (`toString`, `constructor`); the earlier texts of an edited message are kept to the last 20. A room carries `msg`, `bye` and `in`, which a member sends once it holds the
+  room secret: at each accept and each joined push the owner puts on the relay the roster once and the sealed secrets of the members it has not
+  heard from only (any frame of theirs counts), and a member that sees its own key box again says `in` again, at most once a minute. Formatting `md1` is `*bold*`, `_italic_`,
   `__underline__`, `~strike~` and `` `mono` ``, and `http` and `https` links; a parser returns a node tree, and the view builds elements
   from it with `textContent`, never markup from a person's text. A frame is accepted once (an id window of 10 minutes ahead and 7 days back,
   8,192 ids), a lane sends 60 queued frames a minute and accepts 120 (600 in a room), and three bad frames, or a flood over the rate, close the
@@ -2277,8 +2282,10 @@ folded in here until the code does it; R 5.4.7 lists those.
   pages, so it also learns when each is sent and one of three size classes, and, with `direct` `on`, it carries their connection offers and answers on the lane, as every tracker does. It does not
   learn names, identity keys, chat keys, the last eight characters of a code, a message, or which identity talks to which. The host of the rendezvous learns what any host learns of a
   connection, the network address among it, and can be ordered to record it. A connection to a lane that was never accepted sees only sealed
-  frames and the number of key boxes. By default a person who is accepted does not learn the other's network address; when the door turns `direct` on and a direct link connects, each learns the
-  other's (in a room every member can connect to every other member, so each can learn the others'). The owner of the door sees counts (`/stats.json`, and reports if the door sends them), not addresses. A relay that records boxes can test secrets
+  frames and the number of key boxes. By default a person who is accepted does not learn the other's network address; when the door turns `direct` on, the connection offers and answers,
+  which the rendezvous carries on the lane as any tracker does, hold each page's network address, so each learns the other's whether or not a direct link connects (in a room every member
+  can try to connect to every other member, so each can learn the others'). The owner of the door sees counts (`/stats.json`, and reports if the door sends them), not messages; the
+  rendezvous's code gives the owner no addresses, unless the owner adds code that logs them or hosts the rendezvous on a machine of their own (then the owner is its host, above). A relay that records boxes can test secrets
   against the owner's box, which the Worker holds for the life of the code. Nobody on the path can read a message: the data channel is
   encrypted, and a message is also sealed under `K_pair` (a room message under the room secret). The eight-digit compare code,
   `HMAC(K_pair, "verify|mw-apps/1")` (first four bytes, modulo 10^8), which both people read to each other, is what catches a key
