@@ -5,27 +5,48 @@
 // sleeps between messages and is woken by them), keeps each connection's state on the socket itself (serializeAttachment),
 // keeps the rows that must outlive a socket in ctx.storage (a pairing code's details as chan:<channel>, a private lane's expiry
 // as lane:<hex>), and closes idle connections and expires codes, knocks and lanes from an alarm.
+//
+// The relay lane (pair.js, README.md "Relay"): the object passes sealed frames between the sockets of a lane the rendezvous minted,
+// keeps the membership on the sockets' attachments (never in storage) and asks the platform to answer a client's keepalive ping
+// itself, so a ping does not wake the object (how the Free plan counts that answer is not measured yet). The Worker and the object read no client address: the upgrade request is
+// rebuilt with only the headers the WebSocket needs, and neither request.cf nor any address, Origin, Referer or User-Agent header is
+// read anywhere in this file (a unit test scans for them). Workers Logs stay off in wrangler.jsonc.
 import { createRendezvous, parseAllow, MAX_MESSAGE_BYTES, ATTACHMENT_REFRESH_S } from './rtc.js';
-import { CHAN_KEY, LANE_KEY } from './pair.js';
+import { CHAN_KEY, LANE_KEY, PING_TEXT, PONG_TEXT } from './pair.js';
 
 const OBJECT_NAME = 'swarms';
 const SWEEP_MS = 5 * 60 * 1000;
+// The only headers the object is handed on an upgrade (plan 3.7, D7): what the WebSocket handshake needs and nothing else.
+const UPGRADE_HEADERS = ['Upgrade', 'Connection', 'Sec-WebSocket-Key', 'Sec-WebSocket-Version', 'Sec-WebSocket-Protocol', 'Sec-WebSocket-Extensions'];
 
 const text = (body, status = 200, extra = {}) => new Response(body, { status, headers: Object.assign({ 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }, extra) });
 
+/** pick(headers, names) -> a Headers with those names only, read one by one (never a walk over all of them). */
+function pick(headers, names) {
+  const out = new Headers();
+  for (const name of names) {
+    const value = headers.get(name);
+    if (value !== null) out.set(name, value);
+  }
+  return out;
+}
+
+// The same front as front.js (which the Pages route runs): a unit test drives both with the same requests.
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const object = () => env.RTC.get(env.RTC.idFromName(OBJECT_NAME));
     if (url.pathname === '/healthz') return text('ok\n');
     if (url.pathname === '/stats.json') {
       if (!env.STATS_TOKEN || url.searchParams.get('token') !== env.STATS_TOKEN) return text('not found\n', 404);
-      return env.RTC.get(env.RTC.idFromName(OBJECT_NAME)).fetch(request);
+      // a fresh request: the object gets neither the token in the query nor a single header of the caller's
+      return object().fetch(new Request(url.origin + '/stats.json'));
     }
     if (url.pathname !== '/') return text('not found\n', 404);
     if ((request.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') {
       return text('This is a felinar rendezvous: it answers WebSocket connections from the loader (deploy/rtc-worker/README.md).\n', 426, { Upgrade: 'websocket' });
     }
-    return env.RTC.get(env.RTC.idFromName(OBJECT_NAME)).fetch(request);
+    return object().fetch(new Request(url.origin + '/', { headers: pick(request.headers, UPGRADE_HEADERS) }));
   },
 };
 
@@ -37,6 +58,7 @@ export function coreFromEnv(env, now, extra = {}) {
     allow: allow.set, uploads: allow.uploads || env.UPLOADS === '1', open: env.OPEN === '1',
     intervalS: Number.isFinite(intervalS) && intervalS >= 10 ? intervalS : undefined, now,
     pairing: env.PAIRING !== '0',
+    relayLane: env.RELAY_LANE !== '0', // "0" answers every join and relay with 'relay is off on this rendezvous'; absent or anything else is on
   }, extra));
 }
 
@@ -48,6 +70,12 @@ export class Rendezvous {
     this.core = coreFromEnv(env, undefined, { persist: (ops) => this.persist(ops) });
     this.conns = new Map(); // ws -> conn
     this.written = new Map(); // conn -> ms: when its attachment was last written (rtc-worker-lane-2)
+    // A client pings every 50 s with exactly this text; the platform answers it without waking the object (plan 3.4, D6), and
+    // alive() below reads the time of the last answer. Guarded, so a platform (or a test) without the API still runs: the ping
+    // then reaches the core, which answers it too.
+    if (typeof ctx.setWebSocketAutoResponse === 'function' && typeof WebSocketRequestResponsePair === 'function') {
+      ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING_TEXT, PONG_TEXT));
+    }
     // The rows of the codes and lanes are loaded before the first event is delivered (a wake delivers one), then the sockets
     // that survived are attached: the channel-to-socket map is rebuilt from their attachments.
     this.ready = ctx.blockConcurrencyWhile(() => this.wake());
@@ -62,6 +90,7 @@ export class Rendezvous {
       try { saved = ws.deserializeAttachment(); } catch (_) { saved = null; }
       const conn = this.connFor(ws);
       this.core.attach(conn, saved);
+      this.alive(ws, conn); // a socket that only pings is alive, whatever time its attachment holds
       if (saved && typeof saved.t === 'number') this.written.set(conn, saved.t * 1000);
     }
     // codes whose socket is gone, codes and knocks that ran out while the object slept
@@ -77,6 +106,14 @@ export class Rendezvous {
       this.conns.set(ws, conn);
     }
     return conn;
+  }
+
+  /** alive(ws, conn): the time of the platform's last answer to this socket's ping tells the core the socket is alive; call it before stale() is asked (plan 3.4). */
+  alive(ws, conn) {
+    if (typeof this.ctx.getWebSocketAutoResponseTimestamp !== 'function') return;
+    let at = null;
+    try { at = this.ctx.getWebSocketAutoResponseTimestamp(ws); } catch (_) { at = null; }
+    if (at && typeof at.getTime === 'function') this.core.seen(conn, at.getTime());
   }
 
   /** persist(ops): the core's storage rows; the writes are started now (before its replies are sent) and awaited by settle(). */
@@ -123,13 +160,20 @@ export class Rendezvous {
     if (message.length > MAX_MESSAGE_BYTES) { ws.close(1009, 'message too large'); return; }
     const conn = this.connFor(ws);
     const r = this.core.message(conn, message);
+    if (r.close) {
+      // over its allowance of messages in a minute (pair.js): the failure reply is sent, the socket is closed with 1008 and released like any that closes
+      try { ws.close(1008, r.close); } catch (_) { /* already gone */ }
+      await this.drop(ws);
+      return;
+    }
     const at = Date.now();
     // rtc-worker-lane-2: a periodic announce changes no membership, so the stored time would stay at the last join and an object
     // rebuilt after a wake would close a live socket as idle. Rewrite the attachment once its time is ATTACHMENT_REFRESH_S old (rtc.js).
     if (r.changed || at - (this.written.get(conn) || 0) >= ATTACHMENT_REFRESH_S * 1000) this.keep(ws, conn, at);
     this.touch(r.touched);
     await this.settle();
-    if (r.pair) await this.rearm();
+    // a relay frame (join, relay, leave) opens no code and no knock and its lane's expiry is already waited for: the alarm stays as it is
+    if (r.pair && !r.relay) await this.rearm();
   }
 
   async webSocketClose(ws) { await this.drop(ws); }
@@ -159,6 +203,7 @@ export class Rendezvous {
     this.touch(this.core.sweep(nowMs).touched);
     for (const ws of this.ctx.getWebSockets()) {
       const conn = this.connFor(ws);
+      this.alive(ws, conn);
       if (!this.core.stale(conn, nowMs)) continue;
       try { ws.close(1001, 'idle'); } catch (_) { /* already gone */ }
       await this.drop(ws);

@@ -1172,8 +1172,12 @@ function lookupC2 (table, key, lang, params) {
 
 // ---- apps on the door page (src/loader/apps-ui.js; ARCHITECTURE 15.21): the home with its tiles, Messages (the code, requests,
 // conversations, a conversation) and Rooms. English and French have the same keys and the same placeholders (test/unit/loader-apps-ui.test.mjs).
-// English is ASCII. Presence reads "Connected to you now"; no text calls anyone online, and none promises more than the page does:
-// the price sentence says what the rendezvous sees and that an accepted person learns the network address. -------------------------------------
+// English is ASCII. Presence reads "Connected to you now" for a direct link and "Connected through the rendezvous" for the relay; no text calls
+// anyone online, and none promises more than the page does. The price sentence (relay-first build, plan 3.8) says what the rendezvous and
+// whoever hosts it see (the network address, when a message is sent and roughly how much, never what) and that the other person does not
+// see the address; a door that also turns direct links on adds apps.price.direct, which says that a direct link shows each side the other's
+// address, and a door with relay "none" shows today's sentences (apps.price.textDirect and roomDirect). None of the texts holds the digit 8
+// (the code is twelve characters), a dash, or a claim the CONTRIBUTING wording rules forbid. ------------------------------------------------
 export const APPS_TEXT = Object.freeze({
   en: Object.freeze({
     'apps.docTitle': 'Apps',
@@ -1228,8 +1232,11 @@ export const APPS_TEXT = Object.freeze({
     'apps.err.send': 'The message was not sent. Try again.',
     'apps.err.generic': 'That did not work. Try again.',
     'apps.price.title': 'What this costs your privacy',
-    'apps.price.text': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the other\'s network address.',
-    'apps.price.room': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until a member is accepted; then you connect directly and each side learns the other\'s network address.',
+    'apps.price.text': 'Codes and requests pass through this door\'s rendezvous. After the other person accepts, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what. The other person does not see your address.',
+    'apps.price.room': 'Codes and requests pass through this door\'s rendezvous. After a member is accepted, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what. The members do not see your address.',
+    'apps.price.direct': 'This door also tries a direct link between you, which shows each side the other\'s network address.',
+    'apps.price.textDirect': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the other\'s network address.',
+    'apps.price.roomDirect': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until a member is accepted; then you connect directly and each side learns the other\'s network address.',
     'apps.price.check': 'Check: read your codes to each other.',
     'apps.price.continue': 'Continue',
     'apps.price.notNow': 'Not now',
@@ -1258,6 +1265,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.conv.deletedLast': 'Message deleted',
     'apps.conv.youLast': 'You: {text}',
     'apps.status.connected': 'Connected to you now',
+    'apps.status.relayed': 'Connected through the rendezvous',
     'apps.status.notConnected': 'Not connected, last connected {time}',
     'apps.status.notConnectedYet': 'Not connected',
     'apps.status.connecting': 'Connecting...',
@@ -1337,6 +1345,10 @@ export const APPS_TEXT = Object.freeze({
     'apps.composer.closed': 'You cannot send messages in this conversation.',
     'apps.composer.waitingFirst': 'Messages wait here until you are connected.',
     'apps.tools.toggle': 'Conversation tools',
+    'apps.tool.transport': 'Connection: {via}. This door: relay: {relay}, direct: {direct}.',
+    'apps.via.relay': 'through the rendezvous',
+    'apps.via.direct': 'direct link',
+    'apps.via.none': 'not connected yet',
     'apps.tool.search': 'Search',
     'apps.tool.pin': 'Pin conversation',
     'apps.tool.unpin': 'Unpin conversation',
@@ -1512,8 +1524,11 @@ export const APPS_TEXT = Object.freeze({
     'apps.err.send': 'Le message n\'a pas été envoyé. Réessayez.',
     'apps.err.generic': 'Cela n\'a pas fonctionné. Réessayez.',
     'apps.price.title': 'Ce que cela coûte à votre vie privée',
-    'apps.price.text': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant que l\'autre personne n\'a pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
-    'apps.price.room': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant qu\'un membre n\'est pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
+    'apps.price.text': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois que l\'autre personne a accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu. L\'autre personne ne voit pas votre adresse.',
+    'apps.price.room': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois qu\'un membre est accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu. Les membres ne voient pas votre adresse.',
+    'apps.price.direct': 'Cette porte essaie aussi un lien direct entre vous, qui montre à chacun l\'adresse réseau de l\'autre.',
+    'apps.price.textDirect': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant que l\'autre personne n\'a pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
+    'apps.price.roomDirect': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant qu\'un membre n\'est pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
     'apps.price.check': 'Vérifiez : lisez-vous vos codes l\'un à l\'autre.',
     'apps.price.continue': 'Continuer',
     'apps.price.notNow': 'Pas maintenant',
@@ -1542,6 +1557,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.conv.deletedLast': 'Message supprimé',
     'apps.conv.youLast': 'Vous : {text}',
     'apps.status.connected': 'Connecté avec vous en ce moment',
+    'apps.status.relayed': 'Connecté par le point de rendez-vous',
     'apps.status.notConnected': 'Pas connecté, dernière connexion {time}',
     'apps.status.notConnectedYet': 'Pas connecté',
     'apps.status.connecting': 'Connexion...',
@@ -1621,6 +1637,10 @@ export const APPS_TEXT = Object.freeze({
     'apps.composer.closed': 'Vous ne pouvez pas envoyer de messages dans cette conversation.',
     'apps.composer.waitingFirst': 'Les messages attendent ici jusqu\'à votre connexion.',
     'apps.tools.toggle': 'Outils de la conversation',
+    'apps.tool.transport': 'Connexion : {via}. Réglages de cette porte : relay: {relay}, direct: {direct}.',
+    'apps.via.relay': 'par le point de rendez-vous',
+    'apps.via.direct': 'lien direct',
+    'apps.via.none': 'pas encore connecté',
     'apps.tool.search': 'Rechercher',
     'apps.tool.pin': 'Épingler la conversation',
     'apps.tool.unpin': 'Désépingler la conversation',

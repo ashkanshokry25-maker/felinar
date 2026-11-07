@@ -1883,39 +1883,63 @@ build.mjs             --update-lock refuses a provenance package's new release w
 > `loader-apps-rooms`, `loader-apps-ui`, `loader-apps-tracker`, `tools-publish-apps`, `tools-dev-server-apps` and the apps cases of
 > `loader-doors` and `tools-check-door`). Run on the public tier (the Cloudflare Worker with pairing on) in headless Chromium on 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4), and the same day with one Android phone: on home Wi-Fi at a lab door it signed in, accepted a knock and exchanged messages, and on mobile data (5G) at the demo door its direct link failed. Not run: an iPhone, Safari, Firefox. The owner-facing
 > description is [APPS.md](APPS.md).
+>
+> **Relay-first (unreleased).** After the accept, the sealed messages of a conversation or room go through the rendezvous on the pair socket the page already holds
+> (`pair-join`, `pair-relay`, `pair-leave`, `pair-ping` and the `room-` forms), and a direct link is a door-level opt-in. Unit tested on loopback with fakes, the real
+> pairing core and the Node tracker; not run on a real network (an office Wi-Fi, mobile data, Tor Browser, a VPN). The contracts below carry the changes: the two door.json keys, the protocol, the caps and
+> counters, the link and service calls, and the view. The description for owners is [APPS.md](APPS.md), "Messages through the rendezvous".
 
 ### The apps block of `/_mw/door.json`, and the tools that write it
 ```
-door.json "apps"        { "rendezvous": ["wss://..."], "stun": ["stun:host:port"], "idp": "https://origin" }   (optional; the tools write it after the build's own keys, and before "obs" when the file has one)
+door.json "apps"        { "rendezvous": ["wss://..."], "stun": ["stun:host:port"], "idp": "https://origin", "relay"?: "rendezvous" | "none", "direct"?: "off" | "on" }   (optional; the tools write it after the build's own keys, and before "obs" when the file has one)
                         rendezvous: 1..8 URLs, wss:, or ws: on a loopback host; the page uses the first (the others are not used yet)
                         stun:       0..8 URLs, stun: or stuns: with a host and an optional port; the shared client gets all of them, the lanes at most 4
                         idp:        an origin, exactly as written: https:, or http: on a loopback host
-                        each entry as written: at most 300 characters, no spaces around it, no user name or password, no fragment; unknown keys ignored
+                        relay:      'rendezvous' (the default when the key is absent): after the accept both pages join the lane at the rendezvous and the sealed frames go through it;
+                                    'none': they do not (direct only, as before the relay-first build)
+                        direct:     'off' (the default when the key is absent): no RTCPeerConnection, no torrent manager and no lane announce for the apps; 'on': today's lane logic runs
+                                    beside the relay, and a ready direct wire is preferred to the relay
+                                    relay 'none' with direct absent means direct 'on' (the rollback of a door: today's behaviour); relay 'none' with direct 'off' is refused
+                        each entry as written: at most 300 characters, no spaces around it, no user name or password, no fragment; unknown keys ignored; the two words are compared as written
 src/loader/doors.js     APPS_BLOCK_MAX = 8
-                        checkAppsBlock(apps) -> { block, reason }   block: a frozen copy or null; reason: 'apps-shape' | 'apps-rendezvous' |
-                                                                    'apps-rendezvous-insecure' | 'apps-stun' | 'apps-idp'
+                        checkAppsBlock(apps) -> { block, reason }   block: a frozen copy or null (relay and direct are in it, after idp, only when the input has them); reason: 'apps-shape' |
+                                                                    'apps-rendezvous' | 'apps-rendezvous-insecure' | 'apps-stun' | 'apps-idp' | 'apps-relay' | 'apps-direct' |
+                                                                    'apps-transport' (relay 'none' with direct 'off')
                         appsBlockOf(json) -> block | null           (no block, or a bad one: the page keeps its paste box)
                         appsBlockProblem(json) -> reason | null
+                        appsTransportOf(block) -> { relay, direct }  the tokens resolved as the service does: no tokens = 'rendezvous' and 'off'; relay 'none' alone = direct 'on'; frozen
                         checkDoorJson(json, own) -> { ok, sameBuild, buildId, version, reason } plus apps (block | null) when json.apps is present
                         and appsReason when that block is bad; the block never changes ok
-tools/apps-block.mjs    APPS_RENDEZVOUS_MAX = 8, APPS_STUN_MAX = 8, APPS_URL_MAX = 300
-                        appsBlockProblems(block) -> [text]          (at least as strict as checkAppsBlock; a test compares them)
-                        makeAppsBlock({ rendezvous, stun, idp }, { flags }) -> block   (lists may hold comma separated values; a UsageError names the flags)
-                        appsBlockLine(block) -> 'rendezvous 1, stun 1, identity https://...'
+tools/apps-block.mjs    APPS_RENDEZVOUS_MAX = 8, APPS_STUN_MAX = 8, APPS_URL_MAX = 300, APPS_RELAY_TOKENS = ['rendezvous', 'none'], APPS_DIRECT_TOKENS = ['off', 'on']
+                        appsBlockProblems(block) -> [text]          (at least as strict as checkAppsBlock; a test compares them; relay and direct add
+                                                                    'relay is not "rendezvous" or "none"', 'direct is not "off" or "on"' and 'no way to connect: ...')
+                        appsTransportKeys({ relay, direct }, { flags }) -> { relay?, direct? }   the keys of the two flags, left out when a flag was not given; a UsageError names the flag
+                        makeAppsBlock({ rendezvous, stun, idp, relay, direct }, { flags }) -> block   (lists may hold comma separated values; a UsageError names the flags)
+                        appsBlockLine(block) -> 'rendezvous 1, stun 1, identity https://...', plus ', relay rendezvous, direct off' when the block carries a token
+                                                (the words are appsTransportOf's, so relay 'none' alone prints 'relay none, direct on')
                         withAppsBlock(doorJsonBytes, block) -> Buffer      (the build's format, apps after the build's keys and before obs, see "Usage reports")
                         withoutAppsBlock(doorJsonBytes) -> Buffer          (the build's own bytes again)
 tools/publish.mjs       --tracker <wss URL>... --stun <stun: URL>... --idp <origin> together: summary.apps, result.apps; --shell also writes the block into
                         shell/_mw/door.json. No --idp, no block (with --shell a note says why). A drop-in publish records none.
-                        --door-kit <dir> --door-site <publish output>: the FIRST site's block is set in the kit's _mw/door.json after the kit was
-                        checked against the release list; doorKit(...) -> { kit, version, listHash, files, sites, apps }
-tools/dev-server.mjs    --apps-rendezvous <url>... --apps-stun <url>... --apps-idp <origin>; options appsRendezvous, appsStun, appsIdp (string or list each);
+                        --apps-relay rendezvous|none --apps-direct off|on (options appsRelay, appsDirect; both optional): the keys relay and direct of that block; a word the page
+                        does not know, a second value or the pair none + off is a UsageError that names the flag; with no block to join, a note says they are not used
+                        --door-kit <dir> --door-site <publish output>: the FIRST site's block (tokens included) is set in the kit's _mw/door.json after the kit was
+                        checked against the release list; doorKit(...) -> { kit, version, listHash, files, sites, apps }; --door-kit with --apps-relay or --apps-direct is a UsageError
+tools/dev-server.mjs    --apps-rendezvous <url>... --apps-stun <url>... --apps-idp <origin> [--apps-relay <rendezvous|none>] [--apps-direct <off|on>]; options appsRendezvous,
+                        appsStun, appsIdp (string or list each), appsRelay, appsDirect (a string or a list of one; null = not given);
                         result.apps; /_mw/door.json is served with the block, read again on every request, the file under --root unchanged
-tools/check-site.mjs    --door: '[info] apps: rendezvous 1, stun 1, identity <origin>', or a warning when the page cannot use the block; no address is contacted
-tools/demo.mjs          --stun <stun: URL> (repeat, at most 4); demoAppsOptions({ plan, stun, idp }) -> { appsRendezvous, appsStun, appsIdp } | null; runDemo(...).apps
+tools/check-site.mjs    --door: '[info] apps: rendezvous 1, stun 1, identity <origin>' (plus ', relay rendezvous, direct off' for a block with tokens), or a warning when the page
+                        cannot use the block (a token it would refuse included); no address is contacted
+tools/demo.mjs          --stun <stun: URL> (repeat, at most 4), --apps-relay, --apps-direct; demoAppsOptions({ plan, stun, idp, relay, direct }) -> { appsRendezvous, appsStun,
+                        appsIdp, appsRelay?, appsDirect? } | null; runDemo(...).apps
 tools/tracker.mjs       --no-pairing; createTracker({ ..., pairing (undefined: on when deploy/rtc-worker/pair.js is there; false; true: or an error), maxLanes = 10000,
                         pairSweepMs = 30000, now, random }) -> { ..., pairing: boolean, pairSweep(nowMs) }; loadPairModule(specifier) -> module | null;
                         stats() and /stats.json gain codes, knocks, lanes
+                        relay-first: --no-relay-lane, option relayLane (default true): false answers every join and relay with 'relay is off on this rendezvous'; stats gain the
+                        relay fields of "The relay lane" below
 deploy/rtc-worker       var PAIRING ("1" default, "0" = a tracker only); /stats.json gains codes, knocks, lanes
+                        relay-first: var RELAY_LANE ("1" default, "0" = every join and relay answers 'relay is off on this rendezvous'); "observability": { "enabled": false } in
+                        wrangler.jsonc; /stats.json gains the relay fields of "The relay lane" below
 ```
 
 ### The pair protocol, `mw-pair-v1` (`deploy/rtc-worker/pair.js`; the client is `src/loader/apps-link.js`)
@@ -1970,6 +1994,37 @@ deploy/rtc-worker/worker.js
             5-minute sweep, and pulls the alarm forward to the first request, code or lane to run out
 ```
 
+### The relay lane (relay-first; `deploy/rtc-worker/pair.js`, the client is `src/loader/apps-link.js`)
+```
+Where       the pair socket of the page, after the accept: the owner joins with the lane of the accept reply, the requester with the lane of the accepted push, a room with the lane of
+            room-open and room-accepted. Each action has a pair- and a room- form (kind is the prefix); every frame is JSON text with v: 1, at most 8,192 UTF-8 bytes, an action
+            and an optional rid that the direct reply echoes; a failure is { action, rid?, 'failure reason': text }, as above
+Messages    C pair-join   { lane, rid? }      lane = the 40 lowercase hex characters the accept handed to both sides
+                          -> R { action: 'pair-join', lane, peers, rid? }, peers = the OTHER sockets in the lane; and to every other member
+                             { action: 'pair-joined', lane, peers } (peers = the members other than the receiver). A join by a socket already in the lane is idempotent: the reply, no push.
+                             Failures: invalid lane (not 40 lowercase hex) | unknown lane (laneExpiry(hex) says 0: never minted, or run out) | lane full (pair 2, room 16)
+                             | too many lanes (8 per socket) | relay is off on this rendezvous
+            C pair-relay  { lane, f, rid? }   f = the sealed frame as base64url without padding, /^[A-Za-z0-9_-]{4,7700}$/ (the three sealed message sizes are 686, 2,051 and 7,512 characters)
+                          => every other member { action: 'pair-relayed', lane, f }; -> the sender only when rid is present { action: 'pair-relay', lane, peers, rid }, peers = the sockets it was
+                             written to (0 when alone: the sender keeps the frame unsent). The module never parses, stores or logs f.
+                             Failures: invalid lane | unknown lane (the sender is not a member) | invalid frame | too many relays (the minute cap) | relay is busy (the day cap) | relay is off on this rendezvous
+            C pair-leave  { lane, rid? }      a reply only with rid; => the others { action: 'pair-left', lane, peers }. A socket that closes leaves every lane it joined (the same push).
+            C pair-ping   exactly {"v":1,"action":"pair-ping"} -> R {"action":"pair-pong"}: no rid, never a failure, not counted by any cap, changes nothing. On the Worker the platform answers it
+                          without waking the object (setWebSocketAutoResponse); pair.js answers it too, so the Node tracker and the tests behave the same
+Caps        120 relayed frames a minute per socket; 150 messages of any kind a minute per socket, pings excepted (the next one closes the socket, code 1008); 20,000 relayed frames per object
+            per UTC day, counted in memory (a redeploy resets it); 8 lanes per socket; 2 sockets in a pair lane, 16 in a room lane
+Stats       stats() and /stats.json (Worker and Node tracker) gain relays (lanes with at least one member), relayed (frames forwarded today), relayBytes (characters of f forwarded today),
+            relayDay (UTC yyyymmdd), relayBusy (frames refused by the day cap today), relayRate (frames refused by the minute cap today), joinsRefused (joins refused today, for any reason)
+            Counts only: no lane id, no frame, no address
+Hibernation the pair socket's attachment gains l: [[lane, kind], ...], at most 8 entries of 40 hex, beside c and q; attach() rebuilds the lanes from it and drops those laneExpiry says are
+            gone. Nothing is written to storage for the relay
+Keepalive   the page sends the ping text once every 50,000 ms while the socket is open and expects a pong within 10 s; with none, and no other frame either, it takes the socket for lost and connects again
+deploy/rtc-worker/pair.js
+            PING_TEXT, PONG_TEXT, MAX_FRAME_CHARS = 7700, isRelayAction(action), utcDay(ms); DEFAULT_CAPS gains relayPerMin, messagesPerMin, relayDayMax, lanesPerSocket, pairLaneMembers, roomLaneMembers
+            createPairing({ ..., laneExpiry, relay }): laneExpiry(hex) -> ms | 0 (rtc.js answers from its lanes); relay: false answers every join and relay 'relay is off on this rendezvous'
+            message(conn, msg) may also return close: 'too many messages' (the host closes the socket with code 1008, then calls close(conn)); attachmentOf(conn) -> { c, q, l }
+```
+
 ### The sealing and the frames, `mw-apps-v1` (`src/loader/apps-crypto.js`; the service is `src/loader/apps.js`)
 ```
 src/loader/apps-crypto.js
@@ -2007,19 +2062,25 @@ src/loader/apps-format.js
 
 ### The service, `src/loader/apps.js`
 ```
-createApps({ api, config, loadTm, lang, now, random, randomBytes, setTimeoutFn, clearTimeoutFn, limits, createLink, link, WebSocketImpl, log, rendezvous, stun, idp }) -> apps
+createApps({ api, config, loadTm, lang, now, random, randomBytes, setTimeoutFn, clearTimeoutFn, limits, createLink, link, WebSocketImpl, log, rendezvous, stun, idp, onVisible, onOnline }) -> apps
   api.identity: info() -> { pub, name }, keys() -> WorkingKeys (sign, chat), onChange(fn); config: the door's apps block (the first rendezvous is the pair socket)
-  loadTm: () -> Promise<TorrentManager>, called once, at the first accept or the arrival of an acceptance; the manager needs joinLane and registerWireExtension
+  config.relay and config.direct (relay-first) resolve to state().cfg: relay = 'none' only when config.relay === 'none', else 'rendezvous'; direct = 'on' when config.direct === 'on',
+    'off' when it is 'off', and, when it is absent, 'on' for relay 'none' and 'off' otherwise (src/loader/doors.js appsTransportOf says the same)
+  loadTm: () -> Promise<TorrentManager>, called once, at the first accept or the arrival of an acceptance, and only when cfg.direct is 'on'; the manager needs joinLane and registerWireExtension
+  onVisible(fn) -> off and onOnline(fn) -> off (the page becoming visible again, the network coming back): each makes the link connect again; without them the service
+    uses the page's own events when it has them (guarded, so Node never throws); tests pass fakes; destroy() takes both off
   Nothing leaves the device until a person acts: createApps opens no socket and loads no manager.
 apps.state() -> { signedIn, me: { pub, short, name } | null, ready, link: 'connecting' | 'open' | 'closed', tm, notice, code: 'xxxx-xxxx-xxxx' | null,
+                  cfg: { relay: 'rendezvous' | 'none', direct: 'off' | 'on' } (the door's tokens, resolved; the view reads it defensively and takes a missing one for 'rendezvous' and 'off'),
                   conversations, rooms, requests: [{ knock, kind: 'pair' | 'room', roomId, from: { pub, short, name }, at }], snippets, blocked }
-  conversation { id, peer: { pub, short, name, nick }, status: 'waiting' | 'connecting' | 'connected' | 'rejected' | 'left' | 'blocked', reason, knock, code,
-    incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, cfg: { exp, receipts, typing } (this person's own: exp is the
+  conversation { id, peer: { pub, short, name, nick }, status: 'waiting' | 'connecting' | 'connected' | 'rejected' | 'left' | 'blocked', via: 'direct' | 'relay' | null (what carries
+    it now; a ready direct wire is preferred to the relay), reason, knock, code,
+    incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, cfg: { exp, receipts, typing } (this person's own, not the door's: exp is the
     default timer of what this person writes), peerCfg: { exp, receipts } (what the other person told; display only), compare,
     compareText, draft, note, typingPeer, messages: [{ id, t, mine, text, fmt, reply, status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | null, readAt,
     edits: [{ t, text }], editedAt, deleted, reactions: { emoji: [pub] }, pinned, saved, important, prio, exp, expAt, sendAt, scheduled }] }
-  room { id, owner, status: 'waiting' | 'open' | 'connecting' | 'connected' | 'rejected' | 'closed', code, codeClosed, ownerPub, members: [{ pub, short, name, you,
-    owner }], messages: [{ id, t, mine, from, text, status: 'queued' | 'sent' | null }], unread, draft }
+  room { id, owner, status: 'waiting' | 'open' | 'connecting' | 'connected' | 'rejected' | 'closed', via (best effort; the view reads only the conversation's), code, codeClosed,
+    ownerPub, members: [{ pub, short, name, you, owner }], messages: [{ id, t, mine, from, text, status: 'queued' | 'sent' | null }], unread, draft }
 Calls       every call that is not marked (sync) returns a Promise that resolves to a result or { error } and never rejects; an error is one of ERRORS (spaced phrases such
             as 'unknown code', 'rate limited', 'too long', 'no manager')
             openCode() -> { code }   newCode() -> { code }   closeCode() -> { ok }   knock(codeText) -> { knock, id }   cancelKnock(knock | id)   accept(knock) -> { id }
@@ -2034,12 +2095,20 @@ ERRORS, LIMITS (exported): the numbers of APPS.md "Limits"; tests shorten times 
 Signing out, or becoming another identity, drops everything: sockets, lanes, conversations, timers. Nothing was stored.
 src/loader/apps-link.js
             createLink(opts) -> PairLink({ url, WebSocketImpl, setTimeoutFn, clearTimeoutFn, random, backoffMs = [1000, 2000, 4000, 8000, 15000, 30000], knockSilentMs = 30000,
-              knockExpireMs = 600000, requestTimeoutMs = 15000, openWaitMs = 10000, keepaliveMs = 0, log }); url must be wss: (ws: on loopback)
+              knockExpireMs = 600000, requestTimeoutMs = 15000, openWaitMs = 10000, keepaliveMs = 0, pongWaitMs = 10000, log }); url must be wss: (ws: on loopback)
             link.state 'idle' | 'connecting' | 'open' | 'backoff'; connect(); close(); whenOpen(ms); send(action, fields); request(action, fields, { timeoutMs }) ->
               { ok: true, reply } | { ok: false, reason } (reason: the failure text as a slug, or link-down | closed | timeout | too-big | bad-reply)
-            link.on(event, fn) -> off: state, open, gone, request, accepted ({ kind, knock, lane, channel, box, proof | null }), rejected, cancelled, closed, silent
+            link.on(event, fn) -> off: state, open, gone, request, accepted ({ kind, knock, lane, channel, box, proof | null }), rejected, cancelled, closed, silent,
+              and the relay's: relayed ({ lane, kind, bytes: Uint8Array } the push's f decoded), joined ({ lane, kind, peers }), left ({ lane, kind, peers });
+              a push whose lane is not 40 hex, whose f fails the regex or whose peers is not a whole number from 0 to 64 is dropped without an event
             typed calls (kind 'pair' | 'room'): openCode({ kind, channel, box }), closeCode({ kind, channel }), knock({ kind, channel, box }), accept({ kind, knock, proof }),
               reject({ kind, knock }), cancel({ kind, knock })
+              the relay's: join(lane, kind) -> { ok: true, peers } | { ok: false, reason }; relay(lane, kind, bytes: Uint8Array) -> { ok: true, peers } | { ok: false, reason }
+              (base64url without padding; refused locally with reason 'too-big' over 7,700 characters); leave(lane, kind) -> { ok } (3 s, ok on a timeout). All three go through request(),
+              so link.sent, link.reply and link.timeout report them
+            keepalive: with keepaliveMs > 0 the link sends {"v":1,"action":"pair-ping"} (this byte string) every keepaliveMs while the socket is open and treats the socket as lost when no pong,
+              and no other frame, comes within pongWaitMs (10 s); the answer, pair-pong, is no event; apps.js passes keepaliveMs 50000
+            report reasons (reasonWord) gain: invalid-lane, unknown-lane, lane-full, too-many-lanes, relay-is-off-on-this-rendezvous, invalid-frame, too-many-relays, relay-is-busy, too-many-messages
 ```
 
 ### The view and the hooks in the loader
@@ -2048,12 +2117,18 @@ src/loader/apps-ui.js   createAppsUi({ root, ui, service, lang, appsText, action
                           -> { node, render, show(view, id), back, inspect, destroy, nodes }
                         a model-driven view: it draws service.state() and calls the service; every handler is trustedOnly, every form is prevented, text from other people goes in
                         with textContent and createTextNode only, and no storage API is called
-src/loader/strings.js   APPS_TEXT { en, fr } (the same keys in both), appsText(key, lang, params) (English fallback, {param} placeholders, '' for an unknown key)
+                        relay-first: the price card follows state().cfg (relay 'rendezvous' and direct 'off' when missing): apps.price.text or apps.price.room; direct 'on' adds
+                        apps.price.direct after it; relay 'none' shows apps.price.textDirect or apps.price.roomDirect, the texts of before. The status line of a connected conversation is
+                        apps.status.relayed when conversation.via is 'relay' and apps.status.connected otherwise. The conversation tools hold a text line (data-role tool-transport)
+                        with the way it travels and the door's tokens: apps.tool.transport with apps.via.relay | apps.via.direct | apps.via.none
+src/loader/strings.js   APPS_TEXT { en, fr } (the same keys in both), appsText(key, lang, params) (English fallback, {param} placeholders, '' for an unknown key); relay-first keys:
+                        apps.price.text, apps.price.room (the relay default), apps.price.direct, apps.price.textDirect, apps.price.roomDirect (the texts of before), apps.status.relayed,
+                        apps.tool.transport, apps.via.relay, apps.via.direct, apps.via.none; no text holds the digit 8
 src/loader/ui.js        createUI(): showApps(node), hideApps(), appsSlot (#mw-apps, role main, hidden until showApps); while the view is up the bar's height is measured
                         into --mw-apps-bar
 src/loader/app.js       run(): a door page with no link and an apps block runs runDoorApps(A, apps, deps), else runDoorPaste; readAppsBlock(A) -> block | null;
-                        loadAppsTm(A, apps) -> Promise<TorrentManager>; window.__mwShell.inspect().apps = { view, signedIn, ready, tm, link, code (the channel: the first four characters), current, card, requests,
-                        conversations: [{ id, short, status, unread, messages, lastStatus, pinned, muted, archived, favorite }],
+                        loadAppsTm(A, apps) -> Promise<TorrentManager>; window.__mwShell.inspect().apps = { view, signedIn, ready, tm, link, relay ('rendezvous' | 'none'), direct ('off' | 'on'), code (the channel: the first four characters), current, card, requests,
+                        conversations: [{ id, short, status, via ('relay' | 'direct' | null), unread, messages, lastStatus, pinned, muted, archived, favorite }],
                         rooms: [{ id, role, status, members, messages, unread }] } (null on any other page; counts, states, short ids and the channel of the visitor's own code, never a message text)
 ```
 
@@ -2194,7 +2269,8 @@ src/loader/app.js       run(): readDoorJson(A) reads /_mw/door.json once; instal
                         nativeRtc(R) -> the browser's own RTCPeerConnection under the usage-report wrapper (__mwNative) and the offer-timeout wrapper, in either order (the calls use it)
 src/loader/api.js       new MwApi({ ..., report })     api.request, signin.start, signin.result, signin.fallback
 src/loader/torrent.js   new TorrentManager({ ..., report })     peer.wire, peer.ice, peers.count, tracker.state
-src/loader/apps.js      createApps({ ..., report, linkOptions }): one report per transition (code, knock, request, conv, wire, msg, room, notice); the page prefixes 'apps.'
+src/loader/apps.js      createApps({ ..., report, linkOptions }): one report per transition (code, knock, request, conv, wire, lane, msg, room, notice); the page prefixes 'apps.'; conv and wire carry via,
+                        lane carries ev and the count of others on the lane (never the lane's id)
 src/loader/apps-link.js createLink({ ..., report, now }) -> PairLink: state, open, gone, backoff, sent, reply, timeout, push; the page prefixes 'link.'; reportWord(v) -> v | 'other'; reasonWord(v) -> v | 'other' (v a failure reason of the project's rendezvous or one the link adds, else 'other': the reasons reports may name)
 src/loader/apps-ui.js   createAppsUi({ ..., report, reportsHost }) (reportsHost: a host name, or a function that returns it; '' when there is none or the visitor turned reports off); actions.firstYes;
                         the view returns onFirstYes(fn) -> off: fn({ via }) runs once, at the "Continue" of a price card that can start something (via 'card'; such a card names the host) or when the page's

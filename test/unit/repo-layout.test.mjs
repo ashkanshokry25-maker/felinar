@@ -178,8 +178,9 @@ function toolCommands(text) {
 
 test('workflows, deploy files and their READMEs use only flags the tools have', () => {
   // v0.3 C2 (integrator): the one-box rung's README and Compose file (lane zero-setup) are checked the same way.
+  // relay-first (integrate I1, amendment A5): so is the rendezvous Worker's README, which now shows how to deploy its Pages front too.
   const sources = WORKFLOWS.concat(TEMPLATES, ['deploy/tracker/README.md', 'deploy/pin/README.md', 'deploy/tracker/docker-compose.yml', 'deploy/pin/Dockerfile',
-    'deploy/one-box/README.md', 'deploy/one-box/docker-compose.yml']);
+    'deploy/one-box/README.md', 'deploy/one-box/docker-compose.yml', 'deploy/rtc-worker/README.md']);
   let checked = 0;
   for (const file of sources) {
     for (const cmd of toolCommands(read(file))) {
@@ -230,8 +231,18 @@ test('deploy/pin: the image copies what tools/pin.mjs imports and starts it with
   for (const [flag] of entry[2].matchAll(/--[a-z][a-z-]*/g)) assert.ok(help.includes(flag), 'pin has no ' + flag);
 });
 
+// relay-first plan 3.7 (integrate I1, amendment A5): the Pages front of the rendezvous is in the repository now, laid out as the one of the
+// usage-reports Worker (deploy/obs-worker/pages/), so the two Workers deploy the same way.
+test('deploy/rtc-worker: the rendezvous Worker keeps its Pages front beside it, laid out as deploy/obs-worker', () => {
+  const filesIn = (dir) => readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
+    .filter((d) => d.isFile()).map((d) => relative(join(ROOT, dir), join(d.parentPath || d.path, d.name)).split('\\').join('/')).sort();
+  assert.deepEqual(filesIn('deploy/rtc-worker/pages'), ['public/_worker.js', 'wrangler.toml']);
+  assert.deepEqual(filesIn('deploy/rtc-worker/pages'), filesIn('deploy/obs-worker/pages'));
+  for (const f of ['README.md', 'front.js', 'pair.js', 'rtc.js', 'worker.js', 'wrangler.jsonc']) assert.ok(existsSync(join(ROOT, 'deploy/rtc-worker', f)), 'deploy/rtc-worker/' + f);
+});
+
 test('deploy/ READMEs link only to files that exist', () => {
-  for (const file of ['deploy/tracker/README.md', 'deploy/pin/README.md', 'deploy/one-box/README.md']) {
+  for (const file of ['deploy/tracker/README.md', 'deploy/pin/README.md', 'deploy/one-box/README.md', 'deploy/rtc-worker/README.md']) {
     const text = read(file).replace(/```[\s\S]*?```/g, '');
     for (const m of text.matchAll(/\]\(([^)\s#]+)(?:#[^)]*)?\)/g)) {
       if (/^[a-z]+:/i.test(m[1])) continue;

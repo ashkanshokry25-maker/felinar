@@ -55,6 +55,8 @@
 // Apps on the door page (test/e2e/scenarios-apps.mjs): APPS-1 (home and sign-in), APPS-2 (pairing and messages), APPS-3 (reject and block), APPS-4 (rooms).
 // Usage reports (test/e2e/scenarios-obs.mjs, plan obs-2026-11-02 2.11): OBS-1 (a site visitor's events reach the collector in order), OBS-2 (two door visitors pair and
 // the collector shows both sessions), OBS-3 ("Load from host only" and the Settings switch send nothing; no block, no call). The collector is test/e2e/obs-collector.mjs.
+// The relay lane of the apps (test/e2e/scenarios-lane.mjs, plan relay-first-2026-11-07 6.4): LANE-1 (a visitor with no direct link: messages through the rendezvous), LANE-2 (relay
+// first, then direct), LANE-3 (a rendezvous with the relay off), LANE-4 (relay none: no join), LANE-5 (no RTCPeerConnection at all), LANE-6 (direct off: no peer connection, no STUN).
 // Each step has its own timeout (at most 60 s) and the whole run a watchdog. Output: one PASS or
 // FAIL line per scenario; on failure the console, page errors and loader log of every open visitor.
 // Exit code 0 only when every selected scenario passed and no request left 127.0.0.1.
@@ -87,6 +89,7 @@ import { seedScenarios, SEED_ORDER } from './scenarios-c2.mjs';
 import { doorsScenarios, DOORS_ORDER, DOORS_WEBKIT_ORDER } from './scenarios-doors.mjs';
 import { appsScenarios, APPS_ORDER } from './scenarios-apps.mjs';
 import { obsScenarios, OBS_ORDER } from './scenarios-obs.mjs';
+import { laneScenarios, LANE_ORDER } from './scenarios-lane.mjs';
 import { firefoxScenarios, FIREFOX_ORDER, FIREFOX_HELD } from './scenarios-firefox.mjs';
 import { a11yScenarios, A11Y_ORDER } from './scenarios-a11y.mjs';
 import { publish } from '../../tools/publish.mjs';
@@ -1879,6 +1882,9 @@ Object.assign(SCENARIOS, appsScenarios({ run, assert, headed: HEADED }));
 // Usage reports (test/e2e/scenarios-obs.mjs, plan obs-2026-11-02 2.11): OBS-1 (a site visitor), OBS-2 (two door visitors pair), OBS-3 (no yes, no report; no block, no call).
 // A loopback collector (test/e2e/obs-collector.mjs) stands in for the report endpoint; dev servers started with --obs name it in door.json. Chromium only.
 Object.assign(SCENARIOS, obsScenarios({ run, assert, headed: HEADED }));
+// The relay lane (test/e2e/scenarios-lane.mjs, plan relay-first-2026-11-07 6.4): LANE-1 to LANE-6 on doors with the relay and direct tokens; the Node tracker is the rendezvous (LANE-3 starts one with
+// relayLane false). Chromium only.
+Object.assign(SCENARIOS, laneScenarios({ run, assert, headed: HEADED }));
 // v0.3 accessibility lane (test/e2e/scenarios-a11y.mjs, R 4.2 E-ID-9 and E-SO-12): axe-core on the identity origin, the loader's UI,
 // the drop-in widgets and the social example; E-ID-9B, a keyboard-only sign-in. Self-contained, Chromium only.
 Object.assign(SCENARIOS, a11yScenarios({ assert }));
@@ -1903,6 +1909,7 @@ const ORDER = [7, 1, 2, 3, 4, 5, 6, 8, 14, 12, 10, '10B', 9, 'VIEWPORT', 'OPFS']
   .concat(DOORS_ORDER)
   .concat(APPS_ORDER)
   .concat(OBS_ORDER)
+  .concat(LANE_ORDER)
   .concat(DOORS_WEBKIT_ORDER.filter((id) => WEBKIT_RUN || ONLY.includes(id)))
   .concat(CALLS_WEBKIT_ORDER.filter((id) => WEBKIT_RUN || ONLY.includes(id)))
   .concat(HARDENING_ORDER)

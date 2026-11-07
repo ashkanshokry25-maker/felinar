@@ -1,0 +1,17 @@
+# deploy/rtc-worker/pages/wrangler.toml: a Pages project whose only file is the rendezvous front (public/_worker.js, a byte-for-byte
+# copy of ../front.js: copy it again after every change to front.js). It gives the rendezvous a <project>.pages.dev address that
+# shows no account name; the Durable Object lives in the Worker deployed from .. (name felinar-rtc-do, workers_dev false), bound
+# here by script_name. Deploy that Worker first: a Pages project cannot define the object class. Run wrangler from a copy of this
+# folder outside the repository, and put the value of STATS_TOKEN into the copy only: this file holds the placeholder text, never a
+# token (README.md, "Relay").
+name = "felinar-rtc"
+pages_build_output_dir = "./public"
+compatibility_date = "2025-09-01"
+
+[[durable_objects.bindings]]
+name = "RTC"
+class_name = "Rendezvous"
+script_name = "felinar-rtc-do"
+
+[vars]
+STATS_TOKEN = "<value of the stats token file>"

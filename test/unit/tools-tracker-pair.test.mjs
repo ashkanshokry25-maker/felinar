@@ -7,6 +7,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { spawn, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
 
 import { createTracker, loadPairModule } from '../../tools/tracker.mjs';
@@ -20,10 +22,15 @@ const PROOF = 'P'.repeat(86);
 const dir = mkdtempSync(join(tmpdir(), 'mw-tracker-pair-test-'));
 const trackers = [];
 const clients = [];
+const children = [];
+const TRACKER_CLI = fileURLToPath(new URL('../../tools/tracker.mjs', import.meta.url));
 
 after(async () => {
   for (const c of clients) {
     try { c.ws.terminate(); } catch (_) { /* gone */ }
+  }
+  for (const child of children) {
+    try { child.kill('SIGKILL'); } catch (_) { /* gone */ }
   }
   for (const t of trackers) await t.close();
   rmSync(dir, { recursive: true, force: true });
@@ -41,11 +48,11 @@ async function start(options) {
 /** A client that keeps every message it gets, in order, for wait() to pick from. */
 function connect(tracker) {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(tracker.url);
-    const client = { ws, queue: [], closed: null };
+    const ws = new WebSocket(typeof tracker === 'string' ? tracker : tracker.url);
+    const client = { ws, queue: [], closed: null, closeReason: null };
     clients.push(client);
     ws.on('message', (data) => client.queue.push(JSON.parse(data.toString('utf8'))));
-    ws.on('close', (code) => { client.closed = code; });
+    ws.on('close', (code, reason) => { client.closed = code; client.closeReason = reason.toString('utf8'); });
     ws.once('open', () => resolve(client));
     ws.once('error', reject);
   });
@@ -351,7 +358,7 @@ test('/stats.json counts codes, knocks and lanes and names none of them; --no-pa
   say(owner, { action: 'pair-accept', proof: PROOF, knock });
   await wait(owner, (m) => m.action === 'pair-accepted');
   const stats = await (await fetch(t.url.replace(/^ws:/, 'http:') + '/stats.json')).json();
-  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'knocks', 'lanes', 'open', 'peers', 'torrents', 'unlisted', 'uploads']);
+  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'torrents', 'unlisted', 'uploads']);
   assert.deepEqual([stats.codes, stats.knocks, stats.lanes], [1, 0, 1]);
   const text = JSON.stringify(stats);
   for (const secret of ['abcd', knock, FIXED_LANE]) assert.equal(text.includes(secret), false, 'stats name no code, knock or lane');
@@ -395,4 +402,202 @@ test('a defect in the pairing is a failure reply and a warning, not a crashed tr
   assert.equal((await reply(other, announce(A, 'o'.repeat(20)))).action, 'announce', 'the tracker still serves');
   assert.equal((await ask(owner, { action: 'pair-close', rid: 'c' })).channel, 'abcd', 'and the owner can still close its code');
   assert.deepEqual(await quiet(owner), []);
+});
+
+// ---------------------------------------------------------------------------------------------- the relay lane (plan 3.1 to 3.4)
+
+const PING = '{"v":1,"action":"pair-ping"}';
+/** The stats the older tests pin exactly, without the seven relay fields (the relay tests pin those). */
+const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused'];
+
+/** pairedLane(t): an owner and a requester over real sockets; the owner opens a code, the requester knocks, the owner accepts. */
+async function pairedLane(t) {
+  const owner = await connect(t);
+  const req = await connect(t);
+  await ask(owner, { action: 'pair-open', channel: 'abcd', box: BOX });
+  say(req, { action: 'pair-knock', channel: 'abcd', box: BOX });
+  const knock = (await wait(req, (m) => m.action === 'pair-knock')).knock;
+  await wait(owner, (m) => m.action === 'pair-request');
+  say(owner, { action: 'pair-accept', proof: PROOF, knock });
+  const lane = (await wait(owner, (m) => m.action === 'pair-accepted')).lane;
+  await wait(req, (m) => m.action === 'pair-accepted');
+  return { owner, req, lane };
+}
+
+test('the relay over real sockets: join, joined, relay, relayed, ping and pong, left when a socket closes; the stats count it and name no lane', async () => {
+  const t = await start({ allow: [A] });
+  const { owner, req, lane } = await pairedLane(t);
+  assert.deepEqual(await ask(owner, { action: 'pair-join', lane, rid: 'j1' }), { action: 'pair-join', lane, peers: 0, rid: 'j1' });
+  assert.deepEqual(await ask(req, { action: 'pair-join', lane, rid: 'j2' }), { action: 'pair-join', lane, peers: 1, rid: 'j2' });
+  assert.deepEqual(await wait(owner, (m) => m.action === 'pair-joined'), { action: 'pair-joined', lane, peers: 1 });
+  // a sealed frame goes to the other socket, byte for byte, and the sender is answered when it asked
+  const f = Buffer.alloc(5634, 9).toString('base64url');
+  assert.equal(f.length, 7512, 'the largest frame the apps send');
+  say(owner, { action: 'pair-relay', lane, f, rid: 'r1234567' });
+  assert.deepEqual(await wait(req, (m) => m.action === 'pair-relayed'), { action: 'pair-relayed', lane, f });
+  assert.deepEqual(await wait(owner, (m) => m.action === 'pair-relay'), { action: 'pair-relay', lane, peers: 1, rid: 'r1234567' });
+  say(req, { action: 'pair-relay', lane, f: 'abcd' });
+  assert.deepEqual(await wait(owner, (m) => m.action === 'pair-relayed'), { action: 'pair-relayed', lane, f: 'abcd' });
+  assert.deepEqual(await quiet(req), [], 'no rid: no answer, and nothing echoed to the sender');
+  // the raw ping text of the client gets its pong, on a socket that has done nothing else
+  const pinger = await connect(t);
+  pinger.ws.send(PING);
+  assert.deepEqual(await wait(pinger), { action: 'pair-pong' });
+  assert.equal((await ask(pinger, { action: 'pair-open', channel: 'wxyz', box: BOX })).channel, 'wxyz', 'a ping classified it as a pair socket');
+  assert.deepEqual(await reply(pinger, announce(A, 'p'.repeat(20))), { action: 'announce', 'failure reason': MIXED });
+  // the counts
+  const stats = await (await fetch(t.url.replace(/^ws:/, 'http:') + '/stats.json')).json();
+  assert.deepEqual(RELAY_FIELDS.map((k) => typeof stats[k]), Array(7).fill('number'));
+  assert.deepEqual([stats.relays, stats.relayed, stats.relayBytes, stats.joinsRefused, stats.relayBusy, stats.relayRate], [1, 2, 7512 + 4, 0, 0, 0]);
+  assert.match(String(stats.relayDay), /^20\d{6}$/);
+  assert.equal(JSON.stringify(stats).includes(lane), false);
+  assert.equal(JSON.stringify(stats).includes(f), false);
+  assert.deepEqual([t.stats().relays, t.stats().relayed], [1, 2], 'the object the tracker returns says the same');
+  // a socket that closes leaves its lane, and the other is told
+  req.ws.close();
+  assert.deepEqual(await wait(owner, (m) => m.action === 'pair-left'), { action: 'pair-left', lane, peers: 0 });
+  for (let i = 0; i < 50 && t.stats().relays > 0; i++) await sleep(10);
+  assert.equal(t.stats().relays, 1, 'the owner is still in the lane');
+  owner.ws.close();
+  for (let i = 0; i < 50 && t.stats().relays > 0; i++) await sleep(10);
+  assert.equal(t.stats().relays, 0, 'and the record goes with its last member');
+});
+
+test('the relay over real sockets: the refusals of the protocol, a third socket, a frame past 7,700 characters, a lane nobody minted, and a room of three', async () => {
+  const t = await start({ allow: [A] });
+  const { owner, req, lane } = await pairedLane(t);
+  const third = await connect(t);
+  assert.equal((await ask(third, { action: 'pair-join', lane: 'ab'.repeat(20), rid: 'u' }))['failure reason'], 'unknown lane', 'a lane nobody minted');
+  assert.equal((await ask(third, { action: 'pair-join', lane: 'nope', rid: 'u' }))['failure reason'], 'invalid lane');
+  await ask(owner, { action: 'pair-join', lane });
+  await ask(req, { action: 'pair-join', lane });
+  await wait(owner, (m) => m.action === 'pair-joined');
+  assert.equal((await ask(third, { action: 'pair-join', lane, rid: 'f' }))['failure reason'], 'lane full', 'a third socket that knows the lane id finds it full');
+  assert.equal((await ask(third, { action: 'pair-relay', lane, f: 'abcd', rid: 'n' }))['failure reason'], 'unknown lane', 'and cannot relay into it');
+  assert.deepEqual(await quiet(owner), [], 'the pair heard nothing from it');
+  assert.deepEqual(await quiet(req), []);
+  assert.equal((await ask(owner, { action: 'pair-relay', lane, f: 'x'.repeat(7701), rid: 'e' }))['failure reason'], 'invalid frame');
+  assert.equal((await ask(owner, { action: 'pair-relay', lane, f: 'ab+/', rid: 'e' }))['failure reason'], 'invalid frame');
+  const widest = 'x'.repeat(7700);
+  say(owner, { action: 'pair-relay', lane, f: widest, rid: 'w' });
+  assert.equal((await wait(req, (m) => m.action === 'pair-relayed')).f, widest, '7,700 characters pass over a real socket');
+  assert.equal((await wait(owner, (m) => m.action === 'pair-relay')).peers, 1);
+  // a frame over 8,192 bytes on the socket is refused before it is read, as every pair frame is
+  owner.ws.send(JSON.stringify({ v: 1, action: 'pair-relay', lane, f: 'x'.repeat(8100), rid: 'big' }));
+  assert.deepEqual(await wait(owner), { 'failure reason': 'message too large' });
+  assert.deepEqual(await quiet(req), []);
+
+  // a room: the lane is minted at open; three members all hear each other, the owner included
+  const room = await connect(t);
+  const m1 = await connect(t);
+  const m2 = await connect(t);
+  const lane2 = (await ask(room, { action: 'room-open', channel: 'rm22', box: BOX })).lane;
+  for (const m of [room, m1, m2]) await ask(m, { action: 'room-join', lane: lane2 });
+  assert.deepEqual(await wait(room, (m) => m.action === 'room-joined' && m.peers === 2), { action: 'room-joined', lane: lane2, peers: 2 });
+  say(m1, { action: 'room-relay', lane: lane2, f: 'Zm9v', rid: 'r' });
+  assert.deepEqual(await wait(room, (m) => m.action === 'room-relayed'), { action: 'room-relayed', lane: lane2, f: 'Zm9v' });
+  assert.deepEqual(await wait(m2, (m) => m.action === 'room-relayed'), { action: 'room-relayed', lane: lane2, f: 'Zm9v' });
+  assert.equal((await wait(m1, (m) => m.action === 'room-relay')).peers, 2);
+  assert.deepEqual((await quiet(m1)).filter((m) => m.action === 'room-relayed'), [], 'the sender is not echoed its own frame');
+  say(m2, { action: 'room-leave', lane: lane2, rid: 'l' });
+  assert.deepEqual(await wait(room, (m) => m.action === 'room-left'), { action: 'room-left', lane: lane2, peers: 1 });
+  assert.equal((await wait(m2, (m) => m.action === 'room-leave')).rid, 'l');
+});
+
+test('relayLane false keeps the pairing and turns the relay off: join, relay and leave all answer "relay is off on this rendezvous"', async () => {
+  const t = await start({ allow: [A], relayLane: false });
+  assert.deepEqual([t.pairing, t.relayLane], [true, false]);
+  const { owner, req, lane } = await pairedLane(t);
+  for (const action of ['pair-join', 'pair-relay', 'pair-leave', 'room-join']) {
+    assert.deepEqual(await ask(owner, { action, lane, f: 'abcd', rid: 'o' }), { action, rid: 'o', 'failure reason': 'relay is off on this rendezvous' }, action);
+  }
+  assert.deepEqual(await quiet(req), []);
+  req.ws.send(PING);
+  assert.deepEqual(await wait(req), { action: 'pair-pong' }, 'a ping still gets its pong');
+  assert.equal(t.stats().joinsRefused, 2, 'the two joins are counted');
+  assert.deepEqual([t.stats().relays, t.stats().relayed], [0, 0]);
+  const on = await start({ allow: [A] });
+  assert.deepEqual([on.pairing, on.relayLane], [true, true], 'on by default');
+  const off = await start({ allow: [A], pairing: false });
+  assert.deepEqual([off.pairing, off.relayLane], [false, false], 'no pairing, no relay');
+  assert.deepEqual(RELAY_FIELDS.map((k) => off.stats()[k]).slice(0, 3), [0, 0, 0]);
+  assert.match(String(off.stats().relayDay), /^20\d{6}$/);
+});
+
+test('the 151st message of a minute gets its reason and the socket is closed with 1008; the other member is told it left', async () => {
+  const t = await start({ allow: [A] });
+  const { owner, req, lane } = await pairedLane(t);
+  await ask(owner, { action: 'pair-join', lane });
+  await ask(req, { action: 'pair-join', lane });
+  await wait(owner, (m) => m.action === 'pair-joined');
+  // the requester has sent 3 messages so far (knock, join, ...); a burst of ping-free messages goes over 150
+  for (let i = 0; i < 160; i++) req.ws.send(JSON.stringify({ v: 1, action: 'pair-leave', lane: 'cd'.repeat(20) }));
+  for (let i = 0; i < 100 && req.closed === null; i++) await sleep(10);
+  assert.equal(req.closed, 1008);
+  assert.equal(req.closeReason, 'too many messages');
+  assert.ok(req.queue.some((m) => m['failure reason'] === 'too many messages'), 'its last message was answered with the reason');
+  assert.deepEqual(await wait(owner, (m) => m.action === 'pair-left'), { action: 'pair-left', lane, peers: 0 });
+  assert.equal(owner.closed, null, 'only the flooding socket was closed');
+  // pings are not messages: a thousand of them cost nothing
+  const calm = await connect(t);
+  for (let i = 0; i < 1000; i++) calm.ws.send(PING);
+  for (let i = 0; i < 200 && calm.queue.length < 1000; i++) await sleep(10);
+  assert.equal(calm.queue.length, 1000);
+  assert.equal(calm.closed, null);
+  assert.equal((await ask(calm, { action: 'pair-open', channel: 'wxyz', box: BOX })).channel, 'wxyz', 'and the socket still works');
+});
+
+test('on an injected clock: the lane runs out at 24 hours, the relay record goes with it and a relay then finds no lane; the day counters roll at 00:00 UTC', async () => {
+  let clock = Date.UTC(2026, 10, 7, 22, 0, 0);
+  const t = await start({ allow: [A], now: () => clock, random: fixedRandom, pairSweepMs: 3600000 });
+  const { owner, req, lane } = await pairedLane(t);
+  assert.equal(lane, FIXED_LANE);
+  await ask(owner, { action: 'pair-join', lane });
+  await ask(req, { action: 'pair-join', lane });
+  await wait(owner, (m) => m.action === 'pair-joined');
+  say(owner, { action: 'pair-relay', lane, f: 'abcd' });
+  await wait(req, (m) => m.action === 'pair-relayed');
+  assert.deepEqual([t.stats().relayDay, t.stats().relayed], [20261107, 1]);
+  clock += 2 * 3600 * 1000; // 00:00 UTC on the 8th
+  assert.deepEqual([t.stats().relayDay, t.stats().relayed, t.stats().relays], [20261108, 0, 1], 'a new day starts the counters again; the lane is still in use');
+  clock += LANE_TTL_MS - 3600 * 1000;
+  // the one reply is the owner's code running out; the relay lane that ran out with the lane tells its members nothing
+  assert.deepEqual(t.pairSweep(), { lanes: 1, replies: 1 });
+  assert.deepEqual(await wait(owner, (m) => m.action === 'pair-close'), { action: 'pair-close', channel: 'abcd', reason: 'expired' });
+  assert.deepEqual(await quiet(req), [], 'and the requester is told nothing at all');
+  assert.equal(t.stats().relays, 0);
+  assert.equal((await ask(owner, { action: 'pair-relay', lane, f: 'abcd', rid: 'late' }))['failure reason'], 'unknown lane');
+  assert.equal((await ask(owner, { action: 'pair-join', lane, rid: 'late' }))['failure reason'], 'unknown lane');
+});
+
+test('tools/tracker.mjs --no-relay-lane: the flag is in the usage and in the JSON line, and the tracker it starts keeps the pairing and refuses the relay', async () => {
+  const help = spawnSync(process.execPath, [TRACKER_CLI, '--help'], { encoding: 'utf8' });
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /--no-relay-lane/);
+  assert.match(help.stdout, /relay is off on this rendezvous/);
+  const run = async (extra) => {
+    const child = spawn(process.execPath, [TRACKER_CLI, '--port', '0', '--allow', A, '--json'].concat(extra), { stdio: ['ignore', 'pipe', 'pipe'] });
+    children.push(child);
+    let out = '';
+    const line = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('the tracker printed nothing: ' + out)), 8000);
+      child.stdout.on('data', (d) => {
+        out += d.toString('utf8');
+        if (out.includes('\n')) { clearTimeout(timer); resolve(out.split('\n')[0]); }
+      });
+      child.once('exit', (code) => { clearTimeout(timer); reject(new Error('the tracker exited ' + code + ': ' + out)); });
+    });
+    return { child, info: JSON.parse(line) };
+  };
+  const off = await run(['--no-relay-lane']);
+  assert.deepEqual([off.info.pairing, off.info.relayLane], [true, false]);
+  const c = await connect(off.info.url);
+  assert.deepEqual(await ask(c, { action: 'pair-join', lane: 'ab'.repeat(20), rid: 'j' }), { action: 'pair-join', rid: 'j', 'failure reason': 'relay is off on this rendezvous' });
+  assert.equal((await ask(c, { action: 'pair-open', channel: 'abcd', box: BOX })).channel, 'abcd', 'the pairing works');
+  const on = await run([]);
+  assert.deepEqual([on.info.pairing, on.info.relayLane], [true, true]);
+  const d = await connect(on.info.url);
+  assert.equal((await ask(d, { action: 'pair-join', lane: 'ab'.repeat(20), rid: 'j' }))['failure reason'], 'unknown lane', 'on by default (the lane is nobody\'s)');
+  const none = await run(['--no-pairing']);
+  assert.deepEqual([none.info.pairing, none.info.relayLane], [false, false]);
 });

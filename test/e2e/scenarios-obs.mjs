@@ -22,7 +22,8 @@
 // How the pages are given the endpoint: each scenario starts a dev server of its own over the run's build with --obs <collector origin>
 // (tools/dev-server.mjs: the obs block in /_mw/door.json, loopback http allowed) and tells the collector that server's origin may post (the
 // Worker's ALLOW_ORIGINS). OBS-1 and OBS-3 publish a guestbook for that server; OBS-2 serves the door page with the apps block beside the obs
-// block. Network policy (docs/DEV-NETWORK.md): every URL is on 127.0.0.1, each page is a Visitor of lib.mjs, so the run's request guard
+// block, and that apps block says relay none (the direct wire whose ICE events OBS-2 checks; AMENDMENTS A2 and A6, see doorOf). Network
+// policy (docs/DEV-NETWORK.md): every URL is on 127.0.0.1, each page is a Visitor of lib.mjs, so the run's request guard
 // applies; the collector is one more loopback server. MW_E2E_OBS_DUMP=<file prefix> writes the rows each scenario collected to
 // <prefix>-<scenario id>.jsonl, for reading a failing run.
 //
@@ -294,21 +295,27 @@ export function obsScenarios({ run, assert, headed = false }) {
     return k[slot];
   }
 
-  /** The door page: apps block and obs block in one door.json. */
+  /**
+   * The door page: apps block and obs block in one door.json. The apps block says relay none (direct on, AMENDMENTS A2): OBS-2, its only
+   * user, checks the ICE events of a direct wire (ice.remote, ice.conn, ice.pair, host to host) and uses the addresses the peer connections
+   * hold as the positive control of its address scan, which the shipped default (relay rendezvous, direct off: no peer connection) cannot
+   * give (AMENDMENTS A6). The usage reports of a conversation through the relay are checked by LANE-1, LANE-5 and LANE-6.
+   */
   async function doorOf(ctx, step) {
     const k = await kit(ctx, step);
     if (k.door) return k.door;
-    k.door = await step('the door: a dev server whose door.json has the apps block (the stack\'s tracker and identity origin) and the obs block (the collector)', async () => {
+    k.door = await step('the door: a dev server whose door.json has the apps block (the stack\'s tracker and identity origin; relay none, the direct wire of AMENDMENTS A6) and the obs block (the collector)', async () => {
       const { stack } = ctx;
       const dev = await createDevServer({
         root: stack.dist, port: 0, host: '127.0.0.1', dev: true, quiet: true,
-        appsRendezvous: [stack.tracker.url], appsStun: [], appsIdp: stack.idp.url, obs: k.collector.origin,
+        appsRendezvous: [stack.tracker.url], appsStun: [], appsIdp: stack.idp.url, appsRelay: 'none', obs: k.collector.origin,
       });
       ctx.closers.push(() => dev.close());
       const origin = new URL(dev.url).origin;
       k.collector.allowOrigin(origin);
       const json = await (await fetch(dev.url + '_mw/door.json')).json();
       assert(json.apps && json.apps.rendezvous[0] === stack.tracker.url && json.obs && json.obs.endpoint === k.collector.origin, 'the served door.json: ' + JSON.stringify([json.apps, json.obs]));
+      assert(json.apps.relay === 'none' && json.apps.direct === undefined, 'the relay and direct keys of the served door.json (asked: relay none, no direct): ' + JSON.stringify({ relay: json.apps.relay, direct: json.apps.direct }));
       return { dev, origin, page: dev.url + '_mw/open.html', rendezvous: stack.tracker.url, idp: stack.idp.url };
     });
     return k.door;

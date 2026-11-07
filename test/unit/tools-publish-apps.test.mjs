@@ -17,7 +17,7 @@ import {
   appsBlockProblems, makeAppsBlock, appsBlockLine, withAppsBlock, withoutAppsBlock, APPS_RENDEZVOUS_MAX, APPS_STUN_MAX,
 } from '../../tools/apps-block.mjs';
 import { doorJson } from '../../build.mjs';
-import { appsBlockOf } from '../../src/loader/doors.js';
+import { appsBlockOf, appsTransportOf } from '../../src/loader/doors.js';
 
 const work = mkdtempSync(join(tmpdir(), 'mw-apps-publish-'));
 after(() => rmSync(work, { recursive: true, force: true }));
@@ -153,6 +153,23 @@ test('appsBlockProblems against the page\'s own appsBlockOf: the tools write not
     'yes',
     [],
     null,
+    // relay-first tokens (plan 3.9, AMENDMENTS A2): the same verdict on both sides
+    Object.assign({ relay: 'rendezvous', direct: 'off' }, BLOCK),
+    Object.assign({ relay: 'rendezvous', direct: 'on' }, BLOCK),
+    Object.assign({ relay: 'none', direct: 'on' }, BLOCK),
+    Object.assign({ relay: 'none' }, BLOCK),
+    Object.assign({ direct: 'off' }, BLOCK),
+    Object.assign({ direct: 'on' }, BLOCK),
+    Object.assign({ relay: 'none', direct: 'off' }, BLOCK),
+    Object.assign({ relay: 'cloudflare' }, BLOCK),
+    Object.assign({ relay: 'Rendezvous' }, BLOCK),
+    Object.assign({ relay: '' }, BLOCK),
+    Object.assign({ relay: null }, BLOCK),
+    Object.assign({ relay: ['none'] }, BLOCK),
+    Object.assign({ direct: 'yes' }, BLOCK),
+    Object.assign({ direct: true }, BLOCK),
+    Object.assign({ direct: null }, BLOCK),
+    Object.assign({ direct: 'ON' }, BLOCK),
   ];
   for (const block of same) {
     const mine = appsBlockProblems(block).length === 0;
@@ -166,6 +183,63 @@ test('appsBlockProblems against the page\'s own appsBlockOf: the tools write not
   }
   // and the other way round never happens: a block the tools accept is a block the page accepts
   for (const block of same) if (appsBlockProblems(block).length === 0) assert.deepEqual(appsBlockOf({ apps: block }), block);
+});
+
+test('appsBlockProblems: relay is "rendezvous" or "none", direct is "off" or "on", both optional; the explicit pair none + off leaves no way to connect', () => {
+  const withTokens = (extra) => Object.assign({}, BLOCK, extra);
+  for (const ok of [{ relay: 'rendezvous', direct: 'off' }, { relay: 'rendezvous', direct: 'on' }, { relay: 'none', direct: 'on' }, { relay: 'none' }, { relay: 'rendezvous' }, { direct: 'off' }, { direct: 'on' }, { relay: undefined, direct: undefined }]) {
+    assert.deepEqual(appsBlockProblems(withTokens(ok)), [], JSON.stringify(ok));
+  }
+  const bad = (extra, re) => {
+    const problems = appsBlockProblems(withTokens(extra));
+    assert.ok(problems.length === 1 && re.test(problems[0]), JSON.stringify(extra) + ' -> ' + JSON.stringify(problems));
+  };
+  for (const relay of ['cloudflare', 'own', 'Rendezvous', 'NONE', '', ' none', 1, true, null, ['none'], {}]) bad({ relay }, /^relay is not "rendezvous" or "none"$/);
+  for (const direct of ['yes', 'ON', 'Off', '', 'true', 'auto', 1, true, null, ['on'], {}]) bad({ direct }, /^direct is not "off" or "on"$/);
+  bad({ relay: 'none', direct: 'off' }, /^no way to connect: relay "none" with direct "off" turns both off \(name relay "rendezvous" or direct "on"\)$/);
+  // both tokens wrong: both are named
+  assert.deepEqual(appsBlockProblems(withTokens({ relay: 'x', direct: 'y' })), ['relay is not "rendezvous" or "none"', 'direct is not "off" or "on"']);
+});
+
+test('makeAppsBlock: relay and direct are optional, come after idp, and are checked; refusals name the flags', () => {
+  const base = { rendezvous: 'wss://a.example', idp: 'https://id.example.org' };
+  assert.deepEqual(Object.keys(makeAppsBlock(base)), ['rendezvous', 'stun', 'idp'], 'without the flags the block is the block it was');
+  assert.deepEqual(makeAppsBlock(Object.assign({ relay: 'rendezvous', direct: 'off' }, base)),
+    { rendezvous: ['wss://a.example'], stun: [], idp: 'https://id.example.org', relay: 'rendezvous', direct: 'off' });
+  assert.deepEqual(Object.keys(makeAppsBlock(Object.assign({ relay: 'rendezvous', direct: 'off' }, base))), ['rendezvous', 'stun', 'idp', 'relay', 'direct']);
+  assert.deepEqual(makeAppsBlock(Object.assign({ direct: 'on' }, base)).direct, 'on');
+  assert.equal('relay' in makeAppsBlock(Object.assign({ direct: 'on' }, base)), false, 'one flag alone leaves the other key out');
+  assert.deepEqual(makeAppsBlock(Object.assign({ relay: 'none' }, base)).relay, 'none');
+  // values may come as a string, a list of one, the same value twice, or empty (the command line gives null and empty lists for flags not given)
+  assert.deepEqual(makeAppsBlock(Object.assign({ relay: ['none', 'none'], direct: [' on '] }, base)).direct, 'on');
+  for (const empty of [null, undefined, '', [], ['']]) assert.deepEqual(Object.keys(makeAppsBlock(Object.assign({ relay: empty, direct: empty }, base))), ['rendezvous', 'stun', 'idp'], JSON.stringify(empty));
+  const throwsUsage = (input, re, options) => assert.throws(() => makeAppsBlock(input, options), (err) => err instanceof UsageError && re.test(err.message), JSON.stringify(input));
+  throwsUsage(Object.assign({ relay: 'cloudflare' }, base), /^the apps block is not usable: --apps-relay is not "rendezvous" or "none"$/);
+  throwsUsage(Object.assign({ direct: 'maybe' }, base), /^the apps block is not usable: --apps-direct is not "off" or "on"$/);
+  throwsUsage(Object.assign({ relay: 'none', direct: 'off' }, base), /no way to connect: relay "none" with direct "off"/);
+  throwsUsage(Object.assign({ relay: ['none', 'rendezvous'] }, base), /--apps-relay takes one value, got 2: none rendezvous/);
+  throwsUsage(Object.assign({ direct: ['on', 'off'] }, base), /--apps-direct takes one value, got 2: on off/);
+  throwsUsage(Object.assign({ relay: 'x' }, base), /--apps-relay-name is not/, { flags: { relay: '--apps-relay-name' } });
+  // the lone flags still need the rest of the block
+  throwsUsage({ relay: 'none', idp: base.idp }, /--apps-rendezvous is needed/);
+});
+
+test('appsBlockLine names the tokens a block carries, resolved as the page does (A2), and prints the old line for a block without them', () => {
+  assert.equal(appsBlockLine(BLOCK), 'rendezvous 1, stun 1, identity https://id.example.org', 'a block without tokens: the line it always was');
+  assert.equal(appsBlockLine(Object.assign({ relay: 'rendezvous', direct: 'off' }, BLOCK)), 'rendezvous 1, stun 1, identity https://id.example.org, relay rendezvous, direct off');
+  assert.equal(appsBlockLine(Object.assign({ relay: 'rendezvous', direct: 'on' }, BLOCK)), 'rendezvous 1, stun 1, identity https://id.example.org, relay rendezvous, direct on');
+  assert.equal(appsBlockLine(Object.assign({ relay: 'none', direct: 'on' }, BLOCK)), 'rendezvous 1, stun 1, identity https://id.example.org, relay none, direct on');
+  // one token alone: the other is what the page makes of it, so relay none alone says direct on (today's behaviour)
+  assert.equal(appsBlockLine(Object.assign({ relay: 'none' }, BLOCK)), 'rendezvous 1, stun 1, identity https://id.example.org, relay none, direct on');
+  assert.equal(appsBlockLine(Object.assign({ relay: 'rendezvous' }, BLOCK)), 'rendezvous 1, stun 1, identity https://id.example.org, relay rendezvous, direct off');
+  assert.equal(appsBlockLine(Object.assign({ direct: 'on' }, BLOCK)), 'rendezvous 1, stun 1, identity https://id.example.org, relay rendezvous, direct on');
+  // the words are the page's own resolution
+  for (const extra of [{ relay: 'none' }, { direct: 'on' }, { relay: 'rendezvous', direct: 'off' }, { relay: 'none', direct: 'on' }]) {
+    const t = appsTransportOf(Object.assign({}, BLOCK, extra));
+    assert.ok(appsBlockLine(Object.assign({}, BLOCK, extra)).endsWith(', relay ' + t.relay + ', direct ' + t.direct), JSON.stringify(extra));
+  }
+  assert.equal(appsBlockLine({ rendezvous: ['wss://a.example', 'wss://b.example'], stun: [], idp: 'http://127.0.0.1:8081', relay: 'rendezvous', direct: 'off' }), 'rendezvous 2, stun 0, identity http://127.0.0.1:8081, relay rendezvous, direct off');
+  assert.equal(appsBlockLine(null), 'rendezvous 0, stun 0, identity (none)');
 });
 
 test('makeAppsBlock: comma lists and repeats become distinct lists in order; refusals are usage errors that name the flags', () => {
@@ -362,6 +436,79 @@ test('CLI: --help lists the apps flags; a run with --shell prints the apps line 
   assert.deepEqual(JSON.parse(readFileSync(join(out, 'summary.json'), 'utf8')).apps, BLOCK);
 });
 
+// ---------------------------------------------------------------------------------------------- relay-first tokens (plan 3.9)
+
+const WITH_TOKENS = Object.assign({}, BLOCK, { relay: 'rendezvous', direct: 'off' });
+
+test('publish --apps-relay and --apps-direct: summary.json, the result and the shell\'s door.json carry the tokens after idp, and the report line names them', async () => {
+  const dist = fakeDist();
+  const lines = [];
+  const res = await run(Object.assign({ shell: true, dist, appsRelay: 'rendezvous', appsDirect: 'off', quiet: false, log: (l) => lines.push(String(l)) }, FLAGS));
+  assert.deepEqual(res.apps, WITH_TOKENS);
+  assert.deepEqual(Object.keys(res.apps), ['rendezvous', 'stun', 'idp', 'relay', 'direct']);
+  assert.deepEqual(JSON.parse(readFileSync(join(res.outDir, 'summary.json'), 'utf8')).apps, WITH_TOKENS);
+  const shellDoor = readFileSync(join(res.outDir, 'shell', '_mw', 'door.json'));
+  assert.deepEqual(JSON.parse(shellDoor.toString('utf8')).apps, WITH_TOKENS);
+  assert.equal(withoutAppsBlock(shellDoor).equals(readFileSync(join(dist, '_mw', 'door.json'))), true, 'the rest of door.json is the build\'s');
+  assert.deepEqual(appsBlockOf(JSON.parse(shellDoor.toString('utf8'))), WITH_TOKENS, 'the page accepts what was written');
+  const line = lines.find((l) => /^ {2}apps /.test(l));
+  assert.match(line, /rendezvous 1, stun 1, identity https:\/\/id\.example\.org, relay rendezvous, direct off \(in .*shell\/_mw\/door\.json\)/);
+  assert.doesNotMatch(line, BANNED);
+  // no flags: the block is the block it was, without the keys
+  const plain = await run(Object.assign({ shell: true, dist }, FLAGS));
+  assert.deepEqual(Object.keys(plain.apps), ['rendezvous', 'stun', 'idp']);
+  assert.equal('relay' in JSON.parse(readFileSync(join(plain.outDir, 'shell', '_mw', 'door.json'), 'utf8')).apps, false);
+  // empty flags (the command line gives null) are no flags
+  const empty = await run(Object.assign({ appsRelay: null, appsDirect: '' }, FLAGS));
+  assert.deepEqual(Object.keys(empty.apps), ['rendezvous', 'stun', 'idp']);
+});
+
+test('publish: one token alone is written alone; relay none means direct on as before this build, and the line says so', async () => {
+  const lines = [];
+  const relayNone = await run(Object.assign({ appsRelay: 'none', quiet: false, log: (l) => lines.push(String(l)) }, FLAGS));
+  assert.deepEqual(relayNone.apps, Object.assign({}, BLOCK, { relay: 'none' }));
+  assert.match(lines.find((l) => /^ {2}apps /.test(l)), /identity https:\/\/id\.example\.org, relay none, direct on \(in summary\.json/);
+  const directOn = await run(Object.assign({ appsDirect: 'on' }, FLAGS));
+  assert.deepEqual(directOn.apps, Object.assign({}, BLOCK, { direct: 'on' }));
+  assert.equal('relay' in directOn.apps, false);
+  const both = await run(Object.assign({ appsRelay: 'rendezvous', appsDirect: 'on' }, FLAGS));
+  assert.deepEqual(both.apps, Object.assign({}, BLOCK, { relay: 'rendezvous', direct: 'on' }));
+});
+
+test('publish: a token the page does not know, a second value, or the pair relay none + direct off is a usage error that names the flag, and nothing is written', async () => {
+  const dist = fakeDist();
+  const key = (await makeKey()).file;
+  const refuse = async (extra, re) => {
+    const out = fresh('out');
+    await assert.rejects(run(Object.assign({ shell: true, dist, key, out }, FLAGS, extra)), (err) => err instanceof UsageError && re.test(err.message), JSON.stringify(extra));
+    assert.deepEqual(readdirSync(out), [], 'nothing written');
+  };
+  await refuse({ appsRelay: 'cloudflare' }, /--apps-relay is not "rendezvous" or "none"/);
+  await refuse({ appsRelay: 'Rendezvous' }, /--apps-relay is not "rendezvous" or "none"/);
+  await refuse({ appsDirect: 'yes' }, /--apps-direct is not "off" or "on"/);
+  await refuse({ appsDirect: 'ON' }, /--apps-direct is not "off" or "on"/);
+  await refuse({ appsRelay: 'none', appsDirect: 'off' }, /no way to connect: relay "none" with direct "off"/);
+  await refuse({ appsRelay: ['none', 'rendezvous'] }, /--apps-relay takes one value, got 2/);
+  // a bad token is refused even where no block would be made (no --idp): the flag is explicit
+  const out = fresh('out');
+  await assert.rejects(run({ shell: true, dist, key, out, tracker: FLAGS.tracker, stun: FLAGS.stun, appsDirect: 'maybe' }), UsageError);
+  assert.deepEqual(readdirSync(out), []);
+});
+
+test('publish: tokens with no block to put them in are not used and a note says why (no --idp, no --shell block, a drop-in publish)', async () => {
+  const dist = fakeDist();
+  const noIdp = await run({ shell: true, dist, tracker: FLAGS.tracker, stun: FLAGS.stun, appsRelay: 'rendezvous', appsDirect: 'off' });
+  assert.equal(noIdp.apps, null);
+  assert.ok(noIdp.warnings.some((w) => /^--apps-relay and --apps-direct are not used: there is no apps block/.test(w) && /--tracker, --stun and --idp/.test(w)), noIdp.warnings.join('\n'));
+  const dropin = await run(Object.assign({ dropin: true, dist, ws: [], appsDirect: 'on' }, FLAGS));
+  assert.equal(dropin.apps, null);
+  assert.ok(dropin.warnings.some((w) => /^--apps-direct is not used: there is no apps block/.test(w)), dropin.warnings.join('\n'));
+  // a publish with a block and the flags says nothing of the kind
+  const fine = await run(Object.assign({ shell: true, dist, appsDirect: 'off' }, FLAGS));
+  assert.equal(fine.warnings.some((w) => /not used/.test(w)), false);
+  for (const w of noIdp.warnings.concat(dropin.warnings)) assert.doesNotMatch(w, BANNED, w);
+});
+
 // ---------------------------------------------------------------------------------------------- door kit
 
 async function release(dist) {
@@ -478,4 +625,56 @@ test('the words of the new messages follow the wording rules (no dashes, curly q
   await doorKit(kitOptions(rel, { out: join(fresh('kits'), 'kit'), dist, doorSite: [site.outDir], log: (l) => lines.push(String(l)) }));
   const noIdp = await run({ shell: true, dist, tracker: FLAGS.tracker, stun: FLAGS.stun });
   for (const text of lines.concat(noIdp.warnings)) assert.doesNotMatch(text, BANNED, text);
+});
+
+test('doorKit --door-site: the tokens of the first site\'s block travel into the kit\'s door.json with it; a summary whose tokens the page would refuse is refused', async () => {
+  const dist = fakeDist();
+  const rel = await release(dist);
+  const site = await run(Object.assign({ appsRelay: 'rendezvous', appsDirect: 'off' }, FLAGS));
+  const out = join(fresh('kits'), 'kit');
+  const lines = [];
+  const res = await doorKit(kitOptions(rel, { out, dist, doorSite: [site.outDir], log: (l) => lines.push(String(l)) }));
+  assert.deepEqual(res.apps, WITH_TOKENS);
+  const kitDoor = readFileSync(join(out, '_mw', 'door.json'));
+  assert.deepEqual(JSON.parse(kitDoor.toString('utf8')).apps, WITH_TOKENS);
+  assert.equal(withoutAppsBlock(kitDoor).equals(readFileSync(join(dist, '_mw', 'door.json'))), true, 'door.json minus the block is the release\'s');
+  assert.match(lines.find((l) => /^ {2}apps /.test(l)), /identity https:\/\/id\.example\.org, relay rendezvous, direct off \(from my-site\)/);
+  // a summary that was edited by hand to say something the page refuses stops the kit before it is made
+  const summaryFile = join(site.outDir, 'summary.json');
+  const summary = JSON.parse(readFileSync(summaryFile, 'utf8'));
+  for (const bad of [{ relay: 'cloudflare' }, { direct: 'sometimes' }, { relay: 'none', direct: 'off' }]) {
+    writeFileSync(summaryFile, JSON.stringify(Object.assign({}, summary, { apps: Object.assign({}, summary.apps, bad) })));
+    const k = join(fresh('kits'), 'bad');
+    await assert.rejects(doorKit(kitOptions(rel, { out: k, dist, doorSite: [site.outDir], quiet: true })), (err) => err instanceof ToolError && /the apps block in summary\.json is not usable/.test(err.message), JSON.stringify(bad));
+    assert.equal(existsSync(k), false, 'no kit folder was made');
+  }
+});
+
+test('CLI: --help lists --apps-relay and --apps-direct; a run with them writes the tokens; a bad token exits 2; --door-kit with either exits 2 and sends the owner to the publish', async () => {
+  const help = spawnSync(process.execPath, ['tools/publish.mjs', '--help'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /--apps-relay rendezvous\|none/);
+  assert.match(help.stdout, /--apps-direct off\|on/);
+  assert.doesNotMatch(help.stdout, BANNED);
+  const dist = fakeDist();
+  const key = (await makeKey()).file;
+  const base = (out) => ['tools/publish.mjs', makeSite(), '--name', 'my-site', '--scope', 'example.com', '--key', key, '--tr', 'wss://tracker.example', '--ws', 'https://static.example/ws/',
+    '--tracker', BLOCK.rendezvous[0], '--stun', BLOCK.stun[0], '--idp', BLOCK.idp, '--shell', '--dist', dist, '--allow-unverified-loader', '--out', out];
+  const out = fresh('out-cli');
+  const r = spawnSync(process.execPath, base(out).concat(['--apps-relay', 'rendezvous', '--apps-direct', 'off']), { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr + r.stdout.slice(0, 600));
+  assert.match(r.stdout, /^ {2}apps {6}rendezvous 1, stun 1, identity https:\/\/id\.example\.org, relay rendezvous, direct off \(in .*shell\/_mw\/door\.json\)$/m);
+  assert.deepEqual(JSON.parse(readFileSync(join(out, 'shell', '_mw', 'door.json'), 'utf8')).apps, WITH_TOKENS);
+  assert.deepEqual(JSON.parse(readFileSync(join(out, 'summary.json'), 'utf8')).apps, WITH_TOKENS);
+  const bad = spawnSync(process.execPath, base(fresh('out-bad')).concat(['--apps-relay', 'cloudflare']), { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(bad.status, 2, bad.stderr);
+  assert.match(bad.stderr, /--apps-relay is not "rendezvous" or "none"/);
+  const pair = spawnSync(process.execPath, base(fresh('out-pair')).concat(['--apps-relay', 'none', '--apps-direct', 'off']), { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(pair.status, 2, pair.stderr);
+  assert.match(pair.stderr, /no way to connect/);
+  for (const flag of [['--apps-relay', 'none'], ['--apps-direct', 'on']]) {
+    const kit = spawnSync(process.execPath, ['tools/publish.mjs', '--door-kit', join(fresh('kits'), 'k')].concat(flag), { cwd: ROOT, encoding: 'utf8' });
+    assert.equal(kit.status, 2, kit.stderr);
+    assert.match(kit.stderr, /--apps-relay and --apps-direct belong to a publish: a door kit takes the apps block of the first --door-site/);
+  }
 });

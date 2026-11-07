@@ -53,6 +53,9 @@
 // identity origin (--tracker, --stun, --idp) has an apps block { rendezvous, stun, idp } for the door page. publish records it in summary.json
 // and, with --shell, writes it into the shell's /_mw/door.json (every other key of that file stays as the build wrote it); --door-kit
 // --door-site copies the first door site's block into the kit's /_mw/door.json. tools/apps-block.mjs holds the shape.
+// Relay-first (plan 3.9): --apps-relay rendezvous|none and --apps-direct off|on add the optional keys relay and direct to that block (how
+// messages travel: through the rendezvous, sealed, by default; whether the apps also try a direct link, off by default). A door kit takes the
+// block of the first --door-site, tokens included, and refuses the two flags itself.
 //
 // v0.3 usage reports (docs/DEPLOY.md "Usage reports"): --obs <origin> names the endpoint the loader sends usage reports to. publish records
 // it in summary.json and, with --shell, writes it into the shell's /_mw/door.json beside the apps block ({ endpoint }); --door-kit --door-site
@@ -85,7 +88,7 @@ import { formatLightLink, isDoorHost, hostOfOrigin, ledgerIdFor, DOOR_MAX } from
 import { encode as qrEncode } from '../src/idp/qr.js';
 import { verifyRelease, readPublicKey, PINNED_RELEASE_KEYS } from './verify-release.mjs';
 import { doorKitFiles } from './door-kit-files.mjs';
-import { appsBlockProblems, appsBlockLine, withAppsBlock, obsBlockProblems, obsBlockLine, makeObsBlock, withObsBlock } from './apps-block.mjs';
+import { appsBlockProblems, appsBlockLine, appsTransportKeys, withAppsBlock, obsBlockProblems, obsBlockLine, makeObsBlock, withObsBlock } from './apps-block.mjs';
 
 export { doorKitFiles };
 import { createGenesis, checkGenesis, readBlocksFile, writeBlocksFile, policyOp, ledgerIdForOwner, loadLedger, currentCfg, OPEN_WRITING_WARNING } from './ledger-admin.mjs';
@@ -137,6 +140,9 @@ Features:  --chat --files --media --calls (turn the feature on; --chat-panel and
 Apps:      --tracker, --stun and --idp together (the site's own tracker, STUN server and identity origin) give the door page its apps:
            summary.json gets apps { rendezvous, stun, idp }, and --shell writes the same block into shell/_mw/door.json
            (docs/DEPLOY.md, "Apps at a door"). The tracker must speak the pair protocol (deploy/rtc-worker or tools/tracker.mjs).
+           --apps-relay rendezvous|none and --apps-direct off|on (both optional) say how messages travel and go into the block as relay and
+           direct: through the door's rendezvous, sealed (the default), and whether the apps also try a direct link, which shows each side
+           the other's network address (default off). relay none alone means direct on, as before; relay none with direct off is refused.
 Reports:   --obs <origin> (usage reports: the origin of the endpoint you run for them, such as https://obs.example.org; http: only for a loopback
            host) goes into summary.json as obs { endpoint } and, with --shell, into shell/_mw/door.json beside the apps block. It is never a file
            of the site, so the infohash does not change, and it needs no --tracker, --stun or --idp. A visitor is asked first: the consent card
@@ -1155,7 +1161,7 @@ function expandTrackers(list) {
  * publish(options) → result. Options mirror the CLI flags in camelCase: { dir, name, scope, key,
  * ws, xs, tr, chain, max, cs, consent, exp, seq, policy, moderator, allow, bits, maxValueBytes,
  * maxChainBytes, genesis, newGenesis, dropin, injectScript, keepDays, verifyWs, out, dist, shell,
- * spa, spaPath, cleanUrls, trailingSlash, index, notFound, ignore, now, quiet }.
+ * spa, spaPath, cleanUrls, trailingSlash, index, notFound, ignore, now, quiet, appsRelay, appsDirect }.
  * result = { mode, name, btih, rendezvousBtih, anchorBtih (deprecated = rendezvousBtih), ledgerId, gen, genesisReused, owner, fingerprint,
  *   pointer, record, magnet, files, total, outDir, outputs, warnings, verified }
  */
@@ -1293,12 +1299,19 @@ export async function publish(options) {
   // the door page. It goes into summary.json, into the shell's /_mw/door.json with --shell, and into a kit with --door-kit --door-site.
   // Without --idp there is no block: a visitor signs in at the identity origin before any app opens, so a door page without one would
   // show apps nobody can use. A drop-in publish has no shell and leaves the _mw/door.json it copies as built, so it has no block either.
+  // Relay-first (plan 3.9): --apps-relay and --apps-direct are the block's optional tokens. They are checked here, with the flags' names, whether or
+  // not a block is made: a flag that was typed is a flag that must be right. A block without them is the block it always was.
+  const transport = appsTransportKeys({ relay: o.appsRelay, direct: o.appsDirect });
   let apps = null;
   if (!o.dropin && ownTrackerList.length && stun.length) {
-    const candidate = { rendezvous: ownTrackerList.slice(), stun: stun.slice(), idp };
+    const candidate = Object.assign({ rendezvous: ownTrackerList.slice(), stun: stun.slice(), idp }, transport);
     const why = idp ? appsBlockProblems(candidate) : ['--idp is missing: a visitor signs in at the identity origin before an app opens'];
     if (!why.length) apps = candidate;
     else if (o.shell) note('no apps block for the door page: ' + why[0] + ' (docs/DEPLOY.md, "Apps at a door")');
+  }
+  if (!apps && Object.keys(transport).length) {
+    note(Object.keys(transport).map((k) => '--apps-' + k).join(' and ') + (Object.keys(transport).length > 1 ? ' are' : ' is') + ' not used: there is no apps block' +
+      (o.dropin ? ' (a drop-in publish has no shell)' : ' (it needs --tracker, --stun and --idp)') + ' (docs/DEPLOY.md, "Apps at a door")');
   }
   // Usage reports (docs/DEPLOY.md "Usage reports"): --obs is the origin the loader sends its reports to. It becomes a block of the shell's
   // /_mw/door.json, and of summary.json where a door kit finds it, and never a file of the site: the torrent, and so the infohash, are what
@@ -2061,6 +2074,8 @@ export const PUBLISH_FLAGS = {
   nx: { type: 'string' },
   ml: { type: 'string' },
   idp: { type: 'string' },
+  'apps-relay': { type: 'string' },
+  'apps-direct': { type: 'string' },
   obs: { type: 'string' },
   'prev-pointer': { type: 'string' },
   'signin-widget': { type: 'boolean' },
@@ -2108,6 +2123,7 @@ async function main(argv) {
     // v0.3 C2 doors: the loader as released plus the host settings of a door; no site directory is read.
     if (positionals.length) throw new UsageError('--door-kit takes no site directory');
     if (flags.obs) throw new UsageError('--obs belongs to a publish: a door kit takes the usage reports block of the first --door-site (publish that site with --obs)');
+    if (flags.appsRelay || flags.appsDirect) throw new UsageError('--apps-relay and --apps-direct belong to a publish: a door kit takes the apps block of the first --door-site (publish that site with them)');
     await doorKit({ out: flags.doorKit, dist: flags.dist, releaseList: flags.releaseList, releaseSig: flags.releaseSig, releaseKey: flags.releaseKey, doorSite: flags.doorSite, quiet: flags.quiet });
     return 0;
   }

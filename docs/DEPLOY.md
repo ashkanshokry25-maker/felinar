@@ -1088,14 +1088,16 @@ It contacts that host only: the address must be the HTTPS root of its name, `/mw
 redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin` (`--allow-no-cors` makes a missing header a warning,
 for a host that cannot send it; GitHub Pages sends it), and every `/_mw/*` file it lists, and `/mw-sw.js`, must have exactly the bytes
 it names. Exit code 1 on a failure.
-When `door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`); a
+When `door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`, and
+`, relay rendezvous, direct off` after it when the block carries those keys); a
 block the door page cannot use is a warning. Nothing in the block is contacted. A block of usage reports adds one line too
 (`[info] door: usage reports to obs.example.org`, [Usage reports](#usage-reports)), and its endpoint is not contacted either.
 
 ### Apps at a door
 
 > **Status: the tools below write, serve and read the block, with unit tests on loopback. A Cloudflare Pages door and a GitHub Pages site have served it since 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4, headless Chromium only).** What the apps
-> do, and how visitors use them, is in [APPS](APPS.md); this section covers the block and the servers it names.
+> do, and how visitors use them, is in [APPS](APPS.md); this section covers the block and the servers it names. The two keys `relay` and `direct` (below) are unreleased and have
+> not been served by a real host yet.
 
 A door can offer apps on its bare door page: people who have signed in at the door message each other, or meet in a room, by a short
 code. The page learns which servers to use from an `apps` block in the door's own `/_mw/door.json`:
@@ -1104,7 +1106,9 @@ code. The page learns which servers to use from an `apps` block in the door's ow
 "apps": {
   "rendezvous": ["wss://rtc.example.org"],
   "stun": ["stun:stun.example.org:3478"],
-  "idp": "https://id.example.org"
+  "idp": "https://id.example.org",
+  "relay": "rendezvous",
+  "direct": "off"
 }
 ```
 
@@ -1113,29 +1117,48 @@ code. The page learns which servers to use from an `apps` block in the door's ow
   [`deploy/rtc-worker`](../deploy/rtc-worker/README.md) (see its Pairing section) or `tools/tracker.mjs`. A tracker program that does not
   have the pair protocol, one of the four shared public trackers or any other WebSocket service does not speak it, and nobody would
   find anybody. The rendezvous passes a request to the person who made the code, and hands out a private lane only after that person
-  accepts, so no connection offer moves before approval. It sees the short channel half of each code, when requests arrive and the
-  addresses of the sockets, as any relay does: list it in your privacy notice, and do not keep logs that pair a channel with an address.
+  accepts, so no connection offer moves before approval. From the accept on it also forwards the sealed messages of the two people on that lane (`relay`, below).
+  It sees the short channel half of each code, when requests arrive, the lane's id, when each message is sent and one of three size classes, and the
+  addresses of the sockets, as any relay does: list it in your privacy notice, and do not keep logs that pair a channel or a lane with an address.
 - **`stun`**: none to eight `stun:` or `stuns:` URLs (publish takes four), **the site's own**, like the STUN servers of chat (the shared public ones are never a
-  fallback: [Your own tracker and STUN servers](#your-own-tracker-and-stun-servers-for-chat-and-files)). With none, browsers connect with
+  fallback: [Your own tracker and STUN servers](#your-own-tracker-and-stun-servers-for-chat-and-files)). They matter only when `direct` is `"on"`: with the default
+  (direct links off) the page makes no `RTCPeerConnection` and asks no STUN server. With none, browsers connect with
   host candidates only, which is enough on one machine or one network and does not reach between two homes.
 - **`idp`**: the identity origin where the visitor signs in before any app opens ([The identity origin](#the-identity-origin-running-your-own-with-toolsbuild-idpmjs)):
   `https:`, or `http:` for a loopback host. A door without a working identity origin offers nothing anybody can use, so publish writes no
   block without one.
+- **`relay`** (optional): `"rendezvous"`, the default when the key is absent, or `"none"`. With `"rendezvous"`, after the accept both pages join the conversation's lane at
+  the rendezvous and every sealed message goes through it, so a conversation does not wait for the two browsers to find a path to each other. With `"none"` the page does not
+  join a lane there, and the apps behave as they did before the key existed.
+- **`direct`** (optional): `"off"`, the default when the key is absent, or `"on"`. With `"off"` the page makes no `RTCPeerConnection` for the apps, loads no torrent manager and
+  announces no lane. With `"on"` it also tries a direct link, as it did before; a ready direct link is used in place of the relay, and the price card says that a direct link shows
+  each side the other's network address. That is the price of `"on"`: choose it only where you want it. Whether two visitors can connect directly depends on their networks,
+  which a door owner does not control; the relay does not depend on it.
+
+`relay` `"none"` with no `direct` key means `direct` `"on"`, which is how a door behaved before the keys, so a door.json with `relay` `"none"` restores that. The pair `relay`
+`"none"` and `direct` `"off"` leaves no way to connect and is refused by the tools and ignored, with the whole block, by the page (check-site warns). A block without the keys
+is `relay` `"rendezvous"` with `direct` `"off"`, which is a change for a door that was published before the keys: its visitors' messages now pass through its rendezvous. The
+rendezvous must then be one that relays (the Worker in `deploy/rtc-worker` or `tools/tracker.mjs` of this version, with `RELAY_LANE` not `"0"`); on an older rendezvous a join
+is refused and the conversation does not connect, so set `"relay": "none"` for such a door.
 
 A door without the block keeps the door page it has: the box that opens a light link.
 
-**Publishing.** The two flags that chat already needs, `--tracker` and `--stun`, together with `--idp`, give the site its block:
+**Publishing.** The two flags that chat already needs, `--tracker` and `--stun`, together with `--idp`, give the site its block. The last two flags of the example name the
+two defaults (the block means the same without them), so that the file says what the door does:
 
     node tools/publish.mjs site --name my-site --scope example.com --key owner.jwk --ws https://example.com/ws/ --shell \
-      --tracker wss://rtc.example.org --stun stun:stun.example.org:3478 --idp https://id.example.org
+      --tracker wss://rtc.example.org --stun stun:stun.example.org:3478 --idp https://id.example.org \
+      --apps-relay rendezvous --apps-direct off
 
 `summary.json` gets `apps`, and with `--shell` the same block is set in `shell/_mw/door.json`: the build's own file with `apps` as its last
-key, every other loader file as built. Only `--tracker` names the rendezvous: a `--tr` tracker serves the site's pointer, not the apps.
+key, every other loader file as built. `--apps-relay rendezvous|none` and `--apps-direct off|on` (both optional) add the keys `relay` and `direct` to that block, after `idp`;
+the page reads a missing key as `rendezvous` and `off`. A word the page does not know, a second value, or `--apps-relay none` with `--apps-direct off` stops publish with the flag's name
+(a flag that is typed must be right); with no block to put them in (no `--idp`, or a drop-in publish) a note says they are not used. Only `--tracker` names the rendezvous: a `--tr` tracker serves the site's pointer, not the apps.
 Without `--tracker` or `--stun` there is no block; without `--idp` there is none either, and with `--shell` publish says why. A drop-in
 publish does not change the `_mw/door.json` it copies.
 
-**Door kits.** `publish --door-kit <dir> ... --door-site <publish output>` copies the block of the **first** `--door-site` into the kit's
-`_mw/door.json` (publish says so when that site has none and a later one has). That file is the only one the kit changes: `door.json`
+**Door kits.** `publish --door-kit <dir> ... --door-site <publish output>` copies the block of the **first** `--door-site`, keys included, into the kit's
+`_mw/door.json` (publish says so when that site has none and a later one has; a door kit refuses `--apps-relay` and `--apps-direct` itself: publish the site with them). That file is the only one the kit changes: `door.json`
 without its `apps` key is the release's file, byte for byte. The signed release list names `door.json` without the block, so
 `verify-release.mjs verify <kit> --door-kit` names that one file for a kit that carries one, until the verifier learns the block (an open
 item of this change). Until then read the three addresses in a kit's block before you trust it, whoever made it: the identity origin is
@@ -1143,9 +1166,17 @@ where its visitors sign in.
 
 **Development.** `node tools/dev-server.mjs --root dist --apps-rendezvous ws://127.0.0.1:8000 --apps-stun stun:127.0.0.1:3478 --apps-idp http://127.0.0.1:8081`
 sends the block in `/_mw/door.json` without changing the file (`--apps-rendezvous` and `--apps-stun` repeat; `--apps-idp` takes one
-origin, and `--apps-rendezvous` needs it). `npm run demo` passes them for the desktop tier, with its own tracker and identity page
-(`--stun <stun: URL>` adds a STUN server; the demo runs none). The LAN tier (`--tls`) serves no identity page, so it offers no apps.
+origin, and `--apps-rendezvous` needs it); `--apps-relay <rendezvous|none>` and `--apps-direct <off|on>` add the two keys. `npm run demo` passes the block for the desktop tier,
+with its own tracker and identity page (`--stun <stun: URL>` adds a STUN server; the demo runs none). The demo names no keys unless it is given `--apps-relay` or `--apps-direct`, so its page
+uses the defaults, relay `rendezvous` and direct `off`: its messages pass through the demo's own tracker, which relays. The LAN tier (`--tls`) serves no identity page, so it offers no apps.
 Check any of it with `node tools/check-site.mjs <url> --door`.
+
+**The rendezvous side.** The relay needs nothing beyond the rendezvous you already run for pairing: the Worker in [`deploy/rtc-worker`](../deploy/rtc-worker/README.md) (see its Relay section for
+the variable `RELAY_LANE`, the caps, the keepalive and the logging settings) or `tools/tracker.mjs` (`--no-relay-lane` turns it off). A rendezvous that you leave on carries only the sealed
+messages of conversations and rooms that were accepted, under caps; it is not a general proxy. The Free plan of Cloudflare counts requests per day; the day cap of the relay (20,000 frames)
+is set below that limit so that pairing keeps working, and how the Free plan counts WebSocket messages has not been measured. Turning the relay off at the rendezvous, or setting `"relay": "none"`
+in the block, needs no new deploy of the apps. Name the rendezvous and its host in your privacy notice: they see the visitors' network addresses, when messages are sent and roughly how much,
+never what ([PRIVACY](PRIVACY.md), "Apps on the door page").
 
 ### Usage reports
 
@@ -1496,7 +1527,7 @@ Source: [MIGRATION-DIGEST](research/MIGRATION-DIGEST.md), section 11; the two se
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `shell/` (with `--shell`) | the loader with the pointer stamped into `index.html` and `404.html`; with `--tracker`, `--stun` and `--idp`, also the apps block in `_mw/door.json` ([Apps at a door](#apps-at-a-door)); with `--obs`, also the obs block there ([Usage reports](#usage-reports)) | the host root (shell mode) |
+| `shell/` (with `--shell`) | the loader with the pointer stamped into `index.html` and `404.html`; with `--tracker`, `--stun` and `--idp`, also the apps block in `_mw/door.json` ([Apps at a door](#apps-at-a-door); with `--apps-relay` and `--apps-direct`, its `relay` and `direct` keys); with `--obs`, also the obs block there ([Usage reports](#usage-reports)) | the host root (shell mode) |
 | `site/` (with `--dropin`) | your site with the pointer stamped into every page, the runtime under `/_mw/`, `/mw-sw.js`, `/.mw/` and `/_mw/t/<btih>.torrent` | your host (drop-in mode) |
 | `<name>/`, `<name>.torrent` | the web seed files and the torrent | under the web seed base (shell mode) |
 | `site.torrent` | the same torrent, for `check-webseed` | stays local |

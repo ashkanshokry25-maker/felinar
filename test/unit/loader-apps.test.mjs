@@ -2656,8 +2656,9 @@ describe('the torrent manager seam and the configuration', () => {
     const person = await makePerson(name)
     const identity = new FakeIdentity(person)
     const link = new FakeLink(world.rdv, { setTimeoutFn: world.clock.setTimeout, clearTimeoutFn: world.clock.clearTimeout, random: () => 0.5 })
+    // the legacy door (relay 'none' reads as direct on): these bodies are about the manager of the lanes, which only a direct link needs
     const apps = createApps(Object.assign({
-      api: { identity }, config: { rendezvous: [URL_OK] }, loadTm, now: world.clock.now, link,
+      api: { identity }, config: { rendezvous: [URL_OK], relay: 'none' }, loadTm, now: world.clock.now, link,
       setTimeoutFn: world.clock.setTimeout, clearTimeoutFn: world.clock.clearTimeout, random: () => 0.5, limits: { byeGraceMs: 0 }
     }, extra))
     return { name, person, identity, link, apps }

@@ -14,7 +14,7 @@ import {
   doorCandidates, hintAllowed, doorTorrentUrls, doorWebseeds, createDoorHealth, doorJsonFor, checkDoorJson, probeDoor, fetchFirst, byteDoors,
   ledgerDoorsFrom, ledgerDoorsProblem, ledgerDoorsValue, readLedgerDoors, enforceDoorBudget, doorsPanelModel, doorsBannerModel, doorLinkFor,
   doorFiles, doorFrameHtml, doorMimeOf, mountDoorView, DOOR_TIMING, DOOR_SANDBOX, LEDGER_DOORS_MAX, LEDGER_DOORS_BYTES, LEDGER_DOORS_INTERVAL_MS,
-  DOOR_JSON_PATH, DOOR_COPIES_MAX, appsBlockOf, appsBlockProblem, checkAppsBlock, APPS_BLOCK_MAX,
+  DOOR_JSON_PATH, DOOR_COPIES_MAX, appsBlockOf, appsBlockProblem, checkAppsBlock, appsTransportOf, APPS_BLOCK_MAX,
 } from '../../src/loader/doors.js';
 import { parseFragment, resolveMode, sdkMode, pastedFragment, sharedFragment, __c2Doors } from '../../src/loader/app.js';
 import { signPointer, formatPointer, parsePointer, verifyPointer, formatLightLink, DOOR_PAGE_PATH, DOOR_PAGE_ALIAS } from '../../src/common/pointer.js';
@@ -917,4 +917,83 @@ test('probeDoor hands the parsed door.json back with its apps block, so the page
   const r = await probeDoor('https://door.test', { fetch: fetchFn, sameOrigin: true });
   assert.equal(r.state, 'up');
   assert.deepEqual(appsBlockOf(r.json), APPS_GOOD);
+});
+
+// ---------------------------------------------------------------------------------------------- relay-first tokens (plan 3.9, AMENDMENTS A2)
+
+test('apps block tokens: relay "rendezvous" | "none" and direct "off" | "on" ride in the frozen block only when the input has them, after idp, and absent stays absent', () => {
+  const none = appsBlockOf({ apps: APPS_GOOD });
+  assert.deepEqual(Object.keys(none), ['rendezvous', 'stun', 'idp'], 'a block without tokens has exactly the three keys it had (existing deepEqual tests stay valid)');
+  assert.equal('relay' in none || 'direct' in none, false);
+  for (const [relay, direct] of [['rendezvous', 'off'], ['rendezvous', 'on'], ['none', 'on']]) {
+    const out = appsBlockOf({ apps: Object.assign({ relay, direct }, APPS_GOOD) });
+    assert.deepEqual(Object.keys(out), ['rendezvous', 'stun', 'idp', 'relay', 'direct'], 'tokens come after idp, whatever order the file wrote them in');
+    assert.equal(out.relay, relay);
+    assert.equal(out.direct, direct);
+    assert.ok(Object.isFrozen(out) && Object.isFrozen(out.rendezvous) && Object.isFrozen(out.stun));
+  }
+  // one token alone is returned alone: nothing is filled in by the check (the consumers apply the defaults)
+  assert.deepEqual(Object.keys(appsBlockOf({ apps: Object.assign({ relay: 'rendezvous' }, APPS_GOOD) })), ['rendezvous', 'stun', 'idp', 'relay']);
+  assert.deepEqual(Object.keys(appsBlockOf({ apps: Object.assign({ direct: 'on' }, APPS_GOOD) })), ['rendezvous', 'stun', 'idp', 'direct']);
+  assert.deepEqual(appsBlockOf({ apps: Object.assign({ relay: 'none' }, APPS_GOOD) }).relay, 'none', 'relay none with direct absent is good: A2 resolves direct to on, today\'s behaviour');
+  // an undefined value is an absent key (a JSON file cannot hold one)
+  assert.deepEqual(Object.keys(appsBlockOf({ apps: Object.assign({ relay: undefined, direct: undefined }, APPS_GOOD) })), ['rendezvous', 'stun', 'idp']);
+  assert.equal(appsBlockProblem({ apps: Object.assign({ relay: 'rendezvous', direct: 'off' }, APPS_GOOD) }), null);
+});
+
+test('apps block tokens: any other value is apps-relay or apps-direct, the explicit pair none + off is apps-transport, and the block is refused as a whole', () => {
+  const reason = (extra) => appsBlockProblem({ apps: Object.assign({}, APPS_GOOD, extra) });
+  for (const relay of ['', 'Rendezvous', 'NONE', 'cloudflare', 'own', 'turn', 'list', 'on', 'off', ' none', 'none ', 1, 0, true, false, null, {}, [], ['none']]) {
+    assert.equal(reason({ relay }), 'apps-relay', 'relay ' + JSON.stringify(relay));
+    assert.equal(appsBlockOf({ apps: Object.assign({}, APPS_GOOD, { relay }) }), null);
+  }
+  for (const direct of ['', 'ON', 'Off', 'yes', 'true', 'auto', 'rendezvous', 'none', 1, 0, true, false, null, {}, [], ['on']]) {
+    assert.equal(reason({ direct }), 'apps-direct', 'direct ' + JSON.stringify(direct));
+    assert.equal(appsBlockOf({ apps: Object.assign({}, APPS_GOOD, { direct }) }), null);
+  }
+  assert.equal(reason({ relay: 'none', direct: 'off' }), 'apps-transport', 'a door with no way to connect');
+  assert.equal(appsBlockOf({ apps: Object.assign({}, APPS_GOOD, { relay: 'none', direct: 'off' }) }), null);
+  assert.equal(checkAppsBlock(Object.assign({}, APPS_GOOD, { relay: 'none', direct: 'off' })).reason, 'apps-transport');
+  // the earlier checks come first: a block with a bad idp and a bad token says apps-idp
+  assert.equal(reason({ idp: 'http://id.example.test', relay: 'cloudflare' }), 'apps-idp');
+  // the other three pairs, and the lone tokens, are fine
+  for (const ok of [{ relay: 'none', direct: 'on' }, { relay: 'rendezvous', direct: 'off' }, { relay: 'rendezvous', direct: 'on' }, { relay: 'none' }, { direct: 'off' }, { direct: 'on' }]) assert.equal(reason(ok), null, JSON.stringify(ok));
+});
+
+test('appsTransportOf resolves the tokens as AMENDMENTS A2 does: no token is relay rendezvous with direct off; relay none alone means direct on (today\'s behaviour); an explicit direct wins', () => {
+  assert.deepEqual(appsTransportOf(APPS_GOOD), { relay: 'rendezvous', direct: 'off' });
+  assert.deepEqual(appsTransportOf({}), { relay: 'rendezvous', direct: 'off' });
+  assert.deepEqual(appsTransportOf(null), { relay: 'rendezvous', direct: 'off' });
+  assert.deepEqual(appsTransportOf(undefined), { relay: 'rendezvous', direct: 'off' });
+  assert.deepEqual(appsTransportOf({ relay: 'rendezvous' }), { relay: 'rendezvous', direct: 'off' });
+  assert.deepEqual(appsTransportOf({ relay: 'rendezvous', direct: 'on' }), { relay: 'rendezvous', direct: 'on' });
+  assert.deepEqual(appsTransportOf({ direct: 'on' }), { relay: 'rendezvous', direct: 'on' });
+  assert.deepEqual(appsTransportOf({ relay: 'none' }), { relay: 'none', direct: 'on' }, 'the rollback of the plan: a door.json with relay none restores today\'s behaviour');
+  assert.deepEqual(appsTransportOf({ relay: 'none', direct: 'on' }), { relay: 'none', direct: 'on' });
+  // a value the check would refuse never gets through as itself
+  assert.deepEqual(appsTransportOf({ relay: 'cloudflare', direct: 'maybe' }), { relay: 'rendezvous', direct: 'off' });
+  assert.ok(Object.isFrozen(appsTransportOf(APPS_GOOD)));
+});
+
+test('checkDoorJson: the tokens ride along in apps; a block with a bad token is null with the reason, and never decides ok', () => {
+  const good = Object.assign({ relay: 'rendezvous', direct: 'off' }, APPS_GOOD);
+  const r = checkDoorJson(fakeDoorJson({ apps: good }), fakeDoorJson());
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.apps, good);
+  assert.equal(r.apps.relay, 'rendezvous');
+  assert.equal(r.apps.direct, 'off');
+  for (const [extra, why] of [[{ relay: 'cloudflare' }, 'apps-relay'], [{ direct: 'sometimes' }, 'apps-direct'], [{ relay: 'none', direct: 'off' }, 'apps-transport']]) {
+    const bad = checkDoorJson(fakeDoorJson({ apps: Object.assign({}, APPS_GOOD, extra) }));
+    assert.equal(bad.ok, true, 'a door with a bad apps block still serves the loader');
+    assert.equal(bad.apps, null);
+    assert.equal(bad.appsReason, why);
+  }
+});
+
+test('the apps block of a door.json read by the page carries its tokens whole (probeDoor hands the parsed file back, appsBlockOf checks it)', async () => {
+  const json = fakeDoorJson({ apps: Object.assign({ relay: 'rendezvous', direct: 'off' }, APPS_GOOD) });
+  const fetchFn = async () => ({ status: 200, headers: { get: () => null }, body: null, arrayBuffer: async () => new TextEncoder().encode(JSON.stringify(json)).buffer });
+  const r = await probeDoor('https://door.test', { fetch: fetchFn, sameOrigin: true });
+  assert.equal(r.state, 'up');
+  assert.deepEqual(appsBlockOf(r.json), Object.assign({ relay: 'rendezvous', direct: 'off' }, APPS_GOOD));
 });

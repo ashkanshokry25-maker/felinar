@@ -122,8 +122,8 @@ test('GET / and /healthz answer 200, /stats.json counts without listing infohash
   const ws = await connect(t);
   await ask(ws, announce(A));
   const stats = await (await fetch(base + '/stats.json')).json();
-  // codes, knocks and lanes are the pairing's counts (ARCHITECTURE 15.21); like the others they name no infohash
-  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'knocks', 'lanes', 'open', 'peers', 'torrents', 'unlisted', 'uploads']);
+  // codes, knocks and lanes are the pairing's counts (ARCHITECTURE 15.21) and the seven after them the relay lane's (plan 3.2); like the others they name no infohash
+  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'torrents', 'unlisted', 'uploads']);
   assert.equal(stats.allowed, 1);
   assert.equal(stats.torrents, 1);
   assert.equal(JSON.stringify(stats).includes(A), false);

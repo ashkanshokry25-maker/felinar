@@ -7,12 +7,22 @@ import assert from 'node:assert/strict';
 import { createRendezvous, parseAllow, messageProblem, bin2hex, hex2bin, INTERVAL_S, MAX_OFFERS, MAX_SWARMS_PER_SOCKET, PEER_TTL_S, ATTACHMENT_REFRESH_S } from '../../deploy/rtc-worker/rtc.js';
 import worker, { Rendezvous, coreFromEnv } from '../../deploy/rtc-worker/worker.js';
 import { LANE_TTL_MS, CHANNEL_TTL_MS, KNOCK_TTL_MS, MIXED } from '../../deploy/rtc-worker/pair.js';
+import { readFileSync } from 'node:fs';
+
+// The platform's class for the keepalive auto-response does not exist in Node; the fake one keeps the two texts it was given.
+globalThis.WebSocketRequestResponsePair = class WebSocketRequestResponsePair {
+  constructor(request, response) { this.request = request; this.response = response; }
+};
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
 const bin = (hex) => Buffer.from(hex, 'hex').toString('binary');
 const peer = (ch) => ch.repeat(20);
+// The tests written before the relay lane pin stats() exactly; they do it through noRelay(stats), which drops the seven relay
+// fields (plan 3.2), and the relay tests below pin those seven themselves.
+const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused'];
+const noRelay = (stats) => { const out = Object.assign({}, stats); for (const k of RELAY_FIELDS) delete out[k]; return out; };
 
 /** A fake connection: collects what the core sends, parsed. */
 function conn(name) {
@@ -62,7 +72,7 @@ test('announce: the counts come back, offers reach other peers of the swarm, an 
   assert.deepEqual(b.take(), [{ action: 'announce', answer: { type: 'answer', sdp: 'v=0 answer' }, offer_id: 'o2', peer_id: peer('a'), info_hash: bin(A) }]);
   r.message(a, announce(A, peer('a'), { event: 'update', answer: { sdp: 'x' }, offer_id: 'o9', to_peer_id: peer('z') }));
   assert.deepEqual(b.take(), [], 'an answer to an unknown peer goes nowhere');
-  assert.deepEqual(r.stats(), { open: false, uploads: false, allowed: 1, swarms: 1, unlisted: 0, peers: 2, sockets: 2, interval: INTERVAL_S, codes: 0, knocks: 0, lanes: 0 });
+  assert.deepEqual(noRelay(r.stats()), { open: false, uploads: false, allowed: 1, swarms: 1, unlisted: 0, peers: 2, sockets: 2, interval: INTERVAL_S, codes: 0, knocks: 0, lanes: 0 });
   r.message(b, announce(A, peer('b'), { event: 'stopped' }));
   assert.deepEqual(b.take(), [{ action: 'announce', interval: INTERVAL_S, info_hash: bin(A), complete: 1, incomplete: 0 }], 'stopped is answered with the counts');
   assert.equal(r.stats().peers, 1);
@@ -94,7 +104,7 @@ test('the allow list: an unlisted infohash is refused; uploads mode serves it un
   const d = conn('d');
   u.message(d, announce(B, peer('d')));
   assert.equal(d.last()['failure reason'], undefined, 'an unlisted swarm that exists takes another peer');
-  assert.deepEqual(u.stats(), { open: false, uploads: true, allowed: 1, swarms: 2, unlisted: 1, peers: 3, sockets: 2, interval: INTERVAL_S, codes: 0, knocks: 0, lanes: 0 });
+  assert.deepEqual(noRelay(u.stats()), { open: false, uploads: true, allowed: 1, swarms: 2, unlisted: 1, peers: 3, sockets: 2, interval: INTERVAL_S, codes: 0, knocks: 0, lanes: 0 });
   u.close(c);
   u.close(d);
   assert.deepEqual([u.stats().swarms, u.stats().unlisted, u.stats().peers, u.stats().sockets], [1, 0, 0, 0], 'a closed connection takes its peers; an empty unlisted swarm goes, a listed one stays');
@@ -142,7 +152,7 @@ test('malformed messages are answered with a failure reason and change nothing; 
 // ---------------------------------------------------------------------------------------------- worker.js
 
 function fakeWs(name) {
-  return { name, sent: [], closed: null, attachment: null, send(t) { this.sent.push(JSON.parse(t)); }, close(code, reason) { this.closed = { code, reason }; }, serializeAttachment(v) { this.attachment = JSON.parse(JSON.stringify(v)); }, deserializeAttachment() { return this.attachment; } };
+  return { name, sent: [], closed: null, attachment: null, autoAt: null, send(t) { this.sent.push(JSON.parse(t)); }, close(code, reason) { this.closed = { code, reason }; }, serializeAttachment(v) { this.attachment = JSON.parse(JSON.stringify(v)); }, deserializeAttachment() { return this.attachment; } };
 }
 /** The Durable Object storage of the fake platform: rows are cloned in and out like structured clones, list() filters by prefix. */
 function fakeStorage(rows = new Map()) {
@@ -159,8 +169,33 @@ function fakeStorage(rows = new Map()) {
     alarmAt: () => alarm,
   };
 }
+/**
+ * The platform's side of a Durable Object: its sockets, its storage and, for the relay lane, the auto-response of a keepalive ping.
+ * setWebSocketAutoResponse(pair) keeps the pair; getWebSocketAutoResponseTimestamp(ws) is the time of the last answer to that socket (a
+ * Date, or null); wakes counts the frames that had to wake the object; deliver(obj, ws, text) is what the platform does with a text
+ * frame from the client: the exact request text of the pair is answered at once and the object is not woken (only the timestamp moves),
+ * anything else wakes the object (wakes + 1) and goes to its webSocketMessage.
+ */
 function fakeCtx(sockets = [], storage = fakeStorage()) {
-  return { sockets, accepted: [], storage, getWebSockets: () => sockets.slice(), acceptWebSocket(ws) { this.accepted.push(ws); sockets.push(ws); }, blockConcurrencyWhile: (fn) => Promise.resolve().then(fn), alarmAt: () => storage.alarmAt() };
+  return {
+    sockets, accepted: [], storage, wakes: 0, autoResponse: null,
+    getWebSockets: () => sockets.slice(),
+    acceptWebSocket(ws) { this.accepted.push(ws); sockets.push(ws); },
+    blockConcurrencyWhile: (fn) => Promise.resolve().then(fn),
+    alarmAt: () => storage.alarmAt(),
+    setWebSocketAutoResponse(pair) { this.autoResponse = pair; },
+    getWebSocketAutoResponseTimestamp(ws) { return ws.autoAt === null || ws.autoAt === undefined ? null : new Date(ws.autoAt); },
+    async deliver(obj, ws, text) {
+      if (this.autoResponse && text === this.autoResponse.request) {
+        ws.autoAt = Date.now();
+        ws.sent.push(JSON.parse(this.autoResponse.response));
+        return false;
+      }
+      this.wakes++;
+      await obj.webSocketMessage(ws, text);
+      return true;
+    },
+  };
 }
 const ENV = { ALLOW: A + ' ' + B, UPLOADS: '0', OPEN: '0', INTERVAL_S: '60', STATS_TOKEN: 's3cret', RTC: null };
 
@@ -387,7 +422,7 @@ test('the object: a pairing code lives in storage and on its socket, a knock on 
   assert.deepEqual(got, { action: 'pair-accepted', knock, lane: accepted.lane, channel: 'abcd', box: BOX, proof: PROOF });
   assert.deepEqual(storage.rows.get('lane:' + accepted.lane), T0 + LANE_TTL_MS, 'the lane is allowed for 24 hours, durably');
   assert.deepEqual(req.attachment.q, [], 'the requester socket forgot the knock: the object rewrote its attachment although it sent nothing');
-  assert.deepEqual(await (await obj.fetch(new Request('https://rtc.example/stats.json'))).json(), {
+  assert.deepEqual(noRelay(await (await obj.fetch(new Request('https://rtc.example/stats.json'))).json()), {
     open: false, uploads: false, allowed: 2, swarms: 0, unlisted: 0, peers: 0, sockets: 3, interval: 60, codes: 1, knocks: 0, lanes: 1,
   });
 
@@ -655,4 +690,283 @@ test('rtc-worker lane (2026-11-01): an answer keeps a seeder complete, a bare sc
   } finally {
     Date.now = realNow;
   }
+});
+
+// ---------------------------------------------------------------------------------------------- the relay lane through the object
+
+const PING = '{"v":1,"action":"pair-ping"}';
+const PONG = { action: 'pair-pong' };
+const laneHex = (i) => i.toString(16).padStart(2, '0').repeat(20);
+
+/** acceptedLane(obj, owner, req): the owner opens a code, the requester knocks, the owner accepts; the lane the accept minted. */
+async function acceptedLane(obj, owner, req) {
+  await obj.webSocketMessage(owner, frame({ action: 'pair-open', channel: 'abcd', box: BOX }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  const knock = take(req)[0].knock;
+  take(owner);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-accept', proof: PROOF, knock }));
+  const lane = take(owner)[0].lane;
+  take(req);
+  return lane;
+}
+
+test('RELAY_LANE: "0" turns every join and relay off, anything else (absent too) leaves it on; the pairing is not touched', () => {
+  const probe = (env) => {
+    const core = coreFromEnv(env);
+    const c = conn('p');
+    const res = core.message(c, frame({ action: 'pair-join', lane: laneHex(1), rid: 'j' }));
+    return [res.problem, core.message(c, frame({ action: 'pair-open', channel: 'abcd', box: BOX })).problem];
+  };
+  assert.deepEqual(probe(ENV), ['unknown lane', null], 'absent: the relay is on (it found no such lane)');
+  assert.deepEqual(probe(Object.assign({}, ENV, { RELAY_LANE: '1' })), ['unknown lane', null]);
+  for (const other of ['', 'yes', 'true', ' 0', '00']) assert.deepEqual(probe(Object.assign({}, ENV, { RELAY_LANE: other })), ['unknown lane', null], JSON.stringify(other) + ' is not "0"');
+  assert.deepEqual(probe(Object.assign({}, ENV, { RELAY_LANE: '0' })), ['relay is off on this rendezvous', null], '"0": off, and pairing still opens a code');
+  assert.deepEqual(probe(Object.assign({}, ENV, { RELAY_LANE: '0', PAIRING: '0' }))[1], 'pairing is off on this rendezvous');
+});
+
+test('the object asks the platform to answer the keepalive ping itself: the exact texts, once per object; pings never wake it, any other text does', async () => {
+  const ctx = fakeCtx();
+  const given = [];
+  const set = ctx.setWebSocketAutoResponse;
+  ctx.setWebSocketAutoResponse = function (pair) { given.push(pair); return set.call(this, pair); };
+  const obj = new Rendezvous(ctx, ENV);
+  await obj.ready;
+  assert.equal(given.length, 1, 'once per object');
+  assert.ok(given[0] instanceof globalThis.WebSocketRequestResponsePair);
+  assert.equal(given[0].request, '{"v":1,"action":"pair-ping"}');
+  assert.equal(given[0].response, '{"action":"pair-pong"}');
+  const ws = fakeWs('c');
+  await join(obj, ws);
+  for (let i = 0; i < 1000; i++) assert.equal(await ctx.deliver(obj, ws, PING), false);
+  assert.equal(ctx.wakes, 0, 'a thousand pings woke the object 0 times');
+  assert.equal(ws.sent.length, 1000);
+  assert.deepEqual(ws.sent[999], PONG);
+  assert.equal(ws.sent.every((m) => m.action === 'pair-pong' && Object.keys(m).length === 1), true, 'a pong carries nothing');
+  ws.sent.length = 0;
+  // a ping with a space in it is not the pair the platform holds: it wakes the object, and the core answers it all the same
+  assert.equal(await ctx.deliver(obj, ws, '{"v":1, "action":"pair-ping"}'), true);
+  assert.equal(ctx.wakes, 1);
+  assert.deepEqual(ws.sent, [PONG]);
+  // a platform (or a fake) without the API still runs: the ping reaches the core
+  const bare = { sockets: [], accepted: [], storage: fakeStorage(), getWebSockets: () => bare.sockets.slice(), acceptWebSocket(w) { bare.sockets.push(w); }, blockConcurrencyWhile: (fn) => Promise.resolve().then(fn) };
+  const plain = new Rendezvous(bare, ENV);
+  await plain.ready;
+  const w2 = fakeWs('w2');
+  await join(plain, w2);
+  await plain.webSocketMessage(w2, PING);
+  assert.deepEqual(w2.sent, [PONG]);
+  await plain.alarm();
+  assert.equal(w2.closed, null);
+});
+
+test('the object: two sockets join the lane the accept minted and pass a sealed frame; membership rides on the attachments and survives a wake; the relay writes nothing to storage', async (t) => {
+  const { storage, owner, req, obj } = await pairedObject(t);
+  const lane = await acceptedLane(obj, owner, req);
+  const rows = JSON.stringify(Array.from(storage.rows));
+  await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane, rid: 'j1' }));
+  assert.deepEqual(take(owner), [{ action: 'pair-join', lane, peers: 0, rid: 'j1' }]);
+  assert.deepEqual(owner.attachment.l, [[lane, 'pair']], 'the lane is on the socket');
+  await obj.webSocketMessage(req, frame({ action: 'pair-join', lane, rid: 'j2' }));
+  assert.deepEqual(take(req), [{ action: 'pair-join', lane, peers: 1, rid: 'j2' }]);
+  assert.deepEqual(take(owner), [{ action: 'pair-joined', lane, peers: 1 }]);
+  assert.deepEqual(req.attachment.l, [[lane, 'pair']]);
+  const f = 'Zm9v-_' + 'A'.repeat(200);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f, rid: 'r1' }));
+  assert.deepEqual(take(req), [{ action: 'pair-relayed', lane, f }]);
+  assert.deepEqual(take(owner), [{ action: 'pair-relay', lane, peers: 1, rid: 'r1' }]);
+  assert.equal(JSON.stringify(Array.from(storage.rows)), rows, 'storage is what the accept left: no row for a join, a frame or a lane member');
+  assert.ok(JSON.stringify(owner.attachment).length < 2048 && JSON.stringify(req.attachment).length < 2048);
+
+  // the object sleeps and is rebuilt from the rows and the attachments: both sockets are members again without joining
+  t.mock.timers.tick(45 * 1000);
+  const woken = new Rendezvous(fakeCtx([owner, req], storage), ENV);
+  await woken.ready;
+  assert.equal(woken.core.stats().relays, 1);
+  assert.deepEqual([take(owner), take(req)], [[], []], 'a wake tells nobody anything');
+  await woken.webSocketMessage(req, frame({ action: 'pair-relay', lane, f: 'abcd', rid: 'r2' }));
+  assert.deepEqual(take(owner), [{ action: 'pair-relayed', lane, f: 'abcd' }]);
+  assert.deepEqual(take(req), [{ action: 'pair-relay', lane, peers: 1, rid: 'r2' }]);
+  // a socket that closes leaves the lane and the other is told, with the count of those who remain
+  await woken.webSocketClose(req);
+  assert.deepEqual(take(owner), [{ action: 'pair-left', lane, peers: 0 }]);
+  await woken.webSocketMessage(owner, frame({ action: 'pair-leave', lane, rid: 'l' }));
+  assert.deepEqual(take(owner), [{ action: 'pair-leave', lane, rid: 'l' }]);
+  assert.equal('l' in owner.attachment, false, 'and its saved state shows no lane any more');
+  assert.equal(woken.core.stats().relays, 0);
+});
+
+test('the object: a lane that ran out while it slept is dropped quietly at the wake, and a relay on it finds no lane', async (t) => {
+  const { storage, owner, req, obj } = await pairedObject(t);
+  const lane = await acceptedLane(obj, owner, req);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-join', lane }));
+  take(owner); take(req);
+  assert.deepEqual(owner.attachment.l, [[lane, 'pair']]);
+  t.mock.timers.tick(LANE_TTL_MS + 1000);
+  const woken = new Rendezvous(fakeCtx([owner, req], storage), ENV);
+  await woken.ready;
+  assert.equal(woken.core.stats().relays, 0, 'the lane row ran out: nobody is a member of it');
+  assert.equal('l' in owner.attachment, false, 'the wake rewrote the saved state without the lane');
+  assert.equal('l' in req.attachment, false);
+  await woken.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f: 'abcd', rid: 'x' }));
+  assert.equal(take(owner).pop()['failure reason'], 'unknown lane');
+});
+
+test('the object: join, relay and leave leave the alarm alone; the frames that open a code or a knock still move it', async (t) => {
+  const { storage, owner, req, ctx, obj } = await pairedObject(t);
+  const lane = await acceptedLane(obj, owner, req);
+  const calls = { get: 0, set: 0 };
+  const getAlarm = storage.getAlarm;
+  const setAlarm = storage.setAlarm;
+  storage.getAlarm = async function () { calls.get++; return getAlarm.call(this); };
+  storage.setAlarm = async function (at) { calls.set++; return setAlarm.call(this, at); };
+  const before = ctx.alarmAt();
+  assert.ok(before > 0);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-join', lane }));
+  for (let i = 0; i < 5; i++) await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f: 'abcd', rid: 'r' + i }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-leave', lane }));
+  await obj.webSocketMessage(owner, frame({ action: 'pair-leave', lane }));
+  assert.deepEqual(calls, { get: 0, set: 0 }, 'no alarm read and none written for the relay frames');
+  assert.equal(ctx.alarmAt(), before);
+  await obj.webSocketMessage(req, frame({ action: 'pair-knock', channel: 'abcd', box: BOX }));
+  assert.ok(calls.get >= 1, 'a knock still looks at the alarm');
+});
+
+test('the object: the sweep keeps a socket that only pings (answered by the platform) and closes one that went silent at 20 minutes, with or without a wake in between', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: T0 });
+  const storage = fakeStorage();
+  const owner = fakeWs('owner');
+  const x = fakeWs('pinger');
+  const y = fakeWs('silent');
+  const ctx = fakeCtx([], storage);
+  const obj = new Rendezvous(ctx, ENV);
+  await obj.ready;
+  await join(obj, owner);
+  await join(obj, x);
+  await join(obj, y);
+  await obj.webSocketMessage(owner, frame({ action: 'room-open', channel: 'rm22', box: BOX }));
+  const lane = take(owner)[0].lane;
+  for (const s of [owner, x, y]) { await obj.webSocketMessage(s, frame({ action: 'room-join', lane })); take(s); }
+  take(owner);
+  assert.deepEqual(x.attachment.l, [[lane, 'room']]);
+  // 19 minutes: x pings every minute, y says nothing; the sweep runs and closes neither
+  for (let i = 0; i < 19; i++) { t.mock.timers.tick(60 * 1000); await ctx.deliver(obj, x, PING); }
+  assert.equal(ctx.wakes, 0, 'no ping woke the object');
+  assert.equal(x.attachment.t, T0 / 1000, 'and none rewrote the saved time: the platform answered them alone');
+  await obj.alarm();
+  assert.deepEqual([x.closed, y.closed], [null, null], '19 minutes: nobody is idle yet');
+  // 22 minutes: y has been silent for more than 20 and x pinged a minute ago
+  for (let i = 0; i < 3; i++) { t.mock.timers.tick(60 * 1000); await ctx.deliver(obj, x, PING); }
+  // the object is rebuilt first (a wake, a deployment): the saved times are old, the platform's answers are not
+  const woken = new Rendezvous(fakeCtx([owner, x, y], storage), ENV);
+  woken.ctx.autoResponse = ctx.autoResponse;
+  await woken.ready;
+  await woken.alarm();
+  assert.equal(x.closed, null, 'the socket that pinged a minute ago is alive although its saved time is 22 minutes old');
+  assert.deepEqual(y.closed, { code: 1001, reason: 'idle' }, 'the silent one is closed');
+  assert.deepEqual(take(owner).pop(), { action: 'room-left', lane, peers: 1 }, 'and the others are told it left (the owner and the pinger remain)');
+  assert.deepEqual(take(x).pop(), { action: 'room-left', lane, peers: 1 });
+  assert.equal(owner.closed, null, 'the owner of a code is never idle while the code lives');
+  // the same object, no wake: a pinger is kept and a silent one closed
+  const same = new Rendezvous(fakeCtx([owner, x], storage), ENV);
+  await same.ready;
+  t.mock.timers.tick(PEER_TTL_S * 1000 + 1000);
+  await same.alarm();
+  assert.deepEqual(x.closed, { code: 1001, reason: 'idle' }, 'a socket that stopped pinging is idle 20 minutes later like any other');
+});
+
+test('the object: the 151st message of a minute gets its reason, the socket is closed with 1008 and released, and the others are told it left', async (t) => {
+  const { storage, owner, req, obj } = await pairedObject(t);
+  const lane = await acceptedLane(obj, owner, req);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-join', lane }));
+  take(owner); take(req);
+  // owner has sent 4 messages (open, accept, join, ...); stay under with idempotent joins, then go over
+  for (let i = 0; i < 140; i++) await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
+  take(owner); take(req);
+  assert.equal(owner.closed, null);
+  let over = 0;
+  while (owner.closed === null && over < 20) { await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane, rid: 'z' })); over++; }
+  assert.deepEqual(owner.closed, { code: 1008, reason: 'too many messages' });
+  assert.ok(over >= 1 && over <= 10, 'closed within a few messages of the cap: ' + over);
+  assert.equal(take(owner).pop()['failure reason'], 'too many messages', 'the last thing it was sent is why');
+  assert.deepEqual(take(req), [{ action: 'pair-left', lane, peers: 0 }]);
+  assert.equal(obj.core.stats().sockets, 1, 'the core released it');
+  assert.equal(storage.rows.has('chan:abcd'), false, 'and so did its code');
+});
+
+test('worker fetch: the object is handed a fresh request with only the upgrade headers; a stats request carries no header and no token', async () => {
+  const seen = [];
+  const env = Object.assign({}, ENV, { RTC: { idFromName: (n) => n, get: () => ({ fetch: async (req) => { seen.push(req); return new Response('from the object'); } }) } });
+  const sender = {
+    Upgrade: 'websocket', Connection: 'Upgrade', 'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==', 'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Protocol': 'mw', 'Sec-WebSocket-Extensions': 'permessage-deflate',
+    Origin: 'https://door.example', Referer: 'https://door.example/page', 'User-Agent': 'x', 'CF-Connecting-IP': 'client-address', 'X-Forwarded-For': 'client-address', 'X-Real-IP': 'client-address',
+    Cookie: 'a=b', 'Accept-Language': 'fr', 'Sec-Fetch-Site': 'cross-site', Authorization: 'x',
+  };
+  await worker.fetch(new Request('https://rtc.example/?x=1', { headers: sender }), env);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].url, 'https://rtc.example/', 'the path only: no query');
+  assert.deepEqual(Array.from(seen[0].headers.keys()).sort(), ['connection', 'sec-websocket-extensions', 'sec-websocket-key', 'sec-websocket-protocol', 'sec-websocket-version', 'upgrade']);
+  assert.equal(seen[0].headers.get('upgrade'), 'websocket');
+  assert.equal(seen[0].method, 'GET');
+  await worker.fetch(new Request('https://rtc.example/stats.json?token=s3cret', { headers: sender }), env);
+  assert.equal(seen[1].url, 'https://rtc.example/stats.json', 'the token stays in the Worker');
+  assert.deepEqual(Array.from(seen[1].headers.keys()), [], 'and no header of the caller reaches the object');
+  // only the headers that were there are passed; a request without the optional ones passes the ones it has
+  await worker.fetch(new Request('https://rtc.example/', { headers: { Upgrade: 'websocket', Origin: 'https://door.example' } }), env);
+  assert.deepEqual(Array.from(seen[2].headers.keys()), ['upgrade']);
+  // a request that is not an upgrade, or a path that is not served, never reaches the object
+  await worker.fetch(new Request('https://rtc.example/', { headers: sender }).clone(), Object.assign({}, env, { RTC: null })).catch(() => {});
+  assert.equal(seen.length, 3);
+});
+
+test('worker fetch: the headers are read by name, one at a time, and request.cf is never touched', async () => {
+  const read = new Set();
+  const props = new Set();
+  const env = Object.assign({}, ENV, { RTC: { idFromName: (n) => n, get: () => ({ fetch: async () => new Response('from the object') }) } });
+  const spy = (target) => new Proxy(target, {
+    get(t, prop) {
+      if (prop === 'headers') return { get: (n) => { read.add(String(n).toLowerCase()); return t.headers.get(n); }, has: (n) => { read.add(String(n).toLowerCase()); return t.headers.has(n); } };
+      props.add(String(prop));
+      const v = Reflect.get(t, prop, t);
+      return typeof v === 'function' ? v.bind(t) : v;
+    },
+  });
+  const sender = { Upgrade: 'websocket', Origin: 'https://door.example', Referer: 'https://door.example/', 'User-Agent': 'x', 'CF-Connecting-IP': 'client-address', 'X-Forwarded-For': 'client-address' };
+  for (const path of ['/', '/healthz', '/stats.json?token=s3cret', '/nothing']) await worker.fetch(spy(new Request('https://rtc.example' + path, { headers: sender })), env);
+  const allowed = new Set(['upgrade', 'connection', 'sec-websocket-key', 'sec-websocket-version', 'sec-websocket-protocol', 'sec-websocket-extensions']);
+  assert.deepEqual(Array.from(read).filter((n) => !allowed.has(n)), [], 'headers read: ' + Array.from(read).join(', '));
+  assert.ok(read.has('upgrade'));
+  for (const prop of ['cf', 'signal', 'referrer', 'mode', 'credentials', 'integrity', 'body']) assert.equal(props.has(prop), false, prop);
+});
+
+test('/stats.json of the object carries the seven relay fields: counts and a UTC day, no lane and no frame', async (t) => {
+  const { owner, req, obj } = await pairedObject(t);
+  const lane = await acceptedLane(obj, owner, req);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-join', lane }));
+  const f = 'QUJD' + 'x'.repeat(96);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-relay', lane, f }));
+  const st = await (await obj.fetch(new Request('https://rtc.example/stats.json'))).json();
+  assert.deepEqual(Object.fromEntries(RELAY_FIELDS.map((k) => [k, st[k]])), { relays: 1, relayed: 2, relayBytes: 200, relayDay: 20231114, relayBusy: 0, relayRate: 0, joinsRefused: 0 });
+  assert.equal(JSON.stringify(st).includes(lane), false);
+  assert.equal(JSON.stringify(st).includes('QUJD'), false);
+  assert.deepEqual(Object.keys(st).sort(), ['allowed', 'codes', 'interval', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'sockets', 'swarms', 'unlisted', 'uploads']);
+});
+
+test('wrangler.jsonc: observability is off, RELAY_LANE is "1", no token and no hash in the file, and the header says how to deploy behind a Pages front', () => {
+  const raw = readFileSync(new URL('../../deploy/rtc-worker/wrangler.jsonc', import.meta.url), 'utf8');
+  const json = JSON.parse(raw.split('\n').filter((line) => !/^\s*\/\//.test(line)).join('\n'));
+  assert.deepEqual(json.observability, { enabled: false }, 'the platform keeps no Workers Logs for this Worker (plan 3.7, D7)');
+  assert.equal(json.vars.RELAY_LANE, '1');
+  assert.equal(json.vars.PAIRING, '1');
+  assert.equal(json.vars.STATS_TOKEN, '', 'a token never sits in the repository');
+  assert.equal(json.vars.ALLOW, '', 'the live list is passed at deploy time (--var), not kept here');
+  assert.equal(json.workers_dev, true, 'the repository file is the standalone form');
+  assert.deepEqual(Object.keys(json.vars).sort(), ['ALLOW', 'INTERVAL_S', 'OPEN', 'PAIRING', 'RELAY_LANE', 'STATS_TOKEN', 'UPLOADS']);
+  const header = raw.split('\n').slice(0, 12).join('\n');
+  assert.ok(header.includes('--name <worker>-do') && header.includes('"workers_dev": false'), 'the header names the Pages-front form');
+  assert.equal(/[A-Za-z0-9_-]{32,}/.test(raw.replace(/\/\/.*$/gm, '').replace(/"[^"]*"\s*:/g, '')), false, 'no long random-looking value');
 });

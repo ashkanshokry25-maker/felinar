@@ -262,12 +262,32 @@ export async function setupStack({ log = () => {}, bits = 4, keep = false } = {}
 // browsers and visitors
 // ---------------------------------------------------------------------------------------------
 
-export async function launchChromium({ headless = true } = {}) {
+/**
+ * launchArgs(extra) -> the switches of one Chromium launch: chromiumArgs() (the local-only policy of docs/DEV-NETWORK.md), the loopback
+ * switch, then `extra`. Relay-first plan 6.4 (W4): a scenario may add a switch for one browser, for instance a visitor whose engine cannot make a
+ * direct link (--force-webrtc-ip-handling-policy=disable_non_proxied_udp). It may not repeat a switch the policy sets, nor name a proxy or a resolver:
+ * the last occurrence of a switch wins in Chromium, so a repeat could undo the rule that keeps a test browser off the network. Throws a plain Error.
+ */
+export function launchArgs(extra = []) {
+  const base = chromiumArgs({ allowRemote: false }).concat(['--allow-loopback-in-peer-connection']);
+  const nameOf = (arg) => String(arg).split('=')[0];
+  const taken = new Set(base.map(nameOf));
+  for (const arg of extra) {
+    if (typeof arg !== 'string' || !/^--[a-z0-9-]+(=.*)?$/.test(arg)) throw new Error('launchArgs: not a switch: ' + JSON.stringify(arg));
+    const name = nameOf(arg);
+    if (taken.has(name) || /^--(host-resolver-rules|proxy-server|proxy-pac-url|proxy-bypass-list|no-proxy-server|disable-features|enable-features)$/.test(name)) {
+      throw new Error('launchArgs: ' + name + ' belongs to the local-only policy (test/e2e/browser-args.mjs) and cannot be given again');
+    }
+  }
+  return base.concat(extra);
+}
+
+export async function launchChromium({ headless = true, args = [] } = {}) {
   const pw = await import('playwright');
   const chromium = pw.chromium || (pw.default && pw.default.chromium);
-  // chromiumArgs() is the policy (docs/DEV-NETWORK.md). The loopback switch only adds 127.0.0.1 host
+  // launchArgs() is the policy (docs/DEV-NETWORK.md) plus `args`, the extra switches of this launch. The loopback switch only adds 127.0.0.1 host
   // candidates, so tabs still connect on a machine (or CI runner) without a LAN interface.
-  return chromium.launch({ headless, args: chromiumArgs({ allowRemote: false }).concat(['--allow-loopback-in-peer-connection']) });
+  return chromium.launch({ headless, args: launchArgs(args) });
 }
 
 /**
@@ -514,6 +534,19 @@ export async function clickShellButton(page, re, { scope = 'button', timeoutMs =
 /** Clicks the first-run card's "Share and load" (v0.2.1 C1; or the gate's Load) when it is shown. → true when clicked. */
 export async function acceptConsent(page, { timeoutMs = 15000 } = {}) {
   return clickShellButton(page, CONSENT_ACCEPT_RE, { scope: '.mw-notice button, .mw-gate button', timeoutMs, label: 'consent notice' });
+}
+
+/**
+ * peerConnectionCount(page) -> how many RTCPeerConnection the page has made since it loaded: the count of the wrapper that stripIceServers
+ * installs in every frame before any page script (window.__mwE2EPc). Relay-first plan 6.4 (W4, LANE-6): a door with direct off must make none,
+ * so the scenario reads this number on each page. -1 when the page cannot be asked (it is navigating or gone).
+ */
+export async function peerConnectionCount(page) {
+  try {
+    return await withTimeout(page.evaluate(() => window.__mwE2EPc || 0), 5000, 'peer connection count');
+  } catch (_) {
+    return -1;
+  }
 }
 
 /** The loader's state (window.__mwShell.inspect()), or null. */

@@ -31,7 +31,9 @@
 // Access-Control-Allow-Origin: * on every file, seen 2026-11-01); and every /_mw/* file it lists, and /mw-sw.js,
 // has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). No pointer is read.
 // Apps at a door: an apps block in door.json (docs/DEPLOY.md, "Apps at a door") gets an info line (rendezvous, STUN and identity origin
-// counted) and a shape check; the addresses in it are read, never contacted.
+// counted) and a shape check; the addresses in it are read, never contacted. A block that carries the relay-first tokens (plan 3.9) also
+// names them on that line as the page reads them ("relay rendezvous, direct off"; relay none alone reads direct on, as in
+// src/loader/doors.js appsTransportOf), and a token the page would refuse is the same warning as any other bad entry.
 // Usage reports: an obs block in door.json (docs/DEPLOY.md, "Usage reports") gets one info line that names the host the reports go to,
 // and a warning when the loader cannot use the block; the endpoint is read, never contacted.
 

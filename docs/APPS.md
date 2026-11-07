@@ -10,12 +10,17 @@
 > lawyer has reviewed the privacy sentences ([PRIVACY](PRIVACY.md)). A review of the protocol and the privacy claims on 2026-11-02, which
 > wrote 18 adversary tests (`test/unit/apps-adversary.test.mjs`), found one blocker and eight smaller defects; all are fixed, and what
 > remains is under "Known limits". Treat the apps as a first build.
+>
+> **Messages now pass through the rendezvous (relay-first, unreleased).** After the accept, the sealed messages of a conversation or a room go through
+> the door's rendezvous by default, and a direct link is something a door turns on ([Messages through the rendezvous](#messages-through-the-rendezvous)).
+> This is built and tested on loopback with fakes, the real pairing core and the Node tracker. It has not run on a real network: the test on an office
+> Wi-Fi, on mobile data, in Tor Browser and over a VPN is still to do, so this page says what the design does there and does not say that it works.
 
 The bare door page of a door that offers apps shows "Apps" in place of the box that opens a link. People who sign in there for the visit
-can message each other one to one, or meet in a small room, by a short code. The messages are encrypted end to end, travel directly
-between the browsers and are kept in memory only, for as long as the page stays open. This page describes what the apps do, how to use
-them, what they leave out and why. The contracts are in [ARCHITECTURE](ARCHITECTURE.md) 15.21 and [INTERFACES](INTERFACES.md); who sees
-what is in [PRIVACY](PRIVACY.md).
+can message each other one to one, or meet in a small room, by a short code. The messages are sealed on the device (only the people in the
+conversation can open them), pass through the door's rendezvous, which cannot read them, unless the door also turns on direct links, and are kept in
+memory only, for as long as the page stays open. This page describes what the apps do, how to use them, what they leave out and why. The contracts
+are in [ARCHITECTURE](ARCHITECTURE.md) 15.21 and [INTERFACES](INTERFACES.md); who sees what is in [PRIVACY](PRIVACY.md).
 
 ## What an owner gets
 
@@ -41,13 +46,15 @@ What you run for it, and what each piece does:
 
 | Piece | What it does | Where it comes from |
 |---|---|---|
-| A rendezvous | Passes a request from the person who made a code to the person who typed it, hands out a private lane after the first approves, and introduces the two browsers on that lane like any tracker. It cannot read what it forwards, unless it records the boxes and guesses a code's secret offline ("Known limits") | the Worker in [`deploy/rtc-worker`](../deploy/rtc-worker/README.md) (Pairing), or `tools/tracker.mjs` |
-| A STUN server | Lets two browsers on different networks find a path to each other. With none, browsers use host candidates only, which is enough on one machine or one network and does not reach between two homes | your own; the shared public ones are never a fallback |
+| A rendezvous | Passes a request from the person who made a code to the person who typed it, hands out a private lane after the first approves, and, from then on, forwards the sealed messages of the two browsers on that lane (and, when direct links are on, introduces them like any tracker). It cannot read what it forwards, unless it records the boxes and guesses a code's secret offline ("Known limits") | the Worker in [`deploy/rtc-worker`](../deploy/rtc-worker/README.md) (Pairing and Relay), or `tools/tracker.mjs` |
+| A STUN server | Only for a door that turns direct links on: lets two browsers on different networks find a path to each other. With none, browsers use host candidates only, which is enough on one machine or one network and does not reach between two homes. A door that keeps the default (direct links off) needs none | your own; the shared public ones are never a fallback |
 | An identity origin | The page where the visitor signs in. A door gets a key for this visit only | [DEPLOY](DEPLOY.md), "The identity origin" |
 
-There is no relay: when two browsers cannot reach each other directly, the conversation stays at "Connecting...". Turning the apps on is
-three flags of `publish` (`--tracker`, `--stun`, `--idp`) or three of the dev server; [DEPLOY](DEPLOY.md), "Apps at a door", has the
-block, the commands and the checks. Name the rendezvous in your privacy notice ([PRIVACY](PRIVACY.md)).
+By default the messages go through the rendezvous, so a conversation does not wait for the two browsers to find a path to each other; two
+optional keys of the block, `relay` and `direct`, change that ([Messages through the rendezvous](#messages-through-the-rendezvous)). Turning
+the apps on is three flags of `publish` (`--tracker`, `--stun`, `--idp`) or three of the dev server, and `--apps-relay` and `--apps-direct`
+set the two keys; [DEPLOY](DEPLOY.md), "Apps at a door", has the block, the commands and the checks. Name the rendezvous in your privacy
+notice ([PRIVACY](PRIVACY.md)).
 
 What it costs: the apps are part of `_mw/loader.js`, so every page of every site that loads the loader carries them. Measured on
 2026-11-02 with `node build.mjs`, on the commit this work is based on (f081737) and on the working tree, as the size of `dist/_mw/loader.js`
@@ -73,8 +80,10 @@ Nothing was written to the device.
 ### Messages
 
 1. **Show your code.** The first time you open Messages, a card says "What this costs your privacy": "Codes and requests pass through this
-   door's rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the
-   other's network address." On a door that sends usage reports the card adds a line that names their host ("What is stored, and what is seen"). "Continue" shows your code, like `abcd-efgh-2345`, with "Copy" and "New code". "Not now" leaves a "Show my
+   door's rendezvous. After the other person accepts, your messages pass through it too, sealed: the rendezvous and whoever hosts it see
+   your network address, when you send and roughly how much, never what. The other person does not see your address." A door that turns direct
+   links on adds a line: "This door also tries a direct link between you, which shows each side the other's network address." A door that
+   sets `relay` to `none` shows the card as it was before messages passed through the rendezvous. On a door that sends usage reports the card adds a line that names their host ("What is stored, and what is seen"). "Continue" shows your code, like `abcd-efgh-2345`, with "Copy" and "New code". "Not now" leaves a "Show my
    code" button. A code works while this page is open, and for 24 hours at the most. Read it to the person you want to message.
 2. **Or knock.** Under "Message someone" type "Their code" and press "Knock" (if you have not seen the card yet, it comes first). The
    request waits for their approval for 10 minutes. If no open code starts with the first four characters you typed, the page says "No one
@@ -82,8 +91,9 @@ Nothing was written to the device.
 3. **Accept.** The owner sees "<name> (<short>) wants to message you" with "Accept" and "Reject". The accept card repeats the price and
    adds "Check: read your codes to each other." Until the owner accepts, the rendezvous has handed out nothing: no connection offer has
    moved, and neither person has learned the other's network address. Reject, or ignore the request, and nothing joins.
-4. **Connect.** After the accept both browsers join a private lane and connect directly. The line under the name changes from
-   "Connecting..." to "Connected to you now". The conversation shows "Compare: 1234 5678", eight digits derived from the keys of both
+4. **Connect.** After the accept both browsers join the conversation's private lane at the rendezvous. The line under the name changes from
+   "Connecting..." to "Connected through the rendezvous"; on a door that turns direct links on, it reads "Connected to you now" while a
+   direct link is the way the messages go. The conversation shows "Compare: 1234 5678", eight digits derived from the keys of both
    people. Read them to each other by another route. "If they differ, do not trust this conversation."
 5. **Write.** The composer sends with Enter (Shift+Enter makes a new line) or the button. While the other browser is not connected, the page
    says "Messages can wait here while the other side is away. The page has to stay open." A message that gets no answer in 20 seconds
@@ -91,8 +101,10 @@ Nothing was written to the device.
 6. **End.** "Leave conversation" tells the other person and removes the conversation (export it first to keep it). A person who left needs
    a new code to talk again.
 
-The rendezvous serves the conversation's lane for 24 hours after the accept. A connection that drops within that time can come back through
-the rendezvous; after it, a dropped connection stays dropped and you need a new code.
+The rendezvous serves the conversation's lane for 24 hours after the accept. A connection to the rendezvous that drops within that time is
+made again by the page, which joins the lane again and sends what the other side did not confirm; after the 24 hours the lane is gone and you
+need a new code. "Conversation tools" shows how the conversation travels now and the door's two keys ("Connection: through the rendezvous.
+This door: relay: rendezvous, direct: off.").
 
 **Disappearing messages are each person's own.** "Your messages disappear" sets the timer of what you write, and nothing else: the other
 person's setting never changes what you write, and yours never changes what they write. Each message carries its author's timer, and the
@@ -133,8 +145,74 @@ never changes, so a person who leaves still holds it. Make a new room instead.
 | "A code has twelve characters, letters and numbers, like abcd-efgh-2345." | the text is not a code | check the length |
 | "Too many tries. Wait a minute and try again." | 10 requests a minute from this page, 8 waiting at once | wait |
 | "Rejected" | the owner said no, closed the code or left, or the request ran out after 10 minutes | ask again |
-| "Connecting..." for a long time after an accept | the two browsers cannot reach each other directly: no STUN server in the door's block, or a strict network | try another network; the door's owner can add a STUN server |
+| "Connecting..." for a long time after an accept | the other person's page has not joined the lane yet (closed, asleep or offline), or the page that replaced a lost connection met `lane full` while the rendezvous still holds the old one (up to 25 minutes), or the rendezvous is busy, off or out of reach. On a door that turns direct links on, a direct link may also be failing, which does not stop the messages through the rendezvous | wait, or ask the other person to keep the page open; the door's owner can look at the counts of the rendezvous ([Messages through the rendezvous](#messages-through-the-rendezvous)) |
 | "That message is too long." | more than 3,500 characters (2,000 in a room), or the sealed body does not fit one frame | shorten it; text in scripts with 2- or 3-byte letters reaches the frame limit earlier |
+
+## Messages through the rendezvous
+
+**What changed.** Until now the messages of a conversation went straight from one browser to the other, and a conversation whose two browsers could
+not reach each other stayed at "Connecting...". Now, from the accept on, both pages join the conversation's lane at the rendezvous they already
+use for pairing, and every sealed message goes through it. A door says so in its apps block (`relay`, below); without the key this is the default.
+
+**Why.** A direct link needs a path between two browsers, and on some networks there is none. The direct links in the tests below connected between
+browsers on one computer or one home network, and the one run across two networks, with a phone on mobile data, did not connect. A direct link
+also shows each side the other's network address. The rendezvous is a connection both pages already hold, so the messages can use it.
+
+**What the design does, and what has not been measured.** The messages use the secure WebSocket (`wss:`) that pairing already needs, and a
+visitor whose browser has no `RTCPeerConnection` can use the apps, because with direct links off the page does not need one. The design is meant to carry
+conversations on networks that block or change direct links, such as an office Wi-Fi or mobile data. That has not been tested on those networks, in
+Tor Browser or over a VPN yet, so this page does not say that it works there.
+
+**Who sees what, by default (relay `rendezvous`, direct `off`).**
+
+| Who | Sees | Cannot see |
+|---|---|---|
+| The other person | the messages, the keys of the conversation, when you send | your network address, unless the door turns direct links on and one connects |
+| The rendezvous and whoever hosts it | your network address, the id of the lane, when each message is sent and one of three size classes of the sealed message | what a message says, names, keys |
+| The door's owner | counts: the lanes open, the frames and characters forwarded today, the frames refused (`/stats.json`), and, if the door sends usage reports, the counts and words of the reports | content; addresses, unless the owner adds code that logs them |
+| The network you are on (an office, a provider) | a secure connection to the rendezvous's host, its timing and volume | the other person's address, content |
+| A STUN server | nothing: with direct links off the page makes no `RTCPeerConnection` and asks no STUN server | |
+
+Relays carry sealed messages of three fixed sizes and cannot read them. A host can be ordered to record the addresses that connect to it and
+can be barred from saying so; that is a risk of any hosted server, and the card says that the rendezvous and whoever hosts it see the address. What the
+rendezvous sees beyond the pairing it already did is the lane id with the time and size class of each message; it never receives a name, a key or a text.
+
+**The two keys of the block.**
+
+| Key | Value | What it does |
+|---|---|---|
+| `relay` | `"rendezvous"` (the default when the key is absent) | after the accept both pages join the lane at the rendezvous and every sealed message goes through it |
+| | `"none"` | the page does not join a lane at the rendezvous; the apps behave as they did before this change, with direct links only |
+| `direct` | `"off"` (the default when the key is absent) | the page makes no `RTCPeerConnection` for the apps, loads no torrent manager and announces no lane; the card has no line about direct links |
+| | `"on"` | the page also tries a direct link, as before; when one is ready it is used in place of the relay, and the card adds the line about both addresses |
+
+`relay` `"none"` with no `direct` key means direct `"on"`, which is how a door behaved before this change, so a door.json with `relay` `"none"`
+restores that behaviour. A block that says `relay` `"none"` and `direct` `"off"` leaves no way to connect and is refused by the tools and by
+the page. Per-contact opt-in to a direct link, in place of the door-wide key, is not built.
+
+**The off switch.** The operator of a rendezvous can turn the relay off on its own: `RELAY_LANE` set to `"0"` on the Worker, or `--no-relay-lane` on
+the Node tracker. Every join and relay then answers `relay is off on this rendezvous`; pairing keeps working, and conversations need direct
+links to connect. The door's owner can set `relay` to `"none"`. Neither takes a deploy of the apps.
+
+**The caps.** They keep the relay to the sealed messages of conversations and rooms that were accepted, and they keep pairing alive:
+
+| What | Limit | When it is hit |
+|---|---|---|
+| Relayed frames from one socket | 120 a minute | `too many relays` |
+| Messages of any kind from one socket | 150 a minute | the rendezvous closes the socket and the page connects again |
+| Relayed frames forwarded by one rendezvous object | 20,000 a UTC day, counted in memory (a redeploy resets it) | `relay is busy` until 00:00 UTC |
+| Lanes joined by one socket | 8 | `too many lanes` |
+| Members of a lane | 2 for a conversation, 16 for a room | `lane full` |
+| One frame | at most 7,700 characters of base64url (the largest sealed message is 7,512) | `invalid frame` |
+
+A page sends a small keepalive once every 50 seconds. The Worker is set to have the platform answer it without waking the rendezvous's object, and
+the relay's caps do not count it; how the Free plan counts that answer has not been measured. A page
+that stops answering is closed after 20 minutes and joins its lanes again when it wakes. The day cap is set below the 100,000 requests a day of the
+Workers Free plan so that pairing itself does not meet that limit; how the plan counts WebSocket messages has not been measured either, and the cap
+may change when it has.
+
+**What is and is not built.** Built: the relay through the rendezvous, the two keys, the card and the status line, the tools line, the counts. Not built:
+a second carrier for when this rendezvous is busy or gone, a list of rendezvous copies, any carrier on another host, and a direct link per contact.
 
 ## Limits
 
@@ -148,6 +226,8 @@ never changes, so a person who leaves still holds it. Make a new room instead.
 | A connection that has not said it speaks the apps' protocol | closed after 30 seconds; at most 8 of them at once on a lane (a conversation takes 4 that do, a room 24) | `src/loader/apps.js` |
 | Frames over a lane | a conversation sends 60 queued frames a minute and accepts 120 (a room accepts 600); three bad frames close the wire | `src/loader/apps.js` |
 | Requests from a page | 10 a minute; at most 8 waiting | `src/loader/apps.js`, `deploy/rtc-worker/pair.js` |
+| Frames relayed through the rendezvous | 120 a minute and 150 messages of any kind a minute from one socket; 20,000 a UTC day for one object; 8 lanes per socket; 2 members in a conversation's lane, 16 in a room's | `deploy/rtc-worker/pair.js` |
+| Lanes a page holds at the rendezvous | 8 on its socket at once, the newest first when the socket opens again; a conversation or room that did not fit joins when one of the others ends | `src/loader/apps.js` (`LIMITS.relayLanesMax`) |
 | A request waits | 10 minutes | `deploy/rtc-worker/pair.js` |
 | A code stays open | until its owner closes it, leaves, or 24 hours pass | `deploy/rtc-worker/pair.js` |
 | A lane is served | 24 hours from the accept (from the opening, for a room) | `deploy/rtc-worker/pair.js` |
@@ -219,7 +299,7 @@ project's rules; it is recorded so that the question is not asked twice.
 |---|---|---|
 | Read receipts, with a switch | built | on by default; both sides need them on to show "Read" |
 | Typing indicator, with a switch | built | at most one mark every 3 seconds, never stored |
-| Presence | built | "Connected to you now" and "Not connected, last connected <time>" |
+| Presence | built | "Connected to you now" (a direct link), "Connected through the rendezvous" (the relay) and "Not connected, last connected <time>" |
 | Block and unblock | built | by the person's key for this visit, until the page is reloaded (see "Known limits"); a blocked person's request is turned away after a random wait of 3 to 12 seconds, and you are never shown it |
 | Identity check | built | the short ids and the eight-digit compare code, "Compare: 1234 5678" |
 | Notifications | built | a tab-title counter and a short line ("New message from <name>") that never shows the text; a muted conversation stays quiet |
@@ -254,7 +334,8 @@ project's rules; it is recorded so that the question is not asked twice.
 | A password or lock on a conversation | next | nothing persists at a door |
 | Secret conversation | next | every conversation is already end to end encrypted, so this only matters once conversations persist |
 | Voice and video calls at a door | next | the Calls tile says so; calls exist for sites ([ARCHITECTURE](ARCHITECTURE.md) 15.14) |
-| A relay for people who cannot connect directly or want to hide their address | next | an "always relay" choice through the site's TURN server (R 2.7.8) |
+| A relay for people who cannot connect directly or want to hide their address from the other person | built | the sealed messages go through the door's rendezvous by default ([Messages through the rendezvous](#messages-through-the-rendezvous)); the rendezvous and its host still see the address |
+| A relay through a TURN server, or on a host other than the door's rendezvous | next | not built: a second carrier is a later change |
 | A password-authenticated key exchange for the code | next | see "Prior art and design notes" |
 
 ### Not planned
@@ -277,18 +358,20 @@ messages, codes, keys, drafts, nicknames and notes live in the page's memory. Th
 "Export", which holds the conversation's text and both public keys in the clear.
 
 The rendezvous sees, for a pairing: the first four characters of each code (the channel), when requests and answers arrive, the random
-lane it hands out, the network addresses of the sockets (as any relay does), and sealed boxes it cannot open. After the accept it carries
-the two browsers' connection offers and answers on the lane, as every tracker does. It never sees names, keys, the last eight characters
-of a code, a message, or which identity talks to which, unless it records a box and guesses that code's secret offline ("Known limits"). The other person sees your network address once you accept; in a room, every
-member can connect to every other member. A connection to a lane that was never accepted (the rendezvous minted the lane, so it can join
-it like a member) sees only sealed frames: it can count the people in a room by the number of key boxes, and it reads no name, no key and
-no message. Details: [PRIVACY](PRIVACY.md) and [ARCHITECTURE](ARCHITECTURE.md) 15.21.
+lane it hands out, the network addresses of the sockets (as any relay does), and sealed boxes it cannot open. After the accept it forwards
+the sealed messages of the two browsers on the lane, so it also sees when each is sent and one of three size classes; with direct links on, it
+carries their connection offers and answers on the lane, as every tracker does. It never sees names, keys, the last eight characters
+of a code, a message, or which identity talks to which, unless it records a box and guesses that code's secret offline ("Known limits"). By
+default the other person does not see your network address; once a door that turns direct links on connects two browsers, each sees the
+other's (in a room, every member can connect to every other member). A connection to a lane that was never accepted (the rendezvous minted the lane,
+so it can join it like a member) sees only sealed frames: it can count the people in a room by the number of key boxes, and it reads no name, no key
+and no message. Details: [PRIVACY](PRIVACY.md) and [ARCHITECTURE](ARCHITECTURE.md) 15.21.
 
 **What usage reports add.** If the door's `/_mw/door.json` also has an `obs` block ([OBSERVABILITY](OBSERVABILITY.md)), the page sends usage reports to that endpoint, and only
 after the visitor's first yes: "Continue" on a price card that can start something (signing in alone is not one: the loader's sign-in card names no host). The price card then has one more line:
 "Besides that, this door sends usage reports to its operator at {host}: what the apps do here (steps, taps and errors), never network addresses, names or messages. Settings turns them off." Until the yes, what the visitor does waits in the page's memory and nothing is sent. The reports say what the apps did, never what was said: which view was opened, which card was
 shown and what was pressed on it, the steps of signing in, the first four characters of a code, how requests came in and went, the status of each conversation or room by its local id, how many
-messages reached each status, the states of the pair socket, and, with them, the short id of the visit's key, the browser's family and a coarse network type. They carry no message, name,
+messages reached each status, how the lane at the rendezvous went (joined, left, refused, and how many others are on it), whether a conversation is carried by the relay or a direct link, the states of the pair socket, and, with them, the short id of the visit's key, the browser's family and a coarse network type. They carry no message, name,
 nickname, key, box, proof, lane, address or last eight characters of a code. Settings has a switch, "Send usage reports to {host}", which stops them at once; the page stores nothing, so
 the choice lasts for this visit only. What the endpoint's host sees anyway, and how long it keeps reports (7 days by default), is in [PRIVACY](PRIVACY.md#usage-reports-unreleased).
 
@@ -311,11 +394,12 @@ The counts before the accept are the measured form of one claim of this page: un
 ("Using the apps", Messages, step 3). They show what this page's code and this rendezvous did in one run in one engine, and they do not
 cover a rendezvous that misbehaves ("Known limits").
 
-**One phone, later that day.** The same day one Android phone (Brave (Chromium), Android 16, Samsung Galaxy Z Flip) ran the pairing on two networks; the rows are G-AP-1, G-AP-2 and G-AP-4 in [DEMO-RESULTS](DEMO-RESULTS.md), and G-OB-3 for its usage reports. On home Wi-Fi, at a lab door (a second door and rendezvous, loader build fdd689957ed5), the owner signed in for the visit, got a code and accepted a knock from a headless Chromium on a Mac on the same network: the knock was acknowledged in 28 ms, the owner accepted 4 s after the knock, ICE went from checking to connected in 78 ms with the selected pair `host/udp` to `host/udp`, the conversation connected 2 s after the accept, the greeting was delivered 0.8 s after it connected and read 2 s later, and two messages from the phone arrived with delivered and read receipts. The count of `RTCPeerConnection` objects before the accept (0) is the headless side's, measured by the probe; the phone's side was not instrumented. On mobile data (5G), at the demo door at 07:08 ET, the same phone accepted two knocks, but every WebRTC attempt failed: ICE went from checking to disconnected at 15 s and then to failed, in four attempts that the app offered again every 20 to 35 s, with remote candidates of the kinds `host` and `srflx` only. The pairing itself (the knock and the accept, through the rendezvous) worked across the public internet; the direct link did not connect for a peer on mobile data, and there is no relay to fall back to ("What an owner gets").
+**One phone, later that day.** The same day one Android phone (Brave (Chromium), Android 16, Samsung Galaxy Z Flip) ran the pairing on two networks; the rows are G-AP-1, G-AP-2 and G-AP-4 in [DEMO-RESULTS](DEMO-RESULTS.md), and G-OB-3 for its usage reports. On home Wi-Fi, at a lab door (a second door and rendezvous, loader build fdd689957ed5), the owner signed in for the visit, got a code and accepted a knock from a headless Chromium on a Mac on the same network: the knock was acknowledged in 28 ms, the owner accepted 4 s after the knock, ICE went from checking to connected in 78 ms with the selected pair `host/udp` to `host/udp`, the conversation connected 2 s after the accept, the greeting was delivered 0.8 s after it connected and read 2 s later, and two messages from the phone arrived with delivered and read receipts. The count of `RTCPeerConnection` objects before the accept (0) is the headless side's, measured by the probe; the phone's side was not instrumented. On mobile data (5G), at the demo door at 07:08 ET, the same phone accepted two knocks, but every WebRTC attempt failed: ICE went from checking to disconnected at 15 s and then to failed, in four attempts that the app offered again every 20 to 35 s, with remote candidates of the kinds `host` and `srflx` only. The pairing itself (the knock and the accept, through the rendezvous) worked across the public internet; the direct link did not connect for a peer on mobile data, and there was no relay to fall back to at the time. Messages through the rendezvous ([above](#messages-through-the-rendezvous)) are the change made for that result; they have not been run on mobile data.
 
 **Not yet run.**
 
 - No iPhone has run the apps. One Android phone has (above): it paired on home Wi-Fi and did not connect on mobile data.
+- No conversation has gone through the rendezvous on a real network: not on an office Wi-Fi, not on mobile data, not in Tor Browser, not over a VPN. The path is tested on loopback only.
 - No real Safari has run them, on a desktop or on an iPhone.
 - No pairing has run in WebKit or Firefox: the harness paired only in Chromium.
 - The two harness browsers ran on one computer, and the only run across two networks, with the phone on mobile data (above), did not connect. The door's STUN server has not been tried between two homes.
@@ -351,9 +435,20 @@ What is not fixed, in plain words. Each is a cost the design accepts today, or a
   dated a day back sorts before what you wrote an hour ago. The time shown is never later than your clock.
 - **A connection to a lane that was never accepted can count a room's members**, by the number of key boxes (see above).
 - **The rendezvous can sit on a conversation's lane.** It minted the lane, so it can join it and say that it speaks the apps' protocol;
-  the page writes each frame to the first connection that does, so the other person would get nothing until that one goes, and the
+  the page writes each frame to the first direct connection that does, so the other person would get nothing until that one goes, and the
   messages would show "Not sent". It reads and changes nothing (every frame is sealed under a key it lacks), and it can already refuse
   to introduce the two browsers at all. Sending to every connection that speaks would close this gap and is not built.
+- **A lane has two places, and whoever knows its id can take one.** The rendezvous mints the lane id and so knows it, and a socket that learns it
+  can join before the second person does. The second person then meets `lane full` and no message passes through the rendezvous for that
+  conversation; on a door that turns direct links on, a direct link can still connect. The one who took the place reads nothing: every frame is
+  sealed under a key it lacks. A new code ends it.
+- **A phone that changes network can find its lane full for a while.** A socket that disappears without closing stays a member of its lane until the rendezvous
+  closes it as idle, up to 25 minutes (20 minutes of silence, looked at every 5). Until then the page that replaces it can meet `lane full`, and a message written to the
+  vanished socket reaches nobody, so it is not acknowledged and goes again. Nothing is stored for the relay: a message sent while the other side is away waits in the
+  sender's page, which has to stay open, and goes after the other side has joined.
+- **The relay is as available as its host.** Messages through the rendezvous stop when the rendezvous is off (`RELAY_LANE` `"0"`), busy (the day cap of 20,000
+  frames, until 00:00 UTC) or unreachable, and the Workers Free plan's own limits apply to it; the conversation waits at "Connecting..." and unsent
+  messages stay queued while the page is open. A second carrier is not built.
 - **A message that the other person sent and you pinned still goes when their timer says so**, as above.
 
 ## Prior art and design notes
@@ -378,7 +473,7 @@ introduction or roster block is a change of format, not a redesign.
 | Matrix and ZRTP | a short authentication string with a commit before the reveal, so that a man in the middle gets one guess | not built: the compare code is not hash-committed, so a man in the middle who holds the secret could grind it |
 | Nostr (gift wrap) | store and forward of sealed envelopes | not built: a seven-day mailbox in the rendezvous for sealed frames is a backlog item |
 | MLS ([RFC 9420](https://www.rfc-editor.org/rfc/rfc9420.html)) | group keys with forward secrecy for long-lived groups | not used: a room has one epoch of the project's group sealing and a leaver means a new room. The research advises against MLS for short-lived door rooms (a commit needs an ordering authority, and the main library the study found, ts-mls, was 692 KB unpacked and listed no audit on its project page, read on 2026-11-01); it stays a backlog item for rooms that persist |
-| WebRTC address hygiene | browsers hide local addresses behind mDNS names; the apps use the site's own STUN only; the first connection offer moves after approval | an "always relay" choice through the site's TURN server (R 2.7.8) |
+| WebRTC address hygiene | browsers hide local addresses behind mDNS names; the apps use the site's own STUN only; the first connection offer moves after approval; by default no `RTCPeerConnection` is made at all, and the messages go through the rendezvous | a relay through a TURN server (R 2.7.8): not built |
 
 **What the research advised, and what was built.** A prior-art study written on 2026-11-01 (Magic Wormhole, SimpleX, Signal, Nostr, MLS,
 PAKEs, WebRTC privacy, pairing-code design) made recommendations. Where the build differs, it is on purpose or for lack of time:
@@ -388,12 +483,13 @@ PAKEs, WebRTC privacy, pairing-code design) made recommendations. Where the buil
 | A secret of at least 80 bits, independent of the channel | 40 bits (8 characters), drawn separately from the channel. A code must be easy to read aloud; each guess costs 100,000 PBKDF2 rounds. A relay that keeps a sealed box can still test guesses offline, about a million times more slowly than it could for a 20-bit secret. A PAKE would remove this and is the first backlog item |
 | A single-use code that lives about 10 minutes and is burned after three bad requests or a second valid one | A code lives while the page is open (24 hours at the most), takes any number of requests, each approved or rejected on its own, and is replaced after five requests the owner cannot open. A request is accepted once (its nonce) and only within 10 minutes of its time |
 | Bind the channel and the role into the key derivation and the box, and sign the chat key with the identity key | Done: the channel is in the key derivation, the channel and the role are in the box's associated data and in the signature, and the identity key signs the hello that carries the chat key |
-| Open a WebRTC connection only after approval, and send the offer and the DTLS fingerprint sealed | The first half only: no connection exists before the accept. Offers and answers travel through the rendezvous unsealed, as with any tracker. The messages are sealed under the pair key whatever the path |
-| Never ask for the camera or the microphone | Done: the apps never do. In browsers that keep local addresses behind mDNS names unless a page holds that permission, this keeps them hidden; the public address still shows once you accept |
+| Open a WebRTC connection only after approval, and send the offer and the DTLS fingerprint sealed | The first half only: no connection exists before the accept, and with the default (direct links off) none exists after it either. Offers and answers, when a door turns direct links on, travel through the rendezvous unsealed, as with any tracker. The messages are sealed under the pair key whatever the path |
+| Never ask for the camera or the microphone | Done: the apps never do. In browsers that keep local addresses behind mDNS names unless a page holds that permission, this keeps them hidden; the public address shows to the other person only when a door turns direct links on and one connects |
 | Rooms by full mesh of pairwise sealing, or sender keys with a rekey on every join and leave | One room secret, sealed by the owner to each member, and signed group messages. No rekey |
 | No stored gift wraps, no messages held by a relay, no ledger for private messages | Done |
 
 **Backlog.** A password-authenticated key exchange for the code (CPace on P-256). A hash-committed short authentication string. A mailbox in
-the rendezvous for sealed frames addressed to an inbox tag. An "always relay" choice. Media, files and calls at a door. A rekey for rooms.
+the rendezvous for sealed frames addressed to an inbox tag. A second carrier for when this rendezvous is busy or gone. A direct link per contact, in place
+of the door-wide key. Media, files and calls at a door. A rekey for rooms.
 A separate `_mw/apps.js` so that only doors with apps load them. A verifier that accepts a door kit whose `door.json` carries the block
 (`verify-release.mjs verify --door-kit` names that file today; [DEPLOY](DEPLOY.md), "Apps at a door").

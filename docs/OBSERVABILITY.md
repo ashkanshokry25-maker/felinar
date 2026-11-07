@@ -225,7 +225,8 @@ the pair socket's `link.`; the loader's own events have none. The identity page'
 ### WebRTC links (`ice.*`)
 
 The loader wraps `RTCPeerConnection` before the WebTorrent bundle loads. Every event names the connection by a small number, `id`, and carries states and kinds
-of candidates only, never an address or a port. The calls' own connections (`src/calls`) are not wrapped.
+of candidates only, never an address or a port. The calls' own connections (`src/calls`) are not wrapped. A door page whose apps block keeps the default,
+`direct` `off`, makes no peer connection for the apps, so none of these events comes from it; they appear when the door turns direct links on.
 
 | Event | Fields | Raised when |
 |---|---|---|
@@ -240,7 +241,8 @@ of candidates only, never an address or a port. The calls' own connections (`src
 ### The apps on the door page (`apps.*` and `link.*`)
 
 Only on a door with apps and an endpoint. Every field is a word, a count, a boolean, the local id of a conversation or a room, or the 4-character channel of a code;
-never a text, a name, a nickname, a key, a box, a proof, a lane or the secret half of a code.
+never a text, a name, a nickname, a key, a box, a proof, a lane or the secret half of a code. The lane at the rendezvous through which messages pass (the relay) is reported
+as a word and a count of the others on it, never by its id, and a message that passes through it is never reported by its content or its frame.
 
 | Event | Fields | Raised when |
 |---|---|---|
@@ -251,19 +253,20 @@ never a text, a name, a nickname, a key, a box, a proof, a lane or the secret ha
 | `apps.code` | `ev`, `kind`, `why`, `channel` | the visitor's code opened, was replaced, closed or failed to open (`kind` is `pair` or `room`) |
 | `apps.knock` | `ev`, `kind`, `channel`, `reason` | a request to someone else's code was `sent`, answered (`ok`) or failed (`error`); `reason` is a word of the service's own (`again`, `silent`) or one of the failure reasons of the project's rendezvous (`unknown-code`, `channel-taken` and so on), else `other`: never the text a rendezvous chose for itself |
 | `apps.request` | `ev`, `kind`, `reason` | a request to the visitor's code arrived (`in`), was accepted (`accept`) or rejected (`reject`), expired, was turned away (`turned-away`) or dropped (`dropped`), or the accept failed (`accept-error`) |
-| `apps.conv` | `id`, `status`, `reason`, `incoming` | a conversation changed status (`waiting`, `connecting`, `connected`, `rejected`, `left`, `blocked`, `removed`) |
+| `apps.conv` | `id`, `status`, `reason`, `incoming`, `via` | a conversation changed status (`waiting`, `connecting`, `connected`, `rejected`, `left`, `blocked`, `removed`); `via` is `relay` (through the rendezvous) or `direct` (a direct link) while the status is `connected`, and is left out otherwise |
 | `apps.room` | `id`, `status`, `reason`, `members` | a room changed status, and how many members it has |
-| `apps.wire` | `conv`, `ev`, `kind`, `reason` | the connection of a conversation or room went `up` or `down`, was closed (`kill`) or struck for a bad frame (`strike`) |
+| `apps.lane` | `ev`, `peers` | the lane of a conversation or room at the rendezvous, the relay: `join` was asked, `joined` (this page's join was answered, or another page joined the lane), `left` (another page left it), or a word for why it did not work: `full` (the lane has its two places, or sixteen for a room), `busy` (the rendezvous's day cap), `off` (the relay is off on that rendezvous), `invalid`, `unknown` (the rendezvous does not serve that lane), `rate`, `dead` (the page gave the lane up after bad frames), `direct-unavailable` (the door asks for a direct link and this browser has no WebRTC; the relay carries the conversation); `peers` is how many others are on the lane. The lane's id is never in it |
+| `apps.wire` | `conv`, `ev`, `kind`, `via`, `reason` | the connection of a conversation or room went `up` or `down`, was closed (`kill`) or struck for a bad frame (`strike`); `kind` is `pair` or `room`, and `via` says which path it is, `relay` (the lane at the rendezvous) or `direct` (a direct link) |
 | `apps.msg` | `conv`, `status`, `count` | how many messages reached a status (`queued`, `scheduled`, `sent`, `received`, `delivered`, `read`, `failed`) at once; counts only, never text |
 | `apps.notice` | `kind`, `why` | the page showed a notice |
 | `link.state` | `state`, `prev` | the pair socket changed state |
 | `link.open` | `attempt` | it opened, on this try |
 | `link.gone` | `why` | it went away |
 | `link.backoff` | `attempt`, `ms`, `why` | it will try again after this long |
-| `link.sent` | `action` | a frame went out; the action's name, such as `pair-open` |
+| `link.sent` | `action` | a frame went out; the action's name, such as `pair-open`, `pair-join`, `pair-relay` or `pair-leave` (and the `room-` forms), never the frame |
 | `link.timeout` | `action`, `ms` | a request got no answer in time |
-| `link.reply` | `action`, `ok`, `reason`, `ms` | a request was answered, and how fast; `reason` is one of the failure reasons of the project's rendezvous or the link's own (`link-down`, `timeout`), else `other` |
-| `link.push` | `name` | the rendezvous pushed something (its name) |
+| `link.reply` | `action`, `ok`, `reason`, `ms` | a request was answered, and how fast; for `pair-relay` the `ms` is the round trip to the rendezvous, which is the relay's half of a message's delay. `reason` is one of the failure reasons of the project's rendezvous or the link's own (`link-down`, `timeout`), else `other`; the relay adds `invalid-lane`, `unknown-lane`, `lane-full`, `too-many-lanes`, `invalid-frame`, `too-many-relays`, `relay-is-busy`, `relay-is-off-on-this-rendezvous` and `too-many-messages` |
+| `link.push` | `name` | the rendezvous pushed something (its name); the relay's pushes are `pair-relayed` (one for each frame that arrives, with no content), `pair-joined` and `pair-left`, and the `room-` forms. The answer to the keepalive, `pair-pong`, is no event |
 
 ### The identity page
 
