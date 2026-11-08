@@ -34,7 +34,10 @@
 // select changes on a trusted event only: it is set by typing the first letter of its choice). The identity popup is driven with
 // driveIdp(popup, { unlock: 'visit' }): the identity client keeps 10 s between two sign-ins of one page (R 2.3.9), so a page signs in once
 // per load. The door page is a second dev server over the run's build with the apps block (--apps-rendezvous: the stack's tracker,
-// --apps-idp: the stack's identity origin, no --apps-stun). Chromium only: no APPS scenario runs in WebKit or Firefox.
+// --apps-idp: the stack's identity origin, no --apps-stun). APPS-1 and APPS-3 use the block with no relay or direct key, the shipped
+// default (relay rendezvous, direct off: conversations go through the rendezvous and no peer connection is made); APPS-2 and APPS-4
+// check the direct wire (the lane announced only after the accept, peer connections, a dropped wire), so their door adds --apps-relay
+// none, which keeps the direct wire of before the relay (AMENDMENTS A2 and A6). Chromium only: no APPS scenario runs in WebKit or Firefox.
 //
 // Two things the plan describes differently from the page: the shortest choice of the disappearing-message timer is 10 seconds (the
 // service accepts one second, unit-tested; the page offers 10 seconds to a week), and a dropped wire is made by closing the page's
@@ -324,24 +327,35 @@ export function appsScenarios({ run, assert, headed = false }) {
 
   // ---- the stack ------------------------------------------------------------------------------
 
-  /** The door page: a second dev server over the run's build whose /_mw/door.json names the apps block (tracker, identity origin, no STUN). */
-  async function doorStack(ctx, step) {
-    if (ctx.shared.appsDoor) return ctx.shared.appsDoor;
+  /**
+   * The door page: a second dev server over the run's build whose /_mw/door.json names the apps block (tracker, identity origin, no STUN).
+   * relay null: the block has no relay and no direct key, the shipped default (relay rendezvous, direct off: plan D2 and D3, AMENDMENTS A2).
+   * relay 'none': the legacy block, which resolves to direct on (A2), for a scenario whose checks are about the direct wire and its ICE
+   * (AMENDMENTS A6). One server per kind, shared by the scenarios that ask for it; the served door.json is read back and must carry exactly
+   * the keys asked for.
+   */
+  async function doorStack(ctx, step, { relay = null } = {}) {
+    const slot = relay === null ? 'appsDoor' : 'appsDoor-' + relay;
+    if (ctx.shared[slot]) return ctx.shared[slot];
     const { stack } = ctx;
-    const door = await step('the door: a dev server over the build whose door.json has the apps block (the stack\'s tracker, the stack\'s identity origin, no STUN)', async () => {
-      const dev = await createDevServer({
+    const kind = relay === null ? 'no relay or direct key: the shipped default, relay rendezvous and direct off' : 'relay ' + relay + ': the direct wire as before the relay (AMENDMENTS A6)';
+    const door = await step('the door: a dev server over the build whose door.json has the apps block (the stack\'s tracker, the stack\'s identity origin, no STUN; ' + kind + ')', async () => {
+      const options = {
         root: stack.dist, port: 0, host: '127.0.0.1', dev: true, quiet: true,
         appsRendezvous: [stack.tracker.url], appsStun: [], appsIdp: stack.idp.url,
-      });
+      };
+      if (relay !== null) options.appsRelay = relay;
+      const dev = await createDevServer(options);
       ctx.closers.push(() => dev.close());
       assert(dev.apps && dev.apps.rendezvous.length === 1 && dev.apps.stun.length === 0 && dev.apps.idp === stack.idp.url, bad('apps block', dev.apps));
       assert(stack.tracker.pairing === true, 'the stack tracker does not serve the pairing protocol (deploy/rtc-worker/pair.js)');
       const res = await fetch(dev.url + '_mw/door.json');
       const json = await res.json();
       assert(json.apps && json.apps.rendezvous[0] === stack.tracker.url && json.apps.idp === stack.idp.url, bad('served door.json apps', json.apps));
-      return { dev, origin: new URL(dev.url).origin, page: dev.url + '_mw/open.html', rendezvous: stack.tracker.url, idp: stack.idp.url };
+      assert(json.apps.relay === (relay === null ? undefined : relay) && json.apps.direct === undefined, bad('the relay and direct keys of the served door.json (asked: relay ' + relay + ', no direct)', { relay: json.apps.relay, direct: json.apps.direct }));
+      return { dev, origin: new URL(dev.url).origin, page: dev.url + '_mw/open.html', rendezvous: stack.tracker.url, idp: stack.idp.url, relay };
     });
-    ctx.shared.appsDoor = door;
+    ctx.shared[slot] = door;
     return door;
   }
 
@@ -410,6 +424,7 @@ export function appsScenarios({ run, assert, headed = false }) {
   }
 
   async function openDoor(P, door) {
+    P.door = door; // the price card follows the door's relay and direct keys (continueCard)
     await P.page.goto(door.page, { waitUntil: 'domcontentloaded', timeout: 20000 });
     // one reload into the limited-mode policy happens first; the apps home shows after it
     return waitApps(P, (a) => a.view === 'home', 'the apps home', 30000);
@@ -451,14 +466,29 @@ export function appsScenarios({ run, assert, headed = false }) {
   /**
    * Answers the price card of the given kind ('start', 'knock', 'accept', 'room-create', 'room-join', 'room-accept') with Continue, after
    * checking its words; whileShown() runs while the card is on screen (nothing has left the page yet). Returns the card text.
+   * The price is the one of the door the party opened (plan 3.8, DECISIONS DEC-3 and DEC-8): on the shipped default the relay text and then,
+   * as its own paragraph, the sentence that the other person (the members) do not see your address (apps.price.hidden, apps.price.hiddenRoom;
+   * every door here keeps direct links off); on a door with relay none the direct-only text of before the relay and no such paragraph. Never
+   * the other door's text, and never the "also tries a direct link" line (no door here asks for it).
    */
   async function continueCard(P, kind, { check = false, whileShown = null } = {}) {
     await waitApps(P, (a) => a.card === kind, 'the ' + kind + ' card', 10000);
     const text = await P.text('[data-role="card"]');
     const accept = kind === 'accept' || kind === 'room-accept';
     const room = kind.indexOf('room') === 0;
+    const legacy = !!(P.door && P.door.relay === 'none');
+    const price = legacy ? (room ? 'apps.price.roomDirect' : 'apps.price.textDirect') : (room ? 'apps.price.room' : 'apps.price.text');
+    const other = legacy ? (room ? 'apps.price.room' : 'apps.price.text') : (room ? 'apps.price.roomDirect' : 'apps.price.textDirect');
+    const hidden = room ? 'apps.price.hiddenRoom' : 'apps.price.hidden';
+    // a key the table does not have gives '', which every indexOf finds: so the sentence must exist before it is looked for
+    assert(TX(hidden).length > 0, 'src/loader/strings.js has no English text for ' + hidden);
     assert(text.indexOf(TX(accept ? (room ? 'apps.accept.titleRoom' : 'apps.accept.title') : 'apps.price.title')) >= 0, P.name + ': the title of the ' + kind + ' card: ' + text);
-    assert(text.indexOf(TX(room ? 'apps.price.room' : 'apps.price.text')) >= 0, P.name + ': the price is not on the ' + kind + ' card: ' + text);
+    assert(text.indexOf(TX(price)) >= 0, P.name + ': the price (' + price + ') is not on the ' + kind + ' card: ' + text);
+    assert(text.indexOf(TX(other)) < 0 && text.indexOf(TX('apps.price.direct')) < 0, P.name + ': the ' + kind + ' card carries ' + other + ' or apps.price.direct, which this door does not ask for: ' + text);
+    // DEC-3 (DEC-8): with direct off the denial is its own paragraph after the price; the text of before the relay (relay none) has no such paragraph
+    const paras = await P.page.evaluate(() => Array.from(document.querySelectorAll('[data-role="card"] p')).map((n) => n.innerText.replace(/\s+/g, ' ').trim()));
+    assert(paras.includes(TX(hidden)) === !legacy, P.name + ': the paragraph "' + TX(hidden) + '" ' + (legacy ? 'is on' : 'is missing from') + ' the ' + kind + ' card, or is not a paragraph of its own: ' + JSON.stringify(paras));
+    if (!legacy) assert(paras.indexOf(TX(hidden)) === paras.indexOf(TX(price)) + 1, P.name + ': the denial does not follow the price on the ' + kind + ' card: ' + JSON.stringify(paras));
     assert((text.indexOf(TX('apps.price.check')) >= 0) === check, P.name + ': the "' + TX('apps.price.check') + '" line ' + (check ? 'is missing from' : 'is on') + ' the ' + kind + ' card: ' + text);
     if (whileShown) await whileShown();
     await P.press('[data-role="card-continue"]');
@@ -765,7 +795,10 @@ export function appsScenarios({ run, assert, headed = false }) {
     title: 'pair: two browser processes; a code, a knock, an approval; nothing moves before it; sealed messages, ticks, quote, reaction, edit, delete for both, pin, search, export, a dropped wire, a disappearing message, sign-out',
     async fn(ctx, step) {
       await closeLeftovers(ctx);
-      const door = await doorStack(ctx, step);
+      // AMENDMENTS A6: this scenario checks the direct wire (the lane announced only after the accept, the peer connections, the wire dropped
+      // by closing B's connections, the actions A and B said), so its door says relay none (direct on, A2); the relay is proved by the LANE
+      // scenarios (test/e2e/scenarios-lane.mjs) and by APPS-3, which runs on the shipped default.
+      const door = await doorStack(ctx, step, { relay: 'none' });
       const { tracker } = ctx.stack;
       const run0 = run.violations.length;
       const text1 = 'hello *bold* _it_ ~gone~ `mono` ' + MARK + ' ' + URL1 + ' ';
@@ -1199,8 +1232,11 @@ export function appsScenarios({ run, assert, headed = false }) {
           assert(text.indexOf('p256:') < 0 && text.toLowerCase().indexOf(secret) < 0, P.name + ' sent a key or the secret');
           await assertNothingStored(P, kept.get(P), needles.concat([A.short.replace('-', ''), B.short.replace('-', ''), 'p256:']));
         }
-        assert(framesJson(B, 'out').every((f) => f.msg.action === 'pair-knock' || f.msg.action === 'announce'), 'B said something else to the rendezvous: ' + JSON.stringify(framesJson(B, 'out').map((f) => f.msg.action)));
-        const aSaid = Array.from(new Set(framesJson(A, 'out').map((f) => f.msg.action)));
+        // DECISIONS DEC-7: the keepalive (plan 3.4: the link writes pair-ping every 50 s while its socket is open) is not an action a person took, so it is
+        // left out of what A and B "said"; with it in, a run that crossed the 50 s mark would fail here by the clock, not because a page said something new.
+        const saidBy = (P) => framesJson(P, 'out').map((f) => f.msg.action).filter((a) => a !== 'pair-ping');
+        assert(saidBy(B).every((a) => a === 'pair-knock' || a === 'announce'), 'B said something else to the rendezvous: ' + JSON.stringify(saidBy(B)));
+        const aSaid = Array.from(new Set(saidBy(A)));
         assert(aSaid.every((x) => ['pair-open', 'pair-accept', 'pair-close', 'announce'].indexOf(x) >= 0), 'A said ' + aSaid.join());
         return leakCheck([A, B], { run0, needles, door });
       });
@@ -1377,7 +1413,9 @@ export function appsScenarios({ run, assert, headed = false }) {
     title: 'room: an owner and three people in four browser processes; the owner decides each request; the roster of three is on all three members; messages fan out; the rejected person never learns the lane and gets nothing',
     async fn(ctx, step) {
       await closeLeftovers(ctx);
-      const door = await doorStack(ctx, step);
+      // AMENDMENTS A6: the lane step checks the direct wire of a room (the lane announced only after the first accept, a peer connection
+      // on each member), so this scenario's door says relay none (direct on, A2).
+      const door = await doorStack(ctx, step, { relay: 'none' });
       const { tracker } = ctx.stack;
       const run0 = run.violations.length;
       const t0 = Date.now();

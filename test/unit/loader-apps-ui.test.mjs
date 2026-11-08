@@ -16,7 +16,7 @@ import { APPS_TEXT, appsText, DOOR_TEXT } from '../../src/loader/strings.js';
 import { createUI, clockText } from '../../src/loader/ui.js';
 import { lintSource } from '../../tools/lint-floor.mjs';
 import { __apps } from '../../src/loader/app.js';
-import { doorJsonFor, appsBlockOf } from '../../src/loader/doors.js';
+import { doorJsonFor, appsBlockOf, appsTransportOf } from '../../src/loader/doors.js';
 import { createHash } from 'node:crypto';
 import { makeWorld, until, settle } from './fakes/apps-fakes.mjs';
 
@@ -70,7 +70,7 @@ const ME = { pub: 'p256:me-a', short: 'ab23cd45', name: 'Ana' };
 const signedIn = (extra = {}) => Object.assign({ signedIn: true, me: ME }, extra);
 
 /** A page: a fake document, the fake ui of the loader (showApps and the rest), the actions app.js gives the view, and the view itself. */
-function world(state = {}, { service = {}, actions = {}, lang = 'en', noOpenLink = false, noUiHooks = false } = {}) {
+function world(state = {}, { service = {}, actions = {}, lang = 'en', noOpenLink = false, noUiHooks = false, reportsHost = '' } = {}) {
   const doc = new FakeDocument();
   const root = doc.createElement('div');
   doc.body.appendChild(root);
@@ -93,7 +93,7 @@ function world(state = {}, { service = {}, actions = {}, lang = 'en', noOpenLink
     download(name, text, type) { downloads.push({ name, text, type }); return true; },
     prompt(kind, data) { prompts.push([kind, data]); return Promise.resolve(true); },
   };
-  const app = createAppsUi({ root, ui, service: svc, lang, actions: acts, now: () => T0 + 60000 });
+  const app = createAppsUi({ root, ui, service: svc, lang, actions: acts, now: () => T0 + 60000, reportsHost });
   const w = { doc, root, svc, ui, app, acts, downloads, prompts, copies, logs };
   w.set = async (patch) => { Object.assign(svc.s, patch); svc.emit(); await flush(); };
   w.destroy = () => app.destroy();
@@ -414,7 +414,25 @@ test('French: the same view in French when the language tag says so', async () =
 
 // ---------------------------------------------------------------------------------------------- Messages: the code, knocking, requests
 
-const PRICE_EN = 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the other\'s network address.';
+// The price card of the relay-first build (plan 3.8; the English is the plan's, word for word, up to "never what."). The sentence that the
+// other person (the members) do not see your address is its own paragraph, apps.price.hidden (apps.price.hiddenRoom), shown only when the
+// door keeps direct links off: with direct on the card shows apps.price.direct in its place, so that it never states the denial and then takes
+// it back (DECISIONS DEC-3). The texts of today, which a door that says relay "none" still shows (direct only), live under the keys
+// apps.price.textDirect and apps.price.roomDirect.
+const PRICE_EN = 'Codes and requests pass through this door\'s rendezvous. After the other person accepts, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what.';
+const PRICE_HIDDEN_EN = 'The other person does not see your address.';
+const PRICE_HIDDEN_ROOM_EN = 'The members do not see your address.';
+const PRICE_EN_TODAY = 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the other\'s network address.';
+const PRICE_DIRECT_EN = 'This door also tries a direct link between you, which shows each side the other\'s network address.';
+const PRICE_FR = 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois que l\'autre personne a accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu.';
+const PRICE_HIDDEN_FR = 'L\'autre personne ne voit pas votre adresse.';
+const PRICE_HIDDEN_ROOM_FR = 'Les membres ne voient pas votre adresse.';
+const PRICE_ROOM_FR = 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois qu\'un membre est accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu.';
+const PRICE_DIRECT_FR = 'Cette porte essaie aussi un lien direct entre vous, qui montre à chacun l\'adresse réseau de l\'autre.';
+// The line of a conversation or a room whose only path the rendezvous refused (DECISIONS DEC-5: reason 'no-path'), in place of "Connecting..." for ever.
+const NO_PATH_EN = 'This door\'s rendezvous does not carry messages; ask the door\'s owner to update it';
+// "le" is the rendezvous, as "it" is in English (finding C-7 of verify round 0): it is the rendezvous that is to be updated, not the door
+const NO_PATH_FR = 'Le point de rendez-vous de cette porte ne transporte pas les messages; demandez au propriétaire de la porte de le mettre à jour';
 
 /** A signed-in world whose service answers openCode and newCode like the real one: the code appears in state() and the view hears of it. */
 function messagesWorld(state = {}, opts = {}) {
@@ -1687,7 +1705,8 @@ function room(over = {}) {
     members: [{ pub: 'p256:me-a', short: 'ab23cd45', name: 'Ana', you: true, owner: true }], unread: 0, draft: '', peers: 0, messages: [],
   }, over);
 }
-const PRICE_ROOM_EN = 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until a member is accepted; then you connect directly and each side learns the other\'s network address.';
+const PRICE_ROOM_EN = 'Codes and requests pass through this door\'s rendezvous. After a member is accepted, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what.';
+const PRICE_ROOM_EN_TODAY = 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until a member is accepted; then you connect directly and each side learns the other\'s network address.';
 const roomRows = (w) => all(w, (n) => attr(n, 'data-room') !== null && n.tagName === 'BUTTON' && shown(n));
 
 test('Rooms: the list is empty at first; Create a room shows the price (the room wording) and acts only after Continue, then opens the room with its code in fourteen characters', async () => {
@@ -2051,7 +2070,7 @@ test('inspect() is plain data for the shell: view, code, conversations, rooms, l
   assert.equal(i.tm, true);
   assert.equal(i.requests, 1);
   assert.equal(i.conversations.length, 2);
-  assert.deepEqual(i.conversations[0], { id: 'c1', short: 'k3f9-2xq1', status: 'connected', unread: 1, messages: 6, lastStatus: 'failed', pinned: true, muted: false, archived: false, favorite: false });
+  assert.deepEqual(i.conversations[0], { id: 'c1', short: 'k3f9-2xq1', status: 'connected', via: null, unread: 1, messages: 6, lastStatus: 'failed', pinned: true, muted: false, archived: false, favorite: false });
   assert.deepEqual(i.conversations[1].status, 'waiting');
   assert.deepEqual(i.rooms, [{ id: 'r1', role: 'owner', status: 'open', members: 1, messages: 1, unread: 0 }]);
   const text = JSON.stringify(i);
@@ -2186,7 +2205,7 @@ test('APPS_TEXT: the code is twelve characters in every sentence that says how l
   assert.equal(APPS_TEXT.en['apps.err.invalid'], 'A code has twelve characters, letters and numbers, like abcd-efgh-2345.');
   assert.equal(APPS_TEXT.fr['apps.err.invalid'], 'Un code compte douze caractères, des lettres et des chiffres, comme abcd-efgh-2345.');
   for (const lang of ['en', 'fr']) for (const [k, v] of Object.entries(APPS_TEXT[lang])) {
-    assert.ok(!/\b8\b|\beight\b|\bhuit\b/i.test(v), lang + ' ' + k + ' still says eight');
+    assert.ok(!/8|\beight\b|\bhuit\b/i.test(v), lang + ' ' + k + ' says eight, or holds the digit 8');
     assert.ok(!/\babcd-2345\b/.test(v), lang + ' ' + k + ' shows an eight character example');
   }
 });
@@ -2692,4 +2711,369 @@ test('end to end over the real service: a room; Bo asks with the code, Ana accep
   await waitFor(() => all(bo, (n) => attr(n, 'data-msg') && attr(n, 'data-mine') === '0' && shown(n)).length === 1, 'the answer on Bo\'s screen');
   assert.match(all(bo, (n) => attr(n, 'data-role') === 'from' && shown(n))[0].textContent, /^Ana \(/);
   assert.equal(bo.app.nodes.roomMessageList.children.length >= 2, true);
+});
+
+// ---------------------------------------------------------------------------------------------- relay-first: the price card, the status line, the tools line (plan 3.8, AMENDMENTS A1 and A4)
+
+const cardParas = (w) => cardOf(w).findAll((n) => n.tagName === 'P').map((n) => n.textContent);
+const CFG_DIRECT_ON = { relay: 'rendezvous', direct: 'on' };
+const CFG_TODAY = { relay: 'none', direct: 'on' };
+
+async function startCard(state = {}, opts = {}) {
+  const w = messagesWorld(state, opts);
+  click(tile(w, 'messages'));
+  await flush();
+  assert.equal(cardKind(w), 'start');
+  return w;
+}
+async function roomCard(state = {}, opts = {}) {
+  const w = messagesWorld(state, opts);
+  click(tile(w, 'rooms'));
+  await flush();
+  click(one(w, 'room-create'));
+  await flush();
+  assert.equal(cardKind(w), 'room-create');
+  return w;
+}
+
+test('the price card of the relay-first default is the plan\'s text, then the denial as its own paragraph, and nothing more, in English and French, for a code and for a room: a state without cfg is relay rendezvous with direct off', async () => {
+  assert.deepEqual(cardParas(await startCard()), [PRICE_EN, PRICE_HIDDEN_EN]);
+  assert.deepEqual(cardParas(await startCard({}, { lang: 'fr-CA' })), [PRICE_FR, PRICE_HIDDEN_FR]);
+  assert.deepEqual(cardParas(await roomCard()), [PRICE_ROOM_EN, PRICE_HIDDEN_ROOM_EN]);
+  assert.deepEqual(cardParas(await roomCard({}, { lang: 'fr' })), [PRICE_ROOM_FR, PRICE_HIDDEN_ROOM_FR]);
+  // the same state with cfg spelled out as the service resolves it by default
+  assert.deepEqual(cardParas(await startCard({ cfg: { relay: 'rendezvous', direct: 'off' } })), [PRICE_EN, PRICE_HIDDEN_EN]);
+  // and the conditions the text states are in it: what the rendezvous and its host see, ending at "never what." (DEC-3), and the denial on its own
+  assert.match(PRICE_EN, /see your network address, when you send and roughly how much, never what\.$/);
+  assert.match(PRICE_ROOM_EN, /see your network address, when you send and roughly how much, never what\.$/);
+  assert.equal(PRICE_HIDDEN_EN, 'The other person does not see your address.');
+  assert.equal(PRICE_HIDDEN_ROOM_EN, 'The members do not see your address.');
+  for (const v of [PRICE_EN, PRICE_ROOM_EN, PRICE_FR, PRICE_ROOM_FR]) assert.ok(!/see your address|voi(t|ent) pas votre adresse/.test(v), 'the denial is not inside the price text any more: ' + v);
+});
+
+test('with cfg.direct on the card adds the direct line after the relay text, in place of the denial (DEC-3: a card never states the denial and then takes it back), before the line that names the reports host, and before the Check line of an accept; with direct off it shows the denial and no direct line', async () => {
+  const on = await startCard({ cfg: CFG_DIRECT_ON });
+  assert.deepEqual(cardParas(on), [PRICE_EN, PRICE_DIRECT_EN]);
+  assert.deepEqual(cardParas(await startCard({ cfg: CFG_DIRECT_ON }, { lang: 'fr-CA' })), [PRICE_FR, PRICE_DIRECT_FR]);
+  assert.deepEqual(cardParas(await roomCard({ cfg: CFG_DIRECT_ON })), [PRICE_ROOM_EN, PRICE_DIRECT_EN]);
+  assert.deepEqual(cardParas(await startCard({ cfg: { relay: 'rendezvous', direct: 'off' } })), [PRICE_EN, PRICE_HIDDEN_EN]);
+  assert.deepEqual(cardParas(await roomCard({ cfg: { relay: 'rendezvous', direct: 'off' } })), [PRICE_ROOM_EN, PRICE_HIDDEN_ROOM_EN]);
+  // never both on one card, whatever the tokens
+  for (const cfg of [undefined, { relay: 'rendezvous', direct: 'off' }, CFG_DIRECT_ON, CFG_TODAY, { relay: 'none' }, { direct: 'on' }]) {
+    const paras = cardParas(await startCard({ cfg }));
+    assert.ok(!(paras.includes(PRICE_HIDDEN_EN) && paras.includes(PRICE_DIRECT_EN)), 'the denial and the direct line on one card for ' + JSON.stringify(cfg));
+  }
+  // the line that names the host of the usage reports comes last on a card that can start something
+  const withHost = await startCard({ cfg: CFG_DIRECT_ON }, { reportsHost: 'reports.example.test' });
+  assert.deepEqual(cardParas(withHost), [PRICE_EN, PRICE_DIRECT_EN, appsText('apps.price.reports', 'en', { host: 'reports.example.test' })]);
+  // the accept card: the price, the direct line, then the Check line
+  const w = messagesWorld({ cfg: CFG_DIRECT_ON, requests: [{ knock: 'k1', kind: 'pair', from: { pub: 'p256:bo', short: 'k3f92xq3', name: 'Bo' }, at: T0 }] });
+  w.app.show('messages');
+  click(one(w, 'card-continue'));
+  await flush();
+  click(all(w, (n) => attr(n, 'data-role') === 'accept' && shown(n))[0]);
+  await flush();
+  assert.equal(cardKind(w), 'accept');
+  assert.deepEqual(cardParas(w), [PRICE_EN, PRICE_DIRECT_EN, 'Check: read your codes to each other.']);
+  // the accept card with direct off: the price, the denial, then the Check line
+  const off = messagesWorld({ requests: [{ knock: 'k1', kind: 'pair', from: { pub: 'p256:bo', short: 'k3f92xq3', name: 'Bo' }, at: T0 }] });
+  off.app.show('messages');
+  click(one(off, 'card-continue'));
+  await flush();
+  click(all(off, (n) => attr(n, 'data-role') === 'accept' && shown(n))[0]);
+  await flush();
+  assert.equal(cardKind(off), 'accept');
+  assert.deepEqual(cardParas(off), [PRICE_EN, PRICE_HIDDEN_EN, 'Check: read your codes to each other.']);
+  // the card follows the state at the moment it is drawn
+  const later = messagesWorld();
+  await later.set({ cfg: CFG_DIRECT_ON });
+  click(tile(later, 'messages'));
+  await flush();
+  assert.deepEqual(cardParas(later), [PRICE_EN, PRICE_DIRECT_EN]);
+});
+
+test('with cfg.relay "none" the card shows the texts of today (direct only), in Messages and in Rooms, in both languages, and the direct line is not added to them', async () => {
+  assert.deepEqual(cardParas(await startCard({ cfg: CFG_TODAY })), [PRICE_EN_TODAY]);
+  assert.deepEqual(cardParas(await roomCard({ cfg: CFG_TODAY })), [PRICE_ROOM_EN_TODAY]);
+  assert.equal(APPS_TEXT.en['apps.price.textDirect'], PRICE_EN_TODAY, 'the key that holds today\'s text');
+  assert.equal(APPS_TEXT.en['apps.price.roomDirect'], PRICE_ROOM_EN_TODAY);
+  const fr = await startCard({ cfg: CFG_TODAY }, { lang: 'fr-CA' });
+  assert.deepEqual(cardParas(fr), [APPS_TEXT.fr['apps.price.textDirect']]);
+  assert.ok(APPS_TEXT.fr['apps.price.textDirect'].includes('vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre'), 'the French of today is kept as it was');
+  assert.ok(APPS_TEXT.fr['apps.price.roomDirect'].includes('tant qu\'un membre n\'est pas accepté'));
+  // the legacy texts are the old ones: they do not claim the relay's conditions
+  for (const lang of ['en', 'fr']) for (const k of ['apps.price.textDirect', 'apps.price.roomDirect']) assert.ok(!/sealed|scellés/.test(APPS_TEXT[lang][k]), lang + ' ' + k);
+});
+
+test('a cfg that is missing, not an object, or full of other words is the default: relay rendezvous with direct off; only the exact words change the card', async () => {
+  for (const cfg of [undefined, null, 'x', 7, true, [], [CFG_TODAY], {}, { relay: 'cloudflare', direct: 'maybe' }, { relay: 'NONE', direct: 'ON' }, { relay: 1, direct: 1 }, { relay: ['none'], direct: ['on'] }]) {
+    assert.deepEqual(cardParas(await startCard({ cfg })), [PRICE_EN, PRICE_HIDDEN_EN], JSON.stringify(cfg));
+  }
+  assert.deepEqual(cardParas(await startCard({ cfg: { direct: 'on' } })), [PRICE_EN, PRICE_DIRECT_EN], 'one token alone: the other is the default');
+  assert.deepEqual(cardParas(await startCard({ cfg: { relay: 'none' } })), [PRICE_EN_TODAY]);
+  // a service whose state() throws leaves the default card too
+  const w = messagesWorld();
+  w.svc.state = () => { throw new Error('boom'); };
+  assert.doesNotThrow(() => w.app.render());
+});
+
+test('the status line says "Connected through the rendezvous" for a conversation carried by the relay, and keeps "Connected to you now" for a direct link and for a service that says nothing; French twins', async () => {
+  const w = chatWorld({ via: 'relay' });
+  assert.equal(textOf(one(w, 'status-line')), 'Connected through the rendezvous');
+  assert.equal(attr(one(w, 'status-line'), 'data-status'), 'connected', 'the status word is still connected');
+  const node = one(w, 'status-line');
+  await w.set({ conversations: [chat({ via: 'direct' })] });
+  assert.equal(one(w, 'status-line'), node, 'the live line is changed in place');
+  assert.equal(textOf(node), 'Connected to you now');
+  await w.set({ conversations: [chat({ via: null })] });
+  assert.equal(textOf(node), 'Connected to you now');
+  await w.set({ conversations: [chat({ via: 'relay' })] });
+  assert.equal(textOf(node), 'Connected through the rendezvous');
+  assert.equal(textOf(one(chatWorld({}), 'status-line')), 'Connected to you now', 'a conversation with no via at all');
+  // only the exact word counts, and only for a connected conversation
+  for (const via of ['Relay', 'relay ', '<b>relay</b>', 1, true, {}, ['relay']]) assert.equal(textOf(one(chatWorld({ via }), 'status-line')), 'Connected to you now', JSON.stringify(via));
+  assert.equal(textOf(one(chatWorld({ via: 'relay', status: 'connecting', lastSeenAt: null, connectedAt: null }), 'status-line')), 'Connecting...');
+  assert.equal(textOf(one(chatWorld({ via: 'relay', status: 'left' }), 'status-line')), 'Left');
+  // French
+  assert.equal(textOf(one(chatWorld({ via: 'relay' }, {}, { lang: 'fr-CA' }), 'status-line')), 'Connecté par le point de rendez-vous');
+  assert.equal(textOf(one(chatWorld({ via: 'direct' }, {}, { lang: 'fr-CA' }), 'status-line')), 'Connecté avec vous en ce moment');
+  assert.equal(APPS_TEXT.en['apps.status.relayed'], 'Connected through the rendezvous');
+  assert.equal(APPS_TEXT.fr['apps.status.relayed'], 'Connecté par le point de rendez-vous');
+  // presence is never called online
+  assert.ok(!/\bonline\b|\ben ligne\b/i.test(APPS_TEXT.en['apps.status.relayed'] + APPS_TEXT.fr['apps.status.relayed']));
+});
+
+test('the conversation tools say how this conversation travels and which tokens the door has: via, relay: rendezvous, direct: off', async () => {
+  const line = (w) => { openTools(w); return textOf(one(w, 'tool-transport')); };
+  assert.equal(line(chatWorld({ via: 'relay' })), 'Connection: through the rendezvous. This door: relay: rendezvous, direct: off.');
+  assert.equal(line(chatWorld({ via: 'direct' }, { cfg: CFG_DIRECT_ON })), 'Connection: direct link. This door: relay: rendezvous, direct: on.');
+  assert.equal(line(chatWorld({ via: null }, { cfg: CFG_TODAY })), 'Connection: not connected yet. This door: relay: none, direct: on.');
+  assert.equal(line(chatWorld({})), 'Connection: not connected yet. This door: relay: rendezvous, direct: off.', 'a service with no via and no cfg: the defaults');
+  assert.equal(line(chatWorld({ via: 'relay' }, {}, { lang: 'fr-CA' })), 'Connexion : par le point de rendez-vous. Réglages de cette porte : relay: rendezvous, direct: off.');
+  // it is read-only text: no button in it, and it follows the state
+  const w = chatWorld({ via: 'relay' });
+  openTools(w);
+  const node = one(w, 'tool-transport');
+  assert.equal(node.findAll((n) => n.tagName === 'BUTTON').length, 0);
+  w.svc.s.conversations = [chat({ via: 'direct' })];
+  w.svc.s.cfg = CFG_DIRECT_ON;
+  w.svc.emit();
+  await flush();
+  assert.equal(textOf(one(w, 'tool-transport')), 'Connection: direct link. This door: relay: rendezvous, direct: on.');
+  // closed tools show nothing of it
+  const closed = chatWorld({ via: 'relay' });
+  assert.equal(has(closed, 'tool-transport'), false);
+});
+
+test('inspect() shows via per conversation and the door\'s tokens, words only: anything else reads as none, and no lane, frame or address can come through', async () => {
+  const w = messagesWorld({ conversations: [chat({ id: 'c1', via: 'relay' }), conv({ id: 'c2', via: 'direct' }), conv({ id: 'c3', via: '40' + 'a'.repeat(38) }), conv({ id: 'c4' }), conv({ id: 'c5', via: 'rendezvous.example.test:443' })] });
+  const i = w.app.inspect();
+  assert.deepEqual(i.conversations.map((c) => c.via), ['relay', 'direct', null, null, null]);
+  assert.equal(i.relay, 'rendezvous');
+  assert.equal(i.direct, 'off');
+  await w.set({ cfg: CFG_TODAY });
+  assert.equal(w.app.inspect().relay, 'none');
+  assert.equal(w.app.inspect().direct, 'on');
+  await w.set({ cfg: { relay: 'cloudflare', direct: 'sometimes' } });
+  assert.equal(w.app.inspect().relay, 'rendezvous');
+  assert.equal(w.app.inspect().direct, 'off');
+  const text = JSON.stringify(w.app.inspect());
+  assert.ok(!/[0-9a-f]{40}/.test(text) && !text.includes('example.test'), 'no lane id, no address');
+  // rooms keep the keys they had
+  assert.deepEqual(Object.keys(messagesWorld({ rooms: [room()] }).app.inspect().rooms[0]), ['id', 'role', 'status', 'members', 'messages', 'unread']);
+});
+
+test('the strings of the relay-first card, status and tools line: both languages, the same placeholders, English ASCII, no digit 8, no dash, no word the claims table forbids, never online', () => {
+  // the hyphen-like signs from U+2010 to U+2015 and the minus sign, built from code points (this file holds none of them)
+  const ANY_DASH = new RegExp('[' + [0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212].map((c) => String.fromCharCode(c)).join('') + ']');
+  const NEW_KEYS = ['apps.price.text', 'apps.price.room', 'apps.price.hidden', 'apps.price.hiddenRoom', 'apps.price.direct', 'apps.price.textDirect', 'apps.price.roomDirect', 'apps.status.relayed', 'apps.status.noPath', 'apps.tool.transport', 'apps.via.relay', 'apps.via.direct', 'apps.via.none'];
+  const FORBIDDEN = /anonym|untraceable|intra[cç]able|serverless|sans serveur|decentrali[sz]|d[eé]centralis|peer-to-peer|pair [àa] pair|no logs|aucun journal|permanent|unstoppable|censorship|works everywhere|everywhere|partout|production-ready|sub-second|online|en ligne/i;
+  for (const k of NEW_KEYS) {
+    assert.ok(typeof APPS_TEXT.en[k] === 'string' && APPS_TEXT.en[k].length > 0, 'en ' + k);
+    assert.ok(typeof APPS_TEXT.fr[k] === 'string' && APPS_TEXT.fr[k].length > 0, 'fr ' + k);
+    assert.equal(placeholders(APPS_TEXT.en[k]), placeholders(APPS_TEXT.fr[k]), k + ' placeholders');
+    assert.ok(/^[\x00-\x7f]*$/.test(APPS_TEXT.en[k]), 'English ' + k + ' is ASCII');
+    for (const lang of ['en', 'fr']) {
+      const v = APPS_TEXT[lang][k];
+      assert.ok(!/8|\beight\b|\bhuit\b/i.test(v), lang + ' ' + k + ' holds the digit 8 or says eight');
+      assert.ok(!NO_DASH.test(v) && !ANY_DASH.test(v), lang + ' ' + k + ' has a dash or a curly quote');
+      assert.ok(!FORBIDDEN.test(v), lang + ' ' + k + ' has a word the claims table forbids: ' + v);
+      for (const re of BANNED) assert.ok(!re.test(v), lang + ' ' + k + ' has ' + re);
+    }
+  }
+  assert.equal(APPS_TEXT.en['apps.price.text'], PRICE_EN);
+  assert.equal(APPS_TEXT.en['apps.price.room'], PRICE_ROOM_EN);
+  assert.equal(APPS_TEXT.en['apps.price.direct'], PRICE_DIRECT_EN);
+  assert.equal(APPS_TEXT.fr['apps.price.text'], PRICE_FR);
+  assert.equal(APPS_TEXT.fr['apps.price.room'], PRICE_ROOM_FR);
+  assert.equal(APPS_TEXT.fr['apps.price.direct'], PRICE_DIRECT_FR);
+  assert.equal(APPS_TEXT.en['apps.price.hidden'], PRICE_HIDDEN_EN);
+  assert.equal(APPS_TEXT.en['apps.price.hiddenRoom'], PRICE_HIDDEN_ROOM_EN);
+  assert.equal(APPS_TEXT.fr['apps.price.hidden'], PRICE_HIDDEN_FR);
+  assert.equal(APPS_TEXT.fr['apps.price.hiddenRoom'], PRICE_HIDDEN_ROOM_FR);
+  assert.equal(APPS_TEXT.en['apps.status.noPath'], NO_PATH_EN);
+  assert.equal(APPS_TEXT.fr['apps.status.noPath'], NO_PATH_FR);
+  // the conditions are in the sentence, not beside it: what is seen, by whom; the denial is its own sentence (DEC-3) and says who does not see what
+  for (const v of [PRICE_EN, PRICE_ROOM_EN]) {
+    assert.match(v, /the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what\.$/);
+    assert.match(v, /sealed/);
+  }
+  assert.match(PRICE_HIDDEN_EN, /^The other person does not see your address\.$/);
+  assert.match(PRICE_HIDDEN_ROOM_EN, /^The members do not see your address\.$/);
+  assert.match(PRICE_DIRECT_EN, /shows each side the other's network address/);
+  // the French accents are the ones the table already uses
+  assert.match(PRICE_FR, /accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient/);
+});
+
+test('end to end over the real service with relay "rendezvous" and direct "off": the relay card, no manager, "Connected through the rendezvous", via relay in inspect(), the tools line, and a message crosses', async () => {
+  const world = makeWorld();
+  const ana = personView(await world.make('Ana', { relay: 'rendezvous', direct: 'off' }), world);
+  const bo = personView(await world.make('Bo', { relay: 'rendezvous', direct: 'off' }), world);
+  ana.app.show('messages');
+  assert.deepEqual(cardParas(ana), [PRICE_EN, PRICE_HIDDEN_EN], 'the card reads the service\'s cfg: the relay text, the denial, and nothing about a direct link');
+  click(one(ana, 'card-continue'));
+  const code = await waitFor(() => (has(ana, 'code') ? textOf(one(ana, 'code')) : null), 'the code of Ana');
+  assert.equal(ana.app.inspect().relay, 'rendezvous');
+  assert.equal(ana.app.inspect().direct, 'off');
+  bo.app.show('messages');
+  click(one(bo, 'card-continue'));
+  await waitFor(() => has(bo, 'code'), 'the code of Bo');
+  typeInto(one(bo, 'knock-input'), code);
+  click(one(bo, 'knock-button'));
+  await waitFor(() => has(bo, 'knock-note') && textOf(one(bo, 'knock-note')).startsWith('Request sent'), 'the knock of Bo');
+  await waitFor(() => all(ana, (n) => attr(n, 'data-role') === 'accept' && shown(n)).length === 1, 'the request on Ana\'s screen');
+  click(one(ana, 'accept'));
+  assert.deepEqual(cardParas(ana), [PRICE_EN, PRICE_HIDDEN_EN, 'Check: read your codes to each other.']);
+  click(one(ana, 'card-continue'));
+  await waitFor(() => ana.app.inspect().conversations[0] && ana.app.inspect().conversations[0].status === 'connected', 'Ana connected');
+  await waitFor(() => bo.app.inspect().conversations[0] && bo.app.inspect().conversations[0].status === 'connected', 'Bo connected');
+  assert.equal(ana.person.loadCalls.length, 0, 'direct off: no torrent manager was asked for');
+  assert.equal(bo.person.loadCalls.length, 0);
+  assert.equal(ana.app.inspect().conversations[0].via, 'relay');
+  assert.equal(bo.app.inspect().conversations[0].via, 'relay');
+  ana.app.show('conversation', idOf(ana));
+  bo.app.show('conversation', idOf(bo));
+  assert.equal(textOf(one(ana, 'status-line')), 'Connected through the rendezvous');
+  assert.equal(textOf(one(bo, 'status-line')), 'Connected through the rendezvous');
+  click(one(ana, 'tools-toggle'));
+  assert.equal(textOf(one(ana, 'tool-transport')), 'Connection: through the rendezvous. This door: relay: rendezvous, direct: off.');
+  typeInto(bo.app.nodes.composer, 'across the rendezvous');
+  keydown(bo.app.nodes.composer, 'Enter');
+  await waitFor(() => all(ana, (n) => attr(n, 'data-msg') && attr(n, 'data-mine') === '0' && shown(n)).length === 1, 'the message on Ana\'s screen');
+  const mineOfBo = () => all(bo, (n) => attr(n, 'data-msg') && attr(n, 'data-mine') === '1')[0];
+  await waitFor(() => mineOfBo() && ['delivered', 'read'].includes(attr(mineOfBo(), 'data-status')), 'delivered ticks on Bo\'s screen');
+  // nothing the page shows or inspect() holds has the lane, a frame or the text where it must not be
+  const text = JSON.stringify(ana.app.inspect()) + JSON.stringify(bo.app.inspect());
+  assert.ok(!/[0-9a-f]{40}/.test(text), 'no lane id in inspect()');
+  assert.ok(!text.includes('across the rendezvous'), 'no message text in inspect()');
+});
+
+test('the tokens resolve the same way in three places: the doors check (appsTransportOf, which the tools print), the service (state().cfg) and the card the view draws', async () => {
+  const combos = [{}, { relay: 'rendezvous' }, { relay: 'none' }, { direct: 'on' }, { direct: 'off' }, { relay: 'rendezvous', direct: 'off' }, { relay: 'rendezvous', direct: 'on' }, { relay: 'none', direct: 'on' }];
+  const world = makeWorld();
+  for (const combo of combos) {
+    const want = appsTransportOf(combo);
+    // a door with no key at all is { relay: undefined }: the world's default is the legacy door, and a key set to undefined is left out
+    const person = await world.make('Ana', { config: { relay: undefined }, relay: combo.relay, direct: combo.direct });
+    assert.deepEqual(person.apps.state().cfg, { relay: want.relay, direct: want.direct }, 'state().cfg for ' + JSON.stringify(combo));
+    const v = personView(person, world);
+    v.app.show('messages');
+    const expected = want.relay === 'none' ? [PRICE_EN_TODAY] : (want.direct === 'on' ? [PRICE_EN, PRICE_DIRECT_EN] : [PRICE_EN, PRICE_HIDDEN_EN]);
+    assert.deepEqual(cardParas(v), expected, 'the card for ' + JSON.stringify(combo));
+    assert.equal(v.app.inspect().relay, want.relay);
+    assert.equal(v.app.inspect().direct, want.direct);
+  }
+});
+
+// ---------------------------------------------------------------------------------------------- DEC-5: a conversation or a room with no usable path says so
+
+test('a conversation whose only path the rendezvous refused (reason no-path) shows why, in the conversation and in the list, instead of "Connecting..." for ever; a connected one, a left one and other reasons are unchanged; French twin', async () => {
+  const noPath = { status: 'connecting', reason: 'no-path', lastSeenAt: 0, connectedAt: 0, messages: [] };
+  const w = chatWorld(noPath);
+  const node = one(w, 'status-line');
+  assert.equal(textOf(node), NO_PATH_EN);
+  assert.equal(attr(node, 'data-status'), 'connecting', 'the status word is the service\'s; only the words shown change');
+  // the line is live and the reason wins over the time of the last connection while the conversation is not connected
+  await w.set({ conversations: [chat({ status: 'connecting', reason: 'no-path', lastSeenAt: T0 - 60000 })] });
+  assert.equal(textOf(one(w, 'status-line')), NO_PATH_EN);
+  await w.set({ conversations: [chat({ status: 'rejected', reason: 'no-path' })] });
+  assert.equal(textOf(one(w, 'status-line')), NO_PATH_EN, 'a service that marks it rejected with that reason says the same');
+  // a stale reason on a conversation that connected after all, or that was left or blocked, changes nothing
+  await w.set({ conversations: [chat({ status: 'connected', reason: 'no-path', via: 'relay' })] });
+  assert.equal(textOf(one(w, 'status-line')), 'Connected through the rendezvous');
+  await w.set({ conversations: [chat({ status: 'left', reason: 'no-path' })] });
+  assert.equal(textOf(one(w, 'status-line')), 'Left');
+  await w.set({ conversations: [chat({ status: 'blocked', reason: 'no-path' })] });
+  assert.equal(textOf(one(w, 'status-line')), 'Blocked');
+  // other reasons, and the exact word only
+  for (const reason of ['bad-lane', 'bad-key', 'no path', 'No-Path', '', null, undefined, 1, ['no-path']]) {
+    await w.set({ conversations: [chat(Object.assign({}, noPath, { reason }))] });
+    assert.equal(textOf(one(w, 'status-line')), 'Connecting...', JSON.stringify(reason));
+  }
+  // the list row of a conversation with no messages shows the same line
+  const list = messagesWorld({ conversations: [conv(noPath)] });
+  list.app.show('messages');
+  assert.ok(rowsOf(list)[0].textContent.includes(NO_PATH_EN), rowsOf(list)[0].textContent);
+  // French
+  assert.equal(textOf(one(chatWorld(noPath, {}, { lang: 'fr-CA' }), 'status-line')), NO_PATH_FR);
+  assert.equal(APPS_TEXT.en['apps.status.noPath'], NO_PATH_EN);
+  assert.equal(APPS_TEXT.fr['apps.status.noPath'], NO_PATH_FR);
+});
+
+test('a room whose lane the rendezvous refused (room.reason no-path) shows the same line for its owner (open) and its members (connecting), in the room and in the list; connected and closed rooms are unchanged', async () => {
+  const w = messagesWorld({ rooms: [room({ status: 'open', reason: 'no-path' })] });
+  w.app.show('room', 'r1');
+  assert.equal(textOf(one(w, 'status-line')), NO_PATH_EN, 'the owner, whose room is open and whose join was refused');
+  assert.equal(attr(one(w, 'status-line'), 'data-status'), 'open');
+  await w.set({ rooms: [room({ status: 'connecting', reason: 'no-path' })] });
+  assert.equal(textOf(one(w, 'status-line')), NO_PATH_EN, 'a member whose join was refused');
+  await w.set({ rooms: [room({ status: 'rejected', reason: 'no-path' })] });
+  assert.equal(textOf(one(w, 'status-line')), NO_PATH_EN);
+  await w.set({ rooms: [room({ status: 'connected', reason: 'no-path' })] });
+  assert.equal(textOf(one(w, 'status-line')), 'Connected');
+  await w.set({ rooms: [room({ status: 'closed', reason: 'no-path' })] });
+  assert.equal(textOf(one(w, 'status-line')), 'Closed');
+  await w.set({ rooms: [room({ status: 'open', reason: 'bad-lane' })] });
+  assert.equal(textOf(one(w, 'status-line')), 'Open for members');
+  await w.set({ rooms: [room({ status: 'connecting', reason: null })] });
+  assert.equal(textOf(one(w, 'status-line')), 'Connecting...');
+  // the list
+  const list = messagesWorld({ rooms: [room({ status: 'connecting', reason: 'no-path', owner: false, members: [] })] });
+  list.app.show('rooms');
+  assert.ok(roomRows(list)[0].textContent.includes(NO_PATH_EN), roomRows(list)[0].textContent);
+  // French
+  const fr = messagesWorld({ rooms: [room({ status: 'open', reason: 'no-path' })] }, { lang: 'fr-CA' });
+  fr.app.show('room', 'r1');
+  assert.equal(textOf(one(fr, 'status-line')), NO_PATH_FR);
+});
+
+// The service sets the reason (src/loader/apps.js _noPath) and the view reads it (statusLine): two halves of DEC-5 built by two agents of the
+// Decide phase. D-integrate runs them together here, on the fake world's rendezvous with the relay switched off (RELAY_LANE "0").
+test('end to end over the real service (DEC-5): on a rendezvous whose relay is off and a door with direct off, both people read apps.status.noPath after the accept, in the conversation and in the list, instead of "Connecting..." for ever', async () => {
+  const world = makeWorld({ relayLane: false });
+  const ana = personView(await world.make('Ana', { relay: 'rendezvous', direct: 'off' }), world);
+  const bo = personView(await world.make('Bo', { relay: 'rendezvous', direct: 'off' }), world);
+  ana.app.show('messages');
+  click(one(ana, 'card-continue'));
+  const code = await waitFor(() => (has(ana, 'code') ? textOf(one(ana, 'code')) : null), 'the code of Ana');
+  bo.app.show('messages');
+  click(one(bo, 'card-continue'));
+  await waitFor(() => has(bo, 'code'), 'the code of Bo');
+  typeInto(one(bo, 'knock-input'), code);
+  click(one(bo, 'knock-button'));
+  await waitFor(() => all(ana, (n) => attr(n, 'data-role') === 'accept' && shown(n)).length === 1, 'the request on Ana\'s screen');
+  click(one(ana, 'accept'));
+  click(one(ana, 'card-continue'));
+  for (const v of [ana, bo]) {
+    const name = v.person.name;
+    await waitFor(() => v.svc.state().conversations.length === 1 && v.svc.state().conversations[0].reason === 'no-path', name + ': the service says no-path');
+    assert.equal(v.svc.state().conversations[0].status, 'connecting', name);
+    assert.equal(v.person.loadCalls.length, 0, name + ': direct off, so no torrent manager was asked for');
+    v.app.show('messages');
+    await waitFor(() => rowsOf(v).length === 1 && rowsOf(v)[0].textContent.includes(NO_PATH_EN), name + ': the list row says why');
+    v.app.show('conversation', idOf(v));
+    const line = one(v, 'status-line');
+    assert.equal(textOf(line), NO_PATH_EN, name + ': the conversation says why');
+    assert.equal(attr(line, 'data-status'), 'connecting', name + ': the status word stays the service\'s');
+  }
 });

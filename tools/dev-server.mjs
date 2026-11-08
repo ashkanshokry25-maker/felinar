@@ -5,12 +5,15 @@
 //   node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] [--tls] [--webseed <dir>]
 //                             [--pointer "<record>"|@file] [--dev] [--hub shared|subdomain] [--doh <template>]
 //                             [--spa|--no-spa] [--idp-port <n> [--idp-root dist-idp]] [--tracker-proxy <port>]
+//                             [--apps-relay <rendezvous|none>] [--apps-direct <off|on>]
 //                             [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--obs <origin>] [--quiet] [--json]
 //
 // - Apps at a door (docs/DEPLOY.md "Apps at a door"): --apps-rendezvous, --apps-stun and --apps-idp (the
 //   first two repeat, the third names one origin) add the apps block { rendezvous, stun, idp } to the /_mw/door.json this server sends, so the
 //   bare door page offers the apps against a rendezvous you started (tools/tracker.mjs) and an identity page you serve (--idp-port). The file
 //   under --root is not changed; a block already in it is replaced. A server without these flags sends door.json as built.
+//   --apps-relay and --apps-direct (relay-first build, plan 3.9) add the optional keys relay and direct to that block: how messages travel
+//   (through the rendezvous, sealed, by default; whether the apps also try a direct link, off by default). They need the block's own flags.
 //
 // - Usage reports (docs/DEPLOY.md "Usage reports"): --obs <origin> adds the obs block { endpoint } to the same /_mw/door.json, beside the apps
 //   block when there is one, so the loader sends its reports to an endpoint you started (http: on a loopback host is allowed here, as the
@@ -68,6 +71,7 @@ const USAGE = `
 Usage: node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] [--tls [--cert f --key f]]
                                 [--webseed <dir>] [--pointer "<record>"|@file] [--dev] [--hub shared|subdomain]
                                 [--doh <url template>] [--spa|--no-spa] [--idp-port <n> [--idp-root <dir>]] [--tracker-proxy <port>]
+                                [--apps-relay <rendezvous|none>] [--apps-direct <off|on>]
                                 [--apps-rendezvous <ws(s) URL>]... [--apps-stun <stun: URL>]... [--apps-idp <origin>] [--obs <origin>] [--quiet] [--json]
 
 --idp-port <n>  also serve the identity page (--idp-root, default dist-idp, built by npm run build:idp) with its _headers on
@@ -78,6 +82,10 @@ Usage: node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] 
                 loopback host) of a tracker or Worker with the pair protocol; repeat for spares (at most 8); needs --apps-idp
 --apps-stun <url>  a stun: or stuns: URL for the apps block (repeat; at most 8; none: browsers on one network connect with host candidates)
 --apps-idp <origin>  the identity origin the visitor signs in at (https:, or http: for a loopback host such as the --idp-port page)
+--apps-relay <rendezvous|none>  how messages travel (the block's relay key): through the door's rendezvous, sealed (the default), or not;
+                none with no --apps-direct means direct on, as before the relay-first build; none with --apps-direct off is refused
+--apps-direct <off|on>  whether the apps also try a direct link (the block's direct key), which shows each side the other's network
+                address (default off)
 --obs <origin>  the obs block of /_mw/door.json (docs/DEPLOY.md, "Usage reports"): the endpoint the loader sends usage reports to, an https:
                 origin (http: for a loopback host, such as a collector you started); needs none of the --apps-* flags
 `;
@@ -334,7 +342,8 @@ function proxyTrackerUpgrade(req, socket, head, upstreamPort, proxied, log) {
  * doh = null, spa = null (auto), idpPort = null (a number, 0 = ephemeral, serves idpRoot on 127.0.0.1), idpRoot = 'dist-idp',
  * trackerProxy = null (the port of a tracker on 127.0.0.1: WebSocket upgrades on /tracker are passed to it), quiet = false, log = console line writer,
  * appsRendezvous = [] (wss: or loopback ws: URLs), appsStun = [] (stun: URLs), appsIdp = null (one origin): the apps block of /_mw/door.json, each a
- * string or a list; give any of them and appsRendezvous and appsIdp must be given too,
+ * string or a list; give any of them and appsRendezvous and appsIdp must be given too; appsRelay = null ('rendezvous' or 'none') and appsDirect = null
+ * ('off' or 'on') are the block's optional relay and direct keys (plan 3.9), left out when not given,
  * obs = null (one origin, or a list holding one): the obs block of /_mw/door.json, on its own or beside the apps block }
  * v0.3 C2: the result also holds trackerProxy (the port, or null). Apps at a door: it also holds apps (the block served, or null), and
  * obs (the usage reports block served, or null).
@@ -363,8 +372,8 @@ export async function createDevServer(options = {}) {
   }
   if (o.hub && !['shared', 'subdomain'].includes(o.hub)) throw new UsageError('--hub must be shared or subdomain');
   // Apps at a door: the block is made (and refused when it is not usable) before the server listens.
-  const appsGiven = [o.appsRendezvous, o.appsStun, o.appsIdp].some((v) => v !== undefined && v !== null && v !== '' && (!Array.isArray(v) || v.length));
-  const apps = appsGiven ? makeAppsBlock({ rendezvous: o.appsRendezvous, stun: o.appsStun, idp: o.appsIdp }) : null;
+  const appsGiven = [o.appsRendezvous, o.appsStun, o.appsIdp, o.appsRelay, o.appsDirect].some((v) => v !== undefined && v !== null && v !== '' && (!Array.isArray(v) || v.length));
+  const apps = appsGiven ? makeAppsBlock({ rendezvous: o.appsRendezvous, stun: o.appsStun, idp: o.appsIdp, relay: o.appsRelay, direct: o.appsDirect }) : null;
   // Usage reports: the same, made before the server listens, from one origin; an empty value (the command line gives null) is no request.
   const obsGiven = o.obs !== undefined && o.obs !== null && o.obs !== '' && !(Array.isArray(o.obs) && !o.obs.length);
   const obs = obsGiven ? makeObsBlock(o.obs) : null;
@@ -647,6 +656,8 @@ async function main(argv) {
     'apps-rendezvous': { type: 'list' },
     'apps-stun': { type: 'list' },
     'apps-idp': { type: 'list' },
+    'apps-relay': { type: 'string' },
+    'apps-direct': { type: 'string' },
     obs: { type: 'string' },
     quiet: { type: 'boolean' },
     json: { type: 'boolean' },

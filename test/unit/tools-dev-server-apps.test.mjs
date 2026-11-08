@@ -312,3 +312,131 @@ test('demo --help lists --stun', () => {
   assert.match(help.stdout, /^--stun {6}a STUN server for the apps block of the door page/m);
   assert.doesNotMatch(help.stdout, BANNED);
 });
+
+// ---------------------------------------------------------------------------------------------- relay-first tokens (plan 3.9)
+
+const WITH_TOKENS = Object.assign({}, BLOCK, { relay: 'rendezvous', direct: 'off' });
+
+test('--apps-relay and --apps-direct: the tokens are in the block of /_mw/door.json after idp; without them the block has the three keys it had; an empty flag is no flag', async () => {
+  const root = doorRoot();
+  const built = readFileSync(join(root, '_mw', 'door.json'));
+  const s = await start(Object.assign({ root, appsRelay: 'rendezvous', appsDirect: 'off' }, APPS));
+  assert.deepEqual(s.apps, WITH_TOKENS);
+  assert.deepEqual(Object.keys(s.apps), ['rendezvous', 'stun', 'idp', 'relay', 'direct']);
+  const bytes = Buffer.from(await (await get(s, '/_mw/door.json')).arrayBuffer());
+  const parsed = JSON.parse(bytes.toString('utf8'));
+  assert.deepEqual(parsed.apps, WITH_TOKENS);
+  assert.equal(withoutAppsBlock(bytes).equals(built), true, 'the rest of the file is the build\'s door.json');
+  assert.equal(readFileSync(join(root, '_mw', 'door.json')).equals(built), true, 'nothing is written under --root');
+  assert.deepEqual(Object.keys((await start(Object.assign({ root }, APPS))).apps), ['rendezvous', 'stun', 'idp']);
+  assert.deepEqual(Object.keys((await start(Object.assign({ root, appsRelay: null, appsDirect: '' }, APPS))).apps), ['rendezvous', 'stun', 'idp']);
+  assert.deepEqual((await start(Object.assign({ root, appsRelay: 'none' }, APPS))).apps, Object.assign({}, BLOCK, { relay: 'none' }), 'relay none alone: direct on is the page\'s reading');
+  assert.deepEqual((await start(Object.assign({ root, appsDirect: ['on', 'on'] }, APPS))).apps, Object.assign({}, BLOCK, { direct: 'on' }));
+});
+
+test('refusals: a token the page does not know, a second value or the pair none + off stops the server before it listens and names the flag; the tokens alone need the rest of the block', async () => {
+  const root = doorRoot();
+  const refuse = (extra, re) => assert.rejects(createDevServer(Object.assign({ root, port: 0, quiet: true }, extra)), (err) => err instanceof UsageError && re.test(err.message), JSON.stringify(extra));
+  await refuse(Object.assign({ appsRelay: 'cloudflare' }, APPS), /--apps-relay is not "rendezvous" or "none"/);
+  await refuse(Object.assign({ appsDirect: 'sometimes' }, APPS), /--apps-direct is not "off" or "on"/);
+  await refuse(Object.assign({ appsRelay: 'none', appsDirect: 'off' }, APPS), /no way to connect: relay "none" with direct "off"/);
+  await refuse(Object.assign({ appsRelay: ['none', 'rendezvous'] }, APPS), /--apps-relay takes one value, got 2/);
+  await refuse({ appsRelay: 'none' }, /--apps-rendezvous is needed/);
+  await refuse({ appsDirect: 'on' }, /--apps-rendezvous is needed/);
+});
+
+test('check-site --door against a dev server with the tokens: the apps line names them, resolved as the page does', async () => {
+  const root = doorRoot();
+  const seen = async (extra) => {
+    const s = await start(Object.assign({ root }, APPS, extra));
+    const res = await checkDoor(s.url, {});
+    assert.equal(res.ok, true, JSON.stringify(res.results, null, 1));
+    return res.results.find((r) => r.step === 'apps');
+  };
+  assert.deepEqual(await seen({ appsRelay: 'rendezvous', appsDirect: 'off' }), { level: 'info', step: 'apps', message: 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay rendezvous, direct off' });
+  assert.equal((await seen({ appsDirect: 'on' })).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay rendezvous, direct on');
+  assert.equal((await seen({ appsRelay: 'none' })).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay none, direct on');
+  assert.equal((await seen({})).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081', 'no tokens: the line it always was');
+});
+
+test('command line: --apps-relay and --apps-direct reach the block, the --json output and the plain line; a bad token exits 2; --help lists them', async () => {
+  const root = doorRoot();
+  const { child, first } = await startCli(['--root', root, '--port', '0', '--json', '--quiet', '--apps-rendezvous', RENDEZVOUS[0], '--apps-idp', IDP, '--apps-relay', 'rendezvous', '--apps-direct', 'on']);
+  const info = JSON.parse(first);
+  assert.deepEqual(info.apps, { rendezvous: RENDEZVOUS, stun: [], idp: IDP, relay: 'rendezvous', direct: 'on' });
+  assert.deepEqual((await (await fetch(info.url + '_mw/door.json')).json()).apps, info.apps);
+  assert.equal(await stopCli(child), 0);
+  const plain = spawn(process.execPath, ['tools/dev-server.mjs', '--root', root, '--port', '0', '--quiet', '--apps-rendezvous', RENDEZVOUS[0], '--apps-idp', IDP, '--apps-relay', 'none'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+  stoppers.push(async () => { plain.kill('SIGKILL'); });
+  let out = '';
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('no apps line: ' + out)), 8000);
+    plain.stdout.on('data', (d) => {
+      out += d;
+      if (/apps block in \/_mw\/door\.json/.test(out)) {
+        clearTimeout(timer);
+        resolve();
+      }
+    });
+  });
+  assert.match(out, /apps block in \/_mw\/door\.json: rendezvous 1, stun 0, identity http:\/\/127\.0\.0\.1:8081, relay none, direct on \(the door page offers the apps\)/);
+  plain.removeAllListeners('exit');
+  const exited = new Promise((resolve) => plain.once('exit', (code) => resolve(code)));
+  plain.kill('SIGTERM');
+  assert.equal(await exited, 0);
+  const bad = spawnSync(process.execPath, ['tools/dev-server.mjs', '--root', root, '--port', '0', '--apps-rendezvous', 'wss://rtc.example.org', '--apps-idp', 'https://id.example.org', '--apps-direct', 'maybe'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(bad.status, 2);
+  assert.match(bad.stderr, /--apps-direct is not "off" or "on"/);
+  const help = spawnSync(process.execPath, ['tools/dev-server.mjs', '--help'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(help.status, 0);
+  for (const flag of ['--apps-relay <rendezvous|none>', '--apps-direct <off|on>']) assert.ok(help.stdout.includes(flag), flag);
+  assert.doesNotMatch(help.stdout, BANNED);
+});
+
+test('demoAppsOptions and runDemo pass relay and direct on to the dev server; the demo line names them; a bad token stops the demo; demo --help lists the flags', async () => {
+  const desktop = planDemo({ port: 8080, trackerPort: 8000 });
+  const idp = { origin: 'http://localhost:8081' };
+  assert.deepEqual(demoAppsOptions({ plan: desktop, idp }), { appsRendezvous: ['ws://localhost:8000'], appsStun: [], appsIdp: 'http://localhost:8081' }, 'without the options: exactly the three');
+  assert.deepEqual(demoAppsOptions({ plan: desktop, idp, relay: 'rendezvous', direct: 'on' }),
+    { appsRendezvous: ['ws://localhost:8000'], appsStun: [], appsIdp: 'http://localhost:8081', appsRelay: 'rendezvous', appsDirect: 'on' });
+  assert.deepEqual(demoAppsOptions({ plan: desktop, idp, relay: 'none' }).appsRelay, 'none');
+  assert.equal('appsDirect' in demoAppsOptions({ plan: desktop, idp, relay: 'none' }), false);
+  assert.throws(() => demoAppsOptions({ plan: desktop, idp, relay: 'cloudflare' }), (err) => err instanceof UsageError && /--apps-relay is not "rendezvous" or "none"/.test(err.message));
+  assert.equal(demoAppsOptions({ plan: desktop, idp: null, relay: 'none' }), null, 'no identity page, no block');
+
+  const dist = doorRoot();
+  const idpDist = fresh('idp-dist');
+  writeTree(idpDist, { 'index.html': '<!doctype html><title>Identity</title>' });
+  const lines = [];
+  const demo = await runDemo({ port: 0, trackerPort: 0, seeder: 'none', build: false, dist, idpDist, dir: join(work, 'demo-tokens'), appsRelay: 'rendezvous', appsDirect: 'off', log: (l) => lines.push(String(l)) });
+  stoppers.push(() => demo.stop());
+  assert.deepEqual(demo.apps, { rendezvous: [demo.plan.trackerUrl], stun: [], idp: demo.idp.origin, relay: 'rendezvous', direct: 'off' });
+  assert.deepEqual((await (await fetch(demo.dev.url + '_mw/door.json')).json()).apps, demo.apps);
+  assert.match(lines.find((l) => /^apps: the door page /.test(l)), /offers the apps \(rendezvous 1, stun 0, identity http:\/\/localhost:\d+, relay rendezvous, direct off; no STUN server/);
+  assert.doesNotMatch(lines.join('\n'), BANNED);
+  // a bad token stops the demo, with or without an identity page, and nothing keeps running (a demo that starts anyway is stopped here, then the test fails)
+  const refuseDemo = async (options, re) => {
+    let started = null;
+    try {
+      started = await runDemo(Object.assign({ port: 0, trackerPort: 0, seeder: 'none', build: false, dist, log: () => {} }, options));
+    } catch (err) {
+      assert.ok(err instanceof UsageError && re.test(err.message), String(err && err.message));
+      return;
+    }
+    await started.stop();
+    assert.fail('the demo started although ' + Object.keys(options).join(', ') + ' cannot be used');
+  };
+  await refuseDemo({ idpDist, dir: join(work, 'demo-bad-token'), appsDirect: 'maybe' }, /--apps-direct is not "off" or "on"/);
+  await refuseDemo({ idp: false, dir: join(work, 'demo-bad-token-2'), appsRelay: 'none', appsDirect: 'off' }, /no way to connect/);
+  // an identity page that is not there: the tokens have no block to join, and the demo says so
+  const noIdpLines = [];
+  const noIdp = await runDemo({ port: 0, trackerPort: 0, seeder: 'none', build: false, dist, idp: false, dir: join(work, 'demo-noidp-tokens'), appsDirect: 'on', log: (l) => noIdpLines.push(String(l)) });
+  stoppers.push(() => noIdp.stop());
+  assert.equal(noIdp.apps, null);
+  assert.ok(noIdpLines.some((l) => /^apps: not offered /.test(l) && /--apps-direct is not used/.test(l)), noIdpLines.join('\n'));
+  const help = spawnSync(process.execPath, ['tools/demo.mjs', '--help'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /\[--apps-relay rendezvous\|none\] \[--apps-direct off\|on\]/);
+  assert.match(help.stdout, /^--apps-relay, --apps-direct {2}how messages travel/m);
+  assert.doesNotMatch(help.stdout, BANNED);
+});

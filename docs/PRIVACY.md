@@ -728,6 +728,7 @@ flows.
 | The owner's or a hub's pin node, when you hand off an upload | the file (ciphertext for a private item, the bytes for a public one), your IP address, and the item's infohash for a receipt | when you upload and `_mw.cfg.pin` names a pin | no pin, no hand-off: the card says "No always-on copy exists for this site." |
 | Readers of the pin's `pin-status.json` | the site, the pin's public key, the time, hashed item ids, bytes this month and the cap | any time, for anyone who can load the web seed's folder | written only when the owner runs the pin with `--status` |
 | The operators of the doors a page contacts: the owner's signed doors (`org=`, `dr=`), the ledger's `_doors`, the last door that served the site and, from a link, unsigned `#mwd=` hints (public hosts only) | the visitor's IP address and the time of a `door.json` request, to up to three doors at a time; a door asked for this site's bytes (only an `org=` door, the last good door or a host the pointer names in `ws=` or `xs=`) also learns which site is opened | when the page's own address stops answering, and a check of the page's own address after each load; these are HTTP requests made whatever the sharing choice, so host-only visitors are included | the owner's lists; a hint comes from the link, not from the site owner, and gets no request for the site's bytes |
+| The rendezvous of a door that offers apps, and its host (unreleased) | the visitor's IP address; the channel (first four characters) of each code and when requests and answers arrive; boxes it cannot open; from the accept on, the id of the lane and, for each sealed message, its time and one of three size classes, with the message itself sealed so that the rendezvous cannot read it. No name, key, text, or last eight characters of a code. With the door's `direct` on, also the connection offers of the two browsers. The host of the rendezvous sees the IP address as any server does and can be ordered to record it | after the visitor presses "Continue" on a price card: requests as soon as the visitor opens or uses a code, messages from the accept on | the door's owner names the rendezvous in the door's apps block; the price card says that the rendezvous and whoever hosts it see the network address, when messages are sent and roughly how much, never what |
 | The operators of nip.io or sslip.io (only for a site on such a name) | the lookups of the site's name by visitors' resolvers: the name, which holds the server's IP address, and the resolver's address | when a visitor's resolver looks the name up | a free service with no uptime or privacy statement; an own domain avoids it |
 
 #### What stays on the device, C2
@@ -917,7 +918,8 @@ host a visitor contacts.
 
 > **Status: built on 2026-11-01, not yet reviewed.** ARCHITECTURE 15.21 and [APPS.md](APPS.md); tested on loopback only. No lawyer has
 > reviewed these sentences. A review of the protocol and the privacy claims on 2026-11-02 changed the room's member list (it is sealed now)
-> and the disappearing timers (each person's own); see APPS.md, "Known limits", for what remains.
+> and the disappearing timers (each person's own); see APPS.md, "Known limits", for what remains. The paragraph on messages passing through the rendezvous (relay-first, unreleased)
+> is new and was not part of that review; it has not run on a real network.
 
 A door that offers apps lets people who signed in for the visit message each other, or meet in a room, by a short code. A code has twelve
 characters: the first four (the channel) go to the door's rendezvous, the tracker or Worker that the site owner chose, and the other eight
@@ -925,12 +927,17 @@ stay in the browser that made the code. The rendezvous sees each channel, when r
 socket and sealed boxes it cannot open; it does not see names, keys, the last eight characters of a code or any message, unless it records
 a box and guesses the secret offline (below). Nothing else leaves the device for the rendezvous or for another person until the person who made the code accepts a request, and the
 accept carries that person's signature, which the other browser checks before it joins anything. Only then does the rendezvous give both
-browsers a private lane, served for 24 hours, the browsers connect to each other, and each learns the other's network address (in a room,
-every member can connect to every other member); the rendezvous then carries their connection offers and answers on that lane, as any
-tracker does. The rendezvous minted the lane, so it can join it like a member: it then sees sealed frames only (it can count the people in
+browsers a private lane, served for 24 hours. From the accept on, the messages pass through the rendezvous by default (the door's `relay` is `rendezvous`): each message is sealed on the
+device, under a key that only the people in the conversation or the room hold, and the rendezvous forwards it to the others on the lane. So the rendezvous, and whoever hosts it, see the lane's id, the network
+address of each socket, when each message is sent and one of three size classes of the sealed message, and never what it says; the other person does not see your network address. The host
+of a rendezvous can be ordered to record the addresses that connect to it and can be barred from saying so. A door whose `door.json` also says `direct` `"on"` lets the browsers try a direct
+link as well: their connection offers and answers, which the rendezvous carries on the lane as any tracker does, hold each browser's network address, so each person's browser receives
+the other's address whether or not a link connects (in a room, every member's), and the price card says so. The rendezvous minted the lane, so it can join it like a member: it then sees sealed frames only (it can count the people in
 a room by the number of key boxes) and reads no name, key or message, because the member list of a room is sealed under the room's secret
-like the messages. Messages are sealed on
-the device and travel between the browsers. At a door they live in the page's memory only (no cookie, no storage, no ledger), and a reload,
+like the messages; it can also take one of the two places of a lane, which stops the relay for that conversation without letting it read anything. The owner of the door sees counts, not
+messages: the lanes open, the frames and characters forwarded today and the frames refused (`/stats.json` of the rendezvous), and, if the door sends usage reports, the counts and
+words of the reports. The rendezvous's code gives the owner no addresses, unless the owner adds code that logs them or hosts the rendezvous on a machine of their own (then the owner is its
+host, above). At a door messages live in the page's memory only (no cookie, no storage, no ledger), and a reload,
 a sign-out or closing the page ends them; a person who exports a conversation saves a plain file with its text and both public keys. A
 disappearing-message timer is the author's: a message that its author set to disappear goes from the reader's screen too, a copy the reader
 pinned or saved as well, and the reader sees a mark on it from the start. A
@@ -939,9 +946,9 @@ derivation make slow, not impossible, and the eight-digit compare code that two 
 key. If the door's `door.json` names a usage report endpoint (unreleased), the page also reports what it did to that endpoint after the visitor's first "Continue" on a
 price card (the card names the host; a sign-in alone does not count, and until then the reports wait in memory, like the messages): the views, the cards, the sign-in steps, the channel of a code, the requests,
 the statuses of conversations by local id, and counts of messages per status; never a message, a name, a key or the last eight characters of a code. A site owner who offers
-apps names the rendezvous and its operator in the privacy notice, with what it sees (the channel of each code
-and the times of requests) in the tracker row of the template, and, if the door sends usage reports, the endpoint and its operator with what it receives
-([the row for it](#additions-to-the-notice-template-usage-reports-unreleased)).
+apps names the rendezvous and its operator in the privacy notice, with what it sees (the channel of each code,
+the times of requests and, from the accept on, the lane's id and the time and size class of each sealed message) in the tracker row of the template, and, if the door sends usage reports, the endpoint and its operator with what it receives
+([the row for it](#additions-to-the-notice-template-usage-reports-unreleased)). The recipients register has a row for it ([the C2 register](#the-recipients-register-c2)).
 
 ### Usage reports (unreleased)
 

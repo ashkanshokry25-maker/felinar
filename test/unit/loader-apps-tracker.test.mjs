@@ -159,8 +159,10 @@ async function people (t, names) {
     const identity = new FakeIdentity(person)
     const tm = net.tm(name)
     const loads = []
+    // relay 'none' is the legacy door, direct on (relay-first amendments A2 and A4): these bodies prove the direct transport on the
+    // tracker; the shipped default over the same tracker is in loader-apps-lane.test.mjs ("against the Node tracker")
     const apps = createApps({
-      api: { identity }, config: { rendezvous: [t.url], stun: [], idp: null },
+      api: { identity }, config: { rendezvous: [t.url], stun: [], idp: null, relay: 'none' },
       loadTm: async () => { loads.push(Date.now()); return tm }
     })
     cleanup.push(() => apps.destroy())

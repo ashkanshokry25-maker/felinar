@@ -19,10 +19,13 @@ import { APPS_TEXT, appsText } from '../../src/loader/strings.js';
 import { EXT_NAME, codeKey, sealHello, splitCode, shortIdOf } from '../../src/loader/apps-crypto.js';
 import { describeTarget } from '../../src/loader/obs.js';
 import { FakeDocument } from './dropin-fake-dom.mjs';
-import { FakeLink, FakeIdentity, FakeApps, makeWorld, makePerson, until, settle } from './fakes/apps-fakes.mjs';
+import { FakeLink, FakeIdentity, FakeApps, CoreRendezvous, coreHasRelay, makeWorld, makePerson, until, settle } from './fakes/apps-fakes.mjs';
 
 const URL_OK = 'wss://rendezvous.invalid/';
 const clone = (v) => JSON.parse(JSON.stringify(v));
+// The door of the older bodies below is the legacy one (relay 'none', which the service reads as direct on): they prove the lists of what
+// two people report when their wire is direct. The relay's own lists are in loader-apps-lane.test.mjs, with relay passed on purpose.
+const LEGACY = { relay: 'none' };
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The harness: the real service and the real pair socket of each person, on the fake rendezvous, with every report recorded in order. The
@@ -43,7 +46,7 @@ const digestOf = (r) => {
   return w === undefined ? r.name : r.name + ':' + w;
 };
 
-async function person (w, name, { limits = {}, throwing = false, loadTm = null } = {}) {
+async function person (w, name, { limits = {}, throwing = false, loadTm = null, config = {} } = {}) {
   const p = await makePerson(name);
   const identity = new FakeIdentity(p);
   const tm = w.net.tm(name);
@@ -54,7 +57,7 @@ async function person (w, name, { limits = {}, throwing = false, loadTm = null }
   };
   const link = new FakeLink(w.rdv, { setTimeoutFn: w.clock.setTimeout, clearTimeoutFn: w.clock.clearTimeout, random: () => 0.5, now: w.clock.now, report: into('link.') });
   const apps = createApps({
-    api: { identity }, config: { rendezvous: [URL_OK], stun: [], idp: null }, loadTm: loadTm || (async () => tm), now: w.clock.now, link,
+    api: { identity }, config: Object.assign({ rendezvous: [URL_OK], stun: [], idp: null }, LEGACY, config), loadTm: loadTm || (async () => tm), now: w.clock.now, link,
     setTimeoutFn: w.clock.setTimeout, clearTimeoutFn: w.clock.clearTimeout, random: () => 0.5, report: into('apps.'),
     limits: Object.assign({ byeGraceMs: 0, blockedRejectDelayMs: [10, 20] }, limits)
   });
@@ -129,9 +132,9 @@ function inOrder (list, a) {
 }
 
 /** A owns a code, B knocks, A accepts; resolves when both show connected. */
-async function pairUp (w, { names = ['Zelda Quill', 'Orson Finch'], limits } = {}) {
-  const A = await person(w, names[0], { limits });
-  const B = await person(w, names[1], { limits });
+async function pairUp (w, { names = ['Zelda Quill', 'Orson Finch'], limits, config } = {}) {
+  const A = await person(w, names[0], { limits, config });
+  const B = await person(w, names[1], { limits, config });
   const { code } = await A.apps.openCode();
   const k = await B.apps.knock(code);
   assert.ok(k.knock, JSON.stringify(k));
@@ -205,10 +208,10 @@ describe('two people pair and message', () => {
     assert.deepEqual(A.only('apps.code'), [{ ev: 'opened', kind: 'pair', why: 'user', channel }]);
     assert.deepEqual(A.only('apps.request'), [{ ev: 'in', kind: 'pair' }, { ev: 'accept', kind: 'pair' }]);
     assert.deepEqual(B.only('apps.knock'), [{ ev: 'sent', kind: 'pair', channel }, { ev: 'ok', kind: 'pair', channel }]);
-    assert.deepEqual(A.only('apps.conv'), [{ id: a, status: 'connecting', incoming: true }, { id: a, status: 'connected', incoming: true }]);
+    assert.deepEqual(A.only('apps.conv'), [{ id: a, status: 'connecting', incoming: true }, { id: a, status: 'connected', incoming: true, via: 'direct' }]);
     assert.deepEqual(B.only('apps.conv').map((f) => f.status), ['waiting', 'connecting', 'connected']);
     assert.ok(B.only('apps.conv').every((f) => f.id === b && f.incoming === false));
-    assert.deepEqual(A.only('apps.wire'), [{ conv: a, ev: 'up', kind: 'pair' }]);
+    assert.deepEqual(A.only('apps.wire'), [{ conv: a, ev: 'up', kind: 'pair', via: 'direct' }]);
     assert.deepEqual(A.only('apps.msg'), ['queued', 'sent', 'delivered', 'read', 'received'].map((status) => ({ conv: a, status, count: 1 })));
     assert.deepEqual(A.only('link.state'), [{ state: 'connecting', prev: 'idle' }, { state: 'open', prev: 'connecting' }]);
     assert.deepEqual(A.only('link.open'), [{ attempt: 0 }]);
@@ -225,6 +228,41 @@ describe('two people pair and message', () => {
         ...keys.flatMap((x) => [x.pub, x.chat.pub, shortIdOf(x.pub)]),
         ...A.tm.joined.concat(B.tm.joined).map((j) => j.infoHash)
       ]
+    });
+  });
+
+  test('over the relay the lists carry the lane and name the carrier: asked, joined, the wire up through the relay, connected through the relay; nothing holds a lane or a frame', async () => {
+    const w = makeWorld({ core: !!CoreRendezvous && coreHasRelay() }); // the relay of the real pairing core (integrate I1); the stub only when pair.js has none
+    const { A, B, code, k, a, b } = await pairUp(w, { config: { relay: 'rendezvous', direct: 'off' } });
+    await A.apps.send(a, TEXT_A);
+    await until(() => conv(B).messages.length === 1 && conv(A).messages[0].status === 'delivered', 'the first message delivered');
+    await B.apps.markRead(b);
+    await until(() => conv(A).messages[0].status === 'read', 'the first message read');
+    await settle(10);
+    const appsOnly = (X) => X.digest().filter((d) => /^apps\.(conv|lane|wire)/.test(d));
+    // the order on each side: the conversation, the lane asked for and joined, the wire up through the relay, connected (the push of the other
+    // side's join may come between: who joined first depends on the work each side did before)
+    assert.ok(inOrder(appsOnly(A), ['apps.conv:connecting', 'apps.lane:join', 'apps.lane:joined', 'apps.wire:up', 'apps.conv:connected']), appsOnly(A).join(' '));
+    assert.ok(inOrder(appsOnly(B), ['apps.conv:waiting', 'apps.conv:connecting', 'apps.lane:join', 'apps.lane:joined', 'apps.wire:up', 'apps.conv:connected']), appsOnly(B).join(' '));
+    assert.deepEqual(A.only('apps.wire'), [{ conv: a, ev: 'up', kind: 'pair', via: 'relay' }]);
+    assert.deepEqual(B.only('apps.wire'), [{ conv: b, ev: 'up', kind: 'pair', via: 'relay' }]);
+    assert.deepEqual(A.only('apps.conv').pop(), { id: a, status: 'connected', incoming: true, via: 'relay' });
+    assert.deepEqual(B.only('apps.conv').pop(), { id: b, status: 'connected', incoming: false, via: 'relay' });
+    for (const X of [A, B]) {
+      for (const f of X.only('apps.lane')) {
+        assert.deepEqual(Object.keys(f).sort(), ['ev', 'peers']);
+        assert.ok(['join', 'joined'].includes(f.ev) && Number.isInteger(f.peers) && f.peers >= 0 && f.peers <= 1, JSON.stringify(f));
+      }
+      assert.ok(X.only('apps.lane').length >= 2);
+      assert.ok(X.only('link.sent').some((f) => f.action === 'pair-join'));
+      assert.ok(X.only('link.sent').some((f) => f.action === 'pair-relay'));
+      assert.ok(X.only('link.push').some((f) => f.name === 'pair-relayed'));
+    }
+    assert.ok(k.knock);
+    assertClean([A, B], {
+      rdv: w.rdv,
+      code,
+      forbidden: [TEXT_A, 'Zelda', 'Orson', ...Array.from(w.rdv.lanes.keys()), ...[A.p.keys, B.p.keys].flatMap((x) => [x.pub, x.chat.pub, shortIdOf(x.pub)])]
     });
   });
 
@@ -332,7 +370,7 @@ describe('a room', () => {
     assert.deepEqual(O.only('apps.room'), [{ id: room.id, status: 'open', members: 1 }, { id: room.id, status: 'open', reason: 'member-joined', members: 2 }]);
     assert.deepEqual(M.only('apps.room').map((f) => [f.status, f.reason || null, f.members]), [['waiting', null, 0], ['connecting', null, 1], ['connecting', 'roster', 2], ['connected', null, 2]]);
     assert.deepEqual(M.only('apps.knock'), [{ ev: 'sent', kind: 'room', channel }, { ev: 'ok', kind: 'room', channel }]);
-    assert.deepEqual(O.only('apps.wire'), [{ conv: room.id, ev: 'up', kind: 'room' }]);
+    assert.deepEqual(O.only('apps.wire'), [{ conv: room.id, ev: 'up', kind: 'room', via: 'direct' }]);
     assertClean([O, M], {
       rdv: w.rdv,
       code: room.code,
@@ -403,7 +441,7 @@ describe('requests, conversations and the code', () => {
     await until(() => conv(B).status === 'left', 'the other side hears it');
     await settle(10);
     assert.deepEqual(A.only('apps.conv'), [{ id: a, status: 'removed', reason: 'left', incoming: true }]);
-    assert.deepEqual(A.only('apps.wire'), [{ conv: a, ev: 'down', kind: 'pair', reason: 'left' }], 'a wire this service closed is a leaving, not a loss');
+    assert.deepEqual(A.only('apps.wire'), [{ conv: a, ev: 'down', kind: 'pair', via: 'direct', reason: 'left' }], 'a wire this service closed is a leaving, not a loss');
     assert.ok(B.only('apps.conv').some((f) => f.id === b && f.status === 'left'));
     assert.ok(B.only('apps.wire').every((f) => f.ev === 'down'));
   });
@@ -415,7 +453,7 @@ describe('requests, conversations and the code', () => {
     w.net.pause();
     w.net.dropAll();
     await until(() => conv(A).status === 'connecting', 'the connection is lost');
-    assert.deepEqual(A.only('apps.wire'), [{ conv: a, ev: 'down', kind: 'pair' }]);
+    assert.deepEqual(A.only('apps.wire'), [{ conv: a, ev: 'down', kind: 'pair', via: 'direct' }]);
     assert.deepEqual(A.only('apps.conv'), [{ id: a, status: 'connecting', incoming: true }]);
     w.net.resume();
     await until(() => isConnected(A) && isConnected(B), 'back again');
@@ -635,11 +673,11 @@ describe('requests, conversations and the code', () => {
     for (let i = 0; i < 3; i++) wire.extended(EXT_NAME, new Uint8Array(16385).fill(1)); // over the size of a frame
     await until(() => A.only('apps.wire').some((f) => f.ev === 'down'), 'the wire is closed');
     assert.deepEqual(A.only('apps.wire'), [
-      { conv: a, ev: 'strike', kind: 'pair', reason: 'size' },
-      { conv: a, ev: 'strike', kind: 'pair', reason: 'size' },
-      { conv: a, ev: 'strike', kind: 'pair', reason: 'size' },
-      { conv: a, ev: 'kill', kind: 'pair', reason: 'size' },
-      { conv: a, ev: 'down', kind: 'pair' }
+      { conv: a, ev: 'strike', kind: 'pair', via: 'direct', reason: 'size' },
+      { conv: a, ev: 'strike', kind: 'pair', via: 'direct', reason: 'size' },
+      { conv: a, ev: 'strike', kind: 'pair', via: 'direct', reason: 'size' },
+      { conv: a, ev: 'kill', kind: 'pair', via: 'direct', reason: 'size' },
+      { conv: a, ev: 'down', kind: 'pair', via: 'direct' }
     ]);
     assert.deepEqual(A.only('apps.conv'), [{ id: a, status: 'connecting', incoming: true }], 'losing the last wire is told once, and the kill is not a leaving');
   });
@@ -1128,15 +1166,20 @@ describe('the view and the service together, as app.js wires them', () => {
 describe('the line that names the host of the reports', () => {
   const HOST = 'reports.example.test';
   const LINE = (host, lang = 'en') => appsText('apps.price.reports', lang, { host });
+  // DECISIONS DEC-3: on the door these views show (the shipped default, relay through the rendezvous and direct off) the price is two
+  // paragraphs, the text and then, as a paragraph of its own, that the other person (the members) do not see the address; the line that
+  // names the host comes after both. Before DEC-3 the denial was the last sentence of the text, and the counts here were one less.
+  const PRICE = (lang = 'en') => [appsText('apps.price.text', lang), appsText('apps.price.hidden', lang)];
+  const PRICE_ROOM = (lang = 'en') => [appsText('apps.price.room', lang), appsText('apps.price.hiddenRoom', lang)];
 
   test('the start card shows it, once, after the price and before the buttons, when there is a host', async () => {
     const v = view({}, { reportsHost: HOST });
     click(tile(v, 'messages'));
     const paras = cardParas(v);
-    assert.equal(paras.length, 2);
-    assert.equal(paras[0], appsText('apps.price.text', 'en'));
-    assert.equal(paras[1], LINE(HOST));
-    assert.ok(paras[1].includes(HOST));
+    assert.equal(paras.length, 3);
+    assert.deepEqual(paras.slice(0, 2), PRICE());
+    assert.equal(paras[2], LINE(HOST));
+    assert.ok(paras[2].includes(HOST));
     assert.deepEqual(v.only('card'), [{ kind: 'start', ev: 'show' }]);
   });
 
@@ -1144,23 +1187,23 @@ describe('the line that names the host of the reports', () => {
     for (const hostOpt of [undefined, '', '   ', null, () => '', () => null, () => { throw new Error('x'); }, 42]) {
       const v = view({}, { reportsHost: hostOpt });
       click(tile(v, 'messages'));
-      assert.deepEqual(cardParas(v), [appsText('apps.price.text', 'en')], String(hostOpt));
+      assert.deepEqual(cardParas(v), PRICE(), String(hostOpt));
     }
     const r = view({}, { reportsHost: undefined });
     r.app.show('rooms');
     click(one(r, 'room-create'));
-    assert.deepEqual(cardParas(r), [appsText('apps.price.room', 'en')]);
+    assert.deepEqual(cardParas(r), PRICE_ROOM());
   });
 
   test('the host can be a function, asked each time a card opens: a visitor who turned the reports off gets no line', async () => {
     let host = HOST;
     const v = view({}, { reportsHost: () => host });
     click(tile(v, 'messages'));
-    assert.equal(cardParas(v).length, 2);
+    assert.equal(cardParas(v).length, 3);
     click(one(v, 'card-cancel'));
     host = '';
     click(one(v, 'code-show'));
-    assert.deepEqual(cardParas(v), [appsText('apps.price.text', 'en')]);
+    assert.deepEqual(cardParas(v), PRICE());
   });
 
   test('the other price cards that can start something carry it; the card for accepting a request does not', async () => {
@@ -1174,7 +1217,7 @@ describe('the line that names the host of the reports', () => {
     v.app.node.findAll((n) => attr(n, 'data-role') === 'accept' && shown(n)).forEach((b) => click(b));
     const paras = cardParas(v);
     assert.ok(!paras.includes(LINE(HOST)), 'the accept card');
-    assert.equal(paras.length, 2, 'the price and the check');
+    assert.equal(paras.length, 3, 'the price, who does not see the address (DEC-3), and the check');
     const k = view({}, { reportsHost: HOST });
     k.app.show('messages');
     click(one(k, 'card-cancel'));
@@ -1187,8 +1230,9 @@ describe('the line that names the host of the reports', () => {
     const v = view({}, { reportsHost: HOST, lang: 'fr' });
     click(tile(v, 'messages'));
     const paras = cardParas(v);
-    assert.equal(paras[1], LINE(HOST, 'fr'));
-    assert.ok(paras[1].includes(HOST));
+    assert.deepEqual(paras.slice(0, 2), PRICE('fr'));
+    assert.equal(paras[2], LINE(HOST, 'fr'));
+    assert.ok(paras[2].includes(HOST));
     assert.notEqual(LINE(HOST, 'fr'), LINE(HOST, 'en'));
   });
 
@@ -1243,8 +1287,8 @@ describe('the sources', () => {
   // the fields each report may have: a new one has to be added here on purpose, after asking what it could carry
   const ALLOWED = {
     'src/loader/apps.js': {
-      code: 'ev kind why channel', knock: 'ev kind channel reason', request: 'ev kind reason', conv: 'id status reason incoming', room: 'id status reason members',
-      wire: 'conv ev kind reason', msg: 'conv status count', notice: 'kind why'
+      code: 'ev kind why channel', knock: 'ev kind channel reason', request: 'ev kind reason', conv: 'id status reason incoming via', room: 'id status reason members',
+      wire: 'conv ev kind via reason', msg: 'conv status count', notice: 'kind why', lane: 'ev peers'
     },
     'src/loader/apps-link.js': {
       state: 'state prev', open: 'attempt', gone: 'why', backoff: 'attempt ms why', sent: 'action', reply: 'action ok reason ms', timeout: 'action ms', push: 'name'

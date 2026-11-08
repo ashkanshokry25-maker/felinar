@@ -1,10 +1,13 @@
 // test/unit/fakes/apps-fakes.mjs: fakes for the apps on the door page (reusable by the unit tests of the service, the view and the rendezvous).
 //
 //   FakeRendezvous   the pair protocol (ARCHITECTURE 15.21, mw-pair-v1) in memory: codes, knocks, accept, reject, cancel, close, rooms,
-//                    socket loss, expiry, lane allowance. Records every frame it was sent (rdv.raw) so a test can prove what
-//                    the rendezvous never saw. rdv.socketClass() is a WebSocket stand-in that talks to it.
+//                    socket loss, expiry, lane allowance, and the relay lane of plan relay-first-2026-11-07 section 3.1 (join, relay,
+//                    leave, ping, with the failure texts and the caps of that plan; rdv.relayLane = false is RELAY_LANE "0"). Records
+//                    every frame it was sent (rdv.raw) so a test can prove what the rendezvous never saw. rdv.socketClass() is a
+//                    WebSocket stand-in that talks to it.
 //   CoreRendezvous   the same surface on top of the REAL pairing core of the rendezvous (deploy/rtc-worker/pair.js createPairing),
 //                    so a test can run the client against the server's own state machine (null when pair.js is not there).
+//                    coreHasRelay() says whether that core already speaks the relay actions (a ping gets a pong).
 //   FakeLink         src/loader/apps-link.js PairLink on a FakeSocket of a FakeRendezvous (the real client code, a fake server);
 //                    link.drop() loses the socket from the server's side, link.rdv is the server.
 //   FakeNetwork      the swarms: two managers that join the same lane (and are allowed by the rendezvous, when one is given)
@@ -13,8 +16,11 @@
 //                    setIceServers, EventTarget. tm.joined logs every joinLane call (nothing may be there before approval).
 //   FakeWire         a bittorrent-protocol wire stand-in with use(), extended(), the extended handshake, destroy().
 //   FakeIdentity     { info(), keys(), state(), onChange(fn) } with signIn(person) and signOut().
+//   FakeHooks        the page's visibility and network events (deps.onVisible, deps.onOnline of the service) with visible() and back() to fire them.
 //   makePerson(name) real WebCrypto keys: { name, keys: { pub, sign, chat: { pub, ecdh } } }.
-//   makeWorld()      a clock, a rendezvous, a network and make(name) -> { apps, person, identity, tm, link, ... } for each person.
+//   makeWorld()      a clock, a rendezvous, a network and make(name) -> { apps, person, identity, tm, link, hooks, ... } for each person.
+//                    The world's DEFAULT door config is the legacy one (relay 'none', so direct on: the transport of before the relay
+//                    existed, which is what the older tests prove); a test of the relay passes relay and direct explicitly.
 //   FakeApps         a stand-in for the service (same method names, records calls, settable state) for UI tests.
 //   until, flush, settle: small helpers for the real asynchronous WebCrypto work next to a fake clock.
 //
@@ -77,10 +83,16 @@ export class FakeRendezvous {
     this.log = [] // { conn, action, channel }
     this.refuse = false // true: new sockets fail to open
     this.nextConn = 1
+    // the relay lane (plan relay-first-2026-11-07 section 3.1 and 3.2): who is in which lane, and the caps of the plan
+    this.relayLane = true // false: every join and relay answers 'relay is off on this rendezvous' (the Worker var RELAY_LANE "0")
+    this.relays = new Map() // lane -> { kind, members: Set<conn> }
+    this.caps = { relayPerMin: 120, messagesPerMin: 150, relayDayMax: 20000, lanesPerSocket: 8, pairLaneMembers: 2, roomLaneMembers: 16 }
+    this.stats = { relayed: 0, relayBytes: 0, relayBusy: 0, relayRate: 0, joinsRefused: 0, day: -1 }
+    this.pongs = true // false: pings get no pong (a socket that is half open)
   }
 
   connect () {
-    const conn = { id: this.nextConn++, deliver: null, closed: false, knockTimes: [] }
+    const conn = { id: this.nextConn++, deliver: null, closed: false, knockTimes: [], relayTimes: [], joined: new Set() }
     this.conns.add(conn)
     return conn
   }
@@ -109,15 +121,32 @@ export class FakeRendezvous {
 
   handle (conn, m) {
     if (!m || typeof m !== 'object' || typeof m.action !== 'string') return
+    // plan 3.1: a ping is answered with a pong that has no rid; it is never a failure, a relay or a join, and it changes nothing
+    if (m.action === 'pair-ping') {
+      if (this.pongs) this._send(conn, { action: 'pair-pong' })
+      return
+    }
     const rid = typeof m.rid === 'string' && m.rid.length <= 16 ? m.rid : undefined
     const reply = (obj) => this._send(conn, rid ? Object.assign({}, obj, { rid }) : obj)
     const fail = (reason) => reply({ action: m.action, 'failure reason': reason })
+    // plan 3.2: every message but a ping counts against the socket's minute; over the cap the socket gets one failure reply and is closed (1008).
+    // The stub models the Worker for the client's own ping, the exact keepalive text, which the platform answers before the object wakes, so
+    // it counts nowhere; a ping of another shape that reaches the core counts (DECISIONS DEC-2): CoreRendezvous runs the real rule
+    const t = this.now()
+    conn.msgTimes = (conn.msgTimes || []).filter((x) => t - x < 60000)
+    if (conn.msgTimes.length >= this.caps.messagesPerMin) {
+      fail('too many messages')
+      setImmediate(() => this.closeSocketOf(conn))
+      return undefined
+    }
+    conn.msgTimes.push(t)
     this.log.push({ conn: conn.id, action: m.action, channel: m.channel })
     if (m.v !== 1) return fail('bad version')
     const hit = /^(pair|room)-([a-z]+)$/.exec(m.action)
     if (!hit) return fail('invalid action')
     const kind = hit[1]
     const verb = hit[2]
+    if (verb === 'join' || verb === 'relay' || verb === 'leave') return this._relayAction(conn, kind, verb, m, rid, reply, fail)
     const boxOk = (b) => b && typeof b === 'object' && typeof b.iv === 'string' && typeof b.ct === 'string' && enc.encode(JSON.stringify({ iv: b.iv, ct: b.ct })).length <= 2048
     if (verb === 'open') {
       if (!isChannel(m.channel) || !boxOk(m.box)) return fail('box invalid')
@@ -187,6 +216,87 @@ export class FakeRendezvous {
     return fail('invalid action')
   }
 
+  /** closeSocketOf(conn): the server closes the socket of this connection (the Worker's close with code 1008); its lanes and codes are released. */
+  closeSocketOf (conn) {
+    for (const socket of Array.from(this.sockets)) if (socket.conn === conn) socket._serverClose()
+  }
+
+  // ---- the relay lane (plan 3.1): a lane the rendezvous minted after an accept, at most 2 sockets (a room 16), sealed frames fanned out ----
+
+  _day () {
+    const d = Math.floor(this.now() / 86400000)
+    if (this.stats.day !== d) Object.assign(this.stats, { day: d, relayed: 0, relayBytes: 0, relayBusy: 0, relayRate: 0, joinsRefused: 0 })
+    return d
+  }
+
+  _relayAction (conn, kind, verb, m, rid, reply, fail) {
+    this._day()
+    const lane = m.lane
+    const laneOk = typeof lane === 'string' && LANE_RE.test(lane)
+    if (verb === 'leave') {
+      // leaving is always allowed and says nothing unless asked (a rid); a lane the socket is not in is left already
+      if (laneOk) this._leaveRelay(conn, lane)
+      if (rid) reply({ action: kind + '-leave', lane })
+      return undefined
+    }
+    const refuse = (text) => {
+      if (verb === 'join') this.stats.joinsRefused++
+      return fail(text)
+    }
+    if (!this.relayLane) return refuse('relay is off on this rendezvous')
+    if (!laneOk) return refuse('invalid lane')
+    let rec = this.relays.get(lane)
+    if (verb === 'join') {
+      if (!this.isAllowed(lane) || (rec && rec.kind !== kind)) return refuse('unknown lane')
+      if (rec && rec.members.has(conn)) return reply({ action: kind + '-join', lane, peers: rec.members.size - 1 }) // idempotent: the reply, no push
+      if (rec && rec.members.size >= (kind === 'room' ? this.caps.roomLaneMembers : this.caps.pairLaneMembers)) return refuse('lane full')
+      if (conn.joined.size >= this.caps.lanesPerSocket) return refuse('too many lanes')
+      if (!rec) {
+        rec = { kind, members: new Set() }
+        this.relays.set(lane, rec)
+      }
+      rec.members.add(conn)
+      conn.joined.add(lane)
+      const peers = rec.members.size - 1
+      reply({ action: kind + '-join', lane, peers })
+      for (const other of rec.members) if (other !== conn) this._send(other, { action: kind + '-joined', lane, peers })
+      return undefined
+    }
+    // relay: the sender must be a member of this kind of lane, the frame base64url of 4 to 7,700 characters
+    if (!rec || rec.kind !== kind || !rec.members.has(conn)) return fail('unknown lane')
+    const f = m.f
+    if (typeof f !== 'string' || !/^[A-Za-z0-9_-]{4,7700}$/.test(f)) return fail('invalid frame')
+    const t = this.now()
+    conn.relayTimes = conn.relayTimes.filter((x) => t - x < 60000)
+    if (conn.relayTimes.length >= this.caps.relayPerMin) {
+      this.stats.relayRate++
+      return fail('too many relays')
+    }
+    if (this.stats.relayed >= this.caps.relayDayMax) {
+      this.stats.relayBusy++
+      return fail('relay is busy')
+    }
+    conn.relayTimes.push(t)
+    let n = 0
+    for (const other of rec.members) {
+      if (other === conn) continue
+      this._send(other, { action: kind + '-relayed', lane, f })
+      n++
+    }
+    this.stats.relayed++
+    this.stats.relayBytes += f.length
+    if (rid) reply({ action: kind + '-relay', lane, peers: n })
+    return undefined
+  }
+
+  _leaveRelay (conn, lane) {
+    const rec = this.relays.get(lane)
+    if (!rec || !rec.members.delete(conn)) return
+    conn.joined.delete(lane)
+    if (!rec.members.size) this.relays.delete(lane)
+    for (const other of rec.members) this._send(other, { action: rec.kind + '-left', lane, peers: rec.members.size - 1 })
+  }
+
   _release (channel, reason) {
     const rec = this.channels.get(channel)
     if (!rec) return
@@ -200,6 +310,7 @@ export class FakeRendezvous {
 
   closeConn (conn) {
     if (conn.closed) return
+    for (const lane of Array.from(conn.joined || [])) this._leaveRelay(conn, lane)
     for (const [ch, rec] of Array.from(this.channels)) if (rec.conn === conn) this._release(ch, 'gone')
     for (const [knock, k] of Array.from(this.knocks)) {
       if (k.requester !== conn) continue
@@ -233,7 +344,13 @@ export class FakeRendezvous {
 
   /** counts() -> { codes, knocks, lanes } (codes is also given as channels). */
   counts () {
-    return { codes: this.channels.size, channels: this.channels.size, knocks: this.knocks.size, lanes: this.lanes.size }
+    return { codes: this.channels.size, channels: this.channels.size, knocks: this.knocks.size, lanes: this.lanes.size, relays: this.relays.size }
+  }
+
+  /** relayStats() -> the counts of the Worker's /stats.json for the relay (plan 3.2), for today: no frame, no lane id. */
+  relayStats () {
+    this._day()
+    return Object.assign({ relays: this.relays.size }, this.stats)
   }
 
   /** socketClass() -> a class that stands in for WebSocket and talks to this rendezvous. */
@@ -301,23 +418,61 @@ try {
   realCore = null
 }
 
-/** CoreRendezvous: a FakeRendezvous whose protocol is the real createPairing state machine. null when pair.js cannot be loaded. */
+/**
+ * CoreRendezvous: a FakeRendezvous whose protocol is the real createPairing state machine. null when pair.js cannot be loaded.
+ * opts.caps go to the core when it is made (the Worker's caps are fixed for the life of its object, so a test sets them here, not
+ * later). rdv.relays and conn.joined are read from the core (who is in which lane, from attachmentOf), so a test that looks at the
+ * lanes of the rendezvous reads the same shapes on the stub and on the core (integrate step I1: the relay tests run on the core).
+ */
 export const CoreRendezvous = realCore
   ? class CoreRendezvous extends FakeRendezvous {
     constructor (opts = {}) {
       super(opts)
+      if (opts.caps) Object.assign(this.caps, opts.caps)
       this.core = realCore.createPairing({
         now: this.now,
         random: (n) => crypto.getRandomValues(new Uint8Array(n)),
-        allowLane: (lane, exp) => { this.lanes.set(lane, exp); return true }
+        allowLane: (lane, exp) => { this.lanes.set(lane, exp); return true },
+        // plan 3.1: the lane's expiry in ms, 0 when it was never minted or ran out (the relay joins only a lane the rendezvous minted)
+        laneExpiry: (lane) => { const exp = this.lanes.get(lane); return exp !== undefined && exp > this.now() ? exp : 0 },
+        relay: opts.relayLane !== false,
+        caps: opts.caps || {}
       })
+      // the stub's own map of lanes is never used here: the view answers from the core
+      Object.defineProperty(this, 'relays', { configurable: true, enumerable: true, get: () => this._coreRelays() })
+    }
+
+    connect () {
+      const conn = super.connect()
+      // conn.joined, the lanes this socket is in, as the core keeps them (the stub keeps its own Set there)
+      Object.defineProperty(conn, 'joined', { configurable: true, enumerable: true, get: () => new Set((this.core.attachmentOf(conn).l || []).map(([lane]) => lane)) })
+      return conn
+    }
+
+    /** _coreRelays() -> Map lane -> { kind, members: Set<conn> } of the open sockets, from the core's attachments (plan 3.3: l lists a socket's lanes). */
+    _coreRelays () {
+      const out = new Map()
+      for (const conn of this.conns) {
+        for (const [lane, kind] of this.core.attachmentOf(conn).l || []) {
+          if (!out.has(lane)) out.set(lane, { kind, members: new Set() })
+          out.get(lane).members.add(conn)
+        }
+      }
+      return out
     }
 
     handle (conn, m) {
       if (!m || typeof m !== 'object' || !realCore.isPairAction(m.action)) return
+      if (m.action === 'pair-ping' && !this.pongs) return // a rendezvous that is half open: the ping goes nowhere
       this.log.push({ conn: conn.id, action: m.action, channel: m.channel })
       const out = this.core.message(conn, m)
       for (const [to, obj] of out.replies) this._send(to, obj)
+      // a socket over its allowance of messages is closed by the host (code 1008) after the one failure reply (plan 3.2)
+      if (out.close) setImmediate(() => this.closeSocketOf(conn))
+      // DECISIONS DEC-1: the members a join evicted from a full lane (silent past memberStaleMs) are closed by the host (code 1000) if still
+      // open, and released as a closed socket is, whether or not the close reaches anyone (worker.js drop(), tools/tracker.mjs releasePair):
+      // the page of a half-open socket has usually given it up already, so only the release is left to do
+      for (const gone of out.evicted || []) setImmediate(() => { this.closeSocketOf(gone); this.closeConn(gone) })
     }
 
     closeConn (conn) {
@@ -334,10 +489,29 @@ export const CoreRendezvous = realCore
 
     counts () {
       const st = this.core.stats()
-      return { codes: st.codes, channels: st.codes, knocks: st.knocks, lanes: this.lanes.size }
+      return { codes: st.codes, channels: st.codes, knocks: st.knocks, lanes: this.lanes.size, relays: st.relays }
+    }
+
+    /** relayStats() -> the core's own counts for the relay (relays, relayed, relayBytes, relayBusy, relayRate, joinsRefused): the Worker's /stats.json. */
+    relayStats () {
+      return this.core.stats()
     }
   }
   : null
+
+/**
+ * coreHasRelay() -> true when the real pairing core already speaks the relay lane (a ping is answered with a pong). The tests that run
+ * the relay on the core are added to a file only when this says so, so that the file also runs against a core without it.
+ */
+export function coreHasRelay () {
+  if (!realCore) return false
+  try {
+    const out = realCore.createPairing({ now: () => 0 }).message({}, { v: 1, action: 'pair-ping' })
+    return !!out && Array.isArray(out.replies) && out.replies.some(([, obj]) => !!obj && obj.action === 'pair-pong')
+  } catch (_) {
+    return false
+  }
+}
 
 /** FakeLink: the real PairLink client on a fake socket of a FakeRendezvous (drop() = the server loses this socket). */
 export class FakeLink extends PairLink {
@@ -678,6 +852,33 @@ export class FakeNetwork {
 }
 
 // ---------------------------------------------------------------------------------------------
+// The page's own events
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * FakeHooks: what the page tells the service through deps.onVisible and deps.onOnline (the tab became visible, the network came back).
+ * visible() and back() fire the handlers; offs counts the handlers taken off again (destroy() takes both).
+ */
+export class FakeHooks {
+  constructor () {
+    this.visibleFns = new Set()
+    this.backFns = new Set()
+    this.offs = 0
+    this.onVisible = (fn) => this._on(this.visibleFns, fn)
+    this.onOnline = (fn) => this._on(this.backFns, fn)
+  }
+
+  _on (set, fn) {
+    set.add(fn)
+    return () => { if (set.delete(fn)) this.offs++ }
+  }
+
+  visible () { for (const fn of Array.from(this.visibleFns)) fn() }
+
+  back () { for (const fn of Array.from(this.backFns)) fn() }
+}
+
+// ---------------------------------------------------------------------------------------------
 // People
 // ---------------------------------------------------------------------------------------------
 
@@ -720,32 +921,53 @@ export class FakeIdentity {
 }
 
 /**
- * makeWorld({ rendezvous, core }) -> { clock, rdv, net, make(name, opts), advance(ms) }. core: true runs the real pairing core.
- * make(name, { limits, signedIn = true, tmLoader }) -> { apps, person, identity, tm, link, loadCalls } with the service wired to a
- * FakeLink (the real client on the fake rendezvous), a FakeTm on the shared network, a manual clock and real keys.
+ * makeWorld({ rendezvous, core, config, relayLane, caps }) -> { clock, rdv, net, make(name, opts), advance(ms) }. core: true runs the real pairing core.
+ * relayLane: false is the rendezvous with the relay switched off (the Worker var RELAY_LANE "0", the tracker flag --no-relay-lane).
+ * caps: the relay's caps of plan 3.2 for this world, set before anything runs (on the core they are fixed from then on, as on the Worker).
+ * config: the world's default door settings beyond the three fields of the apps block; the default is the LEGACY door, { relay: 'none' },
+ * which the service reads as direct on (plan amendment A2): the transport the older tests prove. A test of the relay passes relay and
+ * direct, on the world or on a person.
+ * make(name, { limits, signedIn, withLink, config, relay, direct, linkOptions, reports, deps }) -> { apps, person, identity, tm, link,
+ * loadCalls, hooks, reports } with the service wired to a FakeLink (the real client on the fake rendezvous), a FakeTm on the shared
+ * network, a manual clock, real keys and FakeHooks (deps.onVisible, deps.onOnline). config (and relay, direct) go over the world's
+ * config, and a key set to undefined is left out (config: { relay: undefined } is a door with no relay key at all, the new default).
+ * linkOptions go to the FakeLink (keepaliveMs, for one); reports: true records every report of the service ('apps.' names) and of
+ * its socket ('link.' names) in person.reports, as the page does; deps are more options of createApps.
  */
-export function makeWorld ({ rendezvous = 'wss://rendezvous.invalid/', startAt = 1800000000000, core = false } = {}) {
+export function makeWorld ({ rendezvous = 'wss://rendezvous.invalid/', startAt = 1800000000000, core = false, config = null, relayLane = true, caps = null } = {}) {
   const clock = createClock(startAt)
   if (core && !CoreRendezvous) throw new Error('deploy/rtc-worker/pair.js is not available')
-  const rdv = core ? new CoreRendezvous({ now: clock.now }) : new FakeRendezvous({ now: clock.now })
+  const rdv = core ? new CoreRendezvous({ now: clock.now, relayLane, caps }) : new FakeRendezvous({ now: clock.now })
+  if (caps && !core) Object.assign(rdv.caps, caps)
+  rdv.relayLane = relayLane !== false
   const net = new FakeNetwork({ rdv })
   const world = {
     clock, rdv, net,
+    config: Object.assign({ relay: 'none' }, config || {}),
     advance (ms) { clock.advance(ms) },
-    async make (name, { limits = {}, signedIn = true, withLink = true } = {}) {
+    async make (name, { limits = {}, signedIn = true, withLink = true, config: own = null, relay, direct, linkOptions = null, reports = false, deps = null } = {}) {
       const person = await makePerson(name)
       const identity = new FakeIdentity(signedIn ? person : null)
       const tm = net.tm(name)
       const loadCalls = []
       const loadTm = async () => { loadCalls.push(clock.now()); return tm }
+      const seen = reports ? [] : null
+      const into = (prefix) => (n, f) => { seen.push({ name: prefix + n, fields: JSON.parse(JSON.stringify(f)) }) }
       const link = withLink
-        ? new FakeLink(rdv, { setTimeoutFn: clock.setTimeout, clearTimeoutFn: clock.clearTimeout, random: () => 0.5 })
+        ? new FakeLink(rdv, Object.assign({ setTimeoutFn: clock.setTimeout, clearTimeoutFn: clock.clearTimeout, random: () => 0.5, now: clock.now }, seen ? { report: into('link.') } : {}, linkOptions || {}))
         : null
-      const apps = createApps({
-        api: { identity }, config: { rendezvous: [rendezvous], stun: [], idp: null }, loadTm, now: clock.now, link,
-        setTimeoutFn: clock.setTimeout, clearTimeoutFn: clock.clearTimeout, random: () => 0.5, limits: Object.assign({ byeGraceMs: 0, blockedRejectDelayMs: [10, 20] }, limits)
-      })
-      return { name, apps, person, identity, tm, link, loadCalls }
+      const hooks = new FakeHooks()
+      const door = Object.assign({ rendezvous: [rendezvous], stun: [], idp: null }, world.config, own || {})
+      if (relay !== undefined) door.relay = relay
+      if (direct !== undefined) door.direct = direct
+      for (const k of Object.keys(door)) if (door[k] === undefined) delete door[k] // config: { relay: undefined } is a door with no relay key at all
+      const apps = createApps(Object.assign({
+        api: { identity }, config: door, loadTm, now: clock.now, link,
+        setTimeoutFn: clock.setTimeout, clearTimeoutFn: clock.clearTimeout, random: () => 0.5,
+        onVisible: hooks.onVisible, onOnline: hooks.onOnline,
+        limits: Object.assign({ byeGraceMs: 0, blockedRejectDelayMs: [10, 20] }, limits)
+      }, seen ? { report: into('apps.') } : {}, deps || {}))
+      return { name, apps, person, identity, tm, link, loadCalls, hooks, reports: seen }
     }
   }
   return world

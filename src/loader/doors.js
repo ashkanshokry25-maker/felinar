@@ -317,11 +317,16 @@ function appsUrlOf (text, protocols) {
 
 /**
  * checkAppsBlock(apps) → { block, reason }: the checks behind appsBlockOf. A block is
- *   { rendezvous: [wss: URL ...], stun: [stun: URL ...], idp: <origin> }
+ *   { rendezvous: [wss: URL ...], stun: [stun: URL ...], idp: <origin>, relay?: 'rendezvous' | 'none', direct?: 'off' | 'on' }
  * rendezvous: one to APPS_BLOCK_MAX URLs of the site's own pairing service ('wss:' on any host, 'ws:' only on a loopback host: local
  * development and the e2e stack); stun: none to APPS_BLOCK_MAX 'stun:' or 'stuns:' URLs (the door's own STUN servers: the lanes of the
  * apps never fall back to a public default, so none means host candidates only); idp: the identity origin sign-in opens (an https
  * origin, or http on a loopback host). Each entry must be a string as it is written: no spaces around it, no userinfo, no fragment.
+ * relay and direct (the relay-first build, plan 3.9 and AMENDMENTS A2) say how messages travel: relay 'rendezvous' (the default when absent)
+ * sends them sealed through the rendezvous, 'none' does not; direct 'off' (the default when absent) builds no WebRTC link for the apps,
+ * 'on' does. They are returned only when the input has them, after idp, so a block without them has the three keys it always had; any
+ * other value is refused ('apps-relay', 'apps-direct'), and so is the explicit pair relay 'none' with direct 'off' ('apps-transport': a
+ * door with no way to connect). appsTransportOf resolves the absent ones.
  * One bad entry makes the block bad (reason names it); unknown keys are ignored. block is a frozen copy, or null.
  */
 export function checkAppsBlock (apps) {
@@ -343,7 +348,32 @@ export function checkAppsBlock (apps) {
   const idp = apps.idp
   const iu = typeof idp === 'string' && idp.length <= APPS_URL_MAX ? appsUrlOf(idp, ['https:', 'http:']) : null
   if (!iu || iu.origin !== idp || (iu.protocol === 'http:' && !isLoopbackDoorHost(iu.host))) return bad('apps-idp')
-  return { block: Object.freeze({ rendezvous: Object.freeze(rv.slice()), stun: Object.freeze(st.slice()), idp }), reason: null }
+  const block = { rendezvous: Object.freeze(rv.slice()), stun: Object.freeze(st.slice()), idp }
+  // Plan 3.9 / A2: the tokens are copied only when the file has them, so the block of a door without them is the block it always was.
+  // The values are compared as written, never trimmed or case folded, as for every other entry of the block.
+  if (own(apps, 'relay') && apps.relay !== undefined) {
+    if (apps.relay !== 'rendezvous' && apps.relay !== 'none') return bad('apps-relay')
+    block.relay = apps.relay
+  }
+  if (own(apps, 'direct') && apps.direct !== undefined) {
+    if (apps.direct !== 'off' && apps.direct !== 'on') return bad('apps-direct')
+    block.direct = apps.direct
+  }
+  if (block.relay === 'none' && block.direct === 'off') return bad('apps-transport')
+  return { block: Object.freeze(block), reason: null }
+}
+
+/**
+ * appsTransportOf(block) → { relay, direct }: the tokens a door.json apps block resolves to (AMENDMENTS A2 of the relay-first build). A block
+ * without tokens is relay 'rendezvous' with direct 'off', the new default; `relay: 'none'` with `direct` absent is direct 'on', which is
+ * today's behaviour and so the rollback of a door; an explicit `direct` wins. A value that checkAppsBlock would refuse never comes through
+ * as itself (it reads as the default). The service (apps.js) resolves the same way; the tools print this.
+ */
+export function appsTransportOf (block) {
+  const b = block && typeof block === 'object' ? block : {}
+  const relay = b.relay === 'none' ? 'none' : 'rendezvous'
+  const direct = b.direct === 'on' ? 'on' : b.direct === 'off' ? 'off' : (relay === 'none' ? 'on' : 'off')
+  return Object.freeze({ relay, direct })
 }
 
 /** appsBlockOf(json) → the checked apps block of a parsed door.json, or null (no block, or a bad one: the page keeps its paste box). */
@@ -352,7 +382,7 @@ export function appsBlockOf (json) {
   return checkAppsBlock(json.apps).block
 }
 
-/** appsBlockProblem(json) → why the apps block of a door.json is bad ('apps-shape', 'apps-rendezvous', 'apps-rendezvous-insecure', 'apps-stun', 'apps-idp'), or null (no block, or a good one). */
+/** appsBlockProblem(json) → why the apps block of a door.json is bad ('apps-shape', 'apps-rendezvous', 'apps-rendezvous-insecure', 'apps-stun', 'apps-idp', 'apps-relay', 'apps-direct', 'apps-transport'), or null (no block, or a good one). */
 export function appsBlockProblem (json) {
   if (!json || typeof json !== 'object' || Array.isArray(json) || !own(json, 'apps') || json.apps === null || json.apps === undefined) return null
   return checkAppsBlock(json.apps).reason

@@ -9,6 +9,7 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 
 import { checkDoor, DOOR_CHECK_ORIGIN } from '../../tools/check-site.mjs';
+import { appsBlockOf } from '../../src/loader/doors.js';
 import { doorJson } from '../../build.mjs';
 import { ROOT } from '../../tools/lib.mjs';
 
@@ -238,6 +239,71 @@ test('CLI: check-site --door prints the apps line, and says the addresses in a b
     assert.match(r.stdout, /^OK: 0 failure\(s\), 0 warning\(s\)\.$/m);
     const json = spawnSync(process.execPath, [join(ROOT, 'tools', 'check-site.mjs'), 'http://127.0.0.1:' + port + '/', '--door', '--json'], { encoding: 'utf8', timeout: 60000 });
     assert.deepEqual(JSON.parse(json.stdout).results.find((x) => x.step === 'apps'), { level: 'info', step: 'apps', message: 'rendezvous 1, stun 1, identity http://127.0.0.1:8081' });
+  } finally {
+    child.kill();
+  }
+});
+
+// relay-first tokens (plan 3.9): the info line names what the page makes of relay and direct, and a token the page would refuse is a warning
+test('checkDoor (apps at a door): the info line names relay and direct as the page reads them; a block without them keeps the line it had', async () => {
+  const line = async (extra) => {
+    const res = await checkDoor((await door({ apps: Object.assign({}, APPS_BLOCK, extra) })).url, {});
+    assert.equal(res.ok, true, JSON.stringify(res.results, null, 1));
+    return res.results.find((r) => r.step === 'apps');
+  };
+  assert.deepEqual(await line({ relay: 'rendezvous', direct: 'off' }), { level: 'info', step: 'apps', message: 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay rendezvous, direct off' });
+  assert.equal((await line({ relay: 'rendezvous', direct: 'on' })).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay rendezvous, direct on');
+  assert.equal((await line({ relay: 'none', direct: 'on' })).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay none, direct on');
+  assert.equal((await line({ relay: 'none' })).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay none, direct on', 'relay none alone is direct on: today\'s behaviour');
+  assert.equal((await line({ direct: 'on' })).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081, relay rendezvous, direct on');
+  assert.equal((await line({})).message, 'rendezvous 1, stun 1, identity http://127.0.0.1:8081');
+  // the tokens are kept in the door the check hands back
+  const res = await checkDoor((await door({ apps: Object.assign({ relay: 'rendezvous', direct: 'off' }, APPS_BLOCK) })).url, {});
+  assert.deepEqual(res.door.apps, Object.assign({ relay: 'rendezvous', direct: 'off' }, APPS_BLOCK));
+});
+
+test('checkDoor (apps at a door): a token the page would refuse is a warning that says the paste box stays, and the door still passes; no info line', async () => {
+  const cases = [
+    [{ relay: 'cloudflare' }, /relay is not "rendezvous" or "none"/],
+    [{ relay: 'Rendezvous' }, /relay is not "rendezvous" or "none"/],
+    [{ direct: 'sometimes' }, /direct is not "off" or "on"/],
+    [{ direct: true }, /direct is not "off" or "on"/],
+    [{ relay: 'none', direct: 'off' }, /no way to connect: relay "none" with direct "off"/],
+  ];
+  for (const [extra, re] of cases) {
+    const res = await checkDoor((await door({ apps: Object.assign({}, APPS_BLOCK, extra) })).url, {});
+    const line = res.results.find((r) => r.step === 'apps');
+    assert.equal(line.level, 'warn', JSON.stringify(extra));
+    assert.match(line.message, /apps block the door page cannot use \(.+\): the bare door page keeps its paste box/);
+    assert.match(line.message, re, JSON.stringify(extra));
+    assert.equal(res.ok, true, 'a warning does not fail the door');
+    assert.equal(appsBlockOf(res.door), null, 'the page ignores the block');
+    assert.doesNotMatch(line.message, BANNED);
+  }
+});
+
+test('CLI: check-site --door prints the tokens on the apps line', async () => {
+  const withTokens = Object.assign({ relay: 'rendezvous', direct: 'off' }, APPS_BLOCK);
+  const script = [
+    "const http = require('node:http');",
+    "const files = " + JSON.stringify(Array.from(doorFiles()).map(([k, v]) => [k, v.toString('base64')])) + ";",
+    "const o = JSON.parse(Buffer.from(" + JSON.stringify(doorJson(doorFiles(), { version: '0.3.0', buildId: 'abcdef123456' }).toString('base64')) + ", 'base64').toString());",
+    "o.apps = " + JSON.stringify(withTokens) + ";",
+    "const dj = Buffer.from(JSON.stringify(o, null, 2) + '\\n');",
+    "const map = new Map(files.map(([k, v]) => [k, Buffer.from(v, 'base64')]));",
+    "const s = http.createServer((q, r) => { const p = new URL(q.url, 'http://x').pathname; if (p === '/_mw/door.json') { r.writeHead(200, { 'access-control-allow-origin': '*' }); return r.end(dj) } const k = p.slice(1); if (!map.has(k)) { r.writeHead(404); return r.end() } r.writeHead(200, { 'content-type': k.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(map.get(k)) });",
+    "s.listen(0, '127.0.0.1', () => { process.stdout.write(String(s.address().port) + '\\n') });",
+  ].join('\n');
+  const { spawn } = await import('node:child_process');
+  const { port, child } = await new Promise((resolve) => {
+    const c = spawn(process.execPath, ['-e', script], { stdio: ['ignore', 'pipe', 'inherit'] });
+    c.stdout.once('data', (d) => resolve({ port: Number(String(d).trim()), child: c }));
+  });
+  try {
+    const r = spawnSync(process.execPath, [join(ROOT, 'tools', 'check-site.mjs'), 'http://127.0.0.1:' + port + '/', '--door'], { encoding: 'utf8', timeout: 60000 });
+    assert.equal(r.status, 0, r.stderr + r.stdout.slice(0, 600));
+    assert.match(r.stdout, /^\[info\] apps: rendezvous 1, stun 1, identity http:\/\/127\.0\.0\.1:8081, relay rendezvous, direct off$/m);
+    assert.match(r.stdout, /^OK: 0 failure\(s\), 0 warning\(s\)\.$/m);
   } finally {
     child.kill();
   }

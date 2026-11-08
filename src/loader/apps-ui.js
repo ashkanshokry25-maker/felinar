@@ -11,20 +11,27 @@
 //   - Every button acts on a trusted click only (trustedOnly, as ui.js does for the loader's own decisions). Every form is
 //     prevented from submitting (the door page runs under form-action 'none' after its first reload). Enter sends, Shift+Enter
 //     makes a new line, and Enter during an IME composition does neither.
-//   - The price card comes before the first code is opened, before the first knock and before every accept: what the
-//     rendezvous sees, and that an accepted person learns the network address. Nothing is sent to the service before Continue.
+//   - The price card comes before the first code is opened, before the first knock and before every accept: what the rendezvous and
+//     whoever hosts it see when messages pass through it (relay-first build, plan 3.8), then one paragraph of its own: that the other
+//     person does not see the address (direct off), or what a direct link would show (direct on), never both (DECISIONS DEC-3). The card
+//     follows state().cfg, which the service resolved from the door's tokens (relay, direct). Nothing is sent to the service before Continue.
+//   - A conversation or a room whose only path the rendezvous refused (reason 'no-path', DECISIONS DEC-5) says so in place of "Connecting...".
 //   - Plain DOM only (createElement, createTextNode, setAttribute, addEventListener, focus), so test/unit/dropin-fake-dom.mjs runs it.
 //     No module-scope DOM access: app.js and the unit tests import this file in Node.
 //
 // What the view reads from service.state() (the shape of src/loader/apps.js; a field marked ? may be missing):
 //   { signedIn, me: { pub, short, name } | null, ready, link: 'connecting' | 'open' | 'closed', code: 'xxxx-xxxx-xxxx' | null,
 //     notice?: { kind, at }, snippets?: [{ id, text }], blocked?: [pub], tm?,
+//     cfg?: { relay: 'rendezvous' | 'none', direct: 'off' | 'on' } (the door's tokens as the service resolved them, AMENDMENTS A1 and A2.
+//       A missing cfg, or any other word, reads as relay 'rendezvous' with direct 'off'),
 //     requests: [{ knock, kind: 'pair' | 'room', roomId, from: { pub, short, name }, at }],
 //     conversations: [{ id, peer: { pub, short, name, nick }, status: 'waiting' | 'connecting' | 'connected' | 'rejected' | 'left' | 'blocked',
-//       knock, code, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, cfg: { exp, receipts, typing },
+//       reason? ('no-path' when the rendezvous refused the only path, DEC-5; any other word leaves the line as it is), knock, code, connectedAt,
+//       lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, via?: 'direct' | 'relay' | null
+//       (what carries the conversation now; only these two words count), cfg: { exp, receipts, typing } (this person's own: not the door's),
 //       compare, compareText, draft, note, typingPeer, messages: [{ id, t, mine, text, reply, status, readAt, edits: [{ t, text }],
 //       deleted, reactions: { [emoji]: [pub] }, pinned, saved, important, prio, exp, expAt, sendAt, scheduled }] }],
-//     rooms: [{ id, owner, status: 'waiting' | 'open' | 'connecting' | 'connected' | 'rejected' | 'closed', knock, code, codeClosed,
+//     rooms: [{ id, owner, status: 'waiting' | 'open' | 'connecting' | 'connected' | 'rejected' | 'closed', reason? (as a conversation's), knock, code, codeClosed,
 //       members: [{ pub, short, name, you, owner }], messages: [{ id, t, mine, from: { pub, short, name }, text, status }], unread, draft }] }
 // The calls of src/loader/apps.js are used as named. These are used when the service has them, and the view keeps the same state in
 // memory for this visit when it does not: setFlag, setMessageFlag, markUnread, markRoomRead, verifyCode, retry, setDraft, setNote,
@@ -388,6 +395,13 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   const memo = { viewKey: null, signedIn: false, linkWasOpen: false, lastRead: new Map(), seen: new Map(), toastKeys: null, counts: new Map(), pendingRender: false, baseTitle: null, toastTimer: null, copiedTimer: null, stick: false }
 
   // ----- the model: state() read once per render, tolerant of fields the plan leaves open ----------------------------------------
+  // The door's tokens as state().cfg gives them (plan 3.8, AMENDMENTS A1): the exact words, else the default (relay rendezvous, direct off).
+  const cfgOf = (raw) => {
+    const c = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+    return { relay: c.relay === 'none' ? 'none' : 'rendezvous', direct: c.direct === 'on' ? 'on' : 'off' }
+  }
+  // What carries a conversation: 'relay', 'direct' or nothing. A word the service did not mean to send never reaches the page or inspect().
+  const viaOf = (c) => (c && (c.via === 'relay' || c.via === 'direct') ? c.via : null)
   function snapshot () {
     let s = null
     try { s = service.state() } catch (err) { log('state: ' + ((err && err.message) || err)) }
@@ -402,6 +416,7 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
       snippets: Array.isArray(s.snippets) ? s.snippets.filter((x) => x && typeof x.text === 'string') : null,
       blocked: Array.isArray(s.blocked) ? s.blocked : [],
       tm: s.tm === true,
+      cfg: cfgOf(s.cfg),
       conversations: Array.isArray(s.conversations) ? s.conversations.filter((c) => c && c.id !== undefined && c.id !== null) : [],
       rooms: Array.isArray(s.rooms) ? s.rooms.filter((r) => r && r.id !== undefined && r.id !== null) : [],
       requests: Array.isArray(s.requests) ? s.requests.filter((r) => r && r.knock !== undefined && r.knock !== null) : []
@@ -537,7 +552,14 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
 
   // ---- cards: the price before a code, a knock or an accept, and the confirmations ----------------------------
   function priceSpec (kind, { room = false, accept = false, run, onCancel } = {}) {
-    const paras = [{ text: T(room ? 'apps.price.room' : 'apps.price.text') }]
+    // Relay-first (plan 3.8, DECISIONS DEC-3): by default messages pass through the rendezvous, sealed, and the card says so, then, as a
+    // paragraph of its own, that the other person (the members) do not see the address. A door that turns direct links on shows the line
+    // that says a direct link shows both addresses IN PLACE of that paragraph, so the card never states the denial and then takes it back.
+    // A door with relay "none" (direct only) shows the texts of today, which already say that. The card follows the state at the moment it is drawn.
+    const cfg = snapshot().cfg
+    const today = cfg.relay === 'none'
+    const paras = [{ text: T(today ? (room ? 'apps.price.roomDirect' : 'apps.price.textDirect') : (room ? 'apps.price.room' : 'apps.price.text')) }]
+    if (!today) paras.push({ text: T(cfg.direct === 'on' ? 'apps.price.direct' : (room ? 'apps.price.hiddenRoom' : 'apps.price.hidden')) })
     // A card that can be the first yes names the host of the usage reports. A card that accepts a request only follows one that did
     // (a request needs a code, and a code needs a price card first), so it carries no such line and is no first yes.
     const host = accept ? '' : reportsHostNow()
@@ -883,9 +905,15 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     fill(reqBox, [el('h2', { class: 'mw-apps-h2', text: T('apps.requests.title') }), ul])
   }
   const shortPlain = (text, max = 80) => previewText(String(text === null || text === undefined ? '' : text), max)
+  // DECISIONS DEC-5: a conversation or a room whose only path the rendezvous refused (its relay is off, or it is from before the relay, and
+  // the door has no direct link) would read "Connecting..." for ever; the service marks it reason 'no-path' and the line says why instead.
+  // The exact word only, and only in the statuses where it can still be true: a stale reason on one that connected, was left, blocked or
+  // closed changes nothing.
+  const noPath = (rec, statuses) => rec.reason === 'no-path' && statuses.indexOf(rec.status) >= 0
   function statusLine (c) {
+    if (noPath(c, ['connecting', 'rejected'])) return T('apps.status.noPath')
     switch (c.status) {
-      case 'connected': return T('apps.status.connected')
+      case 'connected': return T(viaOf(c) === 'relay' ? 'apps.status.relayed' : 'apps.status.connected')
       case 'waiting': return T('apps.status.waiting')
       case 'rejected': return T('apps.status.rejected')
       case 'left': return T('apps.status.left')
@@ -1429,11 +1457,14 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   const field = (id, label, control) => el('span', { class: 'mw-apps-field' }, [el('label', { class: 'mw-apps-label', for: id, text: label }), control])
   const nickForm = form('mw-apps-toolrow', [field('mw-apps-nick', T('apps.tool.nickname'), nickInput), button(T('apps.tool.nicknameSave'), () => saveNickname(), 'mw-small', { 'data-role': 'nick-save', 'data-fk': 'tool:nick-save' })])
   enterKey(nickInput, () => saveNickname())
+  // How this conversation travels and the door's tokens, as words (relay-first build, plan 3.8): text only, no control. It is drawn in place.
+  const transportNote = el('p', { class: 'mw-note', 'data-role': 'tool-transport' })
   const toolsPanel = el('div', { class: 'mw-apps-tools', hidden: true, 'data-role': 'tools' }, [
     toolsToggles,
     el('div', { class: 'mw-apps-toolrow' }, [field('mw-apps-exp', T('apps.tool.expiry'), expSel), cfgToggles, field('mw-apps-font', T('apps.tool.fontSize'), fontSel)]),
     nickForm,
     field('mw-apps-note', T('apps.tool.note'), noteInput),
+    transportNote,
     toolsActions
   ])
   expSel.addEventListener('change', trustedOnly(guarded(async () => {
@@ -1563,6 +1594,8 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
       small(T('apps.tool.receipts'), () => setCfg(c, { receipts: cfg.receipts === false }), 'tool-receipts', undefined, { 'aria-pressed': cfg.receipts === false ? 'false' : 'true' }),
       small(T('apps.tool.typing'), () => setCfg(c, { typing: cfg.typing === false }), 'tool-typing', undefined, { 'aria-pressed': cfg.typing === false ? 'false' : 'true' })
     ])
+    const via = viaOf(c)
+    setLine(transportNote, T('apps.tool.transport', { via: T(via === 'relay' ? 'apps.via.relay' : (via === 'direct' ? 'apps.via.direct' : 'apps.via.none')), relay: s.cfg.relay, direct: s.cfg.direct }))
     if (nickInput.__conv !== c.id) { nickInput.__conv = c.id; nickInput.value = peerOf(c).nick || ''; noteInput.value = typeof c.note === 'string' ? c.note : (notesMem.get(c.id) || '') }
     const blocked = isBlocked(s, c)
     fill(toolsActions, [
@@ -1699,7 +1732,8 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     if (owner && (owner.name || owner.short)) return T('apps.rooms.nameJoined', { name: personLabel(owner) })
     return code ? T('apps.rooms.name', { code }) : T('apps.rooms.title')
   }
-  const roomStatusText = (r) => T('apps.rooms.status.' + (['waiting', 'open', 'connecting', 'connected', 'rejected', 'left', 'closed'].indexOf(r.status) >= 0 ? r.status : 'connecting'))
+  // The owner's room is 'open' until a member connects, so a refused join shows there too (DEC-5, as statusLine does for a conversation)
+  const roomStatusText = (r) => (noPath(r, ['open', 'connecting', 'rejected']) ? T('apps.status.noPath') : T('apps.rooms.status.' + (['waiting', 'open', 'connecting', 'connected', 'rejected', 'left', 'closed'].indexOf(r.status) >= 0 ? r.status : 'connecting')))
   const roomsLinkNote = el('p', { class: 'mw-note mw-apps-linknote', role: 'status', 'aria-live': 'polite', hidden: true, 'data-role': 'link-note' })
   const roomNote = el('p', { class: 'mw-note', role: 'status', 'aria-live': 'polite', 'data-role': 'room-note' })
   const joinInput = el('input', {
@@ -1965,13 +1999,16 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
       ready: s.ready,
       tm: s.tm,
       link: s.link,
+      // the door's tokens as words (relay-first build): relay 'rendezvous' | 'none', direct 'off' | 'on'
+      relay: s.cfg.relay,
+      direct: s.cfg.direct,
       // the channel only (the first four characters, which the rendezvous sees anyway): the secret half of a code is never shown here
       code: s.code ? groupCode(s.code).slice(0, 4) : null,
       current: st.view === 'conversation' ? st.convId : (st.view === 'room' ? st.roomId : null),
       card: st.card ? st.card.kind : null,
       requests: pairRequests(s).length + allRoomRequests(s).length,
       conversations: s.conversations.map((c) => ({
-        id: c.id, short: groupCode(peerOf(c).short || ''), status: c.status || null, unread: Number(c.unread) || 0, messages: messagesOf(c).filter((m) => m && m.deleted !== true).length,
+        id: c.id, short: groupCode(peerOf(c).short || ''), status: c.status || null, via: viaOf(c), unread: Number(c.unread) || 0, messages: messagesOf(c).filter((m) => m && m.deleted !== true).length,
         lastStatus: lastOwn(c), pinned: flagOf(c, 'pinned'), muted: flagOf(c, 'muted'), archived: flagOf(c, 'archived'), favorite: flagOf(c, 'favorite')
       })),
       rooms: s.rooms.map((r) => ({ id: r.id, role: ownsRoom(r) ? 'owner' : 'member', status: r.status || null, members: Array.isArray(r.members) ? r.members.length : 0, messages: messagesOf(r).filter((m) => m && m.deleted !== true).length, unread: Number(r.unread) || 0 }))

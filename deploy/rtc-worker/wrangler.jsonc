@@ -1,18 +1,27 @@
 // deploy/rtc-worker/wrangler.jsonc: the Worker's settings. Deploy from a copy of this folder outside the repository (README.md).
 // The pairing and room protocol of the apps (pair.js, README.md, "Pairing") keeps a few rows in the object's own storage (a code's
 // details, a lane's expiry). The SQLite-backed class below is what provides that storage, so pairing needs no new binding and no
-// new migration.
+// new migration. The relay lane (README.md, "Relay") keeps nothing in storage at all.
+//
+// Two ways to deploy it (README.md, "Relay"):
+//   standalone      this file as it is: name "felinar-rtc", "workers_dev": true, answering at <name>.<subdomain>.workers.dev.
+//   behind a Pages front (pages/)   deploy the object alone, with `wrangler deploy --name <worker>-do` and "workers_dev": false in
+//                   the copy, so the only public address is the Pages project's <project>.pages.dev, which shows no account name;
+//                   the Pages project binds this object by script_name. This repository keeps "workers_dev": true.
+// "observability" is off, so the platform's own logs (Workers Logs) are not kept for this Worker; the Worker's code writes none either (README.md, "Privacy").
 {
   "name": "felinar-rtc",
   "main": "worker.js",
   "compatibility_date": "2025-09-01",
   "workers_dev": true,
+  "observability": { "enabled": false },
   "durable_objects": { "bindings": [{ "name": "RTC", "class_name": "Rendezvous" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Rendezvous"] }],
   "vars": {
     // The infohashes this rendezvous serves: 40 hex each, separated by spaces or commas (publish prints btih and
     // rendezvousBtih; add the chat lane of each site, README.md says how). The word "uploads" adds uploads mode.
     // The private lanes that pairing mints are served as well, each for 24 hours; they are not listed here.
+    // The vars are part of a deployment: a deploy without --var "ALLOW:<the live value>" would empty this list (README.md, "Relay").
     "ALLOW": "",
     "UPLOADS": "0",
     "OPEN": "0",
@@ -20,6 +29,9 @@
     // "1" serves the pairing and room protocol of the apps on a door page: anyone who can open a WebSocket here can open a code and,
     // once its owner accepts a knock, get a private lane served for 24 hours. "0" turns it off and the Worker is a tracker only.
     "PAIRING": "1",
+    // "1" lets the sockets of a lane that pairing minted pass sealed frames through this rendezvous (pair-join, pair-relay, README.md,
+    // "Relay"). "0" answers every join and relay with "relay is off on this rendezvous": pairing keeps working, messages need a direct link.
+    "RELAY_LANE": "1",
     // Set a long random value to read /stats.json?token=<value>; empty keeps the counts private.
     "STATS_TOKEN": ""
   }

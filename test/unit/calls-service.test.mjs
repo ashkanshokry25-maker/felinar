@@ -487,7 +487,9 @@ test('a relaying neighbour carries SIG it cannot read: no ring, no payload at th
   assert.equal(c.events.ring.length, 0, 'C saw no ring');
   assert.equal(wc.received.length, 0, 'C\'s SIG seam opened nothing');
   assert.ok(c.chatSvc.lane.stats.relayed > 0, 'C relayed frames');
-  for (const f of wire) for (const s of ['v=0', 'a=fingerprint', 'candidate:']) assert.equal(has(f, s), false);
+  // the tapped frames are sealed bytes, so a marker must be long enough not to occur in them by chance: the three bytes "v=0" did, once, in
+  // about 45 KB of ciphertext on CI (an SDP line always ends in CRLF, and every SDP carries a=fingerprint and candidate: lines as well)
+  for (const f of wire) for (const s of ['v=0\r\n', 'a=fingerprint', 'candidate:']) assert.equal(has(f, s), false, 'SDP text on a wire: ' + JSON.stringify(s));
   for (const p of [a, b, c]) await p.close();
 });
 

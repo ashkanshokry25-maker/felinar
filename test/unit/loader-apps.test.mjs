@@ -2656,8 +2656,9 @@ describe('the torrent manager seam and the configuration', () => {
     const person = await makePerson(name)
     const identity = new FakeIdentity(person)
     const link = new FakeLink(world.rdv, { setTimeoutFn: world.clock.setTimeout, clearTimeoutFn: world.clock.clearTimeout, random: () => 0.5 })
+    // the legacy door (relay 'none' reads as direct on): these bodies are about the manager of the lanes, which only a direct link needs
     const apps = createApps(Object.assign({
-      api: { identity }, config: { rendezvous: [URL_OK] }, loadTm, now: world.clock.now, link,
+      api: { identity }, config: { rendezvous: [URL_OK], relay: 'none' }, loadTm, now: world.clock.now, link,
       setTimeoutFn: world.clock.setTimeout, clearTimeoutFn: world.clock.clearTimeout, random: () => 0.5, limits: { byeGraceMs: 0 }
     }, extra))
     return { name, person, identity, link, apps }
@@ -2908,9 +2909,22 @@ describe('the source files of the service', () => {
       assert.equal(/[^\x00-\x7f]/.test(src), false, 'non-ASCII character')
       assert.equal(/[\u{2013}\u{2014}\u{2018}\u{2019}\u{201c}\u{201d}]/u.test(src), false)
       assert.doesNotMatch(src, /blockchain|serverless|unstoppable|censorship|production-ready|fully decentralized|sub-second/i)
-      assert.doesNotMatch(src, /\bonline\b|reroute|always available/i)
+      // The ONE documented exception (DECISIONS.md DEC-4): when the door page passes no hooks, apps.js listens to the page itself (amendment
+      // A3) in its two module functions pageVisible and pageBack, which name the page's document and the DOM event of the network coming
+      // back plainly, as the code must say what it does: no word split in two, no alias to get past this scan. The word is banned below as
+      // presence TEXT shown to people ("Connected to you now", never that word), and document. as the service touching the page; a DOM
+      // event's name is neither, so those two functions, and only they, are cut out before the two scans. The rest of the file is held to both.
+      const hooks = /\nfunction page(?:Visible|Back) \(fn\) \{\n[\s\S]*?\n\}\n/g
+      const scanned = file === 'apps.js' ? src.replace(hooks, '\n') : src
+      if (file === 'apps.js') {
+        assert.equal((src.match(hooks) || []).length, 2, 'pageVisible and pageBack, the two page hooks of amendment A3, are where the exception lives')
+        assert.match(src, /globalThis\.addEventListener\('online', fn\)/, 'pageBack names the DOM event plainly (DEC-4)')
+        assert.match(src, /globalThis\.document\.addEventListener\('visibilitychange', h\)/, 'pageVisible names the document plainly (DEC-4)')
+        assert.doesNotMatch(src, /'on' \+ 'line'|"on" \+ "line"|= globalThis\.document\b/, 'no word split in two and no alias of the document (DEC-4)')
+      }
+      assert.doesNotMatch(scanned, /\bonline\b|reroute|always available/i)
       assert.deepEqual(src.split('\n').filter((l) => l.trimEnd().endsWith(';')), [], 'src/loader files are semicolon-free')
-      const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '')
+      const code = scanned.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '')
       assert.doesNotMatch(code, /\binnerHTML\b|\bdocument\.|\bwindow\.|\blocalStorage\b|\bMath\.random\b|\bgetUserMedia\b/)
     })
   }

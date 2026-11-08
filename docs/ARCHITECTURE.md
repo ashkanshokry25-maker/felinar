@@ -1511,9 +1511,10 @@ the hint), not a fresh ephemeral packed into `ct` (1,105 bytes, hidden by every 
   it reads the sender's CK); Noise XX uses 65-byte SEC1 keys with the x coordinate as DH output; group signatures and
   presence signatures use newline separators and new prefixes (`mw-grp-admin-v1`, `mw-grp-commit-v1`, `mw-pres-v1`);
   HOLDING carries the conversation tag for routing back. New cryptographic code: not called secure before R 2.19.
-- The apps on the door page (15.21) use lanes of these two kinds as well: a direct pair joins a lane of kind `chat` and a room one of kind
+- The apps on the door page (15.21) use lanes of these two kinds as well, when a door turns direct links on (`direct` `"on"`): a direct pair joins a lane of kind `chat` and a room one of kind
   `group`, each named by a random infohash that a rendezvous mints after the owner accepts, and the two pages speak their own wire
-  extension `mw_apps1` there, not `mw_chat1`. A bare door page mounts no chat service, so the two never share a lane. No lane kind was added.
+  extension `mw_apps1` there, not `mw_chat1`. A bare door page mounts no chat service, so the two never share a lane. No lane kind was added. By default the same infohash is
+  the id of the lane at the rendezvous through which the sealed messages pass, and no tracker lane is joined.
 
 ### 15.7 Files and private media (R 2.8, 2.9; v0.3)
 - Reserved worker routes `/_mw/f/<ref>` (attachment, octet-stream, `nosniff`, `sandbox` CSP, CORP same-origin,
@@ -2156,11 +2157,18 @@ folded in here until the code does it; R 5.4.7 lists those.
 > is marked **(proposed)**. A review of the protocol and the privacy claims on 2026-11-02 found one blocker (the roster was readable by a
 > connection to the lane that was never accepted) and eight smaller defects; all are fixed, and the rest is in APPS.md, "Known limits". The
 > description for owners is [APPS.md](APPS.md); the exports are in INTERFACES "Apps on the door page"; the
-> rendezvous side is [deploy/rtc-worker/README.md](../deploy/rtc-worker/README.md) ("Pairing"). This section is numbered 15.21 because
+> rendezvous side is [deploy/rtc-worker/README.md](../deploy/rtc-worker/README.md) ("Pairing" and "Relay"). This section is numbered 15.21 because
 > 15.19 and 15.20 are taken.
+>
+> **Relay-first (unreleased).** After the accept, the sealed messages of a conversation or a room pass through the rendezvous, on the pair socket the page already holds, by default; a direct link
+> is a door-level opt-in. Built and tested on loopback with fakes, the real pairing core and the Node tracker; not run on a real network (an office Wi-Fi, mobile data,
+> Tor Browser, a VPN). The bullets below carry it: Design (the two keys), What a door page mounts, The rendezvous protocol, Before and after approval, Who learns what, What is stored
+> where, Tools, Built as and Not built. The earlier "always relay through a TURN server" idea is not what was built.
 
 - **Design.** A door names its apps in an optional block of its own `/_mw/door.json`: `apps: { rendezvous: [wss: URL, ...], stun: [stun: URL,
-  ...], idp: <origin> }` (1 to 8 rendezvous URLs, `ws:` only on a loopback host; 0 to 8 STUN URLs; an https origin, or http on loopback;
+  ...], idp: <origin>, relay?: 'rendezvous' | 'none', direct?: 'off' | 'on' }` (1 to 8 rendezvous URLs, `ws:` only on a loopback host; 0 to 8 STUN URLs; an https origin, or http on loopback;
+  `relay` says whether the sealed messages go through the rendezvous, `rendezvous` when absent; `direct` whether the apps also try a direct link, `off` when absent; `relay` `none` alone
+  means `direct` `on`, as doors behaved before the keys, and `none` with `off` is refused: `apps-relay`, `apps-direct` and `apps-transport` are the reasons;
   `checkAppsBlock` in `src/loader/doors.js`, and `tools/apps-block.mjs`, which is at least as strict). A bare door page (`resolveMode`
   answers `door` and the address carries no link) reads this address's `/_mw/door.json` once (`readAppsBlock`: same origin, no HTTP cache,
   no credentials, no referrer, the probe's size cap and its 4 s limit). When the block is valid and the address is not a share target
@@ -2174,8 +2182,8 @@ folded in here until the code does it; R 5.4.7 lists those.
   as in 15.15); the apps service `createApps` (`src/loader/apps.js`) and its view `createAppsUi` (`src/loader/apps-ui.js`), drawn in a new
   slot of the loader UI (`#mw-apps`, `role="main"`, `ui.showApps(node)` and `ui.hideApps()`). No chat, files, media or calls service, no
   ledger, no seeding and no pin run. The torrent manager is made on first use (`loadAppsTm`: when a request is accepted or its acceptance
-  arrives, never before) in a lanes-only form: the ICE servers are the block's STUN list and nothing else (no public default; the lanes use at
-  most four), and consent to peers is the act of accepting or knocking, held for this page only.
+  arrives, never before, and only when the block's `direct` is `on`; with the default `off` no manager is loaded and no `RTCPeerConnection` is made for the apps) in a lanes-only form: the ICE servers are the
+  block's STUN list and nothing else (no public default; the lanes use at most four), and consent to peers is the act of accepting or knocking, held for this page only.
 - **The code.** 12 characters of `abcdefghijkmnpqrstuvwxyz23456789` (no 0, 1, l, o) from `crypto.getRandomValues`, shown `xxxx-xxxx-xxxx`. The
   first four are the channel, the only part the rendezvous sees; the last eight are the secret (40 bits) and never leave the browser.
   `K_code = PBKDF2-SHA-256(utf8(secret), salt = utf8("mw-pair-v1|" + channel), 100,000 rounds, 32 bytes)`. A typed code is normalised
@@ -2214,15 +2222,33 @@ folded in here until the code does it; R 5.4.7 lists those.
   minutes; a code lives until its owner closes it, its socket closes, or 24 hours; a lane is served 24 hours from the accept (from the open,
   for a room), and a dead lane refuses the next announce of its members; 16 pending requests per code and 8 per requesting socket; 10
   requests and 10 opens a minute per socket; 4,096 codes and 10,000 lanes in all.
+- **The relay lane** (relay-first; `deploy/rtc-worker/pair.js`, `src/loader/apps-link.js`). After the accept both pages send `pair-join { lane }` (`room-join` for a room) on the socket they hold; the
+  rendezvous answers with the count of the other sockets on the lane and pushes `pair-joined { lane, peers }` to them. A sealed message goes as `pair-relay { lane, f }`, `f` being the
+  frame as base64url (at most 7,700 characters; the three sizes of a sealed message are 686, 2,051 and 7,512), and arrives at every other member as `pair-relayed { lane, f }`; the
+  sender's reply, when it asked with a `rid`, carries the number of sockets the frame was written to (0 when it is alone: it keeps the message queued). `pair-leave` and the closing of a socket
+  push `pair-left { lane, peers }`. A lane holds 2 sockets (16 for a room) and a socket 8 lanes, and a lane that the rendezvous never minted or that ran out is `unknown lane`. A join
+  to a full lane first evicts the members whose last message or keepalive is older than `memberStaleMs` (120 seconds by default), so a page that lost its socket is not locked out of
+  its own lane while the rendezvous still holds the old one, and a page whose join was answered `lane full` tries again (after 3, 10 and 30 seconds, then every minute). The
+  rendezvous does not parse, store or log `f`. Caps: 120 relayed frames and 150 messages of any kind a minute from a socket (the next closes it; a
+  page keeps itself under both by its own count, 100 relayed frames and 120 messages in 65 seconds, holding a frame back until there is room and
+  refusing at once a frame that would wait behind 8 of its lane, which holds while the network's delay stays even or shrinks by up to 5 seconds:
+  the rendezvous counts the frames as they arrive) and 20,000 relayed frames a UTC day for the
+  object (`relay is busy` after, counted in memory); the counts are in `/stats.json`. `RELAY_LANE` `"0"` (the Worker) or `--no-relay-lane` (the Node tracker) makes every join, relay and leave answer
+  `relay is off on this rendezvous`. A page pings with the exact text `{"v":1,"action":"pair-ping"}` every 50 seconds and the Worker answers without waking its object. The contract is
+  INTERFACES "The relay lane".
 - **Before and after approval.** Until the owner accepts, only pair frames move: the tracker has no swarm for the lane, no page holds an
-  `RTCPeerConnection`, and neither person has the other's network address. After the accept both pages join the lane with
+  `RTCPeerConnection`, and neither person has the other's network address. After the accept both pages join the lane at the rendezvous (`pair-join`, above) and the
+  sealed messages pass through it; the conversation reads as connected when the lane has both pages in it. With `direct` `on` they also join the lane with
   `joinLane({ kind: 'chat' | 'group', infoHash: lane, announce: [the first rendezvous] })` (a direct pair is kind `chat`, a room kind `group`;
   a bare infohash that is never seeded and is announced only to the site's own tracker, 15.6) and the usual tracker offers and answers
-  begin. Two scripted runs checked it: before the accept the tracker had no lane, no swarm and no announce, and no page had a peer
-  connection. One socket serves all of a page's codes. When it drops, the page reconnects after 1, 2, 4, 8, 15 and then every 30 seconds
+  begin; a direct wire that is ready is preferred to the relay, a frame that arrives by both shows once (its id is accepted once), and the conversation's `via` says which it is. With `direct` `off`
+  no manager is loaded, no `RTCPeerConnection` is made and no lane is announced. Two scripted runs on loopback (before the relay) checked the first half: before the accept the tracker had no
+  lane, no swarm and no announce, and no page had a peer connection. One socket serves all of a page's codes. When it drops, the page reconnects after 1, 2, 4, 8, 15 and then every 30 seconds
   (with jitter), opens its code again with a fresh box, and makes a lost request again up to 3 times.
-- **Over the lane, `mw-apps-v1`** (`src/loader/apps-crypto.js`, `src/loader/apps.js`). The wire extension `mw_apps1` is registered once, for
-  the swarm kinds `chat` and `group`, when the service first loads the manager. A frame is `[0x01 version][type][JSON payload]`, at most
+- **Over the lane, `mw-apps-v1`** (`src/loader/apps-crypto.js`, `src/loader/apps.js`). The frames are the same on both carriers: a direct wire (`st.wire.extended`) and the relay (`link.relay`) are two
+  ways to put the same bytes on the lane, behind one function of the service (`_put`), and every received frame goes through the same checks (size, rate, strikes, flood, accepted once). A third carrier
+  is another entry of that kind and needs no change to the frames. The wire extension `mw_apps1` is registered once, for
+  the swarm kinds `chat` and `group`, when the service first loads the manager (only when `direct` is `on`). A frame is `[0x01 version][type][JSON payload]`, at most
   16,384 bytes. `0x02 DM` = `{ tag, epk, iv, ct }` from `sealDm` under `K_pair` (the static ECDH of the two chat keys, ledger id `mw-apps/1`):
   deniable, with no sender signature, in plaintext buckets of 256, 1,024 or 4,096 bytes (the 16,000-byte bucket does not fit a frame), so a
   body is at most 4,064 bytes of JSON and a text at most 3,500 characters. `0x03 ROOM-KEY` = `sealTo` from the owner to one member: the
@@ -2242,7 +2268,9 @@ folded in here until the code does it; R 5.4.7 lists those.
   goes when it runs out (a pinned or saved copy too), never below 10 seconds on the reader's side; a received `cfg` says what the other
   person does (shown as `peerCfg`), never changes the reader's own timer, and is dropped when its `t` is more than 5 minutes from the
   reader's clock; a `cfg` is announced with the time of the announcement each time a wire comes up. A reaction is a string of at most 8
-  code points that is not a name every object has (`toString`, `constructor`); the earlier texts of an edited message are kept to the last 20. A room carries `msg` and `bye`. Formatting `md1` is `*bold*`, `_italic_`,
+  code points that is not a name every object has (`toString`, `constructor`); the earlier texts of an edited message are kept to the last 20. A room carries `msg`, `bye` and `in`, which a member sends once it holds the
+  room secret: at each accept and each joined push the owner puts on the relay the roster once and the sealed secrets of the members it has not
+  heard from only (any frame of theirs counts), and a member that sees its own key box again says `in` again, at most once a minute. Formatting `md1` is `*bold*`, `_italic_`,
   `__underline__`, `~strike~` and `` `mono` ``, and `http` and `https` links; a parser returns a node tree, and the view builds elements
   from it with `textContent`, never markup from a person's text. A frame is accepted once (an id window of 10 minutes ahead and 7 days back,
   8,192 ids), a lane sends 60 queued frames a minute and accepts 120 (600 in a room), and three bad frames, or a flood over the rate, close the
@@ -2252,11 +2280,14 @@ folded in here until the code does it; R 5.4.7 lists those.
   `failed` and goes again on the next wire. In a room every member passes
   on the key boxes, rosters and group frames it has not seen, so a member that has no direct wire to the sender still gets them.
 - **Who learns what.** The rendezvous learns the channel of each code, when requests and answers arrive, the lane it mints, the network
-  addresses of the sockets (as any relay does), and sealed boxes whose size follows that of the hello; after the accept it carries the two
-  pages' connection offers and answers on the lane, as every tracker does. It does not learn names, identity keys, chat keys, the last eight
-  characters of a code, a message, or which identity talks to which. A connection to a lane that was never accepted sees only sealed
-  frames and the number of key boxes. A person who is accepted learns the other's network address (in a room every member can connect to
-  every other member, so each can learn the others'). A relay that records boxes can test secrets
+  addresses of the sockets (as any relay does), and sealed boxes whose size follows that of the hello; after the accept it forwards the sealed messages of the two
+  pages, so it also learns when each is sent and one of three size classes, and, with `direct` `on`, it carries their connection offers and answers on the lane, as every tracker does. It does not
+  learn names, identity keys, chat keys, the last eight characters of a code, a message, or which identity talks to which. The host of the rendezvous learns what any host learns of a
+  connection, the network address among it, and can be ordered to record it. A connection to a lane that was never accepted sees only sealed
+  frames and the number of key boxes. By default a person who is accepted does not learn the other's network address; when the door turns `direct` on, the connection offers and answers,
+  which the rendezvous carries on the lane as any tracker does, hold each page's network address, so each learns the other's whether or not a direct link connects (in a room every member
+  can try to connect to every other member, so each can learn the others'). The owner of the door sees counts (`/stats.json`, and reports if the door sends them), not messages; the
+  rendezvous's code gives the owner no addresses, unless the owner adds code that logs them or hosts the rendezvous on a machine of their own (then the owner is its host, above). A relay that records boxes can test secrets
   against the owner's box, which the Worker holds for the life of the code. Nobody on the path can read a message: the data channel is
   encrypted, and a message is also sealed under `K_pair` (a room message under the room secret). The eight-digit compare code,
   `HMAC(K_pair, "verify|mw-apps/1")` (first four bytes, modulo 10^8), which both people read to each other, is what catches a key
@@ -2270,6 +2301,8 @@ folded in here until the code does it; R 5.4.7 lists those.
   | The Worker's Durable Object storage | `chan:<channel>` = `{ kind, box, lane, exp }` (the owner's sealed box) and `lane:<hex>` = expiry | the code or lane runs out (24 hours at the most) or the owner closes the code |
   | A socket's attachment at the Worker | the codes it owns and, for a requester, its pending requests (id, channel, time, kind): a few hundred bytes of the 2,048 allowed | the socket closes or the request ends |
   | The Node tracker | the same, in memory | the process ends |
+  | The rendezvous's memory, for the relay | the members of each lane (a map of lane to sockets) and the day's counters; never a frame, and nothing is written to storage for the relay | the lane runs out or empties; the counters at 00:00 UTC or a redeploy |
+  | A pair socket's attachment at the Worker | gains `l`: at most 8 pairs of lane (40 hex) and kind, so that the lanes survive the object's sleep | the socket closes |
   | The site ledger; a log of messages | nothing | not applicable |
 
 - **Tools.** `publish --tracker <wss URL> --stun <stun: URL> --idp <origin>` writes `apps` into `summary.json` and, with `--shell`, into the
@@ -2277,30 +2310,35 @@ folded in here until the code does it; R 5.4.7 lists those.
   `withoutAppsBlock` and `withoutObsBlock` takes out its own key, and the two together give the build's bytes back);
   `publish --door-kit <dir> --door-site <publish output>` copies the first site's block into the kit's `_mw/door.json`, the one loader file
   the kit then changes; `tools/dev-server.mjs --apps-rendezvous --apps-stun --apps-idp` serves a block without changing the file;
-  `check-site --door` prints it (`[info] apps: rendezvous 1, stun 1, identity <origin>`) or warns that the page cannot use it, and contacts
+  `check-site --door` prints it (`[info] apps: rendezvous 1, stun 1, identity <origin>`, and `, relay rendezvous, direct off` when the block carries the keys) or warns that the page cannot use it, and contacts
   none of its addresses; `tools/demo.mjs [--stun <stun: URL>]` offers the apps on its desktop tier; `tools/tracker.mjs` serves pairing unless
   `--no-pairing` is given or `pair.js` is absent; the Worker serves it unless `PAIRING` is `0`; `/stats.json` of both gains `codes`, `knocks`
-  and `lanes`.
+  and `lanes`, and the relay's counts. `publish`, the dev server and the demo take `--apps-relay rendezvous|none` and `--apps-direct off|on` for the two keys, and refuse a word the page would refuse and the pair `none` + `off`.
 - **Built as (decisions made while building).** Pending requests ride on the requester's socket attachment, not in memory only, because the
   Durable Object sleeps between messages and a person takes longer to read a request. The code is 12 characters (4 channel, 8 secret); the
   first design had fewer, and changed on 2026-11-01 once the cost of offline guessing was clear. The text limit is 3,500 characters, not
   4,000, because a 4,000-character text does not always fit the 16,384-byte frame once sealed and encoded. An owner's hello is accepted up
   to 24 hours old. `publish` writes the block only when `--tracker`, `--stun` and `--idp` are all given, and into the shell's `door.json`
-  only with `--shell`; the demo's STUN is optional. The apps are inside `_mw/loader.js` (about 184 KB, 53 KB gzipped, 13.7 percent, more on every page, as
+  only with `--shell`; the demo's STUN is optional. Relay-first decisions: the messages go through the rendezvous from the accept on, with no wait for a direct link
+  to fail (the direct links measured so far, APPS.md "What was tested", connected on one computer or one network, and a direct link shows each side the other's address); a direct link is the door's opt-in; rooms use the relay too, with up to 16
+  members on the lane; no new cryptography (the frames are the sealed frames of `apps-crypto.js`, base64url on the wire); the keepalive is a fixed text the platform answers without waking the object;
+  the Worker and its Pages front read no client address header and `request.cf`, and the Worker's logs are off in `wrangler.jsonc`. The apps are inside `_mw/loader.js` (about 184 KB, 53 KB gzipped, 13.7 percent, more on every page, as
   measured on 2026-11-02, see APPS.md, "What it costs"), not a file of their own. The Node tracker loads `pair.js` from `deploy/`, which the npm package does not carry, so `felinar tracker` from the package
   serves no pairing and says so; the two Docker images copy the file.
 - **Not built.** **(proposed)** A password-authenticated key exchange for the code (CPace on P-256 would need hash-to-curve from a small
   library, a dependency decision), which would remove the offline test of secrets against a recorded box. **(proposed)** A hash-committed
   short authentication string, so that nobody can grind the compare code. **(proposed)** A mailbox in the rendezvous for sealed frames
   (delivery to a person who is away). **(proposed)** A rekey and the removal of a member in a room (one epoch today: a leaver keeps the
-  secret and, while the lane is served, can still read; MLS is not used). **(proposed)** Media, files and calls at a door; an "always relay"
-  choice through the site's TURN server (the block names STUN only, so two browsers that cannot connect directly do not connect).
+  secret and, while the lane is served, can still read; MLS is not used). **(proposed)** Media, files and calls at a door. Not built, and not
+  what "relay" means here: a relay through a TURN server (the block names STUN only; with `direct` `on` two browsers that cannot connect directly stay on the relay of the rendezvous).
+  **(proposed)** Another carrier beside the rendezvous (a copy on another host, a list of copies, a public relay of another network, an entry hop) and a direct link per contact in place of
+  the door-wide key: the `_put` seam and the string-valued keys leave room for them, and nothing else is built.
   **(proposed)** A per-address quota at the rendezvous: the caps are global, a flood of sockets can fill the 4,096 codes or 10,000 lanes for up
   to a day, a person who knows a channel can force a pair code to be replaced with five wrong requests, and an open channel answers a
   request differently from a closed one, so the 1,048,576 channels can be listed (at the cap of 10 requests a minute a socket, 1,000
   sockets need about 105 minutes: arithmetic, not a run). Block is by the other person's key for this visit, so a reload bypasses it. **(proposed)** A separate
   `_mw/apps.js` entry loaded only by doors with apps. **(proposed)** `verify-release.mjs verify --door-kit` accepting a door kit whose
-  `door.json` carries the block (it names that file today, because the signed list names `door.json` without it). On 2026-11-02 the demo's rendezvous ran on Cloudflare (a Pages front over a Worker with a Durable Object): pairing worked at the demo door, and a phone on mobile data (5G) did not connect directly, which is the case for the relay above; hibernation and idle pair sockets on the real platform are still untested.
+  `door.json` carries the block (it names that file today, because the signed list names `door.json` without it). On 2026-11-02 the demo's rendezvous ran on Cloudflare (a Pages front over a Worker with a Durable Object): pairing worked at the demo door, and a phone on mobile data (5G) did not connect directly, which is the case the relay through the rendezvous is built for; it has not run on mobile data, an office Wi-Fi, Tor Browser or a VPN, and hibernation, the keepalive and idle pair sockets on the real platform, and how the Free plan counts WebSocket messages, are still untested.
 
 ### 15.22 Usage reports (unreleased)
 
