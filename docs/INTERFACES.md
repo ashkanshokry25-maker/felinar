@@ -2120,7 +2120,8 @@ ERRORS, LIMITS (exported): the numbers of APPS.md "Limits"; tests shorten times 
 Signing out, or becoming another identity, drops everything: sockets, lanes, conversations, timers. Nothing was stored.
 src/loader/apps-link.js
             createLink(opts) -> PairLink({ url, WebSocketImpl, setTimeoutFn, clearTimeoutFn, random, backoffMs = [1000, 2000, 4000, 8000, 15000, 30000], knockSilentMs = 30000,
-              knockExpireMs = 600000, requestTimeoutMs = 15000, openWaitMs = 10000, keepaliveMs = 0, pongWaitMs = 10000, relayBudget = 100, messageBudget = 120, log });
+              knockExpireMs = 600000, requestTimeoutMs = 15000, openWaitMs = 10000, keepaliveMs = 0, pongWaitMs = 10000, relayBudget = 100, messageBudget = 120,
+              heldPerLane = 8, log });
               url must be wss: (ws: on loopback)
             link.state 'idle' | 'connecting' | 'open' | 'backoff'; connect(); close(); whenOpen(ms); send(action, fields); request(action, fields, { timeoutMs }) ->
               { ok: true, reply } | { ok: false, reason } (reason: the failure text as a slug, or link-down | closed | timeout | too-big | bad-reply)
@@ -2130,14 +2131,17 @@ src/loader/apps-link.js
             typed calls (kind 'pair' | 'room'): openCode({ kind, channel, box }), closeCode({ kind, channel }), knock({ kind, channel, box }), accept({ kind, knock, proof }),
               reject({ kind, knock }), cancel({ kind, knock })
               the relay's: join(lane, kind) -> { ok: true, peers } | { ok: false, reason }; relay(lane, kind, bytes: Uint8Array) -> { ok: true, peers } | { ok: false, reason }
-              (base64url without padding; refused locally with reason 'too-big' over 7,700 characters); leave(lane, kind) -> { ok } (3 s, ok on a timeout). All three go through request(),
-              so link.sent, link.reply and link.timeout report them
+              (base64url without padding; refused locally with reason 'too-big' over 7,700 characters); leave(lane, kind) -> { ok } (3 s, ok on a timeout; it first drops the
+              lane's frames that wait for the socket's minute, as dropHeld(lane) -> n does). All three go through request(), so link.sent, link.reply and link.timeout report them
             keepalive: with keepaliveMs > 0 the link sends {"v":1,"action":"pair-ping"} (this byte string) every keepaliveMs while the socket is open and treats the socket as lost when no pong,
               and no other frame, comes within pongWaitMs (10 s); the answer, pair-pong, is no event; apps.js passes keepaliveMs 50000
-            the socket's minute: the link counts what its socket sends in a sliding minute and keeps under relayBudget relayed frames (RELAY_BUDGET, 100) and
-              messageBudget frames in all (MESSAGE_BUDGET, 120), under the 120 and 150 the rendezvous allows a socket: a request that would go over waits in the link
-              (relayed frames in their order), its time and its timeout start when it is sent, and it fails with 'closed' when the socket goes first; a ping and
-              send() are counted, never held; a new socket starts a minute of its own
+            the socket's minute: the link counts what its socket sent in the last 65 seconds (BUDGET_WINDOW_MS, 5 more than the minute of the rendezvous) and keeps
+              under relayBudget relayed frames (RELAY_BUDGET, 100) and messageBudget frames in all (MESSAGE_BUDGET, 120), under the 120 and 150 the rendezvous allows a
+              socket in a minute: a request that would go over waits in the link (relayed frames in their order, at most heldPerLane of one lane (HELD_PER_LANE, 8), the
+              next refused at once with 'too-many-relays'), its time and its timeout start when it is sent, and it fails with 'closed' when the socket goes first or its
+              lane is left; a ping and send() are counted, never held; a new socket starts a minute of its own. The rendezvous counts a frame when it arrives, so this
+              keeps a socket under its caps while the network's delay stays even or shrinks by up to 5 seconds, not when the network holds frames back and then
+              delivers them at once
             report reasons (reasonWord) gain: invalid-lane, unknown-lane, lane-full, too-many-lanes, relay-is-off-on-this-rendezvous, invalid-frame, too-many-relays, relay-is-busy, too-many-messages
 ```
 

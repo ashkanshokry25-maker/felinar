@@ -16,7 +16,10 @@ import { readFileSync } from 'node:fs';
 import WebSocket from 'ws';
 
 import { createTracker } from '../../tools/tracker.mjs';
-import { PairLink, createLink, reportWord, reasonWord, reasonCode, BACKOFF_MS, KEEPALIVE_MS, PONG_WAIT_MS, RELAY_BUDGET, MESSAGE_BUDGET } from '../../src/loader/apps-link.js';
+import {
+  PairLink, createLink, reportWord, reasonWord, reasonCode, BACKOFF_MS, KEEPALIVE_MS, PONG_WAIT_MS, REQUEST_TIMEOUT_MS, RELAY_BUDGET, MESSAGE_BUDGET,
+  BUDGET_WINDOW_MS, HELD_PER_LANE
+} from '../../src/loader/apps-link.js';
 import { createApps, LIMITS } from '../../src/loader/apps.js';
 import { EXT_NAME, T, encodeFrame, sealDmBody, shortIdOf } from '../../src/loader/apps-crypto.js';
 import { b64url } from '../../src/chain/canonical.js';
@@ -251,11 +254,15 @@ describe('the pair link: join, relay and leave', () => {
 
 // The rendezvous counts what one socket sends in a sliding minute (plan 3.2): past 120 relayed frames it refuses them, and past 150 messages of
 // any kind it closes the socket, which ends every lane, code and knock of the page at once. Every lane of a page shares that one socket, so the
-// link keeps its own minute under those caps (RELAY_BUDGET, MESSAGE_BUDGET) and a request that would go over waits for room: a page never trips
-// the caps by itself (finding A-3 of verify round 0).
+// link keeps its own count under those caps (RELAY_BUDGET, MESSAGE_BUDGET; finding A-3 of verify round 0) and a request that would go over waits
+// for room: a page whose frames reach the rendezvous at an even pace does not trip the caps by itself. At most HELD_PER_LANE relayed frames of
+// one lane wait, the next is refused at once as too-many-relays, and leaving a lane drops what waited for it (finding A-6 of verify round 1). The
+// link counts each frame for BUDGET_WINDOW_MS, longer than the minute of the rendezvous, so that a network that gets a little faster cannot put
+// two of the link's minutes into one of the rendezvous; one that holds frames back and then delivers them at once still can (finding C-12).
 describe('the minute of the socket: the link stays under the caps of the rendezvous', () => {
-  test('300 frames put on the relay at once are never refused and never close the socket: RELAY_BUDGET go now and the rest as the minute has room; a join does not wait behind them', async () => {
+  test('300 frames put on one lane at once: RELAY_BUDGET go now, HELD_PER_LANE wait and the rest are refused here at once; the rendezvous refuses nothing and never closes the socket; a join does not wait; a frame that waited is timed from its send', async () => {
     assert.ok(RELAY_BUDGET > 0 && RELAY_BUDGET < 120 && MESSAGE_BUDGET > RELAY_BUDGET && MESSAGE_BUDGET < 150, 'under the caps of the rendezvous (plan 3.2)');
+    assert.ok(BUDGET_WINDOW_MS > 60000 && HELD_PER_LANE > 0 && HELD_PER_LANE < RELAY_BUDGET);
     const w = makeWorld();
     const lane = mint(w);
     const A = linkOf(w);
@@ -264,10 +271,13 @@ describe('the minute of the socket: the link stays under the caps of the rendezv
     await B.link.join(lane, 'pair');
     const answers = [];
     for (let i = 0; i < 300; i++) A.link.relay(lane, 'pair', bytesOf(40, i % 200)).then((r) => answers.push(r));
-    await until(() => answers.length === RELAY_BUDGET, 'the frames of the first minute are answered');
+    const refusedHere = 300 - RELAY_BUDGET - HELD_PER_LANE;
+    await until(() => answers.length === 300 - HELD_PER_LANE, 'the frames that went and the frames refused here are answered');
     await settle(20);
     const relaysSent = () => A.link._ws.sent.filter((t) => JSON.parse(t).action === 'pair-relay').length;
-    assert.deepEqual([answers.length, relaysSent()], [RELAY_BUDGET, RELAY_BUDGET], 'the others wait in the link, unsent');
+    assert.deepEqual([relaysSent(), A.link._held.length], [RELAY_BUDGET, HELD_PER_LANE], 'HELD_PER_LANE wait in the link, unsent');
+    assert.equal(answers.filter((r) => r.ok === true && r.peers === 1).length, RELAY_BUDGET);
+    assert.deepEqual(answers.filter((r) => !r.ok), Array.from({ length: refusedHere }, () => ({ ok: false, reason: 'too-many-relays' })), 'the rest are refused at once, as the rendezvous would refuse them');
     const other = mint(w);
     assert.deepEqual(await A.link.join(other, 'pair'), { ok: true, peers: 0 }, 'a join goes at once: the minute has room for it');
     // and in the same turn, as before the minute existed: a sign-out writes its leaves and then closes the socket
@@ -276,15 +286,153 @@ describe('the minute of the socket: the link stays under the caps of the rendezv
     const leaving = A.link.leave(other, 'pair');
     assert.equal(ws.sent.length, before + 1, 'the leave was written at once, while relayed frames wait');
     assert.deepEqual(await leaving, { ok: true });
+    // a frame counts in the link for BUDGET_WINDOW_MS, longer than the minute of the rendezvous (finding C-12): at 60 seconds nothing goes yet
     w.advance(60000);
-    await until(() => answers.length === 2 * RELAY_BUDGET, 'the frames of the next minute');
-    w.advance(60000);
-    await until(() => answers.length === 300, 'and the rest');
-    assert.ok(answers.every((r) => r.ok === true && r.peers === 1), JSON.stringify(answers.find((r) => !r.ok)));
+    await settle(20);
+    assert.equal(relaysSent(), RELAY_BUDGET, 'nothing goes at the end of the minute of the rendezvous');
+    w.advance(BUDGET_WINDOW_MS - 60000);
+    await until(() => answers.length === 300, 'the frames that waited');
+    assert.equal(answers.filter((r) => r.ok === true && r.peers === 1).length, RELAY_BUDGET + HELD_PER_LANE);
+    assert.equal(A.link._held.length, 0);
     assert.equal(A.link.state, 'open');
     assert.deepEqual(A.names().filter((n) => n === 'gone'), [], 'the socket was never closed');
-    assert.deepEqual(A.got.filter((r) => r.name === 'reply' && r.fields.ok === false), [], 'nothing was refused');
-    await until(() => B.ev.filter(([n]) => n === 'relayed').length === 300, 'every frame reached the other side, once');
+    assert.equal(w.rdv.relayStats().relayRate, 0, 'the rendezvous refused nothing');
+    // plan 3.5: the ms of a pair-relay reply is the relay round trip, so a frame that waited is timed from its send (finding B-4 of verify round 1)
+    const replies = A.got.filter((r) => r.name === 'reply' && r.fields.action === 'pair-relay');
+    assert.equal(replies.length, 300);
+    assert.ok(replies.every((r) => r.fields.ms < 1000), JSON.stringify(replies.find((r) => r.fields.ms >= 1000)));
+    await until(() => B.ev.filter(([n]) => n === 'relayed').length === RELAY_BUDGET + HELD_PER_LANE, 'every frame that went reached the other side, once');
+  });
+
+  // The link takes RELAY_BUDGET relayed frames in BUDGET_WINDOW_MS, fewer a minute than the rendezvous takes from a socket, so it also refuses at a
+  // pace the rendezvous would still take, as docs/APPS.md says: what the page is spared is the rendezvous' refusal and its close (finding C-13 of
+  // verify round 2, A-8 the same)
+  test('one lane at a steady pace the rendezvous takes, 100 frames a minute: the link refuses some at once as too-many-relays, the rendezvous refuses none and never closes the socket', async () => {
+    const perMin = 100;
+    assert.ok(perMin < 120, 'a pace under the cap of the rendezvous (plan 3.2)');
+    const w = makeWorld();
+    const lane = mint(w);
+    const A = linkOf(w);
+    const B = linkOf(w);
+    await A.link.join(lane, 'pair');
+    await B.link.join(lane, 'pair');
+    const answers = [];
+    for (let i = 0; i < 3 * perMin; i++) { // three minutes, one frame every 600 ms of the clock
+      A.link.relay(lane, 'pair', bytesOf(40, i % 200)).then((r) => answers.push(r));
+      await settle(2);
+      w.advance(60000 / perMin);
+    }
+    w.advance(BUDGET_WINDOW_MS);
+    await until(() => answers.length === 3 * perMin, 'every frame is answered');
+    const refused = answers.filter((r) => !r.ok);
+    assert.ok(refused.length > 0, 'the link refused some');
+    assert.ok(refused.every((r) => r.reason === 'too-many-relays'), JSON.stringify(refused.find((r) => r.reason !== 'too-many-relays')));
+    assert.equal(answers.filter((r) => r.ok === true && r.peers === 1).length, 3 * perMin - refused.length, 'the others went');
+    assert.equal(w.rdv.relayStats().relayRate, 0, 'the rendezvous refused none');
+    assert.deepEqual(A.names().filter((n) => n === 'gone'), [], 'and never closed the socket');
+  });
+
+  test('leaving a lane drops the frames that wait for it at once: they answer closed and never go, and the frames of another lane keep their place', async () => {
+    const w = makeWorld();
+    const [l1, l2] = [mint(w), mint(w)];
+    const A = linkOf(w);
+    const B = linkOf(w);
+    for (const lane of [l1, l2]) {
+      await A.link.join(lane, 'pair');
+      await B.link.join(lane, 'pair');
+    }
+    const first = [];
+    for (let i = 0; i < RELAY_BUDGET; i++) A.link.relay(l1, 'pair', bytesOf(40, 1)).then((r) => first.push(r));
+    await until(() => first.length === RELAY_BUDGET, 'the minute is full');
+    const out = { l1: [], l2: [] };
+    for (let i = 0; i < 3; i++) {
+      A.link.relay(l1, 'pair', bytesOf(40, 2)).then((r) => out.l1.push(r));
+      A.link.relay(l2, 'pair', bytesOf(40, 3)).then((r) => out.l2.push(r));
+    }
+    await settle(10);
+    assert.equal(A.link._held.length, 6, 'three of each lane wait');
+    assert.deepEqual(await A.link.leave(l1, 'pair'), { ok: true });
+    await settle(10);
+    assert.deepEqual(out.l1, Array.from({ length: 3 }, () => ({ ok: false, reason: 'closed' })), 'dropped at once');
+    assert.equal(A.link._held.length, 3, 'the other lane keeps its place');
+    assert.equal(A.link.dropHeld('ab'.repeat(20)), 0, 'a lane with nothing waiting: nothing to drop');
+    w.advance(BUDGET_WINDOW_MS);
+    await until(() => out.l2.length === 3, 'the other lane goes when the minute has room');
+    assert.ok(out.l2.every((r) => r.ok === true && r.peers === 1), JSON.stringify(out.l2));
+    const relays = A.link._ws.sent.map((t) => JSON.parse(t)).filter((m) => m.action === 'pair-relay');
+    assert.equal(relays.filter((m) => m.lane === l1).length, RELAY_BUDGET, 'nothing of the lane that was left went after the leave');
+    assert.equal(relays.filter((m) => m.lane === l2).length, 3);
+  });
+
+  test('a request that waited for the minute is timed from its send: with no answer it times out requestTimeoutMs after the send, not after the call', async () => {
+    const w = makeWorld();
+    const lane = mint(w);
+    const A = linkOf(w);
+    const B = linkOf(w);
+    await A.link.join(lane, 'pair');
+    await B.link.join(lane, 'pair');
+    const first = [];
+    for (let i = 0; i < RELAY_BUDGET; i++) A.link.relay(lane, 'pair', bytesOf(40, 1)).then((r) => first.push(r));
+    await until(() => first.length === RELAY_BUDGET, 'the minute is full');
+    let late = null;
+    A.link.relay(lane, 'pair', bytesOf(40, 2)).then((r) => { late = r; });
+    await settle(10);
+    w.rdv.handle = () => {}; // the rendezvous answers nothing from now on
+    w.advance(BUDGET_WINDOW_MS);
+    await settle(10);
+    assert.equal(late, null, 'it went now, after its wait, and waits for its answer');
+    w.advance(REQUEST_TIMEOUT_MS - 1);
+    await settle(10);
+    assert.equal(late, null, 'not a moment before requestTimeoutMs after the send');
+    w.advance(1);
+    await until(() => late !== null, 'the timeout');
+    assert.deepEqual(late, { ok: false, reason: 'timeout' });
+    assert.deepEqual(A.got.filter((r) => r.name === 'timeout').map((r) => r.fields), [{ action: 'pair-relay', ms: REQUEST_TIMEOUT_MS }]);
+  });
+
+  // Finding C-12 of verify round 1: the link counts a frame when it SENDS it, the rendezvous when it ARRIVES. With the same edge on both, a network
+  // whose delay shrinks between two of the link's minutes puts the second into the minute of the first at the rendezvous. Counting each frame for
+  // BUDGET_WINDOW_MS covers a delay that shrinks by up to BUDGET_WINDOW_MS less a minute.
+  test('a network that gets a little faster between two of the link\'s minutes does not take the socket over the caps: the second minute reaches the rendezvous after the first has left its minute', async () => {
+    const w = makeWorld();
+    const lanes = Array.from({ length: 8 }, () => mint(w));
+    const A = linkOf(w);
+    const B = linkOf(w);
+    for (const lane of lanes) {
+      assert.equal((await A.link.join(lane, 'pair')).ok, true);
+      assert.equal((await B.link.join(lane, 'pair')).ok, true);
+    }
+    // from here A's frames reach the rendezvous 11 ms after they leave, and 10 ms after they leave from the 59th second on, in order (as TCP does)
+    const t0 = w.clock.now();
+    const ws = A.link._ws;
+    let last = 0;
+    ws.send = (text) => {
+      ws.sent.push(text);
+      const now = w.clock.now();
+      const at = Math.max(last, now + (now - t0 < 59000 ? 11 : 10));
+      last = at;
+      w.clock.setTimeout(() => w.rdv.handleText(ws.conn, text), at - now);
+    };
+    const answers = [];
+    for (let i = 0; i < 25; i++) for (const lane of lanes) A.link.relay(lane, 'pair', bytesOf(40, i)).then((r) => answers.push(r));
+    const held = lanes.length * HELD_PER_LANE;
+    await settle(20);
+    assert.equal(A.link._held.length, held, 'every lane has its frames waiting');
+    w.advance(11);
+    await until(() => answers.length === 200 - held, 'the first minute is answered');
+    // the minute of the rendezvous ends: a link that counted a frame for one minute only would send the frames that wait now, 10 ms away
+    w.advance(60000 - 11);
+    await settle(20);
+    w.advance(10);
+    await settle(20);
+    w.advance(BUDGET_WINDOW_MS - 60000 - 10);
+    await settle(20);
+    w.advance(10);
+    await until(() => answers.length === 200, 'the frames that waited are answered');
+    assert.equal(answers.filter((r) => r.ok === true && r.peers === 1).length, RELAY_BUDGET + held, JSON.stringify(answers.find((r) => !r.ok && r.reason !== 'too-many-relays')));
+    assert.equal(w.rdv.relayStats().relayRate, 0, 'the rendezvous refused nothing');
+    assert.deepEqual(A.names().filter((n) => n === 'gone'), [], 'and never closed the socket');
+    assert.equal(A.link.state, 'open');
   });
 
   test('past MESSAGE_BUDGET frames of any kind in a minute every request waits, a join included; one that waits fails as closed when the socket goes, and the new socket starts a minute of its own', async () => {
@@ -540,6 +688,20 @@ async function quiet (w, X, action = 'pair-relay') {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   return last;
+}
+
+/** Holds X's joins until the returned function is called: before they are sent, or (replyOnly) their answers on the way back; which(n) picks the nth. */
+function gateJoin (X, { replyOnly = false, which = () => true } = {}) {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const join = X.link.join.bind(X.link);
+  let calls = 0;
+  X.link.join = (lane, kind) => {
+    calls++;
+    if (!which(calls)) return join(lane, kind);
+    return replyOnly ? join(lane, kind).then(async (r) => { await gate; return r; }) : gate.then(() => join(lane, kind));
+  };
+  return release;
 }
 
 /** A owns a code, B knocks, A accepts; resolves when both show connected. The door is the same for both. */
@@ -1168,7 +1330,7 @@ describe('rooms through the relay', () => {
     await until(() => Ms.every((M, i) => roomOf(M, ids[i]).messages.some((m) => m.text === 'all fifteen are in')), 'a message of the owner reaches every member');
   });
 
-  test('a full room whose sockets all come back at once, as after a restart of the rendezvous: the owner\'s new socket is never refused or closed, sends a roster per return at most, and every member still holds the key', async () => {
+  test('a full room whose sockets all come back at once, as after a restart of the rendezvous: the owner\'s new socket is never refused or closed, puts 3 rosters on the relay at most for all the returns, not one each, and every member still holds the key', async () => {
     assert.ok(CORE_RELAY, 'this test needs the real pairing core (deploy/rtc-worker/pair.js), whose caps are those of the Worker');
     const w = makeWorld();
     const n = 15;
@@ -1183,7 +1345,11 @@ describe('rooms through the relay', () => {
     await until(() => [O, ...Ms].every((X) => X.link.state === 'open'), 'every socket is back');
     const ownerConn = connOf(O);
     await until(() => roomOf(O, id).peers === n, 'every member is in the lane again');
-    assert.equal(await quiet(w, O, 'room-relay') <= n + 1, true, 'a roster per return at most');
+    // the n returns reach the owner as a burst of joined pushes, and the owner's passes coalesce: the one that runs and one more, 2 rosters (96
+    // runs of 96 under load in fix round 3; one pass per push puts 15). At most 3, so that a push that comes after the second pass started
+    // stays in (finding B-5 of verify round 2: the bound of n + 1 held without the coalescing)
+    const rosters = await quiet(w, O, 'room-relay');
+    assert.ok(rosters <= 3, 'the owner put ' + rosters + ' rosters on the relay for ' + n + ' returns');
     assert.deepEqual(refusedOf(O), [], 'nothing the owner sent was refused');
     assert.deepEqual(goneOf(O), ['closed'], 'the owner\'s socket was lost once, by the restart, and never closed by the rendezvous');
     assert.equal(connOf(O), ownerConn);
@@ -1191,6 +1357,22 @@ describe('rooms through the relay', () => {
     for (const M of Ms) assert.equal(refusedOf(M).length, 0, M.name);
     await O.apps.sendRoom(id, 'after the restart');
     await until(() => Ms.every((M, i) => roomOf(M, ids[i]).messages.some((m) => m.text === 'after the restart')), 'the next message reaches every member');
+  });
+
+  // The calls of the owner's room-state pass that come while one runs make one more pass, not one each (_relayRoomState). Since the one-box fix
+  // of fix round 2 no other test failed without that: the owner of a full room whose sockets all came back put 15 rosters on the relay where it
+  // puts 2, against its 100 relayed frames in 65 seconds (finding B-5 of verify round 2).
+  test('a burst of calls of the owner\'s room-state pass makes one more pass, not one each: ten calls in one turn put the roster on the relay twice', async () => {
+    const w = makeWorld();
+    const { O, id, roomOf } = await roomUp(w, RELAY);
+    const roomO = O.apps.rooms.get(id);
+    await until(() => roomO.p.needKey.size === 0 && roomOf(O, id).peers === 2, 'both members hold the key and are in the lane');
+    const before = await quiet(w, O, 'room-relay');
+    const calls = [];
+    for (let i = 0; i < 10; i++) calls.push(O.apps._relayRoomState(roomO));
+    await Promise.all(calls);
+    // the pass that ran and one more; each puts the roster alone, since the owner heard both members say they hold the secret
+    assert.equal(await quiet(w, O, 'room-relay') - before, 2, 'rosters the owner put on the relay for ten calls');
   });
 
   test('a member says once that it holds the room secret and the owner stops putting it on the relay; a joined push then costs the owner the roster alone; a member who sees its own sealed secret again says it again', async () => {
@@ -1217,6 +1399,21 @@ describe('rooms through the relay', () => {
     w.advance(1000);
     await until(() => roomO.p.needKey.size === 0, 'M1 said it again and the owner heard it');
     assert.equal(await quiet(w, M1, 'room-relay') - m1Before, 1);
+  });
+
+  // The test above failed by chance under load (13 of 160 runs, 8 at a time, on the code of checkpoint 1f3dc01): the accept's pass and a joined
+  // push's pass each sealed the member a box while the other was sealing, the member kept the key of the first box it opened, and the owner's
+  // cache kept the second, which the member then took for another member's box, so it never said 'in' again (found in the full run of fix round 2).
+  test('the owner seals one box per member, also when two passes overlap: every pass hands out the same box', async () => {
+    const w = makeWorld();
+    const { O, id } = await roomUp(w, RELAY);
+    const roomO = O.apps.rooms.get(id);
+    roomO.p.keyFrames.clear(); // as before the first pass
+    const same = (x, y) => x.length === y.length && x.every((box, i) => Buffer.from(box).equals(Buffer.from(y[i])));
+    const [a, b] = await Promise.all([O.apps._keyFrames(roomO), O.apps._keyFrames(roomO)]);
+    assert.equal(a.length, 2);
+    assert.ok(same(a, b), 'the same box for each member'); // compared, never printed: the boxes are sealed frames
+    assert.ok(same(await O.apps._keyFrames(roomO), a), 'and the same again later');
   });
 });
 
@@ -1280,6 +1477,413 @@ describe('leaving ends the lane at the rendezvous', () => {
     assert.equal(st(A).conversations.length, 0);
     await until(() => w.rdv.relays.has(lane) && w.rdv.relays.get(lane).members.size === 1, 'B is alone in the lane');
     assert.equal(sentBy(w, A, 'pair-leave'), 1, 'and only once');
+  });
+
+  // Plan 3.6: the lanes beyond the socket's cap join when one of the 8 ends. The late leave of the test above frees a place on the socket, and the
+  // lane that waits for one gets it, as at any other end of a lane; before, nothing asked again and it stayed connecting (finding A-5 of verify round 1).
+  test('the place that late leave frees goes to the lane that waits for one', async () => {
+    const w = makeWorld({ caps: { lanesPerSocket: 2 } }); // both ends shortened the same way
+    const A = await mk(w, 'Alice', Object.assign({ limits: { relayLanesMax: 2 } }, RELAY));
+    const Bs = {};
+    for (const name of ['Bea', 'Bo', 'Bi']) Bs[name] = await mk(w, name, RELAY);
+    const { code } = await A.apps.openCode();
+    for (const B of Object.values(Bs)) assert.ok((await B.apps.knock(code)).knock);
+    await until(() => st(A).requests.length === 3, 'three requests');
+    const reqOf = (name) => st(A).requests.find((q) => q.from.name === name);
+    // the joins of Bo and Bi wait before they leave, so that no joined push reaches A meanwhile; the answer to A's second join (Bo's conversation)
+    // waits on its way back, after the rendezvous has made A's socket a member of that lane
+    const freeBo = gateJoin(Bs.Bo);
+    const freeBi = gateJoin(Bs.Bi);
+    const freeA = gateJoin(A, { replyOnly: true, which: (n) => n === 2 });
+    assert.ok((await A.apps.accept(reqOf('Bea').knock)).id);
+    await until(() => st(A).conversations.filter((c) => c.status === 'connected').length === 1, 'the first conversation is connected');
+    const accepting = A.apps.accept(reqOf('Bo').knock);
+    await until(() => st(A).conversations.length === 2 && A.link._ws.conn.joined.size === 2, 'the second join reached the rendezvous');
+    const second = st(A).conversations.find((c) => c.status !== 'connected').id;
+    assert.ok((await A.apps.accept(reqOf('Bi').knock)).id);
+    await settle(20);
+    const third = st(A).conversations.find((c) => c.id !== second && c.status !== 'connected').id;
+    assert.equal(A.apps.convs.get(third).p.rst.pending, true, 'the third waits for a place: the socket holds 2 of 2');
+    const leaving = A.apps.leave(second); // left while the answer to its join is on the way
+    await settle(20);
+    freeA();
+    await accepting;
+    await leaving;
+    freeBi();
+    freeBo();
+    await until(() => sentBy(w, A, 'pair-leave') === 1, 'the late leave');
+    await until(() => st(A).conversations.find((c) => c.id === third).status === 'connected', 'the third got the place the late leave freed');
+    assert.equal(st(A).conversations.find((c) => c.id === third).via, 'relay');
+    assert.equal(A.link._ws.conn.joined.size, 2, 'and the socket holds its 2 lanes');
+  });
+
+  // The same case the other way round (finding A-5 of verify round 1, the related case): a lane ends while the join of another is on its way, the
+  // rendezvous counted the join first and answered 'too many lanes', and the place came free right after; the answer is out of date when it arrives.
+  /** Alice with a socket that holds 2 lanes, connected to Bea and Bo, and Bi's conversation accepted with the answer to its join held on the way back. */
+  async function crossing (w) {
+    const A = await mk(w, 'Alice', Object.assign({ limits: { relayLanesMax: 2 } }, RELAY));
+    const Bs = {};
+    for (const name of ['Bea', 'Bo', 'Bi']) Bs[name] = await mk(w, name, RELAY);
+    const { code } = await A.apps.openCode();
+    for (const B of Object.values(Bs)) assert.ok((await B.apps.knock(code)).knock);
+    await until(() => st(A).requests.length === 3, 'three requests');
+    const reqOf = (name) => st(A).requests.find((q) => q.from.name === name);
+    const free = gateJoin(A, { replyOnly: true, which: (n) => n === 3 });
+    for (const name of ['Bea', 'Bo']) assert.ok((await A.apps.accept(reqOf(name).knock)).id);
+    await until(() => st(A).conversations.filter((c) => c.status === 'connected').length === 2, 'two connected');
+    const accepting = A.apps.accept(reqOf('Bi').knock);
+    await until(() => sentBy(w, A, 'pair-join') === 3 && st(A).conversations.length === 3, 'the third join reached the rendezvous, which has no place for it');
+    const third = st(A).conversations.find((c) => c.status !== 'connected').id;
+    return { A, free, accepting, third };
+  }
+
+  test('a too many lanes answer to a join that crossed the end of another lane on its way: the lane that waits gets the place the end freed', async () => {
+    const w = makeWorld({ caps: { lanesPerSocket: 2 } });
+    const { A, free, accepting, third } = await crossing(w);
+    const first = st(A).conversations.find((c) => c.status === 'connected').id;
+    assert.deepEqual(await A.apps.leave(first), { ok: true }); // a place comes free while the answer is on its way
+    free();
+    await accepting;
+    await until(() => st(A).conversations.find((c) => c.id === third).status === 'connected', 'the third got the place');
+    assert.equal(A.link._ws.conn.joined.size, 2, 'and the socket holds its 2 lanes');
+    assert.equal(sentBy(w, A, 'pair-join'), 4, 'asked once more');
+  });
+
+  test('a too many lanes answer is asked again once per place that came free on its way, not in a loop: a rendezvous that still has no place gets one more join', async () => {
+    const w = stubWorld({ caps: { lanesPerSocket: 2 } }); // the stub: it refuses every later join of Alice's socket, a place the page cannot count
+    const { A, free, accepting, third } = await crossing(w);
+    const first = st(A).conversations.find((c) => c.status === 'connected').id;
+    assert.deepEqual(await A.apps.leave(first), { ok: true });
+    const conn = A.link._ws.conn;
+    const orig = w.rdv.handle.bind(w.rdv);
+    w.rdv.handle = (c, m) => (c === conn && m && m.action === 'pair-join' ? w.rdv._send(c, { action: 'pair-join', rid: m.rid, 'failure reason': 'too many lanes' }) : orig(c, m));
+    const joins = () => A.link._ws.sent.map((t) => JSON.parse(t)).filter((m) => m.action === 'pair-join').length;
+    const fulls = () => A.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'full').length;
+    free();
+    await accepting;
+    // the answer to the join asked again comes back refused (its request must not time out first, or a page that asked in a loop would pass here)
+    await until(() => joins() >= 4 && fulls() >= 2, 'one more join, refused');
+    await settle(50);
+    assert.deepEqual([joins(), fulls()], [4, 2], 'one more join and no other');
+    for (let i = 0; i < 10; i++) {
+      w.advance(60000);
+      await settle(10);
+    }
+    assert.equal(joins(), 4, 'and none ten minutes later');
+    assert.equal(A.apps.convs.get(third).p.rst.pending, true, 'the lane still waits for a place');
+  });
+
+  // The late leave of _relayJoin counts as an end too: the place it frees can be the one a 'too many lanes' answer was refused for while that
+  // answer was on its way, and then the lane that waits asks again when the answer comes. Only the end in _leaveLane was tested (finding B-6 of
+  // verify round 2).
+  test('a too many lanes answer to a join that crossed a late leave on its way: the lane that waits gets the place the late leave freed', async () => {
+    const w = makeWorld({ caps: { lanesPerSocket: 2 } }); // both ends shortened the same way
+    const A = await mk(w, 'Alice', Object.assign({ limits: { relayLanesMax: 2 } }, RELAY));
+    const Bs = {};
+    for (const name of ['Bea', 'Bo', 'Bi']) Bs[name] = await mk(w, name, RELAY);
+    const { code } = await A.apps.openCode();
+    for (const B of Object.values(Bs)) assert.ok((await B.apps.knock(code)).knock);
+    await until(() => st(A).requests.length === 3, 'three requests');
+    const reqOf = (name) => st(A).requests.find((q) => q.from.name === name);
+    assert.ok((await A.apps.accept(reqOf('Bea').knock)).id);
+    await until(() => st(A).conversations.filter((c) => c.status === 'connected').length === 1, 'the first conversation is connected');
+    // the joins of Bo and Bi wait before they leave, so that no joined push reaches A; the answers to A's next two joins (Bo's conversation,
+    // then Bi's) wait on their way back, each until its own release (two gates, each counting the calls that reach it)
+    const freeBo = gateJoin(Bs.Bo);
+    const freeBi = gateJoin(Bs.Bi);
+    const freeSecond = gateJoin(A, { replyOnly: true, which: (n) => n === 1 });
+    const freeThird = gateJoin(A, { replyOnly: true, which: (n) => n === 2 });
+    const acceptingBo = A.apps.accept(reqOf('Bo').knock);
+    await until(() => st(A).conversations.length === 2 && A.link._ws.conn.joined.size === 2, 'the second join reached the rendezvous: the socket holds 2 of 2');
+    const second = st(A).conversations.find((c) => c.status !== 'connected').id;
+    const leaving = A.apps.leave(second); // left while the answer to its join is on the way: its place comes back by the late leave
+    await settle(20);
+    const acceptingBi = A.apps.accept(reqOf('Bi').knock);
+    await until(() => sentBy(w, A, 'pair-join') === 3, 'the third join reached the rendezvous, which has no place for it');
+    await settle(20);
+    const third = st(A).conversations.find((c) => c.id !== second && c.status !== 'connected').id;
+    freeSecond(); // the second join's answer comes first: the late leave goes, while the third is not waiting for a place yet (its answer is on the way)
+    await until(() => sentBy(w, A, 'pair-leave') === 1, 'the late leave');
+    await settle(20);
+    freeThird(); // then the third join's answer: too many lanes, out of date since the late leave
+    await Promise.all([acceptingBo, leaving, acceptingBi]);
+    freeBi();
+    freeBo();
+    await until(() => st(A).conversations.find((c) => c.id === third).status === 'connected', 'the third got the place the late leave freed');
+    assert.equal(st(A).conversations.find((c) => c.id === third).via, 'relay');
+    assert.equal(A.link._ws.conn.joined.size, 2, 'and the socket holds its 2 lanes');
+    const refused = A.reports.filter((r) => r.name === 'link.reply' && r.fields.action === 'pair-join' && r.fields.ok === false).map((r) => r.fields.reason);
+    assert.deepEqual(refused, ['too-many-lanes'], 'the third join was refused for want of a place, as the case needs');
+    assert.equal(sentBy(w, A, 'pair-join'), 4, 'asked once more');
+  });
+});
+
+// Finding A-6 of verify round 1. A page acks every direct message it accepts (up to acceptPerMin, 120 a minute a conversation), so contacts whose
+// clients relay at the rendezvous' own cap make it owe more frames than its socket's minute allows. The frames over it used to wait in the link
+// without end, every other lane of the page waited behind them, and a block left them waiting. Now at most HELD_PER_LANE of a lane wait, the next
+// is refused at once (told as rate: an ack or a mark is dropped, a message stays in its outbox). Blocking drops what waits for the lane at once;
+// leaving first sends its goodbye, which waits its turn (what waited goes, then the goodbye), or drops it at once when the goodbye is refused.
+describe('a page that owes more frames than its socket\'s minute allows', () => {
+  test('two contacts that relay at the rendezvous\' cap: what the page owes them waits in its link a lane at most HELD_PER_LANE, a message to a third contact goes within BUDGET_WINDOW_MS, and leaving one and blocking the other drop what waited at once', async () => {
+    const w = makeWorld();
+    const A = await mk(w, 'Alice', RELAY);
+    const C = await mk(w, 'Carol', RELAY);
+    // modified clients: no pacing of the service, and a link that keeps only under the caps of the rendezvous
+    const hostile = Object.assign({ limits: { sendPerMin: 1000000 }, linkOptions: { relayBudget: 120, messageBudget: 149 } }, RELAY);
+    const B1 = await mk(w, 'Bad1', hostile);
+    const B2 = await mk(w, 'Bad2', hostile);
+    const { code } = await A.apps.openCode();
+    for (const X of [C, B1, B2]) assert.ok((await X.apps.knock(code)).knock);
+    await until(() => st(A).requests.length === 3, 'three requests');
+    for (const q of st(A).requests.slice()) assert.ok((await A.apps.accept(q.knock)).id);
+    await until(() => [A, C, B1, B2].every((X) => st(X).conversations.length >= 1 && st(X).conversations.every((c) => c.status === 'connected')), 'all connected');
+    const aConv = (name) => st(A).conversations.find((c) => c.peer.name === name);
+    const ownConn = connOf(A);
+    for (const B of [B1, B2]) for (let i = 0; i < 600; i++) await B.apps.send(conv(B).id, 'flood ' + i);
+    const step = async () => { w.advance(5000); await settle(20); await new Promise((resolve) => setTimeout(resolve, 30)); };
+    const heldAt = [];
+    for (let minute = 1; minute <= 2; minute++) {
+      for (let s = 0; s < 12; s++) await step();
+      heldAt.push(A.link._held.length);
+    }
+    assert.ok(heldAt.every((n) => n <= 2 * HELD_PER_LANE), 'frames waiting in the link at each minute: ' + heldAt.join(', '));
+    assert.ok(conv(B1).messages.filter((m) => m.status === 'delivered').length > 0, 'the flood is acked as far as the minute allows');
+    const laneWith = (name) => A.apps.convs.get(aConv(name).id).p.rst.lane;
+    /**
+     * A writes to Carol; once the frame is with the link the clock moves in steps of 5 seconds until the link has sent it: how long it waited
+     * on the clock. A frame waits for the frames of its minute to run out, so at most BUDGET_WINDOW_MS, however long the flood goes on.
+     */
+    const toCarol = async (text) => {
+      const lane = laneWith('Carol');
+      const sentOn = () => A.link._ws.sent.filter((t) => { const m = JSON.parse(t); return m.action === 'pair-relay' && m.lane === lane; }).length;
+      const before = sentOn();
+      const shown = conv(C).messages.length;
+      await A.apps.send(aConv('Carol').id, text);
+      await until(() => sentOn() > before || A.link._held.some((h) => h.lane === lane), 'the frame for Carol is with the link');
+      const from = w.clock.now();
+      while (sentOn() === before && w.clock.now() - from < 10 * 60000) await step();
+      await until(() => conv(C).messages.length > shown, 'it shows at Carol');
+      return w.clock.now() - from;
+    };
+    const during = await toCarol('while the two others write');
+    assert.ok(during <= BUDGET_WINDOW_MS, 'a message to the third contact waited ' + during / 1000 + ' s of the clock while the flood went on');
+    // when the next burst of the flood has filled what may wait for both lanes, leave one and block the other, the clock standing still
+    const [lane1, lane2] = [laneWith('Bad1'), laneWith('Bad2')];
+    const full = () => A.link._heldOf(lane1) === HELD_PER_LANE && A.link._heldOf(lane2) === HELD_PER_LANE;
+    for (let i = 0; i < 40 && !full(); i++) await step();
+    assert.ok(full(), 'both lanes have HELD_PER_LANE frames waiting');
+    // its goodbye is refused at once (its lane has HELD_PER_LANE waiting), so leave() returns without the clock moving and drops what waited
+    const leftIn = await Promise.race([A.apps.leave(aConv('Bad1').id), new Promise((resolve) => setTimeout(() => resolve('still waiting'), 5000))]);
+    assert.deepEqual(leftIn, { ok: true }, 'leave() returned while the clock stood still');
+    const leftAt = A.link._ws.sent.length;
+    assert.equal(A.link._heldOf(lane1), 0, 'what waited for the lane that was left is dropped');
+    assert.deepEqual(await A.apps.block(aConv('Bad2').peer.pub), { ok: true });
+    const blockedAt = A.link._ws.sent.length;
+    await settle(20);
+    assert.equal(A.link._held.length, 0, 'nothing waits for the two lanes that were left');
+    const after = await toCarol('after the two are gone');
+    assert.ok(after <= BUDGET_WINDOW_MS, 'a message to the third contact right after the block waited ' + after / 1000 + ' s of the clock');
+    const relayedOn = (from, lane) => A.link._ws.sent.slice(from).map((t) => JSON.parse(t)).filter((m) => m.action === 'pair-relay' && m.lane === lane).length;
+    assert.deepEqual([relayedOn(leftAt, lane1), relayedOn(blockedAt, lane2)], [0, 0], 'nothing went for a lane after it was left or blocked');
+    assert.equal(connOf(A), ownConn, 'the page kept its socket');
+    assert.deepEqual(A.reports.filter((r) => r.name === 'link.gone'), [], 'and the rendezvous never closed it');
+  });
+
+  test('a lane that is not joined just now when its conversation ends (the rendezvous switched its relay off) has what waited for it dropped too', async () => {
+    const w = stubWorld(); // the stub: its switch moves half-way through; the core takes it when it starts
+    const { A, a } = await pairUp(w, RELAY);
+    const lane = laneOf(A);
+    await quiet(w, A);
+    w.rdv.relayLane = false;
+    await A.apps.send(a, 'refused');
+    await until(() => conv(A).via === null, 'the lane is out of use: the socket is not in it');
+    // frames of the page for that lane wait in its link: the minute is full
+    for (let i = 0; i < RELAY_BUDGET + 3; i++) A.link.relay(lane, 'pair', bytesOf(40, i)).then(() => {});
+    await settle(20);
+    assert.ok(A.link._held.length > 0, 'frames wait for the lane');
+    assert.deepEqual(await A.apps.leave(a), { ok: true });
+    await settle(10);
+    assert.equal(A.link._held.length, 0, 'what waited for the lane was dropped with it');
+    assert.equal(sentBy(w, A, 'pair-leave'), 0, 'and no leave was sent for a lane the socket is not in');
+  });
+
+  // What blocking and leaving do with the frames that wait, and what a message the link refuses does, as docs/APPS.md "Known limits" says
+  // (findings C-14 and C-15 of verify round 2, A-7 the same). Blocking sends no goodbye and drops what waited at once. Leaving, and an owner
+  // closing a room, first send a goodbye, which waits in the same link behind what waited: what waited goes and then the goodbye, within one
+  // count of BUDGET_WINDOW_MS, unless HELD_PER_LANE already wait, when the goodbye is refused at once and the rest dropped.
+  /** X's count of relayed frames is filled with frames on a lane the service never heard of, so that nothing of X's own waits yet. */
+  async function fillMinute (w, X) {
+    const other = mint(w);
+    assert.equal((await X.link.join(other, 'pair')).ok, true);
+    const room = RELAY_BUDGET - X.link._relayT.length;
+    for (let i = 0; i < room; i++) X.link.relay(other, 'pair', bytesOf(40, i)).then(() => {});
+    await settle(10);
+    assert.equal(X.link._held.length, 0, 'the count is full and nothing waits yet');
+  }
+  /** B writes n messages (n at most HELD_PER_LANE); A shows them, and A's n Delivered marks wait in its link. */
+  async function owe (A, B, b, n, lane) {
+    const shown = conv(A).messages.length;
+    for (let i = 0; i < n; i++) await B.apps.send(b, 'from b ' + i);
+    await until(() => conv(A).messages.length === shown + n, 'A shows what B wrote');
+    await until(() => A.link._heldOf(lane) === n, 'the Delivered marks wait in A\'s link');
+  }
+  const relayedOn = (X, lane, from, action = 'pair-relay') => X.link._ws.sent.slice(from).map((t) => JSON.parse(t)).filter((m) => m.action === action && m.lane === lane).length;
+  /** p settles within ms of real time while the clock stands still: its value, or 'still waiting'. */
+  const settlesAtOnce = (p, ms = 5000) => Promise.race([p, new Promise((resolve) => setTimeout(() => resolve('still waiting'), ms))]);
+
+  test('leaving a conversation whose frames wait: its goodbye waits its turn, what waited goes and then the goodbye within BUDGET_WINDOW_MS, and the other side shows the message, then the end', async () => {
+    const w = makeWorld();
+    const { A, B, a, b } = await pairUp(w, RELAY);
+    const lane = laneOf(A);
+    await fillMinute(w, A);
+    await owe(A, B, b, 3, lane);
+    await A.apps.send(a, 'from a');
+    await until(() => A.link._heldOf(lane) === 4, 'three Delivered marks and a message wait in A\'s link');
+    const from = A.link._ws.sent.length;
+    const t0 = w.clock.now();
+    let left = null;
+    A.apps.leave(a).then((r) => { left = r; });
+    await settle(30);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(left, null, 'leave() waits for its goodbye while the clock stands still');
+    assert.equal(A.link._heldOf(lane), 5, 'the goodbye waits behind what waited, which is not dropped');
+    w.advance(BUDGET_WINDOW_MS);
+    await until(() => left !== null, 'leave() returns once the count has room');
+    assert.deepEqual(left, { ok: true });
+    assert.ok(w.clock.now() - t0 <= BUDGET_WINDOW_MS, 'within one count');
+    assert.equal(relayedOn(A, lane, from), 5, 'what waited went, and then the goodbye');
+    await until(() => conv(B).status === 'left', 'the goodbye reached B');
+    assert.equal(conv(B).messages.filter((m) => !m.mine && m.text === 'from a').length, 1, 'the message that waited reached B before the goodbye');
+    assert.equal(conv(B).messages.filter((m) => m.mine && m.status === 'delivered').length, 3, 'and so did the Delivered marks');
+  });
+
+  test('blocking a conversation whose frames wait drops them at once and sends no goodbye; leaving one whose lane already has HELD_PER_LANE waiting has its goodbye refused at once, drops them, and the other side is not told', async () => {
+    const w = makeWorld();
+    const { A, B, a, b } = await pairUp(w, RELAY);
+    const lane = laneOf(A);
+    await fillMinute(w, A);
+    await owe(A, B, b, 3, lane);
+    await A.apps.send(a, 'from a');
+    await until(() => A.link._heldOf(lane) === 4, 'three Delivered marks and a message wait in A\'s link');
+    const from = A.link._ws.sent.length;
+    assert.deepEqual(await settlesAtOnce(A.apps.block(B.person.keys.pub)), { ok: true }, 'block() returned while the clock stood still');
+    assert.equal(A.link._heldOf(lane), 0, 'what waited is dropped at once');
+    w.advance(BUDGET_WINDOW_MS);
+    await settle(30);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(relayedOn(A, lane, from), 0, 'none of it went, and no goodbye');
+    assert.equal(conv(B).messages.filter((m) => !m.mine && m.text === 'from a').length, 0);
+    // leaving, with HELD_PER_LANE Delivered marks waiting for the lane
+    const w2 = makeWorld();
+    const P = await pairUp(w2, RELAY);
+    const lane2 = laneOf(P.A);
+    await fillMinute(w2, P.A);
+    await owe(P.A, P.B, P.b, HELD_PER_LANE, lane2);
+    assert.equal(P.A.link._heldOf(lane2), HELD_PER_LANE);
+    const from2 = P.A.link._ws.sent.length;
+    assert.deepEqual(await settlesAtOnce(P.A.apps.leave(P.a)), { ok: true }, 'leave() returned while the clock stood still: its goodbye was refused at once');
+    assert.equal(P.A.link._heldOf(lane2), 0, 'what waited is dropped');
+    w2.advance(BUDGET_WINDOW_MS);
+    await settle(30);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(relayedOn(P.A, lane2, from2), 0, 'neither what waited nor the goodbye went');
+    await until(() => conv(P.B).status === 'connecting', 'the other side lost the lane');
+    assert.equal(conv(P.B).status, 'connecting', 'and was not told that the conversation ended');
+  });
+
+  test('an owner who closes a room while its frames wait: the goodbye waits its turn, what waited goes and then the goodbye within BUDGET_WINDOW_MS, and the members see the message, then the room closed', async () => {
+    const w = makeWorld();
+    const { O, Ms, id, ids, roomOf } = await roomUp(w, RELAY);
+    const roomO = O.apps.rooms.get(id);
+    await until(() => roomO.p.needKey.size === 0 && roomOf(O, id).peers === 2, 'both members hold the key and are in the lane');
+    await quiet(w, O, 'room-relay');
+    const lane = roomO.p.rst.lane;
+    await fillMinute(w, O);
+    await O.apps.sendRoom(id, 'last word');
+    await until(() => O.link._heldOf(lane) === 1, 'the owner\'s message waits in its link');
+    const from = O.link._ws.sent.length;
+    const t0 = w.clock.now();
+    let closed = null;
+    O.apps.leaveRoom(id).then((r) => { closed = r; });
+    await settle(30);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(closed, null, 'leaveRoom() waits for its goodbye while the clock stands still');
+    assert.equal(O.link._heldOf(lane), 2, 'the goodbye waits behind the message, which is not dropped');
+    w.advance(BUDGET_WINDOW_MS);
+    await until(() => closed !== null, 'leaveRoom() returns once the count has room');
+    assert.deepEqual(closed, { ok: true });
+    assert.ok(w.clock.now() - t0 <= BUDGET_WINDOW_MS, 'within one count');
+    assert.equal(relayedOn(O, lane, from, 'room-relay'), 2, 'the message went, and then the goodbye');
+    await until(() => Ms.every((M, i) => roomOf(M, ids[i]).status === 'closed'), 'the members see the room closed');
+    for (const [i, M] of Ms.entries()) assert.equal(roomOf(M, ids[i]).messages.filter((m) => m.text === 'last word').length, 1, M.name + ' got the message before the goodbye');
+  });
+
+  test('a message the link refuses waits in the page: failed (Not sent, with Try again) after ackTimeoutMs, never sent by itself, and it goes when the person sends the next one, or tries it again', async () => {
+    for (const how of ['next', 'retry']) {
+      const w = makeWorld();
+      const { A, B, a, b } = await pairUp(w, RELAY);
+      const lane = laneOf(A);
+      await fillMinute(w, A);
+      await owe(A, B, b, HELD_PER_LANE, lane);
+      const refusedHere = () => A.reports.filter((r) => r.name === 'link.reply' && r.fields.action === 'pair-relay' && r.fields.ok === false && r.fields.reason === 'too-many-relays').length;
+      const s = await A.apps.send(a, 'refused at once');
+      assert.ok(s.id, JSON.stringify(s));
+      await until(() => refusedHere() === 1, how + ': the link refused it at once');
+      const mine = () => conv(A).messages.find((m) => m.id === s.id);
+      const atB = (text) => conv(B).messages.filter((m) => !m.mine && m.text === text).length;
+      assert.equal(mine().status, 'queued', how + ': it waits in the page');
+      w.advance(LIMITS.ackTimeoutMs);
+      await settle(20);
+      assert.equal(mine().status, 'failed', how + ': after ackTimeoutMs it is failed, which the view shows as Not sent with Try again');
+      // the count has room again within BUDGET_WINDOW_MS: what waited in the link goes then, the refused message does not, however long the page waits
+      for (let i = 0; i < 2; i++) {
+        w.advance(BUDGET_WINDOW_MS);
+        await settle(30);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      assert.equal(A.link._held.length, 0, how + ': nothing waits in the link');
+      assert.equal(atB('refused at once'), 0, how + ': nothing sent it by itself');
+      assert.equal(mine().status, 'failed');
+      if (how === 'next') {
+        await A.apps.send(a, 'the next one');
+        await until(() => atB('refused at once') === 1 && atB('the next one') === 1, 'the next message takes it along');
+      } else {
+        assert.deepEqual(await A.apps.retry(a, s.id), { ok: true });
+        await until(() => atB('refused at once') === 1, 'Try again sends it');
+      }
+      await until(() => mine().status === 'delivered', how + ': and it is Delivered');
+    }
+  });
+
+  // verify round 3, A-9 and B-7: the Known limits sentence of docs/APPS.md says only the frames the page already handed to its link go before
+  // the goodbye; a message still waiting in the page ends with the conversation
+  test('leaving a conversation while a message still waits in the page: the frames the link held go and then the goodbye; the message in the page never reaches the other side, it ends with the conversation', async () => {
+    const w = makeWorld();
+    const { A, B, a, b } = await pairUp(w, RELAY);
+    const lane = laneOf(A);
+    await fillMinute(w, A);
+    await owe(A, B, b, HELD_PER_LANE, lane);
+    const refusedHere = () => A.reports.filter((r) => r.name === 'link.reply' && r.fields.action === 'pair-relay' && r.fields.ok === false && r.fields.reason === 'too-many-relays').length;
+    const s = await A.apps.send(a, 'still in the page');
+    assert.ok(s.id, JSON.stringify(s));
+    await until(() => refusedHere() === 1, 'the link refused it at once: it waits in the page');
+    assert.equal(conv(A).messages.find((m) => m.id === s.id).status, 'queued', 'it waits in the page');
+    // the count has room again: the Delivered marks the link held go; the refused message stays in the page (the test above)
+    w.advance(BUDGET_WINDOW_MS);
+    await settle(30);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(A.link._held.length, 0, 'nothing waits in the link');
+    assert.equal(A.apps.convs.get(a).p.outbox.length, 1, 'the message still waits in the page');
+    assert.equal(conv(B).messages.filter((m) => m.mine && m.status === 'delivered').length, HELD_PER_LANE, 'what the link held reached B');
+    const from = A.link._ws.sent.length;
+    assert.deepEqual(await A.apps.leave(a), { ok: true });
+    await until(() => conv(B).status === 'left', 'the goodbye reached B');
+    await settle(30);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(relayedOn(A, lane, from), 1, 'one frame went after the leave began: the goodbye alone');
+    assert.equal(conv(B).messages.filter((m) => !m.mine && m.text === 'still in the page').length, 0, 'the message that waited in the page did not reach B: it ended with the conversation');
+    const gone = A.apps.convs.get(a);
+    assert.ok(!gone || gone.p.outbox.length === 0, 'nothing of it waits in the page any more');
   });
 });
 

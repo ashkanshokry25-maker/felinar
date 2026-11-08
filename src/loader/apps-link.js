@@ -5,7 +5,7 @@
 // minted and every sealed frame of their conversation goes through it, so a conversation does not depend on a direct link.
 //
 //   createLink({ url, WebSocketImpl, setTimeoutFn, clearTimeoutFn, random, backoffMs, knockSilentMs, knockExpireMs,
-//                requestTimeoutMs, keepaliveMs, pongWaitMs, log, report, now, relayBudget, messageBudget }) -> PairLink
+//                requestTimeoutMs, keepaliveMs, pongWaitMs, log, report, now, relayBudget, messageBudget, heldPerLane }) -> PairLink
 //
 //   link.state            'idle' (not started or closed) | 'connecting' | 'open' | 'backoff' (waiting to retry)
 //   link.connect()        starts the socket (also ends a back off wait at once); nothing is opened before the first call
@@ -35,12 +35,15 @@
 //     relay(lane, kind, bytes) -> { ok, peers } sends one frame (a Uint8Array) to the others of the lane; peers = the sockets it was
 //                                              written to, 0 when alone (the frame reached nobody). Over 7,700 characters of base64url
 //                                              (5,775 bytes) it is refused here with 'too-big', before anything is sent.
-//     leave(lane, kind) -> { ok }              leaves the lane; ok on a timeout (3 seconds) and when the socket is not open, as closeCode
+//     leave(lane, kind) -> { ok }              leaves the lane; ok on a timeout (3 seconds) and when the socket is not open, as closeCode,
+//                                              after it drops the lane's frames that wait for the socket's minute (dropHeld below)
 //   request(action, fields, { timeoutMs }) -> { ok: true, reply } | { ok: false, reason } is the untyped call under them (all of the
 //   above go through it, so sent, reply and timeout below report them).
+//   dropHeld(lane) -> n: the relayed frames of that lane that wait for the socket's minute are dropped, each answered 'closed'.
 // Failure replies ({ 'failure reason': text }) become reason slugs ('channel taken' -> 'channel-taken'). Reasons the link adds:
-// 'link-down' (the socket did not open in time), 'closed' (lost or closed while waiting), 'timeout', 'too-big', 'bad-reply',
-// 'invalid-lane' and 'kind' (a call with a lane or a kind that could not be one: refused before anything is sent), 'invalid-frame'.
+// 'link-down' (the socket did not open in time), 'closed' (lost or closed while waiting, or its lane was left while it waited), 'timeout',
+// 'too-big', 'bad-reply', 'invalid-lane' and 'kind' (a call with a lane or a kind that could not be one: refused before anything is sent),
+// 'invalid-frame', and 'too-many-relays' for a frame that would wait behind heldPerLane others of its lane (the socket's minute, below).
 // The relay lane's own reasons are the rendezvous' texts as slugs: invalid-lane, unknown-lane, lane-full, too-many-lanes,
 // relay-is-off-on-this-rendezvous, invalid-frame, too-many-relays, relay-is-busy, too-many-messages (all on REPORT_REASONS).
 //
@@ -51,11 +54,14 @@
 // that changed networks): the link treats it as lost and reconnects with its back off. A pong is no event and no report.
 //
 // The socket's minute: the rendezvous counts what one socket sends in a sliding minute (120 relayed frames, then 'too many relays'; 150
-// messages of any kind, then it closes the socket), and every lane of the page shares the socket. So the link counts its own minute and keeps
-// under relayBudget relayed frames (RELAY_BUDGET, 100) and messageBudget frames in all (MESSAGE_BUDGET, 120): a request that would go over
-// waits in the link, relayed frames in the order they came, until the minute has room, and fails with 'closed' when the socket goes first. A
-// ping and send() are counted, never held. A page therefore never trips those caps by itself. The ms of a reply is timed from the moment the
-// request was sent, after any wait.
+// messages of any kind, then it closes the socket), and every lane of the page shares the socket. So the link counts what its socket sent in
+// the last BUDGET_WINDOW_MS (65 seconds) and keeps under relayBudget relayed frames (RELAY_BUDGET, 100) and messageBudget frames in all
+// (MESSAGE_BUDGET, 120): a request that would go over waits in the link, relayed frames in the order they came, until there is room, and fails
+// with 'closed' when the socket goes first. At most heldPerLane (HELD_PER_LANE, 8) relayed frames of one lane wait; the next is refused at once
+// with 'too-many-relays', and leaving the lane drops what waits for it. A ping and send() are counted, never held. A page therefore does not
+// trip those caps by itself while the network delivers at an even pace: the rendezvous counts a frame when it arrives, so a network that holds
+// frames back and then delivers them at once can still take a socket over them. The ms of a reply is timed from the moment the request was
+// sent, after any wait.
 //
 // report(name, fields) is optional (usage reports, docs/OBSERVABILITY.md; the page adds a prefix to every name). It hears, as flat
 // objects of words and counts: state { state, prev }, open { attempt }, gone { why }, backoff { attempt, ms, why }, sent { action }
@@ -88,10 +94,18 @@ export const FRAME_CHARS_MAX = 7700 // the base64url characters of one relayed f
 export const PEERS_MAX = 64
 export const PING_TEXT = '{"v":1,"action":"pair-ping"}'
 // The socket's own minute, kept under the caps the rendezvous counts per socket (plan 3.2: 120 relayed frames and 150 messages a minute). The
-// margins cover what the link sends without holding it (a ping, a cancel) and a network that delivers a stalled minute late, in one go.
+// margins cover what the link sends without holding it (a ping, a cancel) and some unevenness on the way, not a stalled minute (finding C-12
+// of verify round 1).
 export const RELAY_BUDGET = 100
 export const MESSAGE_BUDGET = 120
-const MINUTE_MS = 60000
+// The link counts a frame for 65 seconds, 5 more than the rendezvous counts it from its arrival, so that a delay that shrinks by up to 5 seconds
+// between two of the link's minutes cannot put both into one minute of the rendezvous (finding C-12 of verify round 1).
+export const BUDGET_WINDOW_MS = 65000
+// The relayed frames of one lane that may wait for the minute: a conversation that makes the page owe more frames than the minute allows (an ack
+// for every message of a contact that writes at the rendezvous' cap) would otherwise queue without end, and every other lane of the page would
+// wait behind it (finding A-6 of verify round 1). Over it a frame is refused at once with 'too-many-relays', even at a pace the rendezvous would
+// still take (finding C-13 of verify round 2).
+export const HELD_PER_LANE = 8
 
 const LANE_RE = /^[0-9a-f]{40}$/
 const TOKEN_RE = /^[A-Za-z0-9_-]{1,32}$/
@@ -161,7 +175,7 @@ export class PairLink {
     url, WebSocketImpl = null, setTimeoutFn = null, clearTimeoutFn = null, random = null, backoffMs = BACKOFF_MS,
     knockSilentMs = KNOCK_SILENT_MS, knockExpireMs = KNOCK_EXPIRE_MS, requestTimeoutMs = REQUEST_TIMEOUT_MS,
     openWaitMs = OPEN_WAIT_MS, keepaliveMs = 0, pongWaitMs = PONG_WAIT_MS, log = null, report = null, now = null,
-    relayBudget = RELAY_BUDGET, messageBudget = MESSAGE_BUDGET
+    relayBudget = RELAY_BUDGET, messageBudget = MESSAGE_BUDGET, heldPerLane = HELD_PER_LANE
   } = {}) {
     this.url = checkUrl(url)
     this.WS = WebSocketImpl || (typeof WebSocket === 'function' ? WebSocket : null)
@@ -188,9 +202,10 @@ export class PairLink {
     this._heard = 0 // text frames received on this link: the watchdog of the keepalive asks whether anything came since the ping
     this.relayBudget = relayBudget > 0 ? relayBudget : RELAY_BUDGET
     this.messageBudget = messageBudget > 0 ? messageBudget : MESSAGE_BUDGET
-    this._outT = [] // when each frame this socket sent in the last minute went (every frame: a request, a send, a ping)
+    this.heldPerLane = heldPerLane > 0 ? heldPerLane : HELD_PER_LANE
+    this._outT = [] // when each frame this socket sent in the last BUDGET_WINDOW_MS went (every frame: a request, a send, a ping)
     this._relayT = [] // the same for the relayed frames among them
-    this._held = [] // { relay, resolve }: requests waiting for room in the socket's minute, in the order they came
+    this._held = [] // { relay, lane, resolve }: requests waiting for room in the socket's minute, in the order they came (lane: a relayed frame's)
     this._heldTimer = null
     this._pending = new Map() // rid -> { resolve, timer }
     this._waiters = [] // { resolve, timer }: calls waiting for the socket to open
@@ -444,10 +459,13 @@ export class PairLink {
     // the socket's minute: a request that would take the socket over the caps of the rendezvous waits here (_hold), and fails as closed when
     // the socket goes first; its time and its timeout then start when it is sent, so the ms of a reply stays the round trip (plan 3.5). With
     // room, and nothing of its kind waiting before it, it goes at once, in this same turn, as it always did (a sign-out writes its leaves
-    // before it closes the socket, even while relayed frames wait).
+    // before it closes the socket, even while relayed frames wait). A relayed frame that would wait behind heldPerLane others of its lane is
+    // refused at once, as the rendezvous refuses one past its cap (finding A-6 of verify round 1).
     const relay = RELAY_ACTION_RE.test(action)
     if (this._held.some((h) => h.relay === relay) || !this._fits(relay)) {
-      if (!(await this._hold(relay))) return this._answered(action, at, { ok: false, reason: 'closed' })
+      const lane = relay ? fields.lane : null
+      if (relay && this._heldOf(lane) >= this.heldPerLane) return this._answered(action, at, { ok: false, reason: 'too-many-relays' })
+      if (!(await this._hold(relay, lane))) return this._answered(action, at, { ok: false, reason: 'closed' })
       at = this._now()
     } else {
       this._take(relay)
@@ -491,19 +509,28 @@ export class PairLink {
     }
   }
 
-  // ---- the socket's minute (finding A-3 of verify round 0) ---------------------------------------------------------------------
+  // ---- the socket's minute (finding A-3 of verify round 0; A-6 and C-12 of verify round 1) -------------------------------------
   //
   // The rendezvous counts what one socket sends in a sliding minute (plan 3.2): past 120 relayed frames it refuses them, past 150 messages of any
   // kind it closes the socket, and the page loses every lane, code and knock at once. Every lane of the page shares this socket, so the link
-  // keeps its own count of the minute, under those caps (relayBudget, messageBudget): a request that would go over waits here until a frame of
-  // the minute runs out, the relayed frames in the order they came (a request of another kind is not held behind them while the minute has
-  // room for it). So a page never trips the caps by itself. A ping and a send() are counted and never held.
+  // keeps its own count, under those caps (relayBudget, messageBudget): a request that would go over waits here until a frame of the count runs
+  // out, the relayed frames in the order they came (a request of another kind is not held behind them while there is room for it), at most
+  // heldPerLane of one lane (the next is refused at once, and dropHeld drops a lane's when the page leaves it). The link counts a frame for
+  // BUDGET_WINDOW_MS from its send, the rendezvous for a minute from its arrival: so a page does not trip the caps by itself while the network
+  // delivers at an even pace, or gets faster by up to 5 seconds. A ping and a send() are counted and never held.
 
   _fits (relay) {
     const t = this._now()
-    while (this._outT.length && t - this._outT[0] >= MINUTE_MS) this._outT.shift()
-    while (this._relayT.length && t - this._relayT[0] >= MINUTE_MS) this._relayT.shift()
+    while (this._outT.length && t - this._outT[0] >= BUDGET_WINDOW_MS) this._outT.shift()
+    while (this._relayT.length && t - this._relayT[0] >= BUDGET_WINDOW_MS) this._relayT.shift()
     return this._outT.length < this.messageBudget && (!relay || this._relayT.length < this.relayBudget)
+  }
+
+  /** How many relayed frames of this lane wait for the minute. */
+  _heldOf (lane) {
+    let n = 0
+    for (const h of this._held) if (h.relay && h.lane === lane) n++
+    return n
   }
 
   _take (relay) {
@@ -512,10 +539,10 @@ export class PairLink {
     if (relay) this._relayT.push(t)
   }
 
-  /** _hold(relay) -> Promise<boolean>: true when the request may go (its place in the minute is taken), false when the socket went first. */
-  _hold (relay) {
+  /** _hold(relay, lane) -> Promise<boolean>: true when the request may go (its place in the minute is taken), false when the socket went first or its lane was left. */
+  _hold (relay, lane = null) {
     return new Promise((resolve) => {
-      this._held.push({ relay, resolve })
+      this._held.push({ relay, lane, resolve })
       this._pump()
     })
   }
@@ -536,11 +563,11 @@ export class PairLink {
       h.resolve(true)
     }
     if (!this._held.length || !this._outT.length) return
-    // the next look is when the oldest frame of the minute runs out (each relayed frame is in _outT too, so that one is never later)
+    // the next look is when the oldest frame of the count runs out (each relayed frame is in _outT too, so that one is never later)
     this._heldTimer = this._setT(() => {
       this._heldTimer = null
       this._pump()
-    }, Math.max(1, this._outT[0] + MINUTE_MS - this._now()))
+    }, Math.max(1, this._outT[0] + BUDGET_WINDOW_MS - this._now()))
   }
 
   _failHeld () {
@@ -549,6 +576,19 @@ export class PairLink {
       this._heldTimer = null
     }
     for (const h of this._held.splice(0)) h.resolve(false)
+  }
+
+  /**
+   * dropHeld(lane) -> n: the relayed frames of a lane the page leaves do not go when the minute has room, and they no longer keep the frames of
+   * the other lanes waiting (finding A-6 of verify round 1). Each is answered 'closed'; the frames of every other lane keep their place.
+   */
+  dropHeld (lane) {
+    const out = this._held.filter((h) => h.relay && h.lane === lane)
+    if (!out.length) return 0
+    this._held = this._held.filter((h) => !out.includes(h))
+    for (const h of out) h.resolve(false)
+    this._pump() // only the timer can change: nothing else fits now that did not before
+    return out.length
   }
 
   // ---- receiving ------------------------------------------------------------------------------
@@ -755,10 +795,14 @@ export class PairLink {
     return { ok: true, peers }
   }
 
-  /** leave(lane, kind) -> { ok }: ok on a timeout and when the socket is not open (the rendezvous drops the lanes of a closed socket). */
+  /**
+   * leave(lane, kind) -> { ok }: ok on a timeout and when the socket is not open (the rendezvous drops the lanes of a closed socket). The lane's
+   * frames that wait for the socket's minute are dropped first, whatever the state of the socket (dropHeld).
+   */
   async leave (lane, kind) {
     if (!KINDS.has(kind)) return { ok: false, reason: 'kind' }
     if (typeof lane !== 'string' || !LANE_RE.test(lane)) return { ok: false, reason: 'invalid-lane' }
+    this.dropHeld(lane)
     if (this._state !== 'open') return { ok: true }
     const r = await this.request(kind + '-leave', { lane }, { timeoutMs: LEAVE_TIMEOUT_MS })
     if (r.ok) return { ok: true }

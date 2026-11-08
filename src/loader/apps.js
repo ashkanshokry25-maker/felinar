@@ -354,6 +354,7 @@ export class Apps {
     this.rooms = new Map()
     this.requests = new Map() // knock -> request
     this.lanes = new Map() // lane hex -> conversation | room
+    this._laneEnds = 0 // lanes this socket gave up at the rendezvous (a leave sent): a 'too many lanes' answer that crossed one is out of date
     this.blocked = new Set()
     this.snippets = []
     this.codeRec = null // the pair code this person owns
@@ -1209,7 +1210,16 @@ export class Apps {
       r.joined = false
       r.peers = 0
       if (this.lanes.get(r.lane) === rec) this.lanes.delete(r.lane)
-      if (this.link && inLane) this.link.leave(r.lane, r.kind).then(undefined, noop)
+      if (this.link) {
+        // the lane's frames that wait for the socket's minute never go and stop keeping the other lanes waiting (finding A-6 of verify round 1):
+        // leave() drops them, and a lane the socket is not in just now (the relay was refused) has them dropped without a leave to send
+        if (inLane) {
+          this._laneEnds++
+          this.link.leave(r.lane, r.kind).then(undefined, noop)
+        } else {
+          this.link.dropHeld(r.lane)
+        }
+      }
       if (wasUsable) this._relayDown(r, 'left')
       if (!quiet) this._fillLanes()
     }
@@ -1409,15 +1419,20 @@ export class Apps {
     const link = this.link
     if (!link) return { ok: false, reason: 'link-down' }
     const epoch = this._epoch
+    const ends = this._laneEnds
     this._repLane('join', st.peers)
     const r = await link.join(st.lane, st.kind)
     if (epoch !== this._epoch || rec.gone || st.dead || st.left) {
       // The conversation or room ended while the join was on its way, so _leaveLane had nothing to leave yet, and the rendezvous made this socket
       // a member all the same: it is left now. Otherwise the socket would keep a seat in the lane, and one of its 8, until it closes, and the
       // other side would write to a page that drops what it gets (finding A-2 of verify round 0). A path that strikes closed (dead, not left)
-      // keeps its seat as _kill does; after a sign-out the socket itself is closed.
+      // keeps its seat as _kill does; after a sign-out the socket itself is closed. The seat this frees goes to a lane that waits for one, as at
+      // any other end of a lane (plan 3.6; finding A-5 of verify round 1): the leave is on the socket first, so the rendezvous frees the seat
+      // before the join that _fillLanes sends.
       if (r.ok && epoch === this._epoch && this.link === link && (st.left || rec.gone) && !this._relayHolds(st.lane)) {
+        this._laneEnds++
         link.leave(st.lane, st.kind).then(undefined, noop)
+        this._fillLanes()
       }
       return { ok: false, reason: 'stopped' }
     }
@@ -1444,7 +1459,13 @@ export class Apps {
     } else {
       const ev = LANE_FAIL[r.reason]
       if (ev) this._repLane(ev, st.peers)
-      if (r.reason === 'too-many-lanes') st.pending = true
+      if (r.reason === 'too-many-lanes') {
+        st.pending = true
+        // a lane this socket gave up while the join was on its way may have come free after the rendezvous counted the join: the lanes that wait
+        // are given the places again. Only then, once per such answer, so that a count of places that is off (a lane that strikes closed keeps its
+        // seat, and _fillLanes does not count it) cannot make the page ask again in a loop (finding A-5 of verify round 1)
+        if (this._laneEnds !== ends) this._fillLanes()
+      }
       if (isRelayOff(r.reason)) this._noPath(rec) // the only path is refused for good: nothing is asked again (DEC-5)
     }
     return { ok: false, reason: r.reason }
@@ -2950,19 +2971,23 @@ export class Apps {
     return bytes
   }
 
-  // The room secret sealed to each member (cached per member); with only, to the members in that set alone.
+  // The room secret sealed to each member, one box per member; with only, to the members in that set alone. The cache holds the sealing itself,
+  // not only its result, so that two passes that overlap (the accept's and a joined push's) hand out the same box: a member keeps the key of the
+  // box that gave it the secret and says again that it holds it when that box comes back (_sayIn), and it would take a second box for another
+  // member's (found in the full run of fix round 2, a race of the code of round 1). A sealing that fails is not kept.
   async _keyFrames (room, only = null) {
     const keys = this._keys()
     const out = []
     for (const m of room.members) {
       if (m.pub === room.ownerPub || (only && !only.has(m.pub))) continue
-      let bytes = room.p.keyFrames.get(m.pub)
-      if (!bytes) {
-        const payload = await sealRoomKey({ keys, memberEk: m.ek, secret: room.p.secret, lane: room.lane, ownerPub: room.ownerPub })
-        bytes = encodeFrame(T.ROOM_KEY, payload)
-        room.p.keyFrames.set(m.pub, bytes)
+      let box = room.p.keyFrames.get(m.pub)
+      if (!box) {
+        box = sealRoomKey({ keys, memberEk: m.ek, secret: room.p.secret, lane: room.lane, ownerPub: room.ownerPub }).then((payload) => encodeFrame(T.ROOM_KEY, payload))
+        const sealing = box
+        room.p.keyFrames.set(m.pub, sealing)
+        sealing.then(undefined, () => { if (room.p.keyFrames.get(m.pub) === sealing) room.p.keyFrames.delete(m.pub) })
       }
-      out.push(bytes)
+      out.push(await box)
     }
     return out
   }

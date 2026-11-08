@@ -2230,7 +2230,9 @@ folded in here until the code does it; R 5.4.7 lists those.
   to a full lane first evicts the members whose last message or keepalive is older than `memberStaleMs` (120 seconds by default), so a page that lost its socket is not locked out of
   its own lane while the rendezvous still holds the old one, and a page whose join was answered `lane full` tries again (after 3, 10 and 30 seconds, then every minute). The
   rendezvous does not parse, store or log `f`. Caps: 120 relayed frames and 150 messages of any kind a minute from a socket (the next closes it; a
-  page keeps itself under both, 100 relayed frames and 120 messages, holding a frame back until its socket's minute has room) and 20,000 relayed frames a UTC day for the
+  page keeps itself under both by its own count, 100 relayed frames and 120 messages in 65 seconds, holding a frame back until there is room and
+  refusing at once a frame that would wait behind 8 of its lane, which holds while the network's delay stays even or shrinks by up to 5 seconds:
+  the rendezvous counts the frames as they arrive) and 20,000 relayed frames a UTC day for the
   object (`relay is busy` after, counted in memory); the counts are in `/stats.json`. `RELAY_LANE` `"0"` (the Worker) or `--no-relay-lane` (the Node tracker) makes every join, relay and leave answer
   `relay is off on this rendezvous`. A page pings with the exact text `{"v":1,"action":"pair-ping"}` every 50 seconds and the Worker answers without waking its object. The contract is
   INTERFACES "The relay lane".

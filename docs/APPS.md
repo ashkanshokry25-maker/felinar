@@ -209,9 +209,14 @@ links to connect. The door's owner can set `relay` to `"none"`. Neither takes a 
 | Members of a lane | 2 for a conversation, 16 for a room | `lane full` |
 | One frame | at most 7,700 characters of base64url (the largest sealed message is 7,512) | `invalid frame` |
 
-A page keeps itself under the first two: it counts what its socket sends in a minute and holds a frame back, in order, until the minute has
-room (100 relayed frames and 120 messages a minute), so a busy page, or a room owner letting many people in, waits instead of being refused or
-closed (tested on loopback fakes and the real pairing core).
+A page keeps itself under the first two by its own count: it counts what its socket sent in the last 65 seconds, 5 more than the rendezvous
+counts, and holds a frame back, in order, until there is room (100 relayed frames and 120 messages in those 65 seconds). At most 8 frames of
+one conversation or room wait at a time; the next is refused at once with the rendezvous's reason (`too many relays`), even at a pace the
+rendezvous would still take ("Known limits" below says what such a refusal costs, and what blocking and leaving do with what waited). So the
+rendezvous neither refuses nor closes a busy page, or a room owner letting many people in, while its frames reach the rendezvous at an even pace
+(tested on loopback fakes and the real pairing core): the page waits, and refuses only a frame that would wait behind 8 of its conversation or
+room. The rendezvous counts a frame when it arrives: the 5 extra seconds cover a network that gets up to 5 seconds faster, not one that holds
+frames back and then delivers them at once, which can still take a socket over the caps.
 
 A page sends a small keepalive once every 50 seconds. The Worker is set to have the platform answer it without waking the rendezvous's object, so
 no cap counts it there; on the Node tracker it counts as one of the 150 messages a minute (1.2 a minute). How the Free plan counts that answer has
@@ -457,6 +462,17 @@ What is not fixed, in plain words. Each is a cost the design accepts today, or a
   it is back in about 3 minutes after the old socket last spoke (tested on loopback fakes, not on a real network). A message written to the vanished socket reaches
   nobody, so it is not acknowledged and goes again once the page is back in. Nothing is stored for the relay: a message sent while the other side is away waits in the
   sender's page, which has to stay open, and goes after the other side has joined.
+- **A page that owes more frames than its socket allows refuses some.** The page answers every direct message it receives with a Delivered
+  mark, so contacts who write faster than it may answer, or many busy conversations and rooms at once, can fill its 100 relayed frames in 65
+  seconds. Then at most 8 frames of each conversation or room wait their turn and the next one is refused at once. A refused message waits in
+  the page (a direct message shows "Not sent" with "Try again" after 20 seconds) and goes when the person tries it again, sends the next one or
+  a connection returns, not by itself. A refused Delivered or typing mark is not sent again, so the other side may show "Not sent" for a
+  message that arrived, and neither is a refused goodbye, so the other side is not told that the conversation or the room ended. Blocking a
+  conversation drops what waited for it at once. Leaving one, or closing a room one owns, first sends its goodbye, which waits its turn: the
+  frames the page already handed to its connection go out and then the goodbye, within 65 seconds, unless 8 frames already wait, when the
+  goodbye is refused and they are dropped at once. A message that still waits in the page (one that was refused, or one written after the
+  message on its way) does not reach the other side: it ends with the conversation or the room (tested on loopback fakes and the real pairing
+  core).
 - **The relay is as available as its host.** Messages through the rendezvous stop when the rendezvous is unreachable (the conversation waits at
   "Connecting..."), off (`RELAY_LANE` `"0"`; with no direct link the conversation reads "This door's rendezvous does not carry messages; ask the door's
   owner to update it") or busy (the day cap of 20,000 frames, until 00:00 UTC: the line may still read connected, and a message that gets no answer in

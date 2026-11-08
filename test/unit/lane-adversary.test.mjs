@@ -540,6 +540,9 @@ describe('LADV-5 a relayed frame for a lane the page never joined', () => {
     const { A, B, lane, a } = await pairViaRelay(w);
     const sent = await A.apps.send(a, 'a message of the conversation ' + MARK);
     await slow(() => conv(B).messages.some((m) => !m.mine && m.text.endsWith(MARK)), 'the message at B');
+    // B's Delivered mark travels back on its own time; the snapshot below must come after it, or the mark's arrival reads as the
+    // state moving (it did, on CI's slower machine, in the first run of the pull request)
+    await slow(() => conv(A).messages.find((m) => m.id === sent.id).status === 'delivered', 'delivered at A');
     await settle(20);
     const real = relayedBy(A)[0]; // a genuine sealed frame of this conversation
     const reportsBefore = A.reports.length;
@@ -616,7 +619,9 @@ describe('LADV-6 pushes about who is in the lane', () => {
     assert.equal(view(A), before);
     assert.equal(conv(A).via, 'relay');
     assert.equal(JSON.stringify(A.reports.slice(reports)).includes('999'), false, 'no report carries the number');
-    assert.equal(JSON.stringify(st(A)).includes('999'), false, 'and neither does the state');
+    // the number 999 as a whole JSON value: the state holds random digits (the compare code, the ids), which held the three characters 999 by
+    // chance in 18 of 3,000 runs of a probe (finding B-3 of verify round 1)
+    assert.doesNotMatch(JSON.stringify(st(A)), /[:,[]999[,}\]]/, 'and neither does the state');
     // and a message still goes across
     const r = await A.apps.send(conv(A).id, 'still here ' + MARK);
     await slow(() => conv(B).messages.some((m) => m.text === 'still here ' + MARK), 'the message at B');

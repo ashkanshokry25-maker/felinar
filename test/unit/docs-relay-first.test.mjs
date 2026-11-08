@@ -16,6 +16,7 @@ import { checkAppsBlock } from '../../src/loader/doors.js';
 import { APPS_RELAY_TOKENS, APPS_DIRECT_TOKENS } from '../../tools/apps-block.mjs';
 import * as PAIR from '../../deploy/rtc-worker/pair.js';
 import * as LINK from '../../src/loader/apps-link.js';
+import { LIMITS } from '../../src/loader/apps.js';
 
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const flat = (t) => t.replace(/\s+/g, ' ');
@@ -33,6 +34,7 @@ const INTERFACES = read('docs/INTERFACES.md');
 const RELAY_LANE = between(INTERFACES, '### The relay lane', '### The sealing and the frames');
 const APPS = read('docs/APPS.md');
 const APPS_RELAY_SECTION = between(APPS, '## Messages through the rendezvous', '## Limits');
+const APPS_KNOWN = between(APPS, '## Known limits', '## Prior art');
 const ARCH = read('docs/ARCHITECTURE.md');
 const ARCH_RELAY = between(ARCH, '- **The relay lane** (relay-first', '- **Before and after approval.**');
 const DEPLOY = read('docs/DEPLOY.md');
@@ -95,15 +97,65 @@ test('the numbers INTERFACES, APPS and ARCHITECTURE state for the relay are the 
   assert.ok(RELAY_LANE.includes('50,000 ms') && ARCH_RELAY.includes('50 seconds') && APPS_RELAY_SECTION.includes('50 seconds'));
 });
 
-// The page keeps its socket under the caps above by itself (finding A-3 of verify round 0): the link counts its socket's minute and holds a frame
-// back until it has room. The numbers the documents give for that are the link's own, and they stay under the caps of pair.js.
-test('the minute a page keeps for its socket: APPS, ARCHITECTURE and INTERFACES give the link\'s numbers as the code holds them, under the caps of pair.js', () => {
+// The page keeps its socket under the caps above by its own count (finding A-3 of verify round 0): the link counts what its socket sent and holds a
+// frame back until it has room, at most HELD_PER_LANE of one lane (finding A-6 of verify round 1). The numbers the documents give for that are the
+// link's own, under the caps of pair.js, and the documents say the condition: the link counts a frame from its send, the rendezvous from its arrival,
+// so a network that holds frames back and then delivers them at once can still take a socket over the caps (finding C-12 of verify round 1).
+test('the minute a page keeps for its socket: APPS, ARCHITECTURE and INTERFACES give the link\'s numbers as the code holds them, under the caps of pair.js, with the condition they hold under', () => {
   assert.ok(LINK.RELAY_BUDGET > 0 && LINK.RELAY_BUDGET < PAIR.DEFAULT_CAPS.relayPerMin, 'the relayed frames a page sends a minute stay under relayPerMin');
   assert.ok(LINK.MESSAGE_BUDGET > LINK.RELAY_BUDGET && LINK.MESSAGE_BUDGET < PAIR.DEFAULT_CAPS.messagesPerMin, 'the messages a page sends a minute stay under messagesPerMin');
-  assert.ok(flat(APPS_RELAY_SECTION).includes('(' + LINK.RELAY_BUDGET + ' relayed frames and ' + LINK.MESSAGE_BUDGET + ' messages a minute)'), 'APPS "Messages through the rendezvous"');
-  assert.ok(flat(ARCH_RELAY).includes(LINK.RELAY_BUDGET + ' relayed frames and ' + LINK.MESSAGE_BUDGET + ' messages, holding a frame back'), 'ARCHITECTURE 15.21');
+  assert.ok(LINK.BUDGET_WINDOW_MS > 60000 && LINK.HELD_PER_LANE > 0, 'the link counts a frame longer than the minute of the rendezvous');
+  const secs = LINK.BUDGET_WINDOW_MS / 1000;
+  const apps = flat(APPS_RELAY_SECTION);
+  assert.ok(apps.includes('(' + LINK.RELAY_BUDGET + ' relayed frames and ' + LINK.MESSAGE_BUDGET + ' messages in those ' + secs + ' seconds)'), 'APPS "Messages through the rendezvous"');
+  assert.ok(apps.includes('the last ' + secs + ' seconds, ' + (secs - 60) + ' more than the rendezvous counts'), 'APPS gives the count of the link');
+  assert.ok(apps.includes('At most ' + LINK.HELD_PER_LANE + ' frames of one conversation or room wait at a time'), 'APPS gives the bound of a lane');
+  assert.ok(apps.includes('while its frames reach the rendezvous at an even pace'), 'APPS says the condition');
+  assert.ok(apps.includes('not one that holds frames back and then delivers them at once, which can still take a socket over the caps'), 'APPS says what the condition leaves out');
+  const arch = flat(ARCH_RELAY);
+  assert.ok(arch.includes(LINK.RELAY_BUDGET + ' relayed frames and ' + LINK.MESSAGE_BUDGET + ' messages in ' + secs + ' seconds, holding a frame back'), 'ARCHITECTURE 15.21');
+  assert.ok(arch.includes('wait behind ' + LINK.HELD_PER_LANE + ' of its lane') && arch.includes('the rendezvous counts the frames as they arrive'), 'ARCHITECTURE 15.21, the bound and the condition');
+  const intf = flat(INTERFACES);
   assert.ok(INTERFACES.includes('relayBudget = ' + LINK.RELAY_BUDGET + ', messageBudget = ' + LINK.MESSAGE_BUDGET), 'INTERFACES createLink');
-  assert.ok(flat(INTERFACES).includes('relayBudget relayed frames (RELAY_BUDGET, ' + LINK.RELAY_BUDGET + ') and messageBudget frames in all (MESSAGE_BUDGET, ' + LINK.MESSAGE_BUDGET + ')'), 'INTERFACES the socket\'s minute');
+  assert.ok(intf.includes('heldPerLane = ' + LINK.HELD_PER_LANE + ', log'), 'INTERFACES createLink, the bound of a lane');
+  assert.ok(intf.includes('relayBudget relayed frames (RELAY_BUDGET, ' + LINK.RELAY_BUDGET + ') and messageBudget frames in all (MESSAGE_BUDGET, ' + LINK.MESSAGE_BUDGET + ')'), 'INTERFACES the socket\'s minute');
+  assert.ok(intf.includes('the last ' + secs + ' seconds (BUDGET_WINDOW_MS') && intf.includes('(HELD_PER_LANE, ' + LINK.HELD_PER_LANE + ')'), 'INTERFACES the count and the bound');
+  assert.ok(intf.includes('not when the network holds frames back and then delivers them at once'), 'INTERFACES says the condition');
+  assert.equal(typeof LINK.PairLink.prototype.dropHeld, 'function');
+  assert.ok(intf.includes('dropHeld(lane) -> n'), 'INTERFACES names dropHeld');
+  // the sentences that promised it without the condition are gone, from the documents and from the link's own comments
+  for (const [name, text] of [['APPS', APPS], ['ARCHITECTURE', ARCH], ['INTERFACES', INTERFACES], ['apps-link.js', read('src/loader/apps-link.js')]]) {
+    assert.doesNotMatch(flat(text), /never trips? (?:the|those) caps by itself|keeps itself under both, 100|waits instead of being refused or closed \(tested/, name);
+  }
+});
+
+// What the page does with the frames that wait, as the code does it (findings C-13, C-14 and C-15 of verify round 2; A-7 and A-8 the same): the
+// link refuses at once a frame that would wait behind HELD_PER_LANE of its lane, also at a pace the rendezvous would still take; blocking drops what
+// waited, while leaving, or an owner closing a room, sends its goodbye behind it within one count of BUDGET_WINDOW_MS unless the goodbye is refused;
+// only a direct message is answered with a Delivered mark; and a refused message waits in the page until the person tries it again or sends the
+// next one. test/unit/loader-apps-lane.test.mjs holds the code to each of these.
+test('what a page does with the frames that wait: APPS and CHANGELOG say what the link refuses, what blocking and leaving do with what waited, and what a refused message does, as the code does it', () => {
+  const secs = LINK.BUDGET_WINDOW_MS / 1000;
+  const held = LINK.HELD_PER_LANE;
+  const apps = flat(APPS_RELAY_SECTION);
+  assert.ok(apps.includes('the next is refused at once with the rendezvous\'s reason (`too many relays`), even at a pace the rendezvous would still take'), 'APPS says the page refuses, also at a pace the rendezvous would take');
+  assert.ok(apps.includes('So the rendezvous neither refuses nor closes a busy page, or a room owner letting many people in, while its frames reach the rendezvous at an even pace'), 'APPS says what the page is spared, with its condition');
+  assert.ok(apps.includes('the page waits, and refuses only a frame that would wait behind ' + held + ' of its conversation or room'), 'APPS says what the page itself refuses');
+  const known = flat(APPS_KNOWN);
+  assert.ok(known.includes('The page answers every direct message it receives with a Delivered mark'), 'Known limits: the Delivered mark is for direct messages');
+  assert.ok(known.includes('A refused message waits in the page (a direct message shows "' + APPS_TEXT.en['apps.msg.failed'] + '" with "' + APPS_TEXT.en['apps.msg.retry'] +
+    '" after ' + LIMITS.ackTimeoutMs / 1000 + ' seconds) and goes when the person tries it again, sends the next one or a connection returns, not by itself'), 'Known limits: what a refused message does');
+  assert.ok(known.includes('neither is a refused goodbye, so the other side is not told that the conversation or the room ended'), 'Known limits: a refused goodbye');
+  assert.ok(known.includes('Blocking a conversation drops what waited for it at once. Leaving one, or closing a room one owns, first sends its goodbye, which waits its turn: the frames the page already handed to its connection go out and then the goodbye, within ' +
+    secs + ' seconds, unless ' + held + ' frames already wait, when the goodbye is refused and they are dropped at once. A message that still waits in the page (one that was refused, or one written after the message on its way) does not reach the other side: it ends with the conversation or the room'),
+  'Known limits: blocking and leaving (verify round 3, A-9: only the frames already handed to the link go before the goodbye)');
+  const changelog = flat(UNRELEASED);
+  assert.ok(changelog.includes('the next is refused at once, even at a pace the rendezvous would take; blocking a conversation drops what waited for it, and leaving it, or closing a room one owns, sends what waited and then the goodbye within ' +
+    secs + ' seconds, unless ' + held + ' already wait, when the goodbye is refused and they are dropped'), 'CHANGELOG: the refusal, blocking and leaving');
+  // the sentences that said more than the code does are gone
+  for (const [name, text] of [['APPS', flat(APPS)], ['CHANGELOG', changelog]]) {
+    assert.doesNotMatch(text, /leaving or blocking (?:a conversation )?drops what waited|as the rendezvous would refuse it|waits instead of being refused or closed|answers every message it receives|a message stays queued and goes again/i, name);
+  }
 });
 
 test('every counter pair.js reports for the relay is named in INTERFACES, counts only', () => {
