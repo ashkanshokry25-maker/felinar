@@ -241,6 +241,50 @@ test('doorKitFiles: CORS on door.json once (0.3.1), no-cache on the worker, the 
   for (const [name, text] of Object.entries(f)) assert.doesNotMatch(text, BANNED, name);
 });
 
+// 8.2 audit C N3 and K-F3: README-DOOR.txt said "byte for byte as released" and sent the reader to a check that cannot pass, in the kit of a
+// build that has no signed list. release: false is the text of such a kit, which is put together by hand (publish --door-kit refuses to make
+// one). The default must stay the release text: verify-release --door-kit rebuilds a kit's host files from { version } alone and compares
+// bytes (review round SEC-5), so every signed kit depends on it.
+test('doorKitFiles for a build that is not a signed release: only the README differs, it claims no release and sends nobody to step 1', () => {
+  const rel = doorKitFiles({ version: '0.3.0' });
+  assert.deepEqual(doorKitFiles({ version: '0.3.0', release: true }), rel, 'release: true is the default');
+  const nr = doorKitFiles({ version: '0.3.0', release: false, buildId: 'bb8ac84e73f6', commit: '10ef87d' });
+  assert.deepEqual(Object.keys(nr), Object.keys(rel));
+  for (const name of Object.keys(rel)) if (name !== 'README-DOOR.txt') assert.equal(nr[name], rel[name], name + ' is the same file in both kits');
+  const text = nr['README-DOOR.txt'];
+  assert.match(text, /^Door kit \(felinar 0\.3\.0, build bb8ac84e73f6, commit 10ef87d, not a signed release\)\n/);
+  assert.doesNotMatch(text, /byte for byte as released/);
+  assert.doesNotMatch(text, /verify-release\.mjs verify/);
+  assert.doesNotMatch(text, /steps 1 and 3/);
+  assert.match(text, /A link cannot reroute itself/);
+  assert.match(text, /check-site\.mjs https:\/\/<this host>\/ --door/);
+  assert.match(text, /Cloudflare Pages answers the door page at\n {5}\/_mw\/open/);
+  assert.doesNotMatch(text, BANNED);
+  assert.match(rel['README-DOOR.txt'], /byte for byte as released/);
+  assert.match(rel['README-DOOR.txt'], /verify-release\.mjs verify <this folder> --list hashes-dist\.json/);
+  assert.throws(() => doorKitFiles({ version: '0.3.0', release: false }), /needs its build id/);
+  // the new step 1 names the build id and the commit, and the closing list points at the one check that is left (the release text keeps "steps 1 and 3")
+  assert.match(text, /\n1\. This build has no signed list\. Its build id is in \/_mw\/door\.json and build\.json \(bb8ac84e73f6\); building the source at commit 10ef87d\n {3}with node build\.mjs prints the same build id\. Use doors you or people you trust run\.\n/);
+  assert.match(text, /\n {2}Use doors you or people you trust run, and check them with step 3\.\n/);
+  assert.match(rel['README-DOOR.txt'], /\n {2}Use doors you or people you trust run, and check them with steps 1 and 3\.\n/);
+  assert.match(text, /^[\n\x20-\x7e]*$/, 'English strings are ASCII');
+  // no commit given: the text names none instead of inventing one
+  const noCommit = doorKitFiles({ version: '0.3.0', release: false, buildId: 'bb8ac84e73f6' })['README-DOOR.txt'];
+  assert.match(noCommit, /^Door kit \(felinar 0\.3\.0, build bb8ac84e73f6, not a signed release\)\n/);
+  assert.match(noCommit, /\(bb8ac84e73f6\); building its source\n {3}with node build\.mjs prints the same build id\./);
+  assert.doesNotMatch(noCommit, /, commit |at commit /);
+  assert.doesNotMatch(noCommit, BANNED);
+  // only what build.mjs accepts as a build id (4 to 64 of 0-9, a-z and a hyphen) and a lowercase git id (7 to 40 hex) reach a line of the README
+  for (const bad of ['', 'abc', 'BB8AC84E73F6', 'bb8ac84e73f6\nstep 0', 'bb8ac84e 73f6', 'a'.repeat(65)]) {
+    assert.throws(() => doorKitFiles({ version: '0.3.0', release: false, buildId: bad }), /needs its build id/, JSON.stringify(bad));
+  }
+  for (const bad of ['10ef87', '10EF87D', '10ef87d\n', 'ggggggg', 'a'.repeat(41), ' ']) {
+    assert.throws(() => doorKitFiles({ version: '0.3.0', release: false, buildId: 'bb8ac84e73f6', commit: bad }), /not a git commit id/, JSON.stringify(bad));
+  }
+  for (const good of ['abcd', 'bb8ac84e73f6', 'relay-lab-0001', 'a'.repeat(64)]) assert.doesNotThrow(() => doorKitFiles({ version: '0.3.0', release: false, buildId: good }), good);
+  for (const good of ['10ef87d', 'a'.repeat(40)]) assert.doesNotThrow(() => doorKitFiles({ version: '0.3.0', release: false, buildId: 'bb8ac84e73f6', commit: good }), good);
+});
+
 test('doorKit: refuses unless every loader byte matches the signed release list; then copies it unchanged and adds the host files', async () => {
   const dist = fakeDist();
   const rel = await release(dist);

@@ -391,6 +391,25 @@ test('SEC-5: a door kit with a changed _redirects, an extra script or a file und
   for (const name of [/_redirects: differs/, /x\.js: code at the root/, /_mw\/evil\.js: a file under _mw\//]) assert.match(r.stdout, name);
 });
 
+// 8.2 audit C N3 and K-F3: the README of a kit whose build has no signed list (doorKitFiles with release: false) is not the file --door-kit
+// expects of a release kit, so verify names it, once; the release README of the same version passes. This pins what a reader of such a kit
+// sees (one problem line more than the list's own differences) and that the check was not loosened to let the other README through.
+test('a kit with the non-release README fails --door-kit on that one file, and the release README of the same version passes', async () => {
+  const k = await key();
+  const dist = makeTree();
+  const { list, sig } = await signed(dist, k);
+  const kit = fresh('kit');
+  writeTree(kit, Object.fromEntries(buildHashList({ dir: dist }).files.map((f) => [f.path, readFileSync(join(dist, ...f.path.split('/')))])));
+  const rel = doorKitFiles({ version: '0.3.0' });
+  writeTree(kit, Object.assign({}, rel, { 'hashes-dist.json': JSON.stringify(list), 'hashes-dist.json.sig': JSON.stringify(sig) }));
+  const ok = await verifyRelease({ dir: kit, list, sig, publicKey: k.pub, pinnedKeys: [k.pub], allowExtra: true, expectExtra: rel });
+  assert.equal(ok.ok, true, ok.problems.join('; '));
+  writeFileSync(join(kit, 'README-DOOR.txt'), doorKitFiles({ version: '0.3.0', release: false, buildId: 'bb8ac84e73f6', commit: '10ef87d' })['README-DOOR.txt']);
+  const bad = await verifyRelease({ dir: kit, list, sig, publicKey: k.pub, pinnedKeys: [k.pub], allowExtra: true, expectExtra: rel });
+  assert.equal(bad.ok, false);
+  assert.deepEqual(bad.problems, ['README-DOOR.txt: differs from the file the door kit makes (host settings change what is served)']);
+});
+
 test('the cross-OS comparison: the same tree gives the same list on any machine (no path separator, time or order dependence)', async () => {
   const a = makeTree();
   const b = fresh('copy');
