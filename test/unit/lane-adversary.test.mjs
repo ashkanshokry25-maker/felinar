@@ -664,6 +664,8 @@ describe('LADV-7 the rendezvous echoes a frame back to its sender', () => {
     await slow(() => conv(A).messages.some((m) => !m.mine), 'the answer at A');
     await A.apps.markRead(a); // A sends { k: 'read', upTo } that names B's message, and A's first message is older than that
     await slow(() => relayedBy(A).length >= 4, 'the frames went');
+    // and B has opened the read receipt: on a slower machine (CI, Node 22) B's message was still Delivered when the tests below looked
+    await slow(() => conv(B).messages.find((m) => m.mine).status === 'read', 'the read receipt at B');
     await settle(30);
     assert.equal(conv(A).messages.find((m) => m.id === first.id).status, 'delivered', 'B never read it: Delivered, not Read');
     return Object.assign({ first }, p);
