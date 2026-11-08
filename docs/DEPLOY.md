@@ -836,8 +836,9 @@ still loads from its web seed but its visitors stop meeting, so the ledger stops
 - Without a server or a domain, `deploy/rtc-worker/` runs the same job as a Cloudflare Worker with one Durable Object on
   the Workers Free plan, at `rtc-<name>.<your subdomain>.workers.dev`: a neutral name on a suffix that ordinary applications
   use, so the block lists above do not match it. Its [README](../deploy/rtc-worker/README.md) has the deploy steps, the
-  allow list (the same infohashes, passed as a variable), the caps and what the Free plan covers. Tested under `wrangler dev`
-  and with unit tests, not yet on Cloudflare itself.
+  allow list (the same infohashes, passed as a variable), the caps and what the Free plan covers. Tested under `wrangler dev`,
+  with unit tests and, since 2026-11-02, on Cloudflare itself ([APPS](APPS.md), "What was tested"; for the relay lane, the
+  "What was tested" section of that README).
 
 ```sh
 npx felinar tracker --host 127.0.0.1 --port 8000 --allow /srv/magnet/summary.json
@@ -1080,24 +1081,50 @@ Anyone can check a kit offline:
 code at the root that is not in the list, and prints every file outside the signed list. A handed-over kit whose `_redirects` was
 changed to serve another worker therefore fails here, not only at `check-site --door`.
 
+A kit of a build that has no signed list, such as one built from the main branch, is not made by `publish --door-kit`, which refuses to
+run without the signed list, so it is assembled by hand. Its `README-DOOR.txt` is made with
+`doorKitFiles({ version, release: false, buildId, commit })` (`tools/door-kit-files.mjs`): the other five host files are the same, and
+the README says that the kit is not the signed release, that the check against a signed list does not apply, and names its build id and,
+if given, its commit. `verify-release.mjs verify <kit> --door-kit` names that README among its problems, as it names any file that
+differs from the text it expects, and that line is expected for a kit made this way.
+
 ### Checking a door: `check-site --door`
 
     node tools/check-site.mjs https://mirror.example.org/ --door [--allow-no-cors]
 
 It contacts that host only: the address must be the HTTPS root of its name, `/mw-sw.js` must answer 200 as JavaScript without a
-redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin` (`--allow-no-cors` makes a missing header a warning,
-for a host that cannot send it; GitHub Pages sends it), and every `/_mw/*` file it lists, and `/mw-sw.js`, must have exactly the bytes
-it names. Exit code 1 on a failure.
-When `door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`, and
-`, relay rendezvous, direct off` after it when the block carries those keys); a
-block the door page cannot use is a warning. Nothing in the block is contacted. A block of usage reports adds one line too
-(`[info] door: usage reports to obs.example.org`, [Usage reports](#usage-reports)), and its endpoint is not contacted either.
+redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin: *`, and every `/_mw/*` file it lists, and `/mw-sw.js`,
+must have exactly the bytes it names. `--allow-no-cors` makes a missing header a warning, for a host that cannot send it (GitHub Pages
+sends it). A header that is there but joined (`*, *`, which Cloudflare Pages made of the 0.3.0 kit's two rules) or set to another value
+is a failure with or without the flag, and the message quotes the value. Exit code 0 when nothing failed (warnings are allowed), 1 on a
+failure, 2 on a usage error.
+
+It also reads the three other files `door.json` lists, each only when it lists them:
+
+- `/mw-sw-kill.js`, at its own address, byte for byte.
+- `/404.html`, through one made-up path (`/felinar-door-check-no-such-file`), because a host serves that page for a path it does not
+  have and may not serve it at its own address. The listed bytes with status 404 pass. Four answers are an `[info]` line and not a
+  failure, because a host or a publisher explains them: the listed bytes with status 200 (a fallback to the shell, as the dev server
+  answers); the listed bytes plus the pointer tag that `publish --shell` adds to `index.html` and `404.html` (so a published site works
+  as a door); a redirect; and a page of the host's own, since a door needs no 404 page. A changed copy of the loader page (a stale
+  build, a file a CDN rewrote, a mixed deploy), a server error and no answer are failures.
+- `/index.html`, compared the same way where the host serves it. A host with clean URLs may answer it with a redirect, and a door kit
+  sends the root of the host to the door page. The check does not follow that redirect: the line says what the host answered and where
+  the same bytes are checked (a build lists one page under `/index.html` and `/404.html`), and a changed byte in `index.html` alone
+  cannot be seen by this check on such a host.
+
+Exit code 0 means that the files match and that `door.json` can be read by other origins. It does not mean that the apps work. When
+`door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`, and
+`, relay rendezvous, direct off` after it when the block carries those keys): read that line. A block the door page cannot use is a
+warning and gets no such line (the bare door page keeps its paste box), and a warning does not change the exit code; `direct on` is a
+valid setting and exits 0. Nothing in the block is contacted, and neither is the endpoint of a block of usage reports
+(`[info] door: usage reports to obs.example.org`, [Usage reports](#usage-reports)): the check does not touch the rendezvous, the
+identity origin or the report host, so it says nothing about whether messages pass through the rendezvous.
 
 ### Apps at a door
 
-> **Status: the tools below write, serve and read the block, with unit tests on loopback. A Cloudflare Pages door and a GitHub Pages site have served it since 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4, headless Chromium only).** What the apps
-> do, and how visitors use them, is in [APPS](APPS.md); this section covers the block and the servers it names. The two keys `relay` and `direct` (below) are unreleased and have
-> not been served by a real host yet.
+> **Status: the tools below write, serve and read the block, with unit tests on loopback. A Cloudflare Pages door and a GitHub Pages site have served it since 2026-11-02 (DEMO-RESULTS rows G-AP-1 to G-AP-4: headless Chromium and one Android phone).** What the apps
+> do, and how visitors use them, is in [APPS](APPS.md); this section covers the block and the servers it names. The two keys `relay` and `direct` (below) are unreleased. A lab door on Cloudflare Pages has served them since 2026-11-08 (`check-site --door` found 0 failures and 0 warnings there and printed `relay rendezvous, direct off`), and no conversation between two browsers has gone through them on a real network.
 
 A door can offer apps on its bare door page: people who have signed in at the door message each other, or meet in a room, by a short
 code. The page learns which servers to use from an `apps` block in the door's own `/_mw/door.json`:
@@ -1173,8 +1200,8 @@ Check any of it with `node tools/check-site.mjs <url> --door`.
 
 **The rendezvous side.** The relay needs nothing beyond the rendezvous you already run for pairing: the Worker in [`deploy/rtc-worker`](../deploy/rtc-worker/README.md) (see its Relay section for
 the variable `RELAY_LANE`, the caps, the keepalive and the logging settings) or `tools/tracker.mjs` (`--no-relay-lane` turns it off). A rendezvous that you leave on carries only the sealed
-messages of conversations and rooms that were accepted, under caps; it is not a general proxy. The Free plan of Cloudflare counts requests per day; the day cap of the relay (20,000 frames)
-is set below that limit so that pairing keeps working, and how the Free plan counts WebSocket messages has not been measured. Turning the relay off at the rendezvous, or setting `"relay": "none"`
+messages of conversations and rooms that were accepted, under caps; it is not a general proxy. The Free plan of Cloudflare counts requests per day; the day cap of the relay (20,000 frames a UTC day for each run of the object)
+is set below that limit so that pairing keeps working; it is counted in memory and starts again whenever the object is built again (a new deployment, or a wake after it slept), so it bounds one run of the object and not the whole day, and how the Free plan counts WebSocket messages has not been measured. Turning the relay off at the rendezvous, or setting `"relay": "none"`
 in the block, needs no new deploy of the apps. Name the rendezvous and its host in your privacy notice: they see the visitors' network addresses, when messages are sent and roughly how much,
 never what ([PRIVACY](PRIVACY.md), "Apps on the door page").
 
@@ -1375,7 +1402,7 @@ the copy is ciphertext). Without a pin on disk or a web seed, a file has no dura
 
 ### TURN: off by default
 
-A relay lets two browsers talk when no direct path exists. Nothing in v0.3 turns one on for you, and the loader does not
+A relay lets two browsers talk when no direct path exists (a relay here means a TURN server; the rendezvous of a door's apps also forwards sealed messages, which is a different thing: see [Apps at a door](#apps-at-a-door)). Nothing in v0.3 turns one on for you, and the loader does not
 use one unless the owner sets one up (R 2.7.8). Direct channels for chat are a later feature (P2) and are not built in the
 chat code (`docs/deviations/chat.md`, D-15); calls (v0.3 C2, below) are the first use of a relay. When an owner wants one, they
 choose between two options, which the design labels (a) and (b):

@@ -6,9 +6,10 @@ or its posts. It fits the Workers Free plan, needs no server and no domain, and 
 `workers.dev`.
 
 It also does two jobs for the apps on a door page: it pairs two people by a code ([Pairing](#pairing)) and, once one has
-accepted the other, it can pass the sealed messages of their conversation between them ([Relay](#relay)). The relay is what
-carries a message when the two browsers cannot reach each other directly, as long as both can open a WebSocket to this
-rendezvous. It is not a general-purpose proxy.
+accepted the other, it can pass the sealed messages of their conversation between them ([Relay](#relay)). By default the
+relay carries every message of an accepted conversation or room, so a conversation does not wait for the two browsers to
+reach each other; it needs only that both can open a WebSocket to this rendezvous. A door that turns direct links on also
+tries a direct link. It is not a general-purpose proxy.
 
 Why another way to run one: the four public trackers are on block lists, by name. On one of our computers a DNS filter
 (HaGeZi Anti-Piracy) answers 0.0.0.0 for `tracker.webtorrent.dev` and `open.ftorrent.com`, and browser block lists match
@@ -80,18 +81,20 @@ npx felinar publish ./site --name my-site --scope example.com --key owner.jwk --
   shows only when offers go unanswered, which a loader retries after 120 s here instead of 24; a lower `INTERVAL_S` costs
   requests. A scrape must name its infohashes (a bare scrape answers an empty list, as the Node tracker does).
 - `/stats.json?token=<STATS_TOKEN>` prints `{ open, uploads, allowed, swarms, unlisted, peers, sockets, interval, codes, knocks, lanes,
-  relays, relayed, relayBytes, relayDay, relayBusy, relayRate, joinsRefused, evicted }` when `STATS_TOKEN` is set to a long random value;
-  with it empty the counts are not served. `codes`, `knocks` and `lanes` are the pairing's (below) and the eight after them the relay's
-  ([Relay](#relay)); like the others they name no infohash, code, knock or lane.
+  relays, relayed, relayBytes, relayDay, relaySince, relayBusy, relayRate, joinsRefused, evicted }` when `STATS_TOKEN` is set to a long random value;
+  with it empty the counts are not served. `codes`, `knocks` and `lanes` are the pairing's (below) and the nine after them the relay's
+  ([Relay](#relay)); like the others they name no infohash, code, knock or lane. `relaySince` is a time and not a count: when the relay's
+  counts began, in milliseconds since 1970 UTC (the later of 00:00 UTC of `relayDay` and the moment the object was last built; see Caps in [Relay](#relay)).
 
 ## Pairing
 
 The apps on a door page (direct messages and rooms) meet through this rendezvous. A visitor opens a code, another visitor types
 it, and only when the first approves does the rendezvous hand both a private lane: a random infohash that it serves for 24
-hours. The two then exchange their WebRTC offers and answers through the usual tracker protocol on that lane, so neither learns
-the other's network address before the approval. It is the same state machine as the Node tracker's (`tools/tracker.mjs`, which
+hours. By default the two then pass their sealed messages through this rendezvous on that lane ([Relay](#relay)), and nothing else
+moves between them. A door that turns direct links on also lets them exchange their WebRTC offers and answers through the usual
+tracker protocol on that lane; those hold each side's network address, so nothing of the kind moves before the approval and each
+side receives the other's address after it. It is the same state machine as the Node tracker's (`tools/tracker.mjs`, which
 runs `pair.js` too), and it is on by default: set `PAIRING` to `0` in `wrangler.jsonc` (or `--var PAIRING:0`) for a tracker only.
-The two can also pass their messages through this rendezvous on the same lane instead of connecting to each other ([Relay](#relay)).
 
 A code is 12 characters from `abcdefghijkmnpqrstuvwxyz23456789` (no 0, 1, l or o), shown `xxxx-xxxx-xxxx`: channel 4 + secret 8.
 The first 4 characters are the channel, the only part the rendezvous sees or stores. The last 8 are the secret (40 bits): the
@@ -138,7 +141,7 @@ to an owner whose code ran out after 24 hours. The same pushes exist with `room-
 | pending knocks | 16 per code, 8 per requesting socket |
 | knocks and opens | 10 a minute per socket (`too many requests`, `too many codes`) |
 | codes in all, lanes in all | 4,096 and 10,000 (`too many codes`, `too many lanes`) |
-| relayed frames | 120 a minute per socket (`too many relays`); 20,000 a UTC day for the object (`relay is busy`) |
+| relayed frames | 120 a minute per socket (`too many relays`); 20,000 a UTC day for each run of the object (`relay is busy`) |
 | messages of any kind, a ping that reaches `pair.js` included | 150 a minute per socket; the next one closes the socket with code 1008 (`too many messages`) |
 | relay lanes | 8 per socket (`too many lanes`); 2 sockets in a pair lane and 16 in a room lane (`lane full`) |
 
@@ -218,15 +221,20 @@ statement about this code, not a promise about what the host does.
 **Caps.** Per socket: 120 relayed frames a minute (`too many relays`); 150 messages of any kind a minute (a ping that reaches the
 object counts as one, see below), and the next one closes the socket with code 1008 (`too many messages`); 8 lanes (`too many lanes`);
 2 sockets in a pair lane and 16 in a room lane (`lane full`). For the whole object: 20,000 relayed frames a UTC day, after which every
-relay is answered `relay is busy` until 00:00 UTC. The numbers are `DEFAULT_CAPS` in `pair.js` (a test keeps this section equal to them). The day cap and the counters are
-in memory, so a new deployment starts them again at 0; `/stats.json` shows today's counts and the UTC day they belong to. A frame is
-counted when it is accepted for forwarding, including one sent while the other side was away (it is written to nobody and costs a
-request all the same).
+relay is answered `relay is busy` until 00:00 UTC or until the object is built again. The numbers are `DEFAULT_CAPS` in `pair.js` (a test keeps this section equal to them).
+The day cap, the counters and the minute windows are in memory, so they start again at 0 whenever the object is built again: on a new deployment, and on a wake
+after the object slept (see "What it costs, and the limits"). `/stats.json` therefore shows the counts since the object was last built, within the UTC day that
+`relayDay` names, not the whole day's counts, and `relaySince` says when they began: the later of 00:00 UTC of `relayDay` and the moment the object was built, in
+milliseconds since 1970 UTC. A difference between two reads counts every frame between them only if `relaySince` is the same in both; a larger `relaySince` in the
+second read means that the object was built again in between. `relays` (the lanes that have a member now) is read back from the sockets and does not start again,
+so a `relayed` of 0 beside a `relays` of 1 or more can mean that the object was built again after the traffic. Read the counts right after the traffic you want to
+count. The day cap holds for one run of the object: an object that is built again can forward up to 20,000 more frames in the same UTC day. A frame is counted when
+it is accepted for forwarding, including one sent while the other side was away (it is written to nobody and costs a request all the same).
 
 **The Free plan's 100,000 requests a day.** The day cap is 20,000 because the Free plan gives the object 100,000 requests a day and
 how it bills the WebSocket messages of a relay is not measured for this folder yet. The costs section below says 20 incoming messages
 count as one request. If every relayed frame is billed as a request of its own instead, 20,000 of them and the pairing's own traffic
-still stay under the 100,000, so pairing keeps working on a busy day; if the 20 to 1 holds, the cap is conservative. Change the
+still stay under the 100,000, so pairing keeps working on a busy day (for one run of the object; see Caps above); if the 20 to 1 holds, the cap is conservative. Change the
 number (`relayDayMax`) only after you have read your own request count.
 
 **Keepalive and idle.** A page sends exactly `{"v":1,"action":"pair-ping"}` every 50 seconds. `worker.js` gives the platform that
@@ -288,7 +296,9 @@ curl https://rtc-mysite.pages.dev/healthz        # prints: ok
 ```
 
 To roll back, deploy the Worker again with `--var "RELAY_LANE:0"` and the same `ALLOW` (pairing keeps working, and messages need a
-direct link), or return the Worker to its previous version with `npx wrangler rollback`.
+direct link), or return the Worker to its previous version with `npx wrangler rollback`. After either, a door whose block keeps the
+defaults has no way to connect and shows "This door's rendezvous does not carry messages; ask the door's owner to update it", so
+return the door to its previous version first, or set its `direct` to `"on"` or its `relay` to `"none"`.
 
 ## What it costs, and the limits
 
@@ -334,11 +344,20 @@ with a fake platform: rows in storage, a wake with the sockets' attachments, the
 (the Node tracker with real WebSocket clients on loopback). Not tested: a deployment on Cloudflare itself, hibernation on the real
 platform, pairing under `wrangler dev` or with a real loader against the Worker, and load.
 
-The relay lane was added on 2026-11-07 and has unit tests only: `test/unit/deploy-rtc-pair.test.mjs` (the state machine: join,
+On 2026-11-02 the Worker with pairing ran on Cloudflare as the demo tier's rendezvous (a Pages front over this Worker), with
+headless Chromium visitors and one phone ([APPS.md](../../docs/APPS.md), "What was tested").
+
+The relay lane was added on 2026-11-07. It has unit tests: `test/unit/deploy-rtc-pair.test.mjs` (the state machine: join,
 relay, leave and ping, the caps, the day counter and its reset, the saved state and a wake, the eviction of a member that went silent and
 the counting of pings that reach the core), `test/unit/deploy-rtc-worker.test.mjs`
 (the object on a fake platform: the exact auto-response texts, pings that never wake the object, the sweep, the rebuilt upgrade
 request, `wrangler.jsonc`), `test/unit/deploy-rtc-front.test.mjs` (the front and its Pages copy, the names the code never reads, the
-numbers of this README) and `test/unit/tools-tracker-pair.test.mjs` (the Node tracker with real WebSocket clients on loopback). Not
-tested: a deployment on Cloudflare, the auto-response and hibernation on the real platform, how the Free plan counts relayed frames and
-pings, and a message crossing a real office or mobile network.
+numbers of this README) and `test/unit/tools-tracker-pair.test.mjs` (the Node tracker with real WebSocket clients on loopback). On
+2026-11-08 it was deployed on Cloudflare as the lab rendezvous (the Worker `felinar-rtc-lab-do` behind the Pages project
+`felinar-rtc-lab`), and a script of two sockets passed its 11 checks against it over the public internet: both sockets joined a lane
+the rendezvous had minted, a frame of 534 characters and one of 7,512 crossed between them, a frame of 9,334 characters (`message too
+large`), a frame of 3 characters (`invalid frame`) and a frame on a lane that was never minted (`unknown lane`) were refused, the exact
+ping text and a ping of another shape were each answered with a pong, leaving pushed `pair-left`, and a frame sent to an empty lane was
+written to nobody. The script cannot tell the platform's pong from the object's. Not tested: the auto-response and hibernation on the
+real platform, how the Free plan counts relayed frames and pings, two browsers through it, and a message crossing a real office or
+mobile network.

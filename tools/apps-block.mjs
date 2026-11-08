@@ -4,7 +4,7 @@
 //   "apps": { "rendezvous": ["wss://rtc.example.org"], "stun": ["stun:stun.example.org:3478"], "idp": "https://id.example.org" }
 //
 // rendezvous  the door's own rendezvous, a tracker or Worker that speaks the pair protocol (wss:, or ws: on a loopback host for development)
-// stun        the site's own STUN servers (stun: or stuns:), none when the browsers are on one network
+// stun        the site's own STUN servers (stun: or stuns:); used only when direct is on; none when the browsers are on one network
 // idp         the identity origin the visitor signs in at (https:, or http: on a loopback host)
 //
 // Since the relay-first build (docs/DEPLOY.md, "Apps at a door"; plan 3.9) the block may also say how messages travel, in two optional keys:
@@ -13,7 +13,7 @@
 //
 // relay       "rendezvous" (the default when absent): sealed messages pass through the door's rendezvous; "none": they do not
 // direct      "off" (the default when absent): the apps build no WebRTC link; "on": they also try a direct link, which shows each side the
-//             other's network address. relay "none" with direct absent means direct "on", today's behaviour; the explicit pair relay "none"
+//             other's network address. relay "none" with direct absent means direct "on", the behaviour before the relay-first build; the explicit pair relay "none"
 //             and direct "off" is a door with no way to connect and is refused (src/loader/doors.js appsTransportOf resolves the absent ones)
 //
 // An owner who wants usage reports says, in the same file and beside the apps block, where the loader sends them:

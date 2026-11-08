@@ -94,6 +94,16 @@ Removing a site's infohashes from the list is also how this tracker stops introd
 after a takedown ([OPERATIONS.md](../../docs/OPERATIONS.md)). Visitors still load the site from its web seed and
 through other trackers in its pointer.
 
+## Pairing and the relay of the apps
+
+The same process also speaks the pairing protocol of the apps on a door page: a visitor opens a short code, another knocks with
+it, and when the first accepts, the tracker allows a private lane for 24 hours. By default it then also forwards the sealed messages
+of the two people between them, under caps, so a door whose apps block names this tracker as its rendezvous sends its visitors'
+messages through it, unless the block says `"relay": "none"`. Both are on in this setup: the image copies `deploy/rtc-worker/pair.js`, and `docker-compose.yml` starts the
+tracker without `--no-pairing` and without `--no-relay-lane`. `--no-relay-lane` keeps the pairing and turns the relay off, and
+`--no-pairing` turns both off; add either to the `command:` list of the `tracker` service. What each of them does, the caps and what
+the rendezvous sees are in [deploy/rtc-worker/README.md](../rtc-worker/README.md) ("Pairing" and "Relay").
+
 ## Sizing
 
 Measured on `bittorrent-tracker` 11.2.3, which `tools/tracker.mjs` also runs on, with the research's reference

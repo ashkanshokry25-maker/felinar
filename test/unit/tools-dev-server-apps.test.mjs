@@ -254,6 +254,8 @@ test('command line: a block that cannot be used exits 2 and names the flag; --he
   assert.equal(help.status, 0);
   for (const flag of ['--apps-rendezvous <url>', '--apps-stun <url>', '--apps-idp <origin>']) assert.ok(help.stdout.includes(flag), flag);
   assert.doesNotMatch(help.stdout, BANNED);
+  // Polish P7 4.10 (S28): a STUN server is asked only when direct links are on; by default the page makes no peer connection
+  assert.ok(help.stdout.replace(/\s+/g, ' ').includes('--apps-stun <url> a stun: or stuns: URL for the apps block (repeat; at most 8; used only when --apps-direct is on; none: browsers on one network connect with host candidates)'), help.stdout);
 });
 
 // ---------------------------------------------------------------------------------------------- the demo
@@ -290,11 +292,32 @@ test('runDemo (no browser, no build): the dev server sends the apps block; --stu
   assert.match(line, new RegExp('^apps: the door page ' + demo.plan.origin.replace(/[.]/g, '\\.') + '/_mw/open\\.html offers the apps \\(rendezvous 1, stun 1, identity ' + demo.idp.origin.replace(/[.]/g, '\\.') + '\\)$'));
   assert.doesNotMatch(lines.join('\n'), BANNED);
 
+  // Polish P7 4.10 (S27): the note about host candidates is about direct links, so it is printed only when the block's resolved direct is "on".
+  // Without keys the page applies its defaults, relay rendezvous and direct off: it makes no peer connection and asks no STUN server, so the
+  // demo says nothing about one.
   const noStunLines = [];
   const plain = await runDemo({ port: 0, trackerPort: 0, seeder: 'none', build: false, dist, idpDist, dir: join(work, 'demo-plain'), log: (l) => noStunLines.push(String(l)) });
   stoppers.push(() => plain.stop());
   assert.deepEqual(plain.apps.stun, []);
-  assert.ok(noStunLines.some((l) => /no STUN server, so browsers connect with host candidates; --stun names one/.test(l)), noStunLines.join('\n'));
+  const plainLine = noStunLines.find((l) => /^apps: the door page /.test(l));
+  assert.ok(plainLine, noStunLines.join('\n'));
+  assert.match(plainLine, /offers the apps \(rendezvous 1, stun 0, identity http:\/\/localhost:\d+\)$/, 'no keys, direct off by default: no note about a STUN server');
+  assert.doesNotMatch(noStunLines.join('\n'), /host candidates|no STUN server/);
+
+  // direct on and no STUN server named: the note is true (browsers then connect with host candidates) and is printed. "relay none" alone
+  // means direct on in the page's reading (appsTransportOf), so the note is printed for it too; with a STUN server named it is not.
+  const noteFor = async (label, options) => {
+    const got = [];
+    const run = await runDemo(Object.assign({ port: 0, trackerPort: 0, seeder: 'none', build: false, dist, idpDist, dir: join(work, 'demo-note-' + label), log: (l) => got.push(String(l)) }, options));
+    stoppers.push(() => run.stop());
+    const line = got.find((l) => /^apps: the door page /.test(l));
+    assert.ok(line, label + ': ' + got.join('\n'));
+    return line;
+  };
+  assert.match(await noteFor('direct-on', { appsDirect: 'on' }), /\(rendezvous 1, stun 0, identity http:\/\/localhost:\d+, relay rendezvous, direct on; no STUN server, so browsers connect with host candidates; --stun names one\)$/);
+  assert.match(await noteFor('relay-none', { appsRelay: 'none' }), /, relay none, direct on; no STUN server, so browsers connect with host candidates; --stun names one\)$/);
+  assert.doesNotMatch(await noteFor('direct-on-stun', { appsDirect: 'on', stun: ['stun:stun.example.org:3478'] }), /no STUN server|host candidates/);
+  assert.doesNotMatch(await noteFor('direct-off-explicit', { appsRelay: 'rendezvous', appsDirect: 'off' }), /no STUN server|host candidates/);
 
   const noIdpLines = [];
   const noIdp = await runDemo({ port: 0, trackerPort: 0, seeder: 'none', build: false, dist, idp: false, dir: join(work, 'demo-noidp'), log: (l) => noIdpLines.push(String(l)) });
@@ -311,6 +334,11 @@ test('demo --help lists --stun', () => {
   assert.match(help.stdout, /\[--stun <stun: URL>\]\.\.\./);
   assert.match(help.stdout, /^--stun {6}a STUN server for the apps block of the door page/m);
   assert.doesNotMatch(help.stdout, BANNED);
+  // Polish P7 4.10 (S26): the entry says when the STUN server matters, and no longer says that browsers connect with host candidates "without it"
+  const flat = help.stdout.replace(/\s+/g, ' ');
+  assert.ok(flat.includes('It matters only with --apps-direct on: by default the page makes no peer connection and asks no STUN server.'), help.stdout);
+  assert.ok(flat.includes('with direct on and none named, browsers connect with host candidates'), help.stdout);
+  assert.doesNotMatch(flat, /The demo runs none: without it browsers connect with host/);
 });
 
 // ---------------------------------------------------------------------------------------------- relay-first tokens (plan 3.9)
@@ -412,7 +440,7 @@ test('demoAppsOptions and runDemo pass relay and direct on to the dev server; th
   stoppers.push(() => demo.stop());
   assert.deepEqual(demo.apps, { rendezvous: [demo.plan.trackerUrl], stun: [], idp: demo.idp.origin, relay: 'rendezvous', direct: 'off' });
   assert.deepEqual((await (await fetch(demo.dev.url + '_mw/door.json')).json()).apps, demo.apps);
-  assert.match(lines.find((l) => /^apps: the door page /.test(l)), /offers the apps \(rendezvous 1, stun 0, identity http:\/\/localhost:\d+, relay rendezvous, direct off; no STUN server/);
+  assert.match(lines.find((l) => /^apps: the door page /.test(l)), /offers the apps \(rendezvous 1, stun 0, identity http:\/\/localhost:\d+, relay rendezvous, direct off\)$/, 'direct off, said or not: no note about a STUN server (polish P7 4.10, S27)');
   assert.doesNotMatch(lines.join('\n'), BANNED);
   // a bad token stops the demo, with or without an identity page, and nothing keeps running (a demo that starts anyway is stopped here, then the test fails)
   const refuseDemo = async (options, re) => {

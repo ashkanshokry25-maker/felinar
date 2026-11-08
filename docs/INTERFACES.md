@@ -1872,7 +1872,10 @@ tools/tracker.mjs     --allow summary.json serves the site, its ledger and its c
 tools/verify-release.mjs verify ... (--expect-version <v> | --min-version <v> | --any-version) [--expect-tree <name>]
                       [--expect-name <name>]; sign --rebuilt <dir> (or --skip-rebuild-check); PINNED_RELEASE_KEYS,
                       RETIRED_RELEASE_KEYS (SEC-6, SUP-2, SUP-3, SUP-12)
-tools/door-kit-files.mjs doorKitFiles(version) (moved from tools/publish.mjs, which re-exports it; SEC-5)
+tools/door-kit-files.mjs doorKitFiles({ version, release, buildId, commit }) -> the six host files of a door kit (moved from tools/publish.mjs, which re-exports it; SEC-5).
+                      { version } alone is the kit of a signed release: publish --door-kit writes these files and verify-release --door-kit compares them byte for byte; release: false, with
+                      buildId (4 to 64 of 0-9, a-z and -) and an optional commit (7 to 40 lowercase hex), is for a hand-assembled kit of a build that has no signed list: the same six files,
+                      and only README-DOOR.txt differs (verify-release --door-kit names it)
 build.mjs             --update-lock refuses a provenance package's new release without an attestation; --accept-no-provenance (SUP-11)
 ```
 
@@ -1886,7 +1889,8 @@ build.mjs             --update-lock refuses a provenance package's new release w
 >
 > **Relay-first (unreleased).** After the accept, the sealed messages of a conversation or room go through the rendezvous on the pair socket the page already holds
 > (`pair-join`, `pair-relay`, `pair-leave`, `pair-ping` and the `room-` forms), and a direct link is a door-level opt-in. Unit tested on loopback with fakes, the real
-> pairing core and the Node tracker; not run on a real network (an office Wi-Fi, mobile data, Tor Browser, a VPN). The contracts below carry the changes: the two door.json keys, the protocol, the caps and
+> pairing core and the Node tracker; run by a script of two sockets against the lab rendezvous on Cloudflare (2026-11-08), and the lab door was deployed with the relay-first build the
+> same day; no conversation between two browsers has gone through the rendezvous on a real network (an office Wi-Fi, mobile data, Tor Browser, a VPN). The contracts below carry the changes: the two door.json keys, the protocol, the caps and
 > counters, the link and service calls, and the view. The description for owners is [APPS.md](APPS.md), "Messages through the rendezvous".
 
 ### The apps block of `/_mw/door.json`, and the tools that write it
@@ -2021,13 +2025,15 @@ Messages    C pair-join   { lane, rid? }      lane = the 40 lowercase hex charac
                           Worker, every ping on the Node tracker) counts toward the 150 messages a minute and toward no relay cap, so the 151st message of a minute, a ping too,
                           gets the failure too many messages and closes the socket
 Caps        120 relayed frames a minute per socket; 150 messages of any kind a minute per socket, a ping that reaches pair.js included (the next one closes the socket, code 1008); 20,000 relayed frames per object
-            per UTC day, counted in memory (a redeploy resets it); 8 lanes per socket; 2 sockets in a pair lane, 16 in a room lane. A join to a full lane first evicts the members
+            per UTC day, counted in memory (a redeploy, or a wake of the object after it slept, starts the count again); 8 lanes per socket; 2 sockets in a pair lane, 16 in a room lane. A join to a full lane first evicts the members
             whose last message or keepalive is older than memberStaleMs (120,000 ms; the host may override) through the path of a socket close (the others get -left, the evicted
             socket is closed with 1000 if still open); a lane whose members are all live still answers lane full. The joiner's own too many lanes is checked first, so
             nobody is evicted for a socket that could not join anyway
-Stats       stats() and /stats.json (Worker and Node tracker) gain relays (lanes with at least one member), relayed (frames forwarded today), relayBytes (characters of f forwarded today),
-            relayDay (UTC yyyymmdd), relayBusy (frames refused by the day cap today), relayRate (frames refused by the minute cap today), joinsRefused (joins refused today, for any reason),
-            evicted (members evicted from a full lane today). Counts only: no lane id, no frame, no address
+Stats       stats() and /stats.json (Worker and Node tracker) gain relays (lanes with at least one member), relayed (frames forwarded since relaySince), relayBytes (characters of f forwarded since relaySince),
+            relayDay (UTC yyyymmdd of the reading), relaySince (a number: the moment the counts began, in ms since 1970 UTC, the later of 00:00 UTC of relayDay and the moment the core was built),
+            relayBusy (frames refused by the day cap since relaySince), relayRate (frames refused by the minute cap since relaySince), joinsRefused (joins refused since relaySince, for any reason),
+            evicted (members evicted from a full lane since relaySince). Counts only: no lane id, no frame, no address. They are kept in the core's memory: a new deployment and a wake of the
+            object start them at 0 (relays is read back from the sockets' attachments), so a difference of two reads counts every frame between them only if relaySince is equal in both
 Hibernation the pair socket's attachment gains l: [[lane, kind], ...], at most 8 entries of 40 hex, beside c and q; attach() rebuilds the lanes from it and drops those laneExpiry says are
             gone. Nothing is written to storage for the relay
 Keepalive   the page sends the ping text once every 50,000 ms while the socket is open and expects a pong within 10 s; with none, and no other frame either, it takes the socket for lost and connects again
@@ -2098,7 +2104,10 @@ apps.state() -> { signedIn, me: { pub, short, name } | null, ready, link: 'conne
     it now; a ready direct wire is preferred to the relay), reason (null, or why it is rejected or cannot connect: 'no-path' when the rendezvous refused the join, or a relay half-way,
     as off, or did not know the action, and no direct lane is held (direct off, or direct on on a page whose WebRTC could not be loaded), so it cannot connect and the view says so;
     a join that works again clears it; 'bad-lane' when the lane was unknown or invalid and there is no direct
-    path; 'bad-key', 'bad-box', 'blocked', 'no-tm', 'gone', or the word of a refused request: 'rejected', 'expired', 'closed', or a failure text of the rendezvous as a slug), knock, code,
+    path; 'bad-key', 'bad-box', 'blocked', 'no-tm', 'gone', or the word of a refused request: 'rejected', 'expired', 'closed', or a failure text of the rendezvous as a slug), hint ('alone' or null: a word apart from status
+    and reason; advisory; 'alone' only while the status is 'connecting', when this page has been in the lane at the rendezvous for 20 seconds (limits.aloneHintMs) with nobody else, the pair has
+    never connected and no direct wire is up; nothing is sent for it, and it is taken back at once when the lane gets another member, the lane or the socket is lost, or the pair connects or ends;
+    a conversation only, a room has none), knock, code,
     incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, cfg: { exp, receipts, typing } (this person's own, not the door's: exp is the
     default timer of what this person writes), peerCfg: { exp, receipts } (what the other person told; display only), compare,
     compareText, draft, note, typingPeer, messages: [{ id, t, mine, text, fmt, reply, status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | null, readAt,
@@ -2152,15 +2161,18 @@ src/loader/apps-ui.js   createAppsUi({ root, ui, service, lang, appsText, action
                         a model-driven view: it draws service.state() and calls the service; every handler is trustedOnly, every form is prevented, text from other people goes in
                         with textContent and createTextNode only, and no storage API is called
                         relay-first: the price card follows state().cfg (relay 'rendezvous' and direct 'off' when missing): apps.price.text or apps.price.room, then one paragraph of
-                        its own: apps.price.hidden (apps.price.hiddenRoom for a room) with direct 'off', apps.price.direct in its place with direct 'on', never both; relay 'none'
-                        shows apps.price.textDirect or apps.price.roomDirect, the texts of before. The status line of a connected conversation is apps.status.relayed when
+                        its own: apps.price.hidden (apps.price.hiddenRoom for a room) with direct 'off', apps.price.direct in its place with direct 'on', never both; then, with relay
+                        'rendezvous', one more paragraph of its own, apps.price.hostOrder (the host of a rendezvous can be ordered to record addresses); then the reports line, apps.price.reports (not
+                        on an accept card), and the check line, apps.price.check (an accept card only); relay 'none' shows apps.price.textDirect or apps.price.roomDirect, the texts of before, and no denial and no
+                        apps.price.hostOrder (the reports line and the check line follow where they apply, as before). The status line of a connected conversation is apps.status.relayed when
                         conversation.via is 'relay' and apps.status.connected otherwise; a conversation (connecting or rejected) or a room (open, connecting or rejected) whose
-                        reason is 'no-path' reads apps.status.noPath in its view and in the lists. The conversation tools hold a text line (data-role tool-transport)
+                        reason is 'no-path' reads apps.status.noPath in its view and in the lists; a conversation that is 'connecting' and whose hint is 'alone' reads apps.status.alone there
+                        (apps.status.noPath wins when both hold; a room never reads it). The conversation tools hold a text line (data-role tool-transport)
                         with the way it travels and the door's tokens: apps.tool.transport with apps.via.relay | apps.via.direct | apps.via.none
 src/loader/strings.js   APPS_TEXT { en, fr } (the same keys in both), appsText(key, lang, params) (English fallback, {param} placeholders, '' for an unknown key); relay-first keys:
-                        apps.price.text, apps.price.room (the relay default), apps.price.hidden, apps.price.hiddenRoom (the denial, a paragraph of its own), apps.price.direct,
-                        apps.price.textDirect, apps.price.roomDirect (the texts of before), apps.status.relayed, apps.status.noPath, apps.tool.transport, apps.via.relay, apps.via.direct,
-                        apps.via.none; no text holds the digit 8
+                        apps.price.text, apps.price.room (the relay default), apps.price.hidden, apps.price.hiddenRoom (the denial, a paragraph of its own), apps.price.hostOrder (the host's
+                        order, a paragraph of its own), apps.price.direct, apps.price.textDirect, apps.price.roomDirect (the texts of before), apps.status.relayed, apps.status.noPath,
+                        apps.status.alone, apps.tool.transport, apps.via.relay, apps.via.direct, apps.via.none; no text holds the digit 8
 src/loader/ui.js        createUI(): showApps(node), hideApps(), appsSlot (#mw-apps, role main, hidden until showApps); while the view is up the bar's height is measured
                         into --mw-apps-bar
 src/loader/app.js       run(): a door page with no link and an apps block runs runDoorApps(A, apps, deps), else runDoorPaste; readAppsBlock(A) -> block | null;

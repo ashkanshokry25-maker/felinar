@@ -7,6 +7,7 @@
 //      apps' own files add them) is a row of the tables of OBSERVABILITY.md, and every row is raised somewhere. The identity page has its own table.
 //   3. The fields of a row are the keys of the object each call site passes, together.
 //   4. No other file raises an event: a new call site of a report seam has to be added to this scan, and so to the tables.
+//   5. The words of the apps.lane row are values and not keys, so the scan cannot see them: each literal word apps.js reports for the lane is named in the row.
 //
 // The scan reads the source text (no code runs), so it holds the tables to the calls as they are written. The extractor has its own tests at the end.
 import { test } from 'node:test';
@@ -213,6 +214,17 @@ test('every event the identity page raises is a row of its table of docs/OBSERVA
 test('the events name only what the grammar of the Worker allows: lower case words with dots and dashes', () => {
   const names = [...eventsOf(LOADER_RULES).keys(), ...eventsOf(IDP_RULES).keys()];
   for (const name of names) assert.match(name, /^[a-z][a-z0-9.-]{1,48}$/, name);
+});
+
+// The words of a row are values, not keys, so the scan of the fields above cannot see them. The lane of the relay is the one row whose words the apps add one at a time
+// (`alone` came with the hint of a pair that never connected, polish decision P2.D6): every word apps.js hands to _repLane as a literal has to be named in the row.
+test('the apps.lane row of docs/OBSERVABILITY.md names every literal word apps.js reports for the lane', () => {
+  const words = Array.from(new Set(Array.from(read('src/loader/apps.js').matchAll(/_repLane\('([a-z][a-z-]*)'/g), (m) => m[1]))).sort();
+  for (const known of ['alone', 'direct-unavailable', 'join', 'joined', 'left']) assert.ok(words.includes(known), 'the scan found the lane word ' + known + ' (' + words.join(', ') + ')');
+  const row = read('docs/OBSERVABILITY.md').split('\n').find((l) => l.startsWith('| `apps.lane` |'));
+  assert.ok(row, 'docs/OBSERVABILITY.md has a row for apps.lane');
+  assert.deepEqual(words.filter((w) => !row.includes('`' + w + '`')), [], 'words that apps.js reports for the lane and the row does not name');
+  assert.match(row, /`alone` \(this page has been in the lane for 20 seconds with no other page in it/, 'the row says what alone means');
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -624,6 +624,16 @@ git grep -n 'RESEARCH-PENDING' -- README.md ':(glob)docs/*.md' src tools ':(excl
 
 - [ ] Every benefit in the README and in `docs/WHY.md` carries its condition (for example, "stays up when nobody is
   online" needs `ws=` and `xs=` in the pointer).
+- [ ] When a release carries the apps of a door page (they are unreleased in 0.3.0: [APPS.md](APPS.md)), change item 8 of "What it is
+  not" in `README.md`. Its sentence "Only a call can go through a relay, and only one that you set up yourself." is true for 0.3.0 and
+  false for a release with the apps, because the sealed messages of a door's conversations then pass through the door's rendezvous,
+  whose operator and host see each person's network address and when a message is sent ([PRIVACY.md](PRIVACY.md), "Apps on the door
+  page"). Change it before the tag, then run the search below, which must print nothing, and delete this item (the test
+  `docs-claims` keeps the item and the sentence standing or going together):
+
+```sh
+git grep -n "Only a call can go through a relay" -- README.md
+```
 
 ## 6. Tests and build
 
