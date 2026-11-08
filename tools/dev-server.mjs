@@ -80,7 +80,7 @@ Usage: node tools/dev-server.mjs [--root dist] [--port 8080] [--host 127.0.0.1] 
                 it (wss://<host>:<port>/tracker with --tls); start the tracker yourself (tools/tracker.mjs)
 --apps-rendezvous <url>  the apps block of /_mw/door.json (docs/DEPLOY.md, "Apps at a door"): where the apps meet, a wss: URL (ws: only for a
                 loopback host) of a tracker or Worker with the pair protocol; repeat for spares (at most 8); needs --apps-idp
---apps-stun <url>  a stun: or stuns: URL for the apps block (repeat; at most 8; used only when --apps-direct is on; none: browsers on one network connect with host candidates)
+--apps-stun <url>  a stun: or stuns: URL for the apps block (repeat; at most 8; used only when direct links are on, that is with --apps-direct on or --apps-relay none alone; none: browsers on one network connect with host candidates)
 --apps-idp <origin>  the identity origin the visitor signs in at (https:, or http: for a loopback host such as the --idp-port page)
 --apps-relay <rendezvous|none>  how messages travel (the block's relay key): through the door's rendezvous, sealed (the default), or not;
                 none with no --apps-direct means direct on, as before the relay-first build; none with --apps-direct off is refused

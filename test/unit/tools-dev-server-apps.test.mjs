@@ -255,7 +255,7 @@ test('command line: a block that cannot be used exits 2 and names the flag; --he
   for (const flag of ['--apps-rendezvous <url>', '--apps-stun <url>', '--apps-idp <origin>']) assert.ok(help.stdout.includes(flag), flag);
   assert.doesNotMatch(help.stdout, BANNED);
   // Polish P7 4.10 (S28): a STUN server is asked only when direct links are on; by default the page makes no peer connection
-  assert.ok(help.stdout.replace(/\s+/g, ' ').includes('--apps-stun <url> a stun: or stuns: URL for the apps block (repeat; at most 8; used only when --apps-direct is on; none: browsers on one network connect with host candidates)'), help.stdout);
+  assert.ok(help.stdout.replace(/\s+/g, ' ').includes('--apps-stun <url> a stun: or stuns: URL for the apps block (repeat; at most 8; used only when direct links are on, that is with --apps-direct on or --apps-relay none alone; none: browsers on one network connect with host candidates)'), help.stdout);
 });
 
 // ---------------------------------------------------------------------------------------------- the demo
@@ -336,7 +336,7 @@ test('demo --help lists --stun', () => {
   assert.doesNotMatch(help.stdout, BANNED);
   // Polish P7 4.10 (S26): the entry says when the STUN server matters, and no longer says that browsers connect with host candidates "without it"
   const flat = help.stdout.replace(/\s+/g, ' ');
-  assert.ok(flat.includes('It matters only with --apps-direct on: by default the page makes no peer connection and asks no STUN server.'), help.stdout);
+  assert.ok(flat.includes('It matters only when direct links are on (--apps-direct on, or --apps-relay none alone): by default the page makes no peer connection and asks no STUN server.'), help.stdout);
   assert.ok(flat.includes('with direct on and none named, browsers connect with host candidates'), help.stdout);
   assert.doesNotMatch(flat, /The demo runs none: without it browsers connect with host/);
 });

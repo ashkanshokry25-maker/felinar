@@ -2106,7 +2106,7 @@ apps.state() -> { signedIn, me: { pub, short, name } | null, ready, link: 'conne
     a join that works again clears it; 'bad-lane' when the lane was unknown or invalid and there is no direct
     path; 'bad-key', 'bad-box', 'blocked', 'no-tm', 'gone', or the word of a refused request: 'rejected', 'expired', 'closed', or a failure text of the rendezvous as a slug), hint ('alone' or null: a word apart from status
     and reason; advisory; 'alone' only while the status is 'connecting', when this page has been in the lane at the rendezvous for 20 seconds (limits.aloneHintMs) with nobody else, the pair has
-    never connected and no direct wire is up; nothing is sent for it, and it is taken back at once when the lane gets another member, the lane or the socket is lost, or the pair connects or ends;
+    never connected and no direct wire is up; nothing is sent to the other person or to the rendezvous for it, and it is taken back at once when the lane gets another member, the lane or the socket is lost, or the pair connects or ends;
     a conversation only, a room has none), knock, code,
     incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived, favorite, hidden, cfg: { exp, receipts, typing } (this person's own, not the door's: exp is the
     default timer of what this person writes), peerCfg: { exp, receipts } (what the other person told; display only), compare,

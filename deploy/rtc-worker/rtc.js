@@ -145,7 +145,7 @@ export function createRendezvous({
   // hex -> { listed, lane, peers: Map<hex, { conn, complete }> }; a lane swarm is listed while its lane is allowed and goes when empty
   const swarms = new Map();
   const lanes = new Map(); // hex -> expiry ms: the private lanes pairs and rooms minted, allowed like listed infohashes until then
-  const builtAt = now(); // when this core was built: where the relay counts began with pairing off (with pairing on, pair.js keeps its own moment)
+  const builtAt = now(); // when this core was built: where the relay counts began with pairing off (with pairing on, pair.js keeps its own moment; finding A F3 of the 8.2 audit, decision P3.D1)
   let unlisted = 0;
 
   const listed = (hex) => allow.has(hex) || lanes.has(hex);
@@ -458,7 +458,7 @@ export function createRendezvous({
     flush(Array.from(chans, ([key]) => ['delete', typeof key === 'string' && key.startsWith(CHAN_KEY) ? key : CHAN_KEY + key]));
   }
 
-  /** The pairing's stats when pairing is off: every count 0, for the UTC day of the reading, which began at 00:00 UTC or at the build, whichever is later (pair.js says the same of its own counts). */
+  /** The pairing's stats when pairing is off: every count 0, for the UTC day of the reading, which began at 00:00 UTC or at the build, whichever is later (finding A F3 of the 8.2 audit, decision P3.D1; pair.js says the same of its own counts). */
   function pairingOffStats() {
     const t = now();
     return {
@@ -470,7 +470,7 @@ export function createRendezvous({
   function stats() {
     let peers = 0;
     for (const s of swarms.values()) peers += s.peers.size;
-    // the relay's counts are the pairing's (pair.js stats): counts, a UTC day and the moment the counts began (relaySince), never a lane or a frame; with pairing off they are 0
+    // the relay's counts are the pairing's (pair.js stats): counts, a UTC day and the moment the counts began (relaySince, finding A F3 of the 8.2 audit, decision P3.D1), never a lane or a frame; with pairing off they are 0
     const p = pairs ? pairs.stats() : pairingOffStats();
     return {
       open, uploads, allowed: allow.size, swarms: swarms.size, unlisted, peers, sockets: conns.size, interval: intervalS, codes: p.codes, knocks: p.knocks, lanes: lanes.size,

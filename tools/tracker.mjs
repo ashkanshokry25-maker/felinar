@@ -35,13 +35,13 @@
 // The relay lane (deploy/rtc-worker/README.md, "Relay"): the two sockets of a lane the pairing minted may pass sealed frames
 // through the tracker (pair-join, pair-relay, pair-leave), which is how a message gets through by default (a door that turns
 // direct links on also tries a direct link and prefers it while it works). It is on by default, under caps (120 frames a minute,
-// 150 messages a minute, a ping included since the tracker has no platform to answer it first, 20,000 frames a UTC day); a socket
-// over its allowance of messages is closed with code 1008. A join to a full lane evicts a member silent for more than 2 minutes
+// 150 messages a minute, a ping included since the tracker has no platform to answer it first, 20,000 frames a UTC day for each run of the
+// process); a socket over its allowance of messages is closed with code 1008. A join to a full lane evicts a member silent for more than 2 minutes
 // (DECISIONS DEC-1: a phone that changed networks left a half-open socket): that socket is closed with 1000 and released, and
 // /stats.json counts it as evicted. --no-relay-lane keeps the pairing and turns the relay off. The tracker never reads a frame:
 // pair.js checks its alphabet and length and passes the same string on.
-// pair.js lives in deploy/, which the npm package and the Docker images of deploy/ do not copy: without the file the tracker
-// starts with pairing off (and says so) instead of failing to start.
+// pair.js lives in deploy/, which the npm package does not carry: there the tracker starts with pairing off (and says so) instead of
+// failing to start. The Docker images of deploy/tracker and deploy/one-box copy this one file, so their trackers pair.
 
 import http from 'node:http';
 import https from 'node:https';
@@ -93,13 +93,13 @@ export const MAX_SWARMS_PER_CONNECTION = 256;
 const UPLOAD_FEATURES = new Set(['files', 'media']);
 
 const sha1Hex = (text) => createHash('sha1').update(text, 'utf8').digest('hex');
-/** utcDay(ms) -> yyyymmdd of a time in UTC as a number: the day the relay's counters belong to (pair.js has the same, and is not loaded when pairing is off). */
+/** utcDay(ms) -> yyyymmdd of a time in UTC as a number: the day the relay's counters belong to (pair.js has the same, and is not loaded when pairing is off; finding A F3 of the 8.2 audit, decision P3.D1). */
 const utcDay = (ms) => {
   const d = new Date(ms);
   return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
 };
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** dayStartMs(ms) -> 00:00 UTC of the UTC day ms falls in, in ms since 1970: where the relay's counts of a day begin (pair.js has the same, and is not loaded when pairing is off). */
+/** dayStartMs(ms) -> 00:00 UTC of the UTC day ms falls in, in ms since 1970: where the relay's counts of a day begin (pair.js has the same, and is not loaded when pairing is off; finding A F3 of the 8.2 audit, decision P3.D1). */
 const dayStartMs = (ms) => Math.floor(ms / DAY_MS) * DAY_MS;
 /** chatLaneHash(ledgerId) → 40 hex: the site chat lane (src/chat/lane.js chatLaneInfoHash). */
 export const chatLaneHash = (ledgerId) => sha1Hex(CHAT_LANE_PREFIX + ledgerId);
@@ -112,7 +112,8 @@ export function hubLaneHash(suffix, shard = 0) {
 
 /**
  * loadPairModule(specifier) -> Promise<module | null>: deploy/rtc-worker/pair.js, the pairing core the Worker shares. null when the
- * file is not there (the npm package and the Docker images of deploy/ carry src/ and tools/ only); any other import error is thrown.
+ * file is not there (the npm package does not carry deploy/; the Docker images of deploy/tracker and deploy/one-box add this one
+ * file); any other import error is thrown.
  */
 export async function loadPairModule(specifier = new URL('../deploy/rtc-worker/pair.js', import.meta.url).href) {
   try {
@@ -353,7 +354,7 @@ export async function createTracker(options = {}) {
   const pairMod = o.pairing === false ? null : await loadPairModule();
   if (o.pairing === true && !pairMod) throw new ToolError('pairing needs deploy/rtc-worker/pair.js, which is part of the repository and not of this install');
   const clock = o.now || Date.now;
-  const startedAt = clock(); // where the relay counts began with pairing off (with pairing on, pair.js keeps the moment its core was built)
+  const startedAt = clock(); // where the relay counts began with pairing off (with pairing on, pair.js keeps the moment its core was built; finding A F3 of the 8.2 audit, decision P3.D1)
   const lanes = new Map(); // hex -> expiry ms
   const isLane = (hex) => lanes.has(hex) && !allow.has(hex);
   const relayOn = o.relayLane !== false;
@@ -531,7 +532,7 @@ export async function createTracker(options = {}) {
   };
 
   // The pairing's stats when pairing is off: every count 0, for the UTC day of the reading, which began when the tracker started or at
-  // 00:00 UTC of that day, whichever is later (pair.js says the same of its own counts).
+  // 00:00 UTC of that day, whichever is later (finding A F3 of the 8.2 audit, decision P3.D1; pair.js says the same of its own counts).
   const pairingOffStats = () => {
     const t = clock();
     return {
@@ -548,7 +549,7 @@ export async function createTracker(options = {}) {
       torrents++;
       peers += (swarm.complete || 0) + (swarm.incomplete || 0);
     }
-    // the relay's counts come from the pairing (counts, a UTC day and the moment the counts began, never a lane or a frame)
+    // the relay's counts come from the pairing (counts, a UTC day and the moment the counts began, never a lane or a frame; finding A F3 of the 8.2 audit, decision P3.D1)
     const p = pairing ? pairing.stats() : pairingOffStats();
     return {
       open: Boolean(o.open), uploads: unlistedServed(), allowed: o.open ? null : allow.size, torrents, unlisted: unlistedCount, peers, codes: p.codes, knocks: p.knocks, lanes: lanes.size,

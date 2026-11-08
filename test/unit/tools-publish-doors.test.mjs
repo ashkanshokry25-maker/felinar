@@ -263,6 +263,12 @@ test('doorKitFiles for a build that is not a signed release: only the README dif
   assert.match(rel['README-DOOR.txt'], /byte for byte as released/);
   assert.match(rel['README-DOOR.txt'], /verify-release\.mjs verify <this folder> --list hashes-dist\.json/);
   assert.throws(() => doorKitFiles({ version: '0.3.0', release: false }), /needs its build id/);
+  // the commit is checked whatever the mode (recon P4, Appendix A: the check is not tied to release: false): a release call that passes a
+  // malformed one is refused, and a good one changes nothing in the signed release kit, which verify-release --door-kit rebuilds from { version }
+  // alone (finding F3 of the polish verify, round 1)
+  assert.throws(() => doorKitFiles({ version: '0.3.0', commit: 'zzz' }), /not a git commit id/);
+  assert.throws(() => doorKitFiles({ version: '0.3.0', release: true, commit: '10EF87D' }), /not a git commit id/);
+  assert.deepEqual(doorKitFiles({ version: '0.3.0', commit: '10ef87d' }), rel, 'a good commit does not reach a release kit');
   // the new step 1 names the build id and the commit, and the closing list points at the one check that is left (the release text keeps "steps 1 and 3")
   assert.match(text, /\n1\. This build has no signed list\. Its build id is in \/_mw\/door\.json and build\.json \(bb8ac84e73f6\); building the source at commit 10ef87d\n {3}with node build\.mjs prints the same build id\. Use doors you or people you trust run\.\n/);
   assert.match(text, /\n {2}Use doors you or people you trust run, and check them with step 3\.\n/);

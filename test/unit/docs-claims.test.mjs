@@ -13,8 +13,9 @@ import { spawnSync } from 'node:child_process';
 
 import { ROOT } from '../../tools/lib.mjs';
 import { APPS_TEXT } from '../../src/loader/strings.js';
+import { appsTransportOf } from '../../src/loader/doors.js';
 import { createRendezvous } from '../../deploy/rtc-worker/rtc.js';
-import { DOOR_CHECK_MISSING_PATH, withoutPointerStamp } from '../../tools/check-site.mjs';
+import { DOOR_CHECK_MISSING_PATH, DOOR_CHECK_ORIGIN, withoutPointerStamp } from '../../tools/check-site.mjs';
 import { doorKitFiles } from '../../tools/door-kit-files.mjs';
 import { createTracker } from '../../tools/tracker.mjs';
 
@@ -175,7 +176,7 @@ test('deploy/rtc-worker/README.md: the counters and the day cap start again when
   assert.doesNotMatch(md, /a new deployment starts them again at 0;/);
   for (const s of [
     'they start again at 0 whenever the object is built again: on a new deployment, and on a wake after the object slept',
-    'a larger `relaySince` in the second read means that the object was built again in between',
+    'a larger `relaySince` in the second read means that the object was built again or that a UTC midnight passed in between (`relayDay` differs then)',
     'The day cap holds for one run of the object: an object that is built again can forward up to 20,000 more frames in the same UTC day.',
     '`relaySince` is a time and not a count',
     '20,000 a UTC day for each run of the object (`relay is busy`)',
@@ -187,6 +188,16 @@ test('deploy/rtc-worker/README.md: the counters and the day cap start again when
   assert.equal(keys.indexOf('relaySince'), keys.indexOf('relayDay') + 1, 'relaySince follows relayDay');
   assert.equal(keys.length - keys.indexOf('lanes') - 1, 9, 'nine fields follow lanes');
   assert.ok(md.includes('and the nine after them the relay\'s'));
+  // "or that a UTC midnight passed in between (`relayDay` differs then)": the same object, never built again, moves relaySince at midnight, so a larger
+  // relaySince does not prove a rebuild (finding W1 of the wording verify, round 1)
+  let clock = Date.UTC(2026, 10, 8, 23, 59, 0);
+  const object = createRendezvous({ allow: new Set(['a'.repeat(40)]), now: () => clock });
+  const first = object.stats();
+  clock = Date.UTC(2026, 10, 9, 0, 1, 0);
+  const second = object.stats();
+  assert.ok(second.relaySince > first.relaySince, 'relaySince is larger in the second read');
+  assert.notEqual(second.relayDay, first.relayDay, 'and relayDay differs');
+  assert.equal(second.relaySince, Date.UTC(2026, 10, 9), 'it is 00:00 UTC of the new day');
 });
 
 test('deploy/rtc-worker/README.md: the relay is how a default door sends every message and a direct link needs the door to turn it on; a rollback of the relay leaves such a door with no way to connect, in the words the page shows', () => {
@@ -236,7 +247,8 @@ test('deploy/tracker and deploy/one-box: the READMEs say that the tracker pairs 
 
 test('docs/DEPLOY.md: what the lab deploy of 2026-11-08 made false is corrected; the check of a door names what the checker reads; the kit of a build without a signed list is described as the tools make it; the word relay in the TURN section is told from the rendezvous', () => {
   const md = flat(read('docs/DEPLOY.md'));
-  for (const old of ['have not been served by a real host yet', 'not yet on Cloudflare itself', 'headless Chromium only)']) assert.ok(!md.includes(old), 'DEPLOY.md still says ' + JSON.stringify(old));
+  // (the first sentence is wrapped inside a block quote on main, so "have > not been served" is what flat() makes of it: the needle starts at "not")
+  for (const old of ['not been served by a real host yet', 'not yet on Cloudflare itself', 'headless Chromium only)']) assert.ok(!md.includes(old), 'DEPLOY.md still says ' + JSON.stringify(old));
   for (const s of [
     'A lab door on Cloudflare Pages has served them since 2026-11-08 (`check-site --door` found 0 failures and 0 warnings there and printed `relay rendezvous, direct off`), and no conversation between two browsers has gone through them on a real network.',
     'DEMO-RESULTS rows G-AP-1 to G-AP-4: headless Chromium and one Android phone',
@@ -251,6 +263,19 @@ test('docs/DEPLOY.md: what the lab deploy of 2026-11-08 made false is corrected;
   assert.ok(check.includes('A header that is there but joined') && check.includes('is a failure with or without the flag'));
   assert.equal(typeof withoutPointerStamp, 'function');
   assert.ok(check.includes('the pointer tag that `publish --shell` adds to `index.html` and `404.html`'));
+  // the answers the checker explains as [info], and the Origin it sends (tools-check-door.test.mjs holds the cases: a 403 with the listed bytes, and a host that echoes the Origin)
+  assert.ok(check.includes('Five answers are an `[info]` line') && check.includes('the listed bytes with any other status (403 or 410, say)'), 'the unknown path has five [info] answers');
+  assert.ok(check.includes('(or the `Origin` the check sends, `' + DOOR_CHECK_ORIGIN + '`, for a host that echoes it)'));
+  // a dev server started with --dev, --hub or --doh stamps meta tags that the check does not take out (finding F6 of the privacy-and-code verify, round 1):
+  // the three flags are the ones that push a tag in the dev server, and the helper of the check removes the pointer tag only
+  assert.ok(check.includes('A dev server (`tools/dev-server.mjs`) that adds `<meta>` tags of its own to the HTML pages it serves'));
+  assert.ok(check.includes('the check compares `/_mw/open.html` byte for byte and takes only the pointer tag that a publish adds out of `/404.html` and `/index.html`'));
+  const devJs = read('tools/dev-server.mjs');
+  for (const name of ['mw-dev', 'mw-hub', 'mw-doh']) {
+    assert.ok(devJs.includes("metas.push({ name: '" + name + "'"), 'the dev server stamps ' + name);
+    const page = Buffer.from('<!doctype html><head><meta charset="utf-8"><meta name="' + name + '" content="1"></head><body></body>');
+    assert.deepEqual(withoutPointerStamp(page), page, 'the check leaves ' + name + ' in the page');
+  }
   // the kit of a build without a signed list: the call the section names makes the README it describes, and only that file differs
   assert.ok(md.includes('`doorKitFiles({ version, release: false, buildId, commit })`'));
   const own = doorKitFiles({ version: '0.3.0', release: false, buildId: 'bb8ac84e73f6', commit: '10ef87d' });
@@ -312,8 +337,12 @@ test('tool texts: the demo, the dev server and the apps block say that a STUN se
   assert.ok(!demo.includes('The demo runs none: without it browsers connect with host'));
   assert.ok(!dev.includes('(repeat; at most 8; none: browsers on one network connect with host candidates)'));
   assert.ok(!block.includes('(stun: or stuns:), none when the browsers are on one network'));
-  assert.ok(demo.includes('it matters only with --apps-direct on: with the default, direct off, the page makes no peer connection and asks no STUN server'));
-  assert.ok(dev.includes('used only when --apps-direct is on; none: browsers on one network connect with host candidates'));
+  assert.ok(demo.includes('it matters only when direct links are on, that is with --apps-direct on or --apps-relay none alone: with the default, direct off, the page makes no peer connection and asks no STUN server'));
+  assert.ok(dev.includes('used only when direct links are on, that is with --apps-direct on or --apps-relay none alone; none: browsers on one network connect with host candidates'));
+  // "--apps-relay none alone" is the rule of the page (src/loader/doors.js appsTransportOf): relay none with direct absent means direct on (finding W5 of the wording verify, round 1)
+  assert.equal(appsTransportOf({ relay: 'none' }).direct, 'on');
+  assert.equal(appsTransportOf({ relay: 'rendezvous' }).direct, 'off');
+  assert.equal(appsTransportOf({}).direct, 'off');
   assert.ok(block.includes('used only when direct is on; none when the browsers are on one network'));
   // the tracker's header (a wave 1 comment): the first message that moves after the approval is a sealed frame, not a WebRTC offer, by default
   const tracker = prose('tools/tracker.mjs');

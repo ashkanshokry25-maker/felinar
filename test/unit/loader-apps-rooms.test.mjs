@@ -792,8 +792,9 @@ describe('after the adversary review (ADV-n): rooms', () => {
 // is the same silence as a pair's, but it has its own cases and would need its own tests, so a room carries no hint and tells no alone report.
 describe('a room has no hint alone (polish decision P2.D4)', () => {
   const alone = (P) => P.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'alone').length
+  const joinedTold = (P) => P.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'joined').length
 
-  test('a member whose owner never joins the relay lane stays connecting and says nothing: no hint field on the room, no alone report on either side, whatever the time', async () => {
+  test('a member whose owner never joins the relay lane stays connecting and says nothing: no hint field on the room, no alone report on either side, whatever the time, also after its socket was lost and came back', async () => {
     const w = makeWorld()
     const O = await make(w, 'Owner', { reports: true }) // the older door: direct only, no join request
     const M = await make(w, 'Mia', { relay: 'rendezvous', direct: 'off', reports: true })
@@ -801,7 +802,16 @@ describe('a room has no hint alone (polish decision P2.D4)', () => {
     const j = await M.apps.joinRoom(r.code)
     await until(() => O.apps.state().requests.length === 1, 'the join request')
     await O.apps.acceptMember(O.apps.state().requests[0].knock)
-    await until(() => M.reports.some((x) => x.name === 'apps.lane' && x.fields.ev === 'joined'), 'the member is in the lane, alone')
+    await until(() => joinedTold(M) === 1, 'the member is in the lane, alone')
+    await settle(10)
+    // The loss and return of the member's socket (finding F1 of the polish verify, round 1). _newConv starts the hint's timer slot of a pair at
+    // null and _newRoom leaves it unset, so a room meets the arming test of _aloneWatch (slot === null) only after some earlier call has set the
+    // slot to null, and the loss of the socket is such a call. The join that follows is told "nobody else" again: with the two room guards of the
+    // hint (_isAlone and _aloneWatch in apps.js) taken out, the member would report alone below.
+    M.link.drop()
+    await until(() => M.link.state === 'backoff', 'the member lost its socket')
+    w.advance(1000)
+    await until(() => joinedTold(M) === 2, 'the member joined the lane again, alone')
     await settle(10)
     w.advance(3 * LIMITS.aloneHintMs)
     await settle(10)
@@ -812,7 +822,8 @@ describe('a room has no hint alone (polish decision P2.D4)', () => {
     assert.equal(M.apps.state().conversations.length, 0)
   })
 
-  test('the owner of a room alone in its lane says nothing either, and a room that has members connects as it did', async () => {
+  // (the owner alone in its lane, with a member that never joins it, is the test "a room has no such hint" in loader-apps-lane.test.mjs: finding F3 of the suites verify, round 1)
+  test('a room that has members connects as it did and carries no hint, on the owner\'s side and the member\'s, whatever the time', async () => {
     const w = makeWorld()
     const O = await make(w, 'Owner', { relay: 'rendezvous', direct: 'off', reports: true })
     const M = await make(w, 'Mia', { relay: 'rendezvous', direct: 'off', reports: true })
@@ -825,6 +836,7 @@ describe('a room has no hint alone (polish decision P2.D4)', () => {
     await settle(10)
     assert.deepEqual([alone(O), alone(M)], [0, 0])
     assert.equal(roomOf(O, r.id).hint, undefined)
+    assert.equal(Object.prototype.hasOwnProperty.call(roomOf(M, j.id), 'hint'), false)
     assert.deepEqual(roomOf(M, j.id).status, 'connected')
   })
 })

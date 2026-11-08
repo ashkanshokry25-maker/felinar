@@ -8,7 +8,8 @@
  * { version, release: false, buildId, commit } is a hand-assembled kit of a build that has no signed list (8.2 audit C N3 and K-F3): the six
  * files are the same and only README-DOOR.txt differs, so it stops saying "as released" and stops sending the reader to a check that cannot
  * pass. It names the build id (required; the rule build.mjs applies in applyPlaceholders: 4 to 64 of 0-9, a-z and a hyphen) and, if given,
- * the commit (7 to 40 lowercase hex digits).
+ * the commit (7 to 40 lowercase hex digits). A commit that is not that is refused in either mode; a good one is used by the non-release
+ * README only, so the signed release kit never depends on it (finding F3 of the polish verify, round 1).
  */
 export function doorKitFiles({ version = '', release = true, buildId = '', commit = '' } = {}) {
   const notRelease = release === false;

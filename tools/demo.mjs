@@ -9,8 +9,9 @@
 //
 // Apps at a door (docs/DEPLOY.md "Apps at a door"): where the demo serves an identity page (the desktop tier),
 // its door page (<origin>/_mw/open.html) offers the apps: the demo's own tracker is the rendezvous, the identity page is where a visitor signs in,
-// and --stun names a STUN server for the block (it matters only with --apps-direct on: with the default, direct off, the page makes no peer
-// connection and asks no STUN server; the demo runs none, so with direct on and none named browsers connect with host candidates). The dev server
+// and --stun names a STUN server for the block (it matters only when direct links are on, that is with --apps-direct on or --apps-relay none
+// alone: with the default, direct off, the page makes no peer connection and asks no STUN server; the demo runs none, so with direct on and
+// none named browsers connect with host candidates). The dev server
 // sends the block in /_mw/door.json (--apps-rendezvous, --apps-stun, --apps-idp). The LAN tier has no identity page, so it offers no apps.
 // --apps-relay and --apps-direct (relay-first build, plan 3.9) pass the block's optional relay and direct keys on to the dev server, as --stun
 // passes the STUN list; without them the block has no such keys and the page applies its defaults (messages through the rendezvous, direct off).
@@ -67,9 +68,9 @@ Usage: node tools/demo.mjs [--tls [--cert <file> --key <file>]] [--bind <address
                            [--stun <stun: URL>]... [--apps-relay rendezvous|none] [--apps-direct off|on] [--dir .tools/demo] [--headed] [--quiet]
 
 --idp-port  the loopback port of the identity page that the desktop tier serves (posting signs in there; dist-idp is built with the loader)
---stun      a STUN server for the apps block of the door page (repeat; at most 4). It matters only with --apps-direct on: by default the page
-            makes no peer connection and asks no STUN server. The demo runs none: with direct on and none named, browsers connect with host
-            candidates, which is enough on one machine or one network. The desktop tier offers the apps at /_mw/open.html; the LAN tier has no identity page
+--stun      a STUN server for the apps block of the door page (repeat; at most 4). It matters only when direct links are on (--apps-direct on,
+            or --apps-relay none alone): by default the page makes no peer connection and asks no STUN server. The demo runs none: with
+            direct on and none named, browsers connect with host candidates, which is enough on one machine or one network. The desktop tier offers the apps at /_mw/open.html; the LAN tier has no identity page
 --apps-relay, --apps-direct  how messages travel in the apps block: through the demo's rendezvous, sealed (relay rendezvous, the default) or not
             (relay none, which alone means direct on), and whether the apps also try a direct link (direct on; the default is off)
 `;

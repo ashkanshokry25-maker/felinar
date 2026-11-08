@@ -541,8 +541,9 @@ connectivity probe asked both default STUN servers (stun.cloudflare.com and glob
 strictly local ([PRIVACY.md](PRIVACY.md) lists both).
 
 Later on 2026-11-01, the first door kit on a real host: `publish --door-kit`, verified against the signed 0.3.0 list, uploaded to a
-Cloudflare Pages project. It did not work. `check-site --door` reported `Access-Control-Allow-Origin: *, *` on `/_mw/door.json` (Pages
-applies both matching `_headers` rules of the kit) and a 308 from `/_mw/open.html` to `/_mw/open`; a headless Chromium at the redirected
+Cloudflare Pages project. It did not work. `check-site --door` reported a missing `Access-Control-Allow-Origin` on `/_mw/door.json` (the
+checker of 0.3.0 had no other words for a wrong value; the host had in fact sent `*, *`, because Pages applies both matching `_headers`
+rules of the kit) and a 308 from `/_mw/open.html` to `/_mw/open`; a headless Chromium at the redirected
 address booted as a site page and said "Could not find this site's address", because the loader enters door mode only at the exact
 door page path. Two things to file (release-gate): the kit's duplicate header, and door mode at the clean URL. The identity page bundle
 on a second Cloudflare Pages project served every header of its `_headers` file. The host table of [DEPLOY.md](DEPLOY.md#doors) now

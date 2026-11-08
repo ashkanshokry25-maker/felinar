@@ -1093,25 +1093,31 @@ differs from the text it expects, and that line is expected for a kit made this 
     node tools/check-site.mjs https://mirror.example.org/ --door [--allow-no-cors]
 
 It contacts that host only: the address must be the HTTPS root of its name, `/mw-sw.js` must answer 200 as JavaScript without a
-redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin: *`, and every `/_mw/*` file it lists, and `/mw-sw.js`,
-must have exactly the bytes it names. `--allow-no-cors` makes a missing header a warning, for a host that cannot send it (GitHub Pages
-sends it). A header that is there but joined (`*, *`, which Cloudflare Pages made of the 0.3.0 kit's two rules) or set to another value
-is a failure with or without the flag, and the message quotes the value. Exit code 0 when nothing failed (warnings are allowed), 1 on a
-failure, 2 on a usage error.
+redirect, `/_mw/door.json` must be a door list with `Access-Control-Allow-Origin: *` (or the `Origin` the check sends,
+`https://door-check.invalid`, for a host that echoes it), and every `/_mw/*` file it lists, and `/mw-sw.js`, must have exactly the bytes
+it names. `--allow-no-cors` makes a missing header a warning, for a host that cannot send it (GitHub Pages sends it). A header that is
+there but joined (`*, *`, which Cloudflare Pages made of the 0.3.0 kit's two rules) or set to another value is a failure with or
+without the flag, and the message quotes the value. Exit code 0 when nothing failed (warnings are allowed), 1 on a failure, 2 on a
+usage error.
 
 It also reads the three other files `door.json` lists, each only when it lists them:
 
 - `/mw-sw-kill.js`, at its own address, byte for byte.
 - `/404.html`, through one made-up path (`/felinar-door-check-no-such-file`), because a host serves that page for a path it does not
-  have and may not serve it at its own address. The listed bytes with status 404 pass. Four answers are an `[info]` line and not a
+  have and may not serve it at its own address. The listed bytes with status 404 pass. Five answers are an `[info]` line and not a
   failure, because a host or a publisher explains them: the listed bytes with status 200 (a fallback to the shell, as the dev server
-  answers); the listed bytes plus the pointer tag that `publish --shell` adds to `index.html` and `404.html` (so a published site works
-  as a door); a redirect; and a page of the host's own, since a door needs no 404 page. A changed copy of the loader page (a stale
-  build, a file a CDN rewrote, a mixed deploy), a server error and no answer are failures.
+  answers); the listed bytes with any other status (403 or 410, say); the listed bytes plus the pointer tag that `publish --shell`
+  adds to `index.html` and `404.html` (so a published site works as a door); a redirect; and a page of the host's own, since a door
+  needs no 404 page. A changed copy of the loader page (a stale build, a file a CDN rewrote, a mixed deploy), a server error and no
+  answer are failures.
 - `/index.html`, compared the same way where the host serves it. A host with clean URLs may answer it with a redirect, and a door kit
   sends the root of the host to the door page. The check does not follow that redirect: the line says what the host answered and where
   the same bytes are checked (a build lists one page under `/index.html` and `/404.html`), and a changed byte in `index.html` alone
   cannot be seen by this check on such a host.
+
+A dev server (`tools/dev-server.mjs`) that adds `<meta>` tags of its own to the HTML pages it serves (it does so when started with `--dev`,
+`--hub`, `--doh` or `--pointer`) can make the check fail those pages as changed: the check compares `/_mw/open.html` byte for byte and takes
+only the pointer tag that a publish adds out of `/404.html` and `/index.html`. Check a dev server that runs without those flags.
 
 Exit code 0 means that the files match and that `door.json` can be read by other origins. It does not mean that the apps work. When
 `door.json` carries an apps block, one more line names it (`[info] apps: rendezvous 1, stun 1, identity https://id.example.org`, and

@@ -226,7 +226,7 @@ The day cap, the counters and the minute windows are in memory, so they start ag
 after the object slept (see "What it costs, and the limits"). `/stats.json` therefore shows the counts since the object was last built, within the UTC day that
 `relayDay` names, not the whole day's counts, and `relaySince` says when they began: the later of 00:00 UTC of `relayDay` and the moment the object was built, in
 milliseconds since 1970 UTC. A difference between two reads counts every frame between them only if `relaySince` is the same in both; a larger `relaySince` in the
-second read means that the object was built again in between. `relays` (the lanes that have a member now) is read back from the sockets and does not start again,
+second read means that the object was built again or that a UTC midnight passed in between (`relayDay` differs then). `relays` (the lanes that have a member now) is read back from the sockets and does not start again,
 so a `relayed` of 0 beside a `relays` of 1 or more can mean that the object was built again after the traffic. Read the counts right after the traffic you want to
 count. The day cap holds for one run of the object: an object that is built again can forward up to 20,000 more frames in the same UTC day. A frame is counted when
 it is accepted for forwarding, including one sent while the other side was away (it is written to nobody and costs a request all the same).
@@ -257,7 +257,7 @@ for the members of that lane only, never for every socket). A member silent for 
 keepalives) is evicted through the same path as a socket that closed: the others get `pair-left` with the new count, then `pair-joined`
 for the newcomer, which takes its place; its socket is closed with code 1000 if it is still open and released like any socket that
 closed. A lane whose members are all live still answers `lane full`, and the page asks again later. `/stats.json` counts the members
-evicted today as `evicted`. The Node tracker does the same from its message times.
+evicted since the counts began (`relaySince`) as `evicted`. The Node tracker does the same from its message times.
 
 **The off switch.** `RELAY_LANE` is `"1"` in `wrangler.jsonc`; any other value than `"0"` leaves the relay on. With `"0"` (or
 `--no-relay-lane` on the Node tracker) every join, relay and leave is answered `relay is off on this rendezvous`, and the pairing keeps

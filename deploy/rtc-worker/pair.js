@@ -121,7 +121,7 @@ export const DEFAULT_CAPS = Object.freeze({
   maxRooms: 4, // rooms one socket may own
   relayPerMin: 120, // relayed frames one socket may send in a minute; more get 'too many relays'
   messagesPerMin: 150, // messages of any kind one socket may send in a minute, a ping that reaches this module included (DEC-2); the next one closes the socket (1008)
-  relayDayMax: 20000, // relayed frames per object per UTC day; then 'relay is busy' (the Free plan counts 100,000 requests a day: README, "Relay")
+  relayDayMax: 20000, // relayed frames per object per UTC day, for each run of the object; then 'relay is busy' (the Free plan counts 100,000 requests a day: README, "Relay")
   lanesPerSocket: 8, // relay lanes one socket may join (the list rides in its attachment, which stays under 2 KB)
   pairLaneMembers: 2, // sockets in a pair lane
   roomLaneMembers: 16, // sockets in a room lane

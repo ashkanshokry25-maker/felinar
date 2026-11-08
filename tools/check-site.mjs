@@ -33,8 +33,8 @@
 // /mw-sw.js, has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). The three other files
 // door.json lists are read too, each only when it lists it (8.2 audit H-F2 and A F7): /mw-sw-kill.js byte for byte; /404.html through
 // one made-up path (DOOR_CHECK_MISSING_PATH), because a host serves that page for a path it does not have; and /index.html where the
-// host serves it. A page the host explains (the pointer tag a publish adds, the dev server's fallback, a redirect, the host's own 404
-// page) is an info line; a changed copy of the loader page is a failure. No pointer is read.
+// host serves it. A page the host explains (docs/DEPLOY.md, "Checking a door": the pointer tag a publish adds, a fallback, another status, a redirect,
+// the host's own page) is an info line; a changed copy of the loader page is a failure. No pointer is read.
 // Apps at a door: an apps block in door.json (docs/DEPLOY.md, "Apps at a door") gets an info line (rendezvous, STUN and identity origin
 // counted) and a shape check; the addresses in it are read, never contacted. A block that carries the relay-first tokens (plan 3.9) also
 // names them on that line as the page reads them ("relay rendezvous, direct off"; relay none alone reads direct on, as in

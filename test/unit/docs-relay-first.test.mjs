@@ -325,6 +325,13 @@ test('the hint of a pair that is alone in its lane: APPS, INTERFACES and OBSERVA
   assert.ok(known.includes('is never a member of the conversation\'s relay lane at the rendezvous (it sends no `pair-join`;'), 'APPS "Known limits": why');
   const service = flat(between(INTERFACES, 'apps.state() ->', 'Calls       every call'));
   assert.ok(service.includes('hint (\'alone\' or null') && service.includes('for ' + secs + ' seconds (limits.aloneHintMs)'), 'INTERFACES apps.state(): the conversation has a hint');
+  // the hint sends no frame, but it is told in one usage report (OBSERVABILITY), so "nothing is sent" is said of the other person and the rendezvous only
+  // (finding W6 of the wording verify, round 1); the code comment of the service says the same
+  const NOTHING = 'nothing is sent to the other person or to the rendezvous for it';
+  assert.ok(row.includes(NOTHING), 'APPS "When something does not work": what the line sends');
+  assert.ok(known.includes('Nothing is sent to the other person or to the rendezvous for the line'), 'APPS "Known limits": what the line sends');
+  assert.ok(service.includes(NOTHING), 'INTERFACES apps.state(): what the hint sends');
+  assert.ok(flat(read('src/loader/apps.js').replace(/\n\s*\/\/ ?/g, ' ')).includes(NOTHING), 'the header of the service');
   const view = between(INTERFACES, '### The view and the hooks in the loader', 'src/loader/ui.js');
   assert.match(flat(view), /whose hint is 'alone' reads apps\.status\.alone/, 'INTERFACES "The view": the line of the hint');
   for (const k of ['apps.price.hostOrder', 'apps.status.alone']) {

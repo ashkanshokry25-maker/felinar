@@ -58,7 +58,8 @@ function doorFiles() {
  * does not have gets: 'page', the default, is the build's 404.html with status 404, where docs/COMPATIBILITY.md lists "your 404.html,
  * status 404" for GitHub Pages and "your 404.html" for Cloudflare Pages and Netlify; 'empty' is a 404 with no body, what a host with no
  * rule for it would answer; 'spa' is index.html with 200, as the dev server answers; 'redirect' is a 302; 'error' is a 503; 'other' is
- * a 404 page of the host's own; 'stamped' is the listed page plus the pointer tag a publish adds), noDoorJson, blockPage, cleanUrls
+ * a 404 page of the host's own; 'stamped' is the listed page plus the pointer tag a publish adds; 'forbidden' is the listed page with
+ * status 403, which a host may answer for a path it will not serve), noDoorJson, blockPage, cleanUrls
  * (0.3.1: /_mw/open.html answers 308 to /_mw/open and the page is served there, as Cloudflare Pages does; it also models /index.html as a
  * redirect to /, which that host does on its identity page, and /404.html as a redirect to /404, which is expected there and not
  * observed), redirectTo (the 308's target), oldLoader (a door.json without pageAlias: a loader that enters door mode only at
@@ -102,6 +103,7 @@ async function door(opts = {}) {
     if (mode === 'error') { res.writeHead(503); return res.end('unavailable') }
     if (mode === 'other') { res.writeHead(404, { 'content-type': 'text/html' }); return res.end(OTHER_PAGE) }
     if (mode === 'stamped') { res.writeHead(404, { 'content-type': 'text/html' }); return res.end(stamped(served.get('404.html'))) }
+    if (mode === 'forbidden') { res.writeHead(403, { 'content-type': 'text/html' }); return res.end(served.get('404.html')) }
     res.writeHead(404, { 'content-type': 'text/html' });
     res.end(served.get('404.html'));
   };
@@ -618,6 +620,7 @@ test('checkDoor (404 page): door.json lists /404.html, a host serves it for a pa
     [{ unknown: 'empty' }, 'info', /^an unknown path answers HTTP 404 with no page, not the page door\.json lists: a door needs no 404 page$/],
     [{ unknown: 'other' }, 'info', /^an unknown path answers HTTP 404 with the host's own page \(\d+ B\), not the page door\.json lists: a door needs no 404 page$/],
     [{ unknown: 'redirect' }, 'info', /^the host answers HTTP 302 on an unknown path, so its 404 page is not read here: a door needs no 404 page$/],
+    [{ unknown: 'forbidden' }, 'info', /^an unknown path answers HTTP 403 with the page door\.json lists$/], // the fifth [info] answer of docs/DEPLOY.md "Checking a door": the listed bytes with another status
     [{ flip: '404.html' }, 'fail', CHANGED_404],
     [{ serve: { '404.html': STALE } }, 'fail', CHANGED_404],
     [{ serve: { '404.html': SAME_LENGTH } }, 'fail', CHANGED_404],

@@ -52,9 +52,9 @@
 //     that this page is in the relay lane of a pair that has never connected, that nobody else has been in that lane for limits.aloneHintMs
 //     (20 seconds) and that no direct wire is up. The other person's page may be closed, asleep, slow, or an older build of the door page,
 //     which never joins the relay lane (audit 8.2, lane A, F1); from here these cannot be told apart, so the hint names none of them. It is
-//     advisory: nothing is sent for it and no other state changes. It is told in one usage report (apps.lane, ev alone) each time it comes
-//     up, and taken back at once when the lane gets another member, the lane or the socket is lost, or the pair connects or ends. A pair
-//     only: a room never has one (polish decision P2.D4).
+//     advisory: nothing is sent to the other person or to the rendezvous for it and no other state changes. It is told in one usage report
+//     (apps.lane, ev alone) each time it comes up, and taken back at once when the lane gets another member, the lane or the socket is lost,
+//     or the pair connects or ends. A pair only: a room never has one (polish decision P2.D4).
 // Calls return Promises that resolve to a result or { error: <one of ERRORS> } and never reject (the names in docs/INTERFACES.md
 // are kept; a few are added). The synchronous ones are marked (sync).
 //   code      openCode() -> { code }   newCode() -> { code }   closeCode() -> { ok }
@@ -1533,7 +1533,7 @@ export class Apps {
    * the pair becomes alone and takes the hint back at once when it stops being so (P2.D5: the field hint, apart from status and reason).
    * The timer is armed once and not again while the pair stays alone, so a push that repeats peers 0 does not move the time; a break and a
    * return start it from zero. It is looked at again when it fires: a direct wire that came up, or a conversation that ended, may have
-   * ended the fact with no call here. The hint sends nothing, asks nothing again and changes no state but rec.hint (P2 4.8). One report, a
+   * ended the fact with no call here. The hint sends no frame, asks nothing again and changes no state but rec.hint (P2 4.8). One report, a
    * word and a count of 0, each time it comes up (P2.D6).
    */
   _aloneWatch (rec) {
@@ -1603,6 +1603,9 @@ export class Apps {
   }
 
   // A conversation or a room that got no lane: its relay st goes with its place in this.lanes, so that no later open of the socket joins it.
+  // The _aloneWatch call is the hygiene that P2 4.3 lists for every place that ends a relay st. No wait can be armed here today: the call is
+  // reached only after a join that the rendezvous refused for good (with no relay st the function returns before it), so the st never was
+  // joined and the call finds nothing to cancel (finding F2 of the polish verify, round 1: no test can tell the call from its absence).
   _abandonRelay (rec) {
     const r = rec.p.rst
     if (!r || r.left) return

@@ -13,6 +13,7 @@ import {
 } from '../../src/loader/apps-ui.js';
 import { parseMd1, COMMON_EMOJI } from '../../src/loader/apps-format.js';
 import { APPS_TEXT, appsText, DOOR_TEXT } from '../../src/loader/strings.js';
+import { LIMITS } from '../../src/loader/apps.js';
 import { createUI, clockText } from '../../src/loader/ui.js';
 import { lintSource } from '../../tools/lint-floor.mjs';
 import { __apps } from '../../src/loader/app.js';
@@ -3246,4 +3247,71 @@ test('a conversation that never connected and that the service marks hint "alone
   const r = messagesWorld({ rooms: [room({ status: 'connecting', hint: 'alone', owner: false, members: [] })] });
   r.app.show('room', 'r1');
   assert.equal(textOf(one(r, 'status-line')), 'Connecting...');
+});
+
+// The two halves of P2 were built by two lanes: the service sets the word (src/loader/apps.js, _aloneWatch) and the view reads it (statusLine). The test
+// above fabricates the snapshot; the two below run the halves together on the fake world's real pairing core, as the DEC-5 test does for DEC-5. The stand-in
+// of a page from before the relay is a door with relay "none": it makes no pair-join, so the new page is the only member of its lane for ever (audit 8.2,
+// lane A, F1). Added by the integrate step of the polish batch, as lanes B1 (Open 7) and B2 (Tests) ask.
+test('end to end over the real service (P2): the new page of a pair whose other page never joins the relay lane reads apps.status.alone from LIMITS.aloneHintMs on, in the conversation and in the list, and not before; the stand-in of the old page is never hinted', async () => {
+  const world = makeWorld({ core: true });
+  const nora = personView(await world.make('Nora', { relay: 'rendezvous', direct: 'off', reports: true }), world);
+  const olga = personView(await world.make('Olga', { relay: 'none' }), world);
+  const { code } = await nora.svc.openCode();
+  const knock = await olga.svc.knock(code);
+  assert.ok(knock.knock, JSON.stringify(knock));
+  await waitFor(() => nora.svc.state().requests.length === 1, 'the request on Nora\'s screen');
+  const accepted = await nora.svc.accept(nora.svc.state().requests[0].knock);
+  assert.ok(accepted.id, JSON.stringify(accepted));
+  const laneEvents = (ev) => nora.person.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === ev);
+  await waitFor(() => laneEvents('joined').length === 1, 'Nora joined the lane and was told that nobody else is in it');
+  await settle(5);
+  nora.app.show('conversation', idOf(nora));
+  const line = () => one(nora, 'status-line');
+  assert.equal(textOf(line()), 'Connecting...', 'before the delay');
+  world.advance(LIMITS.aloneHintMs - 1);
+  await settle(5);
+  await flush();
+  assert.equal(textOf(line()), 'Connecting...', 'one millisecond short of the delay');
+  assert.equal(laneEvents('alone').length, 0);
+  world.advance(1);
+  await settle(5);
+  await flush();
+  const state = nora.svc.state().conversations[0];
+  assert.deepEqual([state.status, state.reason, state.hint], ['connecting', null, 'alone'], 'the service raised the hint and changed nothing else');
+  assert.equal(textOf(line()), ALONE_EN, 'at the delay the conversation says why');
+  assert.equal(attr(line(), 'data-status'), 'connecting', 'the status word stays the service\'s');
+  assert.deepEqual(laneEvents('alone').map((r) => r.fields), [{ ev: 'alone', peers: 0 }], 'one report: a word and a count');
+  nora.app.show('messages');
+  await waitFor(() => rowsOf(nora).length === 1 && rowsOf(nora)[0].textContent.includes(ALONE_EN), 'Nora\'s list row says why');
+  // the stand-in of the old page has no relay lane at all: it is never hinted and its view reads "Connecting..." as before. It is the requester:
+  // its state() keeps reading "waiting" until its own join returns (_onAccepted has no _touch() before _startConv), so the test waits for the
+  // change before it reads the view (finding F1 of the polish verify, round 1; B2 Open 4)
+  await waitFor(() => olga.svc.state().conversations[0] && olga.svc.state().conversations[0].status === 'connecting', 'the stand-in left waiting');
+  olga.app.show('conversation', idOf(olga));
+  assert.equal(olga.svc.state().conversations[0].hint, null);
+  assert.equal(textOf(one(olga, 'status-line')), 'Connecting...');
+  nora.svc.destroy();
+  olga.svc.destroy();
+});
+
+test('end to end over the real service (P2): two new pages connect and never read apps.status.alone, however long the view stays open', async () => {
+  const world = makeWorld({ core: true });
+  const ana = personView(await world.make('Ana', { relay: 'rendezvous', direct: 'off' }), world);
+  const bo = personView(await world.make('Bo', { relay: 'rendezvous', direct: 'off' }), world);
+  const { code } = await ana.svc.openCode();
+  const knock = await bo.svc.knock(code);
+  assert.ok(knock.knock, JSON.stringify(knock));
+  await waitFor(() => ana.svc.state().requests.length === 1, 'the request on Ana\'s screen');
+  const accepted = await ana.svc.accept(ana.svc.state().requests[0].knock);
+  assert.ok(accepted.id, JSON.stringify(accepted));
+  for (const v of [ana, bo]) await waitFor(() => v.svc.state().conversations.length === 1 && v.svc.state().conversations[0].status === 'connected', v.person.name + ': connected');
+  ana.app.show('conversation', idOf(ana));
+  world.advance(10 * LIMITS.aloneHintMs);
+  await settle(5);
+  await flush();
+  for (const v of [ana, bo]) assert.equal(v.svc.state().conversations[0].hint, null, v.person.name);
+  assert.equal(textOf(one(ana, 'status-line')), 'Connected through the rendezvous');
+  ana.svc.destroy();
+  bo.svc.destroy();
 });

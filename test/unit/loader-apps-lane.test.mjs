@@ -2401,7 +2401,7 @@ describe('DEC-1 and DEC-5: a full lane is asked again, an evicted socket joins a
 // no join request at all, and its own meeting point is a second socket that the pair protocol cannot see. A new page that meets one is told
 // "nobody else" at its join and nothing after, and both read "Connecting..." for ever with no error. LEGACY (relay none, so direct only, with no
 // pair-join) is the stand-in of the old page on these fakes. The new page says what it does know after LIMITS.aloneHintMs, in a field of its own
-// (hint), tells one report word and sends nothing for it. The old page cannot be helped from here, and a room has no such hint (P2.D4).
+// (hint), tells one report word and sends no frame for it. The old page cannot be helped from here, and a room has no such hint (P2.D4).
 describe('a page that never joins the relay lane: the hint alone', () => {
   const HINT = LIMITS.aloneHintMs;
   const told = (X, ev) => X.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === ev).length;
@@ -2579,6 +2579,29 @@ describe('a page that never joins the relay lane: the hint alone', () => {
     await settle(10);
     assert.equal(hintOf(A), null);
     assert.equal(told(A, 'alone'), 0);
+  });
+
+  // The only way a pair is seen and still reads connecting: a valid frame of the other person arrives while the relay path is not in use. The rendezvous
+  // is the only one that says who is in the lane, so it can hand over a frame while it counts nobody else (LADV-6 lets it lie about the count). The page
+  // has then seen the other person once, whatever the count says, and the wait for a page that "has not joined" is over (finding F6 of the suites verify,
+  // round 1: nothing else in _isAlone decides this case).
+  test('a valid frame of the other person that arrives while the rendezvous counts nobody else ends the wait for good: the pair was seen, so no hint and no report, although the status stays connecting', async () => {
+    const w = makeWorld();
+    const { N, O } = await stuck(w);
+    assert.notEqual(recOf(N).p.aloneTimer, null, 'the wait is running');
+    assert.deepEqual([conv(N).lastSeenAt, conv(N).connectedAt], [null, null]);
+    w.advance(HINT / 2);
+    const now = w.clock.now();
+    const sealed = await sealDmBody({ keys: O.person.keys, peerEk: N.person.keys.chat.pub, body: { k: 'msg', id: 'SEENALONESEEN001', t: now, text: 'I am here', fmt: 'md1' }, now, n: 1 });
+    await pushTo(w, N, { action: 'pair-relayed', lane: laneOf(N), f: b64url.encode(encodeFrame(T.DM, sealed.payload)) });
+    await until(() => conv(N).messages.length === 1, 'the frame was taken');
+    await settle(5);
+    assert.equal(typeof conv(N).lastSeenAt, 'number', 'the other person was seen');
+    assert.deepEqual([recOf(N).p.rst.joined, recOf(N).p.rst.peers, conv(N).status, conv(N).connectedAt], [true, 0, 'connecting', null], 'and the rendezvous still counts nobody else, so the pair is not connected');
+    assert.deepEqual([hintOf(N), recOf(N).p.aloneTimer], [null, null], 'the wait ended with the frame');
+    w.advance(2 * HINT);
+    await settle(10);
+    assert.deepEqual([hintOf(N), told(N, 'alone'), conv(N).status], [null, 0, 'connecting']);
   });
 
   test('the other person leaves a pair that was connected: the conversation is left, not connecting, and has no hint and no timer', async () => {
