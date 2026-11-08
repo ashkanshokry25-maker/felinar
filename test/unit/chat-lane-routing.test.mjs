@@ -60,6 +60,17 @@ async function waitFor(pred, ms = 3000) {
   }
 }
 
+// Advances the fake clock in steps until pred() holds. The lanes' timers (relay jitter, the pump) live on the clock, but their work on
+// a sealed frame is real async time: a relay scheduled after one advance() has returned waits for the next, so a count read right after
+// a single advance() can be early on a slow machine (main's CI run of 2026-11-08, Node 22, SEC-7). Bounded in real time like waitFor.
+async function advanceUntil(clock, pred, { step = 100, ms = 10000 } = {}) {
+  const end = Date.now() + ms;
+  while (!pred()) {
+    if (Date.now() > end) throw new Error('timed out');
+    await clock.advance(step);
+  }
+}
+
 let wireN = 0;
 function link(a, b, swarm = 'rendezvous') {
   const ia = 'w' + (++wireN);
@@ -573,6 +584,9 @@ test('review round (SEC-7): chatBits is read live; a relayed stranger frame unde
   }
   const f16 = await strangerAt(16, 20, 1);
   a.sendTo(wireTo(a, r), withHop(f16, 1));
+  // r judges the frame when its sealed-session work (real async time) is done: wait for the judgement, then move the clock past the
+  // relay jitter, so that a copy r had relayed would have reached c before the counts are read
+  await waitFor(() => r.stats.understamped >= 1);
   await clock.advance(4000);
   assert.equal(c.envelopes.length, 0, 'under 20 bits: not relayed');
   assert.deepEqual(strikes, [], 'and not a strike: the relay that sent it may be honest');
@@ -580,7 +594,7 @@ test('review round (SEC-7): chatBits is read live; a relayed stranger frame unde
   bits = 16; // the owner lowers chatBits; the lane reads it at once
   const g16 = await strangerAt(16, 20, 2);
   a.sendTo(wireTo(a, r), withHop(g16, 1));
-  await clock.advance(4000);
+  await advanceUntil(clock, () => c.envelopes.length === 1);
   assert.equal(c.envelopes.length, 1, 'at the new requirement the frame goes on');
   const low = await strangerAt(10, 16, 3);
   a.sendTo(wireTo(a, r), low); // hop 0: the neighbour wrote it
