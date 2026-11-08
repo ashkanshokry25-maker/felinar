@@ -26,10 +26,15 @@
 //
 // v0.3 C2 doors (docs/research/v03/S4-doors.md D3, D7): --door checks a door instead of a site (checkDoor): the address is the
 // root of an https: host (http only on loopback); /mw-sw.js answers 200 with a JavaScript type and no redirect; /_mw/door.json
-// is a door list (kind felinar-door) that other origins may read (Access-Control-Allow-Origin, else other doors see this one as
-// "answering, not checked": --allow-no-cors makes that a warning, for a host that cannot send the header; GitHub Pages does send
-// Access-Control-Allow-Origin: * on every file, seen 2026-11-01); and every /_mw/* file it lists, and /mw-sw.js,
-// has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). No pointer is read.
+// is a door list (kind felinar-door) that other origins may read (Access-Control-Allow-Origin: * on that file, else other doors see this
+// one as "answering, not checked": --allow-no-cors makes a MISSING header a warning, for a host that cannot send it; a header the host
+// joined into "*, *" (Cloudflare Pages did that to the 0.3.0 kit) or set to another origin stays a failure, and its message quotes the
+// value; GitHub Pages does send Access-Control-Allow-Origin: * on every file, seen 2026-11-01); and every /_mw/* file it lists, and
+// /mw-sw.js, has exactly the bytes it names (a CDN that rewrites a file, or a half-finished deploy, shows up here). The three other files
+// door.json lists are read too, each only when it lists it (8.2 audit H-F2 and A F7): /mw-sw-kill.js byte for byte; /404.html through
+// one made-up path (DOOR_CHECK_MISSING_PATH), because a host serves that page for a path it does not have; and /index.html where the
+// host serves it. A page the host explains (the pointer tag a publish adds, the dev server's fallback, a redirect, the host's own 404
+// page) is an info line; a changed copy of the loader page is a failure. No pointer is read.
 // Apps at a door: an apps block in door.json (docs/DEPLOY.md, "Apps at a door") gets an info line (rendezvous, STUN and identity origin
 // counted) and a shape check; the addresses in it are read, never contacted. A block that carries the relay-first tokens (plan 3.9) also
 // names them on that line as the page reads them ("relay rendezvous, direct off"; relay none alone reads direct on, as in
@@ -79,10 +84,42 @@ const MAX_DOOR_JSON_BYTES = 64 * 1024;
 const MAX_DOOR_FILE_BYTES = 16 * 1024 * 1024;
 /** The Origin header --door sends with its door.json request, so a host that answers CORS only when asked does. */
 export const DOOR_CHECK_ORIGIN = 'https://door-check.invalid';
+/**
+ * The one made-up path --door asks for to read the host's 404 page: door.json lists /404.html, but a host serves that page for a path it
+ * does not have, not necessarily at its own address (8.2 audit H-F2, A F7). Fixed, so that the output is the same on every run and the
+ * post-deploy diff of a lab run can rely on it.
+ */
+export const DOOR_CHECK_MISSING_PATH = '/felinar-door-check-no-such-file';
+
+/**
+ * withoutPointerStamp(bytes) -> Buffer: the page with every <meta name="mw-pointer"> taken out, which is how injectMeta (tools/lib.mjs)
+ * clears an earlier stamp before it writes a new one. publish --shell lists the build's pages in door.json first and stamps index.html
+ * and 404.html with the pointer tag after (tools/publish.mjs, stampHtml), so a published site used as a door serves those two pages
+ * with one tag more than door.json lists; --door compares what is left. The text is handled as latin1, which keeps every byte, as
+ * stampHtml does. A page without the tag comes back with the same bytes.
+ */
+export function withoutPointerStamp(bytes) {
+  const buf = Buffer.from(bytes);
+  const text = buf.toString('latin1');
+  const stamps = scanTags(text).filter((t) => t.name === 'meta' && String(t.attrs.get('name') || '').trim().toLowerCase() === 'mw-pointer');
+  if (!stamps.length) return buf;
+  let out = text;
+  for (let k = stamps.length - 1; k >= 0; k--) out = out.slice(0, stamps[k].start) + out.slice(stamps[k].end);
+  return Buffer.from(out, 'latin1');
+}
+
+/** A header value as the messages quote it: printable ASCII only (anything else becomes ?), and at most 80 characters of it. */
+function quoteHeader(value) {
+  const text = String(value).replace(/[^\x20-\x7e]/g, '?');
+  return text.length > 80 ? text.slice(0, 80) + '...' : text;
+}
 
 /**
  * checkDoor(url, { fetch, timeoutMs, allowNoCors, log }) → { ok, failures, warnings, results, door } (v0.3 C2 doors). door is the
- * parsed /_mw/door.json (or null). Steps: 'door' (the address), '/mw-sw.js', '/_mw/door.json', 'cors', and one per listed file.
+ * parsed /_mw/door.json (or null). Steps: 'door' (the address), '/mw-sw.js', '/_mw/door.json', 'cors', one per listed /_mw/ file that
+ * does not match, '/_mw/*' (how many do); then '/404.html' (read at DOOR_CHECK_MISSING_PATH), '/index.html' and '/mw-sw-kill.js', each
+ * only when door.json lists it and each with a step of its own. A door.json that lists none of the three gives the results it always
+ * gave, in the same order.
  * 0.3.1: a host with clean URLs (Cloudflare Pages) answers /_mw/open.html with a redirect to /_mw/open: the door page's bytes are
  * checked there (an info line), and a loader whose door.json has no pageAlias fails, because it enters door mode only at /_mw/open.html.
  */
@@ -165,16 +202,21 @@ export async function checkDoor(urlText, options = {}) {
             else add('info', 'door', obsBlockLine(json.obs));
           }
         }
+        // Three cases (8.2 audit H-F5): the header is missing (--allow-no-cors makes that a warning, for a host that cannot send it), the host
+        // joined two settings into one value ("*, *", which Cloudflare Pages did to the 0.3.0 kit on 2026-11-01), or it names another value.
+        // The last two are faults of the door that the flag is not for, so they stay failures with it, and the message quotes the value.
         const acao = res.headers.get('access-control-allow-origin');
         if (acao === '*' || acao === DOOR_CHECK_ORIGIN) add('ok', 'cors', 'Access-Control-Allow-Origin: ' + acao + ' (other doors can check this one)');
-        else add(o.allowNoCors ? 'warn' : 'fail', 'cors', 'no Access-Control-Allow-Origin on /_mw/door.json: other doors see this one as "answering, not checked" (add the header: the kit\'s _headers, vercel.json or Caddyfile do; for a host that cannot send it, use --allow-no-cors)');
+        else if (acao === null) add(o.allowNoCors ? 'warn' : 'fail', 'cors', 'no Access-Control-Allow-Origin on /_mw/door.json: other doors see this one as "answering, not checked" (add the header: the kit\'s _headers, vercel.json or Caddyfile do; for a host that cannot send it, use --allow-no-cors)');
+        else if (acao.indexOf(',') >= 0) add('fail', 'cors', 'Access-Control-Allow-Origin on /_mw/door.json is "' + quoteHeader(acao) + '", not "*": two rules or two headers set it and the host joined them into one value, which browsers refuse, so other doors see this one as "answering, not checked" (set it once per path: the kit\'s _headers does)');
+        else add('fail', 'cors', 'Access-Control-Allow-Origin on /_mw/door.json is "' + quoteHeader(acao) + '", not "*": other doors see this one as "answering, not checked" (the header must be * on this file)');
       }
     } catch (err) {
       add('fail', '/_mw/door.json', 'cannot fetch ' + url + ': ' + errText(err));
     }
   }
 
-  // Every /_mw/* file door.json lists, and /mw-sw.js, byte for byte.
+  // Every /_mw/* file door.json lists, and /mw-sw.js, byte for byte; then the three files at the root that it also lists (below).
   if (door) {
     const sha = (b) => createHash('sha256').update(b).digest('hex');
     const sw = door.files['/mw-sw.js'];
@@ -182,6 +224,18 @@ export async function checkDoor(urlText, options = {}) {
       if (sha(swBytes) === sw.sha256) add('ok', '/mw-sw.js', 'the bytes match door.json');
       else add('fail', '/mw-sw.js', 'the bytes differ from door.json (sha256 ' + sha(swBytes).slice(0, 16) + '..., door.json says ' + String(sw.sha256).slice(0, 16) + '...): a stale CDN copy or a half-finished deploy');
     }
+    // One file that must be served as built, set against its door.json entry: true when the bytes match, false after a failure line (not
+    // 200, or other bytes). The /_mw/ loop and /mw-sw-kill.js share these words.
+    const differText = (bytes, want, why) => 'the host serves ' + formatBytes(bytes.length) + ' with sha256 ' + sha(bytes).slice(0, 16) + '...; door.json names ' + formatBytes(want.bytes) + ' with ' + String(want.sha256).slice(0, 16) + '... (' + why + ')';
+    const compareListed = async (path, res, want) => {
+      if (res.status !== 200) { add('fail', path, 'HTTP ' + res.status); return false; }
+      const bytes = await readCapped(res, MAX_DOOR_FILE_BYTES);
+      if (bytes.length !== want.bytes || sha(bytes) !== want.sha256) {
+        add('fail', path, differText(bytes, want, 'a transformed file: minifier, image optimiser, compression with changed bytes, or a mixed deploy'));
+        return false;
+      }
+      return true;
+    };
     let checked = 0;
     for (const path of Object.keys(door.files).sort()) {
       if (!path.startsWith('/_mw/')) continue;
@@ -203,18 +257,105 @@ export async function checkDoor(urlText, options = {}) {
           if (door.pageAlias === DOOR_PAGE_ALIAS) add('info', path, 'clean URLs: the host answers the door page at ' + DOOR_PAGE_ALIAS + ' (HTTP ' + status + ' from ' + DOOR_PAGE_PATH + '); a link with ' + DOOR_PAGE_PATH + ' follows one redirect, and this loader enters door mode there');
           else add('fail', path, 'the host answers the door page at ' + DOOR_PAGE_ALIAS + ' (HTTP ' + status + ', clean URLs), where this loader' + (door.version ? ' (' + door.version + ')' : '') + ' does not enter door mode: a link opened at this door shows the loader\'s normal page instead of the site; deploy a kit made from felinar 0.3.1 or newer');
         }
-        if (res.status !== 200) { add('fail', path, 'HTTP ' + res.status); continue; }
-        const bytes = await readCapped(res, MAX_DOOR_FILE_BYTES);
-        if (bytes.length !== want.bytes || sha(bytes) !== want.sha256) {
-          add('fail', path, 'the host serves ' + formatBytes(bytes.length) + ' with sha256 ' + sha(bytes).slice(0, 16) + '...; door.json names ' + formatBytes(want.bytes) + ' with ' + String(want.sha256).slice(0, 16) + '... (a transformed file: minifier, image optimiser, compression with changed bytes, or a mixed deploy)');
-          continue;
-        }
-        checked++;
+        if (await compareListed(path, res, want)) checked++;
       } catch (err) {
         add('fail', path, 'cannot fetch ' + url + ': ' + errText(err));
       }
     }
     if (checked) add('ok', '/_mw/*', checked + ' file(s) match door.json byte for byte');
+
+    // The three files at the root that door.json lists and this check once skipped (8.2 audit H-F2, A F7; build.mjs lists every output but
+    // door.json and build.json). Each is asked for only when door.json lists it, so a door.json from an older loader or made by hand behaves
+    // as it did, and each result has a step of its own after '/_mw/*', so the results before them keep their places and their words (the
+    // post-deploy script of a lab run reads them by step and level).
+    //
+    // A page of the shell as a host answered it, set against its entry (post-8.2 polish P5, decision OD1 option B):
+    //   same     the listed bytes
+    //   stamped  the listed bytes plus the pointer tag a publish adds: a published site used as a door, not a bare door kit
+    //   changed  other bytes that are still the loader shell, or have the listed length: a stale build, a transformed file, a mixed deploy
+    //   own      anything else (the host's own page, an empty body): a door does not have to serve these pages
+    const pageKind = (bytes, want) => {
+      if (bytes.length === want.bytes && sha(bytes) === want.sha256) return 'same';
+      const bare = withoutPointerStamp(bytes);
+      if (bare.length === want.bytes && sha(bare) === want.sha256) return 'stamped';
+      return bytes.length === want.bytes || isShellHtml(bytes) ? 'changed' : 'own';
+    };
+    const stampText = 'the <meta name="mw-pointer"> tag a publish adds: a published site used as a door, not a bare door kit';
+    const pageWhy = 'a stale build, a transformed file or a mixed deploy';
+
+    // /404.html. A host serves that page for a path it does not have, and its own address may be a redirect (a host with clean URLs), so
+    // no URL is known to return its bytes: one made-up path is asked for and the page that answers is judged.
+    const page404 = door.files['/404.html'];
+    let read404 = null; // null: not asked; true: its bytes were compared at the unknown path; false: they could not be
+    if (page404) {
+      const url = origin + DOOR_CHECK_MISSING_PATH;
+      target('GET ' + url + ' (a path that does not exist: the host\'s 404 page is read)');
+      read404 = false;
+      try {
+        const res = await o.fetch(url, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+        if (res.status >= 500) add('fail', '/404.html', 'HTTP ' + res.status + ' on an unknown path: a host answers a path it does not have with its 404 page, not with a server error');
+        else if (res.status >= 300 && res.status < 400) add('info', '/404.html', 'the host answers HTTP ' + res.status + ' on an unknown path, so its 404 page is not read here: a door needs no 404 page');
+        else {
+          const bytes = await readCapped(res, MAX_DOOR_FILE_BYTES);
+          const kind = pageKind(bytes, page404);
+          const at = 'an unknown path answers HTTP ' + res.status;
+          read404 = kind !== 'own';
+          if (kind === 'same' && res.status === 404) add('ok', '/404.html', at + ' with the page door.json lists');
+          else if (kind === 'same' && res.status === 200) add('info', '/404.html', at + ' with the page door.json lists: an SPA fallback (the dev server answers this way), which is allowed for a shell');
+          else if (kind === 'same') add('info', '/404.html', at + ' with the page door.json lists');
+          else if (kind === 'stamped') add('info', '/404.html', at + ' with the page door.json lists plus ' + stampText);
+          else if (kind === 'changed') add('fail', '/404.html', at + ': ' + differText(bytes, page404, pageWhy));
+          else add('info', '/404.html', at + ' with ' + (bytes.length ? 'the host\'s own page (' + formatBytes(bytes.length) + ')' : 'no page') + ', not the page door.json lists: a door needs no 404 page');
+        }
+      } catch (err) {
+        add('fail', '/404.html', 'cannot fetch ' + url + ': ' + errText(err));
+      }
+    }
+
+    // /index.html. Where the host serves it (a static host, the dev server) it is judged like the 404 page. Where the host redirects it (a
+    // host with clean URLs may) or does not serve it, no URL returns its bytes, so nobody receives them there: the line says so, and where
+    // the same bytes are checked (a build lists one page under both names).
+    const pageIndex = door.files['/index.html'];
+    if (pageIndex) {
+      const url = origin + '/index.html';
+      target('GET ' + url);
+      try {
+        const res = await o.fetch(url, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+        if (res.status >= 500) add('fail', '/index.html', 'HTTP ' + res.status);
+        else if (res.status !== 200) {
+          let level = 'info';
+          let tail;
+          if (!page404) tail = 'door.json does not list /404.html, so these bytes are not compared anywhere';
+          else if (page404.sha256 !== pageIndex.sha256 || page404.bytes !== pageIndex.bytes) {
+            level = 'warn';
+            tail = 'door.json lists other bytes for /index.html than for /404.html, and a build lists the same page under both names: check that this door.json is the one the build wrote';
+          } else tail = 'door.json lists the same bytes as /404.html, ' + (read404 ? 'which is checked at an unknown path' : 'which could not be read at an unknown path on this host either (see the /404.html line)');
+          add(level, '/index.html', 'the host answers HTTP ' + res.status + ' here, so this page cannot be read at this address; ' + tail);
+        } else {
+          const bytes = await readCapped(res, MAX_DOOR_FILE_BYTES);
+          const kind = pageKind(bytes, pageIndex);
+          if (kind === 'same') add('ok', '/index.html', 'the bytes match door.json');
+          else if (kind === 'stamped') add('info', '/index.html', 'the host serves the page door.json lists plus ' + stampText);
+          else if (kind === 'changed') add('fail', '/index.html', differText(bytes, pageIndex, pageWhy));
+          else add('info', '/index.html', 'the host serves ' + (bytes.length ? 'its own page (' + formatBytes(bytes.length) + ')' : 'an empty body') + ' here and not the page door.json lists: a door does not have to serve this page');
+        }
+      } catch (err) {
+        add('fail', '/index.html', 'cannot fetch ' + url + ': ' + errText(err));
+      }
+    }
+
+    // /mw-sw-kill.js: the worker that unregisters itself, asked for at its own address and compared like a /_mw/ file.
+    const kill = door.files['/mw-sw-kill.js'];
+    if (kill) {
+      const url = origin + '/mw-sw-kill.js';
+      target('GET ' + url);
+      try {
+        const res = await o.fetch(url, { redirect: 'manual', signal: timeout(), headers: { 'cache-control': 'no-cache' } });
+        if (await compareListed('/mw-sw-kill.js', res, kill)) add('ok', '/mw-sw-kill.js', 'the bytes match door.json');
+      } catch (err) {
+        add('fail', '/mw-sw-kill.js', 'cannot fetch ' + url + ': ' + errText(err));
+      }
+    }
   }
   return done(door);
 }
@@ -817,7 +958,7 @@ async function main(argv) {
   if (flags.door) {
     // v0.3 C2 doors: a door, not a site (no pointer, no DNS, no trackers).
     log('check-site --door ' + positionals[0]);
-    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; the door page also at /_mw/open when the host redirects there; the addresses of an apps block are read, never contacted, and neither is the endpoint of an obs block). Each target is printed before it is contacted.');
+    log('Will contact: ' + new URL(positionals[0]).origin + ' only (/mw-sw.js, /_mw/door.json and every /_mw/ file it lists; when door.json lists them, also /mw-sw-kill.js, /index.html and, to read the 404 page, one made-up path, ' + DOOR_CHECK_MISSING_PATH + '; the door page also at /_mw/open when the host redirects there; the addresses of an apps block are read, never contacted, and neither is the endpoint of an obs block). Each target is printed before it is contacted.');
     const result = await checkDoor(positionals[0], { timeoutMs: flags.timeout, allowNoCors: flags.allowNoCors, log });
     if (flags.json) out(JSON.stringify({ url: positionals[0], door: true, ok: result.ok, failures: result.failures, warnings: result.warnings, results: result.results }, null, 2));
     else out((result.ok ? 'OK' : 'FAILED') + ': ' + result.failures + ' failure(s), ' + result.warnings + ' warning(s).');
