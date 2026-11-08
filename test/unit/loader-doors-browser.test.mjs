@@ -44,6 +44,11 @@ test('door view in Chromium and WebKit: the site renders in an opaque origin, CS
         await page.goto(base + '/door.html');
         await page.waitForFunction(() => window.__ready === true, null, { timeout: 15000 });
         const fr = page.frames().find((f) => f !== page.mainFrame());
+        // 'rendered' is posted right after document.write (frameMain); the module graph (blob: URLs, a cycle), the image and the
+        // imported stylesheet still load on their own time, and a browser under load takes it (main's CI runs of 2026-11-03 and
+        // 2026-11-08 read module undefined, in WebKit and in Chromium). The claim is that they work in the opaque origin, not that
+        // they beat the message: wait for them, bounded; a timeout falls through to the assertion below, which names what is missing.
+        await fr.waitForFunction(() => window.__module !== undefined && document.getElementById('img').naturalWidth > 0 && getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)', null, { timeout: 15000 }).catch(() => {});
         const inside = await fr.evaluate(() => {
           const s = (fn) => { try { return fn() } catch (e) { return 'THROWS ' + e.name } };
           return { origin: String(window.origin), h1: getComputedStyle(document.getElementById('h')).color, bg: getComputedStyle(document.body).backgroundColor, img: document.getElementById('img').naturalWidth, classic: window.__classic, module: window.__module, door: window.__mwDoor, ls: s(() => localStorage.length), sw: s(() => typeof navigator.serviceWorker) };
