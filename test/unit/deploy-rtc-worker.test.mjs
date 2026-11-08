@@ -19,9 +19,10 @@ const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
 const bin = (hex) => Buffer.from(hex, 'hex').toString('binary');
 const peer = (ch) => ch.repeat(20);
-// The tests written before the relay lane pin stats() exactly; they do it through noRelay(stats), which drops the eight relay
-// fields (plan 3.2, and evicted from DECISIONS DEC-1), and the relay tests below pin those eight themselves.
-const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
+// The tests written before the relay lane pin stats() exactly; they do it through noRelay(stats), which drops the nine relay
+// fields (plan 3.2, evicted from DECISIONS DEC-1, and relaySince from finding A F3 of the 8.2 audit), and the relay tests below pin
+// those nine themselves.
+const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relaySince', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
 const noRelay = (stats) => { const out = Object.assign({}, stats); for (const k of RELAY_FIELDS) delete out[k]; return out; };
 
 /** A fake connection: collects what the core sends, parsed. */
@@ -795,6 +796,64 @@ test('the object: two sockets join the lane the accept minted and pass a sealed 
   assert.equal(woken.core.stats().relays, 0);
 });
 
+// Finding A F3 of the 8.2 audit: a wake builds a new core (worker.js, the constructor) and the relay counters are variables of the core, so
+// they start again whenever the object wakes, not only on a new deployment. The first test pins what a rebuilt object reports (it passes
+// with or without relaySince); the second pins relaySince, which tells a reader that it happened (decision P3.D1, option B).
+const statsOf = async (obj) => (await obj.fetch(new Request('https://rtc.example/stats.json'))).json();
+const rowKinds = (storage) => Array.from(new Set(Array.from(storage.rows.keys()).map((k) => k.slice(0, k.indexOf(':') + 1)))).sort();
+
+/** relayedObject(t): an object at T0 whose pair has joined the lane it was given and passed three frames of 100 characters. */
+async function relayedObject(t) {
+  const { storage, owner, req, obj } = await pairedObject(t);
+  const lane = await acceptedLane(obj, owner, req);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-join', lane }));
+  const f = 'QUJD' + 'x'.repeat(96);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f }));
+  await obj.webSocketMessage(req, frame({ action: 'pair-relay', lane, f }));
+  await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f }));
+  take(owner); take(req);
+  return { storage, owner, req, obj, lane, f };
+}
+
+test('the object: built again after a sleep it reads relays back from the sockets and starts every relay count at 0 on the same UTC day, and no counter is kept in storage (finding A F3)', async (t) => {
+  const { storage, owner, req, obj, lane, f } = await relayedObject(t);
+  const before = await statsOf(obj);
+  assert.deepEqual([before.relays, before.relayed, before.relayBytes, before.relayDay], [1, 3, 300, 20231114]);
+  const rows = JSON.stringify(Array.from(storage.rows));
+  assert.deepEqual(rowKinds(storage), ['chan:', 'lane:'], 'the only rows are the codes and the lanes, before the sleep');
+  t.mock.timers.tick(45 * 1000);
+  const woken = new Rendezvous(fakeCtx([owner, req], storage), ENV);
+  await woken.ready;
+  const after = await statsOf(woken);
+  assert.equal(after.relays, 1, 'the lane is read back from the sockets: relays is a gauge and does not start again');
+  assert.deepEqual(['relayed', 'relayBytes', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'].map((k) => after[k]), [0, 0, 0, 0, 0, 0], 'the counters do');
+  assert.equal(after.relayDay, before.relayDay, 'relayDay is the UTC day of the reading, so it does not show the restart');
+  assert.equal(JSON.stringify(Array.from(storage.rows)), rows, 'storage is what the sleep left: nothing was kept for the counters and nothing was read for them');
+  assert.deepEqual(rowKinds(storage), ['chan:', 'lane:'], 'and after the wake the only rows are still the codes and the lanes');
+  // the rebuilt object relays on, and the first frame since the wake counts as the first
+  await woken.webSocketMessage(req, frame({ action: 'pair-relay', lane, f }));
+  assert.deepEqual(take(owner), [{ action: 'pair-relayed', lane, f }]);
+  const next = await statsOf(woken);
+  assert.deepEqual([next.relays, next.relayed, next.relayBytes], [1, 1, 100]);
+});
+
+test('the object: relaySince is the object\'s own build moment; frames do not move it, an object built again has a later one, and no storage row holds it (finding A F3, decision P3.D1)', async (t) => {
+  const { storage, owner, req, obj, lane } = await relayedObject(t);
+  assert.equal((await statsOf(obj)).relaySince, T0, 'built at T0');
+  t.mock.timers.tick(30 * 1000);
+  await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f: 'abcd' }));
+  take(req); take(owner);
+  assert.deepEqual([(await statsOf(obj)).relayed, (await statsOf(obj)).relaySince], [4, T0], 'a frame 30 seconds later is counted and does not move it');
+  t.mock.timers.tick(15 * 1000);
+  const woken = new Rendezvous(fakeCtx([owner, req], storage), ENV);
+  await woken.ready;
+  const after = await statsOf(woken);
+  assert.equal(after.relaySince, T0 + 45 * 1000, 'built again 45 seconds after the first: the moment of the new object');
+  assert.equal(after.relayDay, 20231114);
+  assert.equal(JSON.stringify(Array.from(storage.rows)).includes('Since'), false, 'no row holds it: it is read from the clock when the object is built');
+});
+
 test('the object: a lane that ran out while it slept is dropped quietly at the wake, and a relay on it finds no lane', async (t) => {
   const { storage, owner, req, obj } = await pairedObject(t);
   const lane = await acceptedLane(obj, owner, req);
@@ -1016,7 +1075,7 @@ test('worker fetch: the headers are read by name, one at a time, and request.cf 
   for (const prop of ['cf', 'signal', 'referrer', 'mode', 'credentials', 'integrity', 'body']) assert.equal(props.has(prop), false, prop);
 });
 
-test('/stats.json of the object carries the eight relay fields: counts and a UTC day, no lane and no frame', async (t) => {
+test('/stats.json of the object carries the nine relay fields: counts, a UTC day and the moment the counts began, no lane and no frame', async (t) => {
   const { owner, req, obj } = await pairedObject(t);
   const lane = await acceptedLane(obj, owner, req);
   await obj.webSocketMessage(owner, frame({ action: 'pair-join', lane }));
@@ -1025,10 +1084,10 @@ test('/stats.json of the object carries the eight relay fields: counts and a UTC
   await obj.webSocketMessage(owner, frame({ action: 'pair-relay', lane, f }));
   await obj.webSocketMessage(req, frame({ action: 'pair-relay', lane, f }));
   const st = await (await obj.fetch(new Request('https://rtc.example/stats.json'))).json();
-  assert.deepEqual(Object.fromEntries(RELAY_FIELDS.map((k) => [k, st[k]])), { relays: 1, relayed: 2, relayBytes: 200, relayDay: 20231114, relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 });
+  assert.deepEqual(Object.fromEntries(RELAY_FIELDS.map((k) => [k, st[k]])), { relays: 1, relayed: 2, relayBytes: 200, relayDay: 20231114, relaySince: T0, relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 });
   assert.equal(JSON.stringify(st).includes(lane), false);
   assert.equal(JSON.stringify(st).includes('QUJD'), false);
-  assert.deepEqual(Object.keys(st).sort(), ['allowed', 'codes', 'evicted', 'interval', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'sockets', 'swarms', 'unlisted', 'uploads']);
+  assert.deepEqual(Object.keys(st).sort(), ['allowed', 'codes', 'evicted', 'interval', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relaySince', 'relayed', 'relays', 'sockets', 'swarms', 'unlisted', 'uploads']);
 });
 
 test('wrangler.jsonc: observability is off, RELAY_LANE is "1", no token and no hash in the file, and the header says how to deploy behind a Pages front', () => {

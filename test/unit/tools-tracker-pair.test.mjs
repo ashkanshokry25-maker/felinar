@@ -358,7 +358,7 @@ test('/stats.json counts codes, knocks and lanes and names none of them; --no-pa
   say(owner, { action: 'pair-accept', proof: PROOF, knock });
   await wait(owner, (m) => m.action === 'pair-accepted');
   const stats = await (await fetch(t.url.replace(/^ws:/, 'http:') + '/stats.json')).json();
-  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'evicted', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'torrents', 'unlisted', 'uploads']);
+  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'evicted', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relaySince', 'relayed', 'relays', 'torrents', 'unlisted', 'uploads']);
   assert.deepEqual([stats.codes, stats.knocks, stats.lanes], [1, 0, 1]);
   const text = JSON.stringify(stats);
   for (const secret of ['abcd', knock, FIXED_LANE]) assert.equal(text.includes(secret), false, 'stats name no code, knock or lane');
@@ -407,8 +407,8 @@ test('a defect in the pairing is a failure reply and a warning, not a crashed tr
 // ---------------------------------------------------------------------------------------------- the relay lane (plan 3.1 to 3.4)
 
 const PING = '{"v":1,"action":"pair-ping"}';
-/** The stats the older tests pin exactly, without the eight relay fields (plan 3.2, and evicted from DECISIONS DEC-1; the relay tests pin those). */
-const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
+/** The stats the older tests pin exactly, without the nine relay fields (plan 3.2, evicted from DECISIONS DEC-1, relaySince from finding A F3 of the 8.2 audit; the relay tests pin those). */
+const RELAY_FIELDS = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relaySince', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
 
 /** pairedLane(t): an owner and a requester over real sockets; the owner opens a code, the requester knocks, the owner accepts. */
 async function pairedLane(t) {
@@ -425,6 +425,7 @@ async function pairedLane(t) {
 }
 
 test('the relay over real sockets: join, joined, relay, relayed, ping and pong, left when a socket closes; the stats count it and name no lane', async () => {
+  const startedAt = Date.now();
   const t = await start({ allow: [A] });
   const { owner, req, lane } = await pairedLane(t);
   assert.deepEqual(await ask(owner, { action: 'pair-join', lane, rid: 'j1' }), { action: 'pair-join', lane, peers: 0, rid: 'j1' });
@@ -450,6 +451,8 @@ test('the relay over real sockets: join, joined, relay, relayed, ping and pong, 
   assert.deepEqual(RELAY_FIELDS.map((k) => typeof stats[k]), Array(RELAY_FIELDS.length).fill('number'));
   assert.deepEqual([stats.relays, stats.relayed, stats.relayBytes, stats.joinsRefused, stats.relayBusy, stats.relayRate], [1, 2, 7512 + 4, 0, 0, 0]);
   assert.match(String(stats.relayDay), /^20\d{6}$/);
+  // the counts began when the tracker started (its process is the "run" the counts belong to), or at 00:00 UTC if the day changed meanwhile
+  assert.ok(Number.isInteger(stats.relaySince) && stats.relaySince >= startedAt && stats.relaySince <= Date.now(), 'relaySince: ' + stats.relaySince);
   assert.equal(JSON.stringify(stats).includes(lane), false);
   assert.equal(JSON.stringify(stats).includes(f), false);
   assert.deepEqual([t.stats().relays, t.stats().relayed], [1, 2], 'the object the tracker returns says the same');
@@ -518,10 +521,12 @@ test('relayLane false keeps the pairing and turns the relay off: join, relay and
   assert.deepEqual([t.stats().relays, t.stats().relayed], [0, 0]);
   const on = await start({ allow: [A] });
   assert.deepEqual([on.pairing, on.relayLane], [true, true], 'on by default');
+  const offAt = Date.now();
   const off = await start({ allow: [A], pairing: false });
   assert.deepEqual([off.pairing, off.relayLane], [false, false], 'no pairing, no relay');
   assert.deepEqual(RELAY_FIELDS.map((k) => off.stats()[k]).slice(0, 3), [0, 0, 0]);
   assert.match(String(off.stats().relayDay), /^20\d{6}$/);
+  assert.ok(Number.isInteger(off.stats().relaySince) && off.stats().relaySince >= offAt && off.stats().relaySince <= Date.now(), 'with pairing off the tracker still says when its zero counts began');
 });
 
 test('the 151st message of a minute gets its reason and the socket is closed with 1008; the other member is told it left; a ping is a message here too (DEC-2)', async () => {
@@ -566,8 +571,11 @@ test('on an injected clock: the lane runs out at 24 hours, the relay record goes
   say(owner, { action: 'pair-relay', lane, f: 'abcd' });
   await wait(req, (m) => m.action === 'pair-relayed');
   assert.deepEqual([t.stats().relayDay, t.stats().relayed], [20261107, 1]);
-  clock += 2 * 3600 * 1000; // 00:00 UTC on the 8th
+  clock += 30 * 60 * 1000; // 22:30 UTC on the 7th
+  assert.equal(t.stats().relaySince, Date.UTC(2026, 10, 7, 22, 0, 0), 'the counts began when the tracker started, not when they are read (finding A F3)');
+  clock += 2 * 3600 * 1000; // 00:30 UTC on the 8th
   assert.deepEqual([t.stats().relayDay, t.stats().relayed, t.stats().relays], [20261108, 0, 1], 'a new day starts the counters again; the lane is still in use');
+  assert.equal(t.stats().relaySince, Date.UTC(2026, 10, 8), 'and they began at 00:00 UTC of the new day, half an hour before the read');
   clock += LANE_TTL_MS - 3600 * 1000;
   // the one reply is the owner's code running out; the relay lane that ran out with the lane tells its members nothing
   assert.deepEqual(t.pairSweep(), { lanes: 1, replies: 1 });
@@ -576,6 +584,21 @@ test('on an injected clock: the lane runs out at 24 hours, the relay record goes
   assert.equal(t.stats().relays, 0);
   assert.equal((await ask(owner, { action: 'pair-relay', lane, f: 'abcd', rid: 'late' }))['failure reason'], 'unknown lane');
   assert.equal((await ask(owner, { action: 'pair-join', lane, rid: 'late' }))['failure reason'], 'unknown lane');
+});
+
+test('with pairing off, on an injected clock: the zero relay counts began when the tracker started, or at 00:00 UTC of the day read, whichever is later (finding A F3)', async () => {
+  // this is the tracker's own answer (pair.js is not loaded when pairing is off, or not in the install), not the pairing core's
+  let clock = Date.UTC(2026, 10, 7, 22, 0, 0);
+  const t = await start({ allow: [A], pairing: false, now: () => clock });
+  assert.equal(t.pairing, false);
+  clock += 30 * 60 * 1000; // 22:30 UTC on the 7th
+  assert.deepEqual([t.stats().relayDay, t.stats().relaySince], [20261107, Date.UTC(2026, 10, 7, 22, 0, 0)], 'the start, not the read');
+  clock += 2 * 3600 * 1000; // 00:30 UTC on the 8th
+  assert.deepEqual([t.stats().relayDay, t.stats().relaySince], [20261108, Date.UTC(2026, 10, 8)], 'the new day began at 00:00 UTC');
+  clock -= 3 * 3600 * 1000; // 21:30 UTC on the 7th: a host clock set back across midnight
+  assert.deepEqual([t.stats().relayDay, t.stats().relaySince], [20261107, Date.UTC(2026, 10, 7, 22, 0, 0)], 'never before the start');
+  const s = t.stats();
+  assert.deepEqual([s.relays, s.relayed, s.relayBytes, s.relayBusy, s.relayRate, s.joinsRefused, s.evicted], [0, 0, 0, 0, 0, 0, 0]);
 });
 
 test('DEC-1 on the tracker: a join to a full lane evicts the member that showed no life for more than 2 minutes (its message times), closes that socket with 1000 and releases it; a lane whose members are all live still answers lane full', async () => {

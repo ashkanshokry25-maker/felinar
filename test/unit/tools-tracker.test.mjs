@@ -122,8 +122,9 @@ test('GET / and /healthz answer 200, /stats.json counts without listing infohash
   const ws = await connect(t);
   await ask(ws, announce(A));
   const stats = await (await fetch(base + '/stats.json')).json();
-  // codes, knocks and lanes are the pairing's counts (ARCHITECTURE 15.21) and the eight after them the relay lane's (plan 3.2, evicted from DECISIONS DEC-1); like the others they name no infohash
-  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'evicted', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays', 'torrents', 'unlisted', 'uploads']);
+  // codes, knocks and lanes are the pairing's counts (ARCHITECTURE 15.21) and the nine after them the relay lane's (plan 3.2, evicted from DECISIONS DEC-1, relaySince from finding A F3 of the 8.2 audit); like the others they name no infohash
+  assert.deepEqual(Object.keys(stats).sort(), ['allowed', 'codes', 'evicted', 'joinsRefused', 'knocks', 'lanes', 'open', 'peers', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relaySince', 'relayed', 'relays', 'torrents', 'unlisted', 'uploads']);
+  assert.equal(typeof stats.relaySince, 'number', 'the moment the counts began, in milliseconds since 1970 UTC');
   assert.equal(stats.allowed, 1);
   assert.equal(stats.torrents, 1);
   assert.equal(JSON.stringify(stats).includes(A), false);

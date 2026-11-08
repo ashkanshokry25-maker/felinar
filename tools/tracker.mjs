@@ -28,16 +28,18 @@
 // Pairing (ARCHITECTURE 15.21): the rendezvous also speaks the pairing and room protocol of the apps on a door page,
 // the same state machine as the Cloudflare Worker (deploy/rtc-worker/pair.js, README.md there): a visitor opens a code, another
 // knocks with a sealed hello, and when the owner accepts, the tracker mints a random private lane, allows it for 24 hours (in
-// memory, beside the allow list, which stays the operator's) and hands it to both, so the first WebRTC offer moves after approval.
+// memory, beside the allow list, which stays the operator's) and hands it to both, so nothing else moves before approval: the
+// first sealed frame by default, and with a door that turns direct links on the first WebRTC offer.
 // It travels on sockets of its own (the first message classifies a socket as a tracker socket or a pair socket) and keeps
 // everything in memory. --no-pairing turns it off.
 // The relay lane (deploy/rtc-worker/README.md, "Relay"): the two sockets of a lane the pairing minted may pass sealed frames
-// through the tracker (pair-join, pair-relay, pair-leave), which is how a message gets through when the two browsers cannot reach
-// each other. It is on by default, under caps (120 frames a minute, 150 messages a minute, a ping included since the tracker has no
-// platform to answer it first, 20,000 frames a UTC day); a socket over its allowance of messages is closed with code 1008. A join to a
-// full lane evicts a member silent for more than 2 minutes (DECISIONS DEC-1: a phone that changed networks left a half-open socket):
-// that socket is closed with 1000 and released, and /stats.json counts it as evicted. --no-relay-lane keeps the pairing and turns the
-// relay off. The tracker never reads a frame: pair.js checks its alphabet and length and passes the same string on.
+// through the tracker (pair-join, pair-relay, pair-leave), which is how a message gets through by default (a door that turns
+// direct links on also tries a direct link and prefers it while it works). It is on by default, under caps (120 frames a minute,
+// 150 messages a minute, a ping included since the tracker has no platform to answer it first, 20,000 frames a UTC day); a socket
+// over its allowance of messages is closed with code 1008. A join to a full lane evicts a member silent for more than 2 minutes
+// (DECISIONS DEC-1: a phone that changed networks left a half-open socket): that socket is closed with 1000 and released, and
+// /stats.json counts it as evicted. --no-relay-lane keeps the pairing and turns the relay off. The tracker never reads a frame:
+// pair.js checks its alphabet and length and passes the same string on.
 // pair.js lives in deploy/, which the npm package and the Docker images of deploy/ do not copy: without the file the tracker
 // starts with pairing off (and says so) instead of failing to start.
 
@@ -96,6 +98,9 @@ const utcDay = (ms) => {
   const d = new Date(ms);
   return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
 };
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** dayStartMs(ms) -> 00:00 UTC of the UTC day ms falls in, in ms since 1970: where the relay's counts of a day begin (pair.js has the same, and is not loaded when pairing is off). */
+const dayStartMs = (ms) => Math.floor(ms / DAY_MS) * DAY_MS;
 /** chatLaneHash(ledgerId) → 40 hex: the site chat lane (src/chat/lane.js chatLaneInfoHash). */
 export const chatLaneHash = (ledgerId) => sha1Hex(CHAT_LANE_PREFIX + ledgerId);
 /** hubLaneHash(suffix, shard = 0) → 40 hex: a hub's follow lane (src/chain/multi.js laneInfoHash). */
@@ -348,6 +353,7 @@ export async function createTracker(options = {}) {
   const pairMod = o.pairing === false ? null : await loadPairModule();
   if (o.pairing === true && !pairMod) throw new ToolError('pairing needs deploy/rtc-worker/pair.js, which is part of the repository and not of this install');
   const clock = o.now || Date.now;
+  const startedAt = clock(); // where the relay counts began with pairing off (with pairing on, pair.js keeps the moment its core was built)
   const lanes = new Map(); // hex -> expiry ms
   const isLane = (hex) => lanes.has(hex) && !allow.has(hex);
   const relayOn = o.relayLane !== false;
@@ -524,6 +530,16 @@ export async function createTracker(options = {}) {
     return handleMessage(socket, opts, raw);
   };
 
+  // The pairing's stats when pairing is off: every count 0, for the UTC day of the reading, which began when the tracker started or at
+  // 00:00 UTC of that day, whichever is later (pair.js says the same of its own counts).
+  const pairingOffStats = () => {
+    const t = clock();
+    return {
+      codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(t), relaySince: Math.max(startedAt, dayStartMs(t)),
+      relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0,
+    };
+  };
+
   const stats = () => {
     let peers = 0;
     let torrents = 0;
@@ -532,12 +548,12 @@ export async function createTracker(options = {}) {
       torrents++;
       peers += (swarm.complete || 0) + (swarm.incomplete || 0);
     }
-    // the relay's counts come from the pairing (counts and a UTC day, never a lane or a frame); with pairing off they are 0
-    const p = pairing ? pairing.stats() : { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(clock()), relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 };
+    // the relay's counts come from the pairing (counts, a UTC day and the moment the counts began, never a lane or a frame)
+    const p = pairing ? pairing.stats() : pairingOffStats();
     return {
       open: Boolean(o.open), uploads: unlistedServed(), allowed: o.open ? null : allow.size, torrents, unlisted: unlistedCount, peers, codes: p.codes, knocks: p.knocks, lanes: lanes.size,
-      relays: p.relays, relayed: p.relayed, relayBytes: p.relayBytes, relayDay: p.relayDay, relayBusy: p.relayBusy, relayRate: p.relayRate, joinsRefused: p.joinsRefused,
-      evicted: p.evicted,
+      relays: p.relays, relayed: p.relayed, relayBytes: p.relayBytes, relayDay: p.relayDay, relaySince: p.relaySince, relayBusy: p.relayBusy, relayRate: p.relayRate,
+      joinsRefused: p.joinsRefused, evicted: p.evicted,
     };
   };
 

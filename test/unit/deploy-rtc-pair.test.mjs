@@ -37,10 +37,11 @@ function conn(name) {
  * A world: the pure core with a clock, counter-based random bytes, the lanes it allowed and the storage ops it asked for.
  * known is what the host's laneExpiry(hex) answers (lane -> expiry ms): the lanes the core minted, and any a test adds;
  * opts.hostExpiry === false gives the core no laneExpiry at all, opts.relay: false switches the relay lane off, and opts.liveness is the
- * host's liveness(conn) (DECISIONS DEC-1: the time of the socket's last keepalive the platform answered).
+ * host's liveness(conn) (DECISIONS DEC-1: the time of the socket's last keepalive the platform answered). opts.start is the first reading
+ * of the clock (T0 when absent), which is the moment the core is built: a test that builds a core again later passes a later start.
  */
 function world(opts = {}) {
-  let clock = T0;
+  let clock = opts.start === undefined ? T0 : opts.start;
   let n = 0;
   const lanes = [];
   const known = new Map();
@@ -59,10 +60,11 @@ function world(opts = {}) {
   return { p, lanes, known, ops, tick: (ms) => { clock += ms; }, now: () => clock };
 }
 /**
- * The eight relay fields of stats() (plan 3.2, and evicted from DECISIONS DEC-1). The tests written before the relay lane pin the
- * pairing counts and the tracker's counts exactly; they do it through noRelay(stats), which drops these eight, and the relay tests pin them.
+ * The nine relay fields of stats() (plan 3.2, evicted from DECISIONS DEC-1, and relaySince from finding A F3 of the 8.2 audit: the moment
+ * the counts began). The tests written before the relay lane pin the pairing counts and the tracker's counts exactly; they do it through
+ * noRelay(stats), which drops these nine, and the relay tests pin them.
  */
-const relayFields = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
+const relayFields = ['relays', 'relayed', 'relayBytes', 'relayDay', 'relaySince', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'];
 const noRelay = (stats) => { const out = Object.assign({}, stats); for (const k of relayFields) delete out[k]; return out; };
 const say = (w, from, msg) => w.p.message(from, Object.assign({ v: 1 }, msg));
 const to = (r, c) => (Array.isArray(r) ? r : r.replies).filter(([x]) => x === c).map(([, o]) => o);
@@ -983,6 +985,7 @@ test('relay: the day cap refuses with "relay is busy" until the UTC day changes,
   joinLane(w, a);
   joinLane(w, b);
   assert.equal(w.p.stats().relayDay, 20231114, 'T0 is 2023-11-14 22:13 UTC');
+  assert.equal(w.p.stats().relaySince, T0, 'the counts began when this core was built, 22:13 UTC (finding A F3)');
   for (let i = 0; i < 5; i++) assert.equal(only(relayTo(w, a, frameOf(10), { rid: 'r' }), a).peers, 1);
   for (let i = 0; i < 3; i++) fails(relayTo(w, b, frameOf(10), { rid: 'r' }), b, 'relay is busy');
   let s = w.p.stats();
@@ -990,9 +993,12 @@ test('relay: the day cap refuses with "relay is busy" until the UTC day changes,
   w.tick(HOUR);
   fails(relayTo(w, b, frameOf(10), { rid: 'r' }), b, 'relay is busy');
   assert.equal(w.p.stats().relayDay, 20231114, 'one hour later it is still 22:13 + 1 h = 23:13');
+  assert.equal(w.p.stats().relaySince, T0, 'and the counts began where they did: frames, refusals and reads move nothing');
   w.tick(HOUR); // 00:13 UTC on the 15th
   s = w.p.stats();
   assert.deepEqual([s.relayDay, s.relayed, s.relayBytes, s.relayBusy, s.relayRate, s.joinsRefused], [20231115, 0, 0, 0, 0, 0], 'the counters of a new day start at 0');
+  assert.equal(s.relaySince, Date.UTC(2023, 10, 15), 'a new day: the counts begin at 00:00 UTC of it, whenever the day was noticed');
+  assert.ok(s.relaySince > T0 && s.relaySince < w.now(), 'between the build and the read');
   assert.equal(only(relayTo(w, b, frameOf(10), { rid: 'r' }), b).peers, 1, 'and relaying works again');
   assert.equal(w.p.stats().relayed, 1);
   assert.equal(PAIR.DEFAULT_CAPS.relayDayMax, 20000);
@@ -1008,6 +1014,7 @@ test('relay: the day cap refuses with "relay is busy" until the UTC day changes,
   relayTo(w2, c, frameOf(4));
   fails(relayTo(w2, c, frameOf(4), { rid: 'x' }), c, 'relay is busy');
   assert.deepEqual([w2.p.stats().relayDay, w2.p.stats().relayed, w2.p.stats().relayBusy], [20231115, 1, 1]);
+  assert.equal(w2.p.stats().relaySince, Date.UTC(2023, 10, 15), 'the counts of the new day began at 00:00 UTC although the first read of the day came with a relay');
 
   // a rate cap that bites first is counted as a rate refusal
   const w3 = relayWorld({ caps: { relayPerMin: 2 } });
@@ -1018,6 +1025,70 @@ test('relay: the day cap refuses with "relay is busy" until the UTC day changes,
   relayTo(w3, e, frameOf(4));
   fails(relayTo(w3, e, frameOf(4), { rid: 'x' }), e, 'too many relays');
   assert.deepEqual([w3.p.stats().relayRate, w3.p.stats().relayBusy], [1, 0]);
+});
+
+// Finding A F3 of the 8.2 audit: the counters, the minute windows and the day cap are variables of one run of the core, and the Worker
+// builds a new core whenever its object wakes. The next test pins what a rebuilt core reports (it passes with or without relaySince);
+// the one after pins relaySince, which tells a reader that a rebuild happened (decision P3.D1, option B).
+test('relay: a core built again over the same lane and sockets reads relays back and starts every count at 0, and its day cap is its own: the cap holds for one run of the core (finding A F3)', () => {
+  const caps = { relayDayMax: 5 };
+  const w = relayWorld({ caps });
+  const [a, b] = ['a', 'b'].map(conn);
+  joinLane(w, a);
+  joinLane(w, b);
+  for (let i = 0; i < 5; i++) assert.equal(only(relayTo(w, a, frameOf(10), { rid: 'r' }), a).peers, 1);
+  fails(relayTo(w, a, frameOf(10), { rid: 'x' }), a, 'relay is busy');
+  const first = w.p.stats();
+  assert.deepEqual([first.relays, first.relayed, first.relayBytes, first.relayBusy, first.relayDay], [1, 5, 50, 1, 20231114], 'the cap was reached');
+  // The object slept and is built again 5 minutes later, on the same UTC day. The host restores the lane from its rows and gives each
+  // socket the state it kept (attachmentOf): that is all that survives a wake (README, "Relay").
+  const saved = [a, b].map((c) => JSON.parse(JSON.stringify(w.p.attachmentOf(c))));
+  const w2 = relayWorld({ caps, start: T0 + 5 * MIN });
+  const [a2, b2] = ['a2', 'b2'].map(conn);
+  w2.p.attach(a2, saved[0]);
+  w2.p.attach(b2, saved[1]);
+  const second = w2.p.stats();
+  assert.equal(second.relays, 1, 'relays is read back from the sockets: a gauge, it does not start again');
+  assert.deepEqual(['relayed', 'relayBytes', 'relayBusy', 'relayRate', 'joinsRefused', 'evicted'].map((k) => second[k]), [0, 0, 0, 0, 0, 0], 'the counters do');
+  assert.equal(second.relayDay, first.relayDay, 'relayDay is the UTC day of the reading: it does not show that the counts began again');
+  // the day cap belongs to the run: five more frames go through on the same UTC day, and then the new core is busy in its turn
+  for (let i = 0; i < 5; i++) assert.equal(only(relayTo(w2, a2, frameOf(10), { rid: 'r' }), a2).peers, 1, 'frame ' + (i + 1) + ' after the rebuild');
+  fails(relayTo(w2, a2, frameOf(10), { rid: 'x' }), a2, 'relay is busy');
+  const third = w2.p.stats();
+  assert.deepEqual([third.relayed, third.relayBusy, third.relayDay], [5, 1, 20231114], 'ten frames were forwarded on 2023-11-14 with a cap of five a day');
+});
+
+test('relay: relaySince is the later of 00:00 UTC of relayDay and the moment the core was built; no frame, refusal or read moves it, a core built again has its own, and a new UTC day moves it to 00:00 UTC (finding A F3, decision P3.D1)', () => {
+  const w = relayWorld();
+  const [a, b, c] = ['a', 'b', 'c'].map(conn);
+  assert.equal(typeof w.p.stats().relaySince, 'number', 'a number, as every relay field is');
+  assert.equal(w.p.stats().relaySince, T0, 'before any traffic: the moment the core was built');
+  joinLane(w, a);
+  joinLane(w, b);
+  w.tick(MIN); // under memberStaleMs (2 minutes): both members are still live, so the third join is refused and evicts nobody
+  relayTo(w, a, frameOf(10));
+  fails(joinLane(w, c, { rid: 'x' }), c, 'lane full');
+  assert.deepEqual([w.p.stats().relayed, w.p.stats().joinsRefused, w.p.stats().relaySince], [1, 1, T0], 'frames, refused joins and reads do not move it');
+
+  // a core built again 30 minutes later, the same UTC day: its own moment, larger than the first core's
+  const w2 = relayWorld({ start: T0 + 30 * MIN });
+  assert.equal(w2.p.stats().relayDay, w.p.stats().relayDay);
+  assert.equal(w2.p.stats().relaySince, T0 + 30 * MIN);
+  assert.ok(w2.p.stats().relaySince > w.p.stats().relaySince, 'two reads with different values do not share a count');
+
+  // a core built at 23:50 UTC counts from the build until midnight and from 00:00 UTC after it: not from the read that noticed the day
+  const late = relayWorld({ start: Date.UTC(2023, 10, 14, 23, 50) });
+  assert.equal(late.p.stats().relaySince, Date.UTC(2023, 10, 14, 23, 50));
+  late.tick(20 * MIN); // 00:10 UTC on the 15th
+  assert.equal(late.p.stats().relayDay, 20231115);
+  assert.equal(late.p.stats().relaySince, Date.UTC(2023, 10, 15), 'the new day began at 00:00 UTC, ten minutes before the read');
+
+  // never before the build: a host clock that is set back across midnight starts the counts again, but they cannot have begun before the core existed
+  const back = relayWorld({ start: Date.UTC(2023, 10, 15, 0, 5) });
+  back.tick(-10 * MIN); // 23:55 UTC on the 14th
+  const s = back.p.stats();
+  assert.equal(s.relayDay, 20231114, 'the UTC day of the reading');
+  assert.equal(s.relaySince, Date.UTC(2023, 10, 15, 0, 5), 'the build, which is later than 00:00 UTC of that day');
 });
 
 test('relay leave and close: the others are told left with their own count; the record goes when the last member does; leaving a lane you are not in is quiet', () => {
@@ -1211,10 +1282,10 @@ test('relay: a lane that runs out is dropped by the sweep, its members are marke
   assert.equal(w.p.nextExpiry(), Infinity);
 });
 
-test('relay stats: the eight fields, counts and a UTC day only; no lane, no frame', () => {
+test('relay stats: the nine fields, counts, a UTC day and the moment the counts began; no lane, no frame', () => {
   const w = relayWorld();
   const [a, b] = ['a', 'b'].map(conn);
-  assert.deepEqual(w.p.stats(), { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: 20231114, relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 });
+  assert.deepEqual(w.p.stats(), { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: 20231114, relaySince: T0, relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 });
   joinLane(w, a);
   joinLane(w, b);
   relayTo(w, a, frameOf(100, 'Q'));
@@ -1535,7 +1606,11 @@ test('rtc.js: with pairing off the frames are answered, nothing is kept, and the
   const j = h.r.message(conn('j'), frame({ action: 'pair-join', lane: LANE, rid: 'j' }));
   assert.equal(j.problem, 'pairing is off on this rendezvous');
   const s = h.r.stats();
-  assert.deepEqual(relayFields.map((k) => s[k]), [0, 0, 0, 20231114, 0, 0, 0, 0]);
+  assert.deepEqual(relayFields.map((k) => s[k]), [0, 0, 0, 20231114, T0, 0, 0, 0, 0]);
+  // the counts began when the rendezvous was built; once the UTC day has changed they began at 00:00 UTC of the day read (finding A F3)
+  h.tick(2 * HOUR); // 00:13 UTC on the 15th
+  const next = h.r.stats();
+  assert.deepEqual([next.relayDay, next.relaySince], [20231115, Date.UTC(2023, 10, 15)]);
 });
 
 // ---------------------------------------------------------------------------------------------- the relay lane inside rtc.js
@@ -1724,7 +1799,7 @@ test('rtc.js relay: the counts are in stats() beside the older ones; a frame of 
   assert.equal(h.r.message(a, relayFrame(lane, 'x'.repeat(7701), { rid: 'e' })).problem, 'invalid frame');
   const s = h.r.stats();
   assert.deepEqual(noRelay(s), { open: false, uploads: false, allowed: 1, swarms: 0, unlisted: 0, peers: 0, sockets: 2, interval: 120, codes: 1, knocks: 0, lanes: 1 });
-  assert.deepEqual(relayFields.map((k) => s[k]), [1, 1, 7512, 20231114, 0, 0, 0, 0]);
+  assert.deepEqual(relayFields.map((k) => s[k]), [1, 1, 7512, 20231114, T0, 0, 0, 0, 0]);
   assert.equal(JSON.stringify(s).includes(lane), false, 'the counts name no lane');
 });
 
