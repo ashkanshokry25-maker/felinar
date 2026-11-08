@@ -1236,6 +1236,24 @@ for (const kind of RENDEZVOUS_KINDS) {
       assert.equal(st(A).code, code, 'the owner\'s code stays open for the next person')
     })
 
+    test('a conversation carries the field hint, the word alone or null: null in every status of a pair on the older transport, which has no relay lane to be alone in, whatever the time', async () => {
+      const w = mkWorld()
+      const A = await w.make('Alice')
+      const B = await w.make('Bob')
+      const { code } = await A.apps.openCode()
+      await B.apps.knock(code)
+      await until(() => st(A).requests.length === 1, 'the request')
+      assert.equal(conv(B).status, 'waiting')
+      assert.equal(Object.prototype.hasOwnProperty.call(conv(B), 'hint'), true, 'the field is always there')
+      assert.equal(conv(B).hint, null)
+      await A.apps.accept(st(A).requests[0].knock)
+      await until(() => isConnected(A) && isConnected(B), 'connected')
+      assert.deepEqual([conv(A).hint, conv(B).hint], [null, null])
+      w.advance(3 * LIMITS.aloneHintMs)
+      await settle(5)
+      assert.deepEqual([conv(A).hint, conv(B).hint, conv(A).status], [null, null, 'connected'])
+    })
+
     test('the rendezvous never sees the secret, a name, an identity key or a chat key', async () => {
       const w = mkWorld()
       const { A, B, code } = await pairUp(w, { names: ['Alicia-Name', 'Robert-Name'] })
@@ -2833,6 +2851,7 @@ describe('the fake service reused by the UI tests', () => {
     assert.equal(LIMITS.sendPerMin, 60)
     assert.equal(LIMITS.acceptPerMin, 120)
     assert.equal(LIMITS.ackTimeoutMs, 20000)
+    assert.equal(LIMITS.aloneHintMs, 20000, 'the wait of the hint alone (polish decision P2.D1), beside ackTimeoutMs')
     assert.equal(LIMITS.textMax, 3500)
     assert.equal(LIMITS.roomTextMax, 2000)
     assert.equal(LIMITS.badKnocksMax, 5)

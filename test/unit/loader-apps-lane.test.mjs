@@ -5,7 +5,9 @@
 //   - the service (src/loader/apps.js) on the relay: the new default, the two door tokens and what they resolve to, joining right after the
 //     accept, messages through the rendezvous with Delivered and Read, rooms, link drops, strikes, caps, the lifecycle hooks, typing;
 //   - privacy: no report field of any event holds a lane id, a frame or a message text;
-//   - the same feature bodies over both transports, the direct one and the relay one.
+//   - the same feature bodies over both transports, the direct one and the relay one;
+//   - the silent stuck state: a page that meets one of the old build, which never joins the relay lane, says so after 20 seconds in the field
+//     hint of the conversation (audit 8.2, lane A, F1; polish decisions P2.D1 to D6).
 // Every party is a fake on this machine (test/unit/fakes/apps-fakes.mjs): the rendezvous is the stub of the plan's section 3.1 and, when
 // pair.js speaks the relay actions, the real core as well; the last group talks to tools/tracker.mjs over loopback sockets. Nothing leaves
 // the machine. Run: node tools/run-unit.mjs test/unit/loader-apps-lane.test.mjs
@@ -1915,8 +1917,8 @@ describe('what the service tells, and what it never tells', () => {
     const keys = people.flatMap((X) => [X.person.keys.pub, X.person.keys.chat.pub, shortIdOf(X.person.keys.pub)]);
     assert.ok(joined.id);
     scan(people, forbiddenOf(w, ['SECRET-WORDS', 'Zelda', 'Quill', 'Orson', 'Finch', 'Isadora', 'Pell', 'Caspian', 'Rook'].concat(keys)));
-    // the lane events: only the closed list of words, and a count
-    const words = new Set(['join', 'joined', 'left', 'full', 'busy', 'off', 'invalid', 'unknown', 'rate', 'dead', 'direct-unavailable']);
+    // the lane events: only the closed list of words, and a count ('alone' is the hint of a pair that nobody joined, polish batch P2.D6)
+    const words = new Set(['join', 'joined', 'left', 'full', 'busy', 'off', 'invalid', 'unknown', 'rate', 'dead', 'direct-unavailable', 'alone']);
     const lanes = people.flatMap((X) => X.reports.filter((r) => r.name === 'apps.lane'));
     assert.ok(lanes.length >= 8, 'the lane events were reported: ' + lanes.length);
     for (const r of lanes) {
@@ -2392,6 +2394,394 @@ describe('DEC-1 and DEC-5: a full lane is asked again, an evicted socket joins a
     assert.deepEqual([conv(A).reason, conv(B).reason, conv(A).via], [null, null, 'relay']);
     await A.apps.send(conv(A).id, 'carried after all');
     await until(() => conv(B).messages.length === 1 && conv(A).messages[0].status === 'delivered', 'delivered');
+  });
+});
+
+// The silent stuck state (audit 8.2, lane A, finding F1; polish decisions P2.D1 to D6). A page of the old build never joins the relay lane: it has
+// no join request at all, and its own meeting point is a second socket that the pair protocol cannot see. A new page that meets one is told
+// "nobody else" at its join and nothing after, and both read "Connecting..." for ever with no error. LEGACY (relay none, so direct only, with no
+// pair-join) is the stand-in of the old page on these fakes. The new page says what it does know after LIMITS.aloneHintMs, in a field of its own
+// (hint), tells one report word and sends nothing for it. The old page cannot be helped from here, and a room has no such hint (P2.D4).
+describe('a page that never joins the relay lane: the hint alone', () => {
+  const HINT = LIMITS.aloneHintMs;
+  const told = (X, ev) => X.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === ev).length;
+  const laneEvs = (X) => X.reports.filter((r) => r.name === 'apps.lane').map((r) => r.fields.ev);
+  const hintOf = (X) => conv(X).hint;
+  // the private record of the first conversation: its hint timer is read where a test has to prove that none is left
+  const recOf = (X) => Array.from(X.apps.convs.values())[0];
+  // the state of a page as plain JSON with the one field under test left out: what the hint must never touch
+  const apart = (X) => {
+    const s = JSON.parse(JSON.stringify(st(X)));
+    for (const c of s.conversations) delete c.hint;
+    return s;
+  };
+
+  /**
+   * The new page (the shipped default door unless `door` says otherwise) and the stand-in of an old one, accepted, with nobody connected yet.
+   * Resolves when the new page has joined the relay lane and was told that nobody else is in it. -> { N, O, idle }
+   */
+  async function stuck (w, { newIsOwner = true, door = RELAY, limits } = {}) {
+    const N = await mk(w, 'Nora', Object.assign({ limits }, door));
+    const O = await mk(w, 'Olga', Object.assign({ limits }, LEGACY));
+    const idle = w.clock.pending(); // the timers of the world before anyone has done anything: the count a page that is done must come back to
+    const [owner, asker] = newIsOwner ? [N, O] : [O, N];
+    const { code } = await owner.apps.openCode();
+    const k = await asker.apps.knock(code);
+    assert.ok(k.knock, JSON.stringify(k));
+    await until(() => st(owner).requests.length === 1, 'the request');
+    const acc = await owner.apps.accept(st(owner).requests[0].knock);
+    assert.ok(acc.id, JSON.stringify(acc));
+    await until(() => told(N, 'joined') === 1, 'the new page joined the lane and was told that nobody else is in it');
+    await settle(5);
+    return { N, O, idle };
+  }
+
+  for (const newIsOwner of [true, false]) {
+    test('the old page ' + (newIsOwner ? 'asks and the new one owns the code' : 'owns the code and the new one asks') + ': no hint one millisecond short of the time, the hint at it, nothing else changes, nothing is sent; the old page is never hinted', async () => {
+      const w = makeWorld();
+      const { N, O, idle } = await stuck(w, { newIsOwner });
+      assert.equal(w.clock.pending(), idle + 1, 'the wait is one timer, and the only one the stuck pair holds');
+      assert.deepEqual([conv(N).status, conv(N).via, conv(N).reason, conv(N).hint], ['connecting', null, null, null]);
+      assert.deepEqual([recOf(N).p.rst.joined, recOf(N).p.rst.peers], [true, 0], 'the new page is in the lane and counts nobody else');
+      assert.equal(recOf(O).p.rst, null, 'the stand-in of the old page has no relay lane at all');
+      const rawAt = w.rdv.raw.length;
+      const before = apart(N);
+      w.advance(HINT - 1);
+      await settle(5);
+      assert.equal(hintOf(N), null, 'one millisecond short of the time');
+      assert.equal(told(N, 'alone'), 0);
+      w.advance(1);
+      assert.equal(hintOf(N), 'alone', 'at the time');
+      assert.equal(w.clock.pending(), idle, 'and the timer is spent');
+      assert.deepEqual(apart(N), before, 'nothing else about the page changed: status, via, reason, the compare line, the messages, the link');
+      assert.deepEqual(N.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'alone').map((r) => r.fields), [{ ev: 'alone', peers: 0 }], 'one word and a count');
+      assert.equal(w.rdv.raw.length, rawAt, 'the hint sent nothing to the rendezvous');
+      assert.deepEqual([hintOf(O), told(O, 'alone')], [null, 0], 'the old page is not hinted and tells nothing');
+      assert.ok('hint' in conv(O) && 'hint' in conv(N), 'every conversation carries the field');
+      // it stays while the fact does, is not told again, and leaves no timer behind
+      w.advance(10 * 60000);
+      await settle(5);
+      assert.equal(hintOf(N), 'alone');
+      assert.equal(told(N, 'alone'), 1, 'told once for the episode');
+      assert.equal(recOf(N).p.aloneTimer, null);
+    });
+  }
+
+  test('a message typed while the page is alone turns Not sent at the moment the hint comes: the page gives one answer to one question', async () => {
+    const w = makeWorld();
+    const { N } = await stuck(w);
+    const sent = await N.apps.send(conv(N).id, 'written while alone');
+    assert.ok(sent.id, JSON.stringify(sent));
+    assert.equal(conv(N).messages[0].status, 'queued');
+    w.advance(HINT - 1);
+    assert.deepEqual([hintOf(N), conv(N).messages[0].status], [null, 'queued']);
+    w.advance(1);
+    assert.deepEqual([hintOf(N), conv(N).messages[0].status], ['alone', 'failed']);
+    assert.equal(conv(N).pending, 1, 'the message waits in the page, as a message nobody acked always does');
+  });
+
+  test('two new pages and the second one slow to join: the early page is hinted at the time, the page that has not joined is not, and when the late join is released both connect and the hint goes with its timer', async () => {
+    const w = makeWorld();
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    const release = gateJoin(B);
+    const { code } = await A.apps.openCode();
+    await B.apps.knock(code);
+    await until(() => st(A).requests.length === 1, 'the request');
+    await A.apps.accept(st(A).requests[0].knock);
+    // B's record, not its state(): the snapshot is not made again while a join is on its way, so it still reads the status of before the accept
+    await until(() => told(A, 'joined') === 1 && recOf(B) && recOf(B).status === 'connecting' && recOf(B).p.rst, 'A is in the lane alone, B is accepted and its join is held');
+    await settle(5);
+    assert.equal(recOf(B).p.rst.joined, false);
+    w.advance(HINT);
+    assert.equal(hintOf(A), 'alone');
+    assert.deepEqual([recOf(B).hint, hintOf(B)], [null, null], 'B\'s own join has not gone, so B cannot say that the other page has not joined');
+    assert.deepEqual([told(A, 'alone'), told(B, 'alone')], [1, 0]);
+    release();
+    await until(() => isConnected(A) && isConnected(B), 'both connected through the relay once the late join is let go');
+    assert.deepEqual([hintOf(A), hintOf(B)], [null, null]);
+    assert.deepEqual([recOf(A).p.aloneTimer, recOf(B).p.aloneTimer], [null, null]);
+    assert.deepEqual(laneEvs(A), ['join', 'joined', 'alone', 'joined'], 'the report of the hint came between the join and the late arrival');
+    assert.deepEqual(laneEvs(B), ['join', 'joined']);
+    w.advance(2 * HINT);
+    await settle(5);
+    assert.equal(told(A, 'alone'), 1, 'and no second one');
+  });
+
+  test('two new pages that connect at once: no hint, no alone report and no timer, two minutes and more later', async () => {
+    const w = makeWorld();
+    const { A, B } = await pairUp(w, RELAY);
+    assert.deepEqual([recOf(A).p.aloneTimer, recOf(B).p.aloneTimer], [null, null], 'the second join ended the watch of the first');
+    w.advance(2 * HINT);
+    w.advance(2 * 60000);
+    await settle(10);
+    assert.deepEqual([hintOf(A), hintOf(B)], [null, null]);
+    assert.deepEqual([told(A, 'alone'), told(B, 'alone')], [0, 0]);
+    assert.deepEqual([conv(A).status, conv(B).status], ['connected', 'connected']);
+  });
+
+  test('the socket of the alone page is lost: the hint goes at once with its timer, the rejoin starts the time again from zero, and the hint comes 20 seconds after it, with a report each time', async () => {
+    const w = makeWorld();
+    const { N } = await stuck(w);
+    w.advance(HINT);
+    assert.equal(hintOf(N), 'alone');
+    N.link.drop();
+    await until(() => N.link.state === 'backoff', 'the socket was lost');
+    assert.equal(hintOf(N), null, 'the page is not in the lane any more, so it says nothing about who is');
+    assert.equal(recOf(N).p.aloneTimer, null);
+    w.advance(1000); // the back off: the socket opens again and the lane is joined at once
+    await until(() => told(N, 'joined') === 2, 'the rejoin found nobody again');
+    await settle(5);
+    assert.equal(hintOf(N), null, 'the time starts again from zero');
+    w.advance(HINT - 1);
+    assert.equal(hintOf(N), null);
+    w.advance(1);
+    assert.equal(hintOf(N), 'alone');
+    assert.equal(told(N, 'alone'), 2, 'one report for each time the hint came up');
+    // a socket lost before the time is up cancels the wait as well
+    N.link.drop();
+    await until(() => N.link.state === 'backoff', 'the socket was lost again');
+    w.advance(1000);
+    await until(() => told(N, 'joined') === 3, 'the third join');
+    await settle(5);
+    w.advance(HINT - 5000);
+    assert.notEqual(recOf(N).p.aloneTimer, null, 'the wait of the third join is running');
+    N.link.drop();
+    await until(() => N.link.state === 'backoff', 'and once more, before the time was up');
+    assert.deepEqual([hintOf(N), recOf(N).p.aloneTimer], [null, null]);
+    w.advance(5000);
+    await settle(5);
+    assert.equal(hintOf(N), null, 'the first wait did not run on through the loss');
+    assert.equal(told(N, 'alone'), 2);
+  });
+
+  test('a pair that was connected once has no hint: when the other page goes and does not come back, the page is alone in the lane and says nothing about it, also after its own rejoin', async () => {
+    const w = makeWorld();
+    const { A, B } = await pairUp(w, RELAY);
+    const lane = laneOf(A);
+    B.apps.destroy(); // the other page is closed for good: it leaves the lane and its socket is gone
+    await until(() => conv(A).status === 'connecting', 'A heard the other page leave');
+    assert.equal(w.rdv.relays.get(lane).members.size, 1, 'A is alone in the lane, as the rendezvous counts');
+    assert.equal(typeof conv(A).lastSeenAt, 'number');
+    w.advance(2 * HINT);
+    await settle(10);
+    assert.equal(hintOf(A), null);
+    assert.equal(recOf(A).p.aloneTimer, null);
+    // A's own socket is lost and comes back: the join is answered with nobody else, as a first join of a stuck pair is, and still the pair was seen
+    A.link.drop();
+    await until(() => A.link.state === 'backoff', 'the socket was lost');
+    w.advance(1000);
+    await until(() => told(A, 'joined') === 2, 'the rejoin found nobody');
+    await settle(5);
+    assert.deepEqual([recOf(A).p.rst.joined, recOf(A).p.rst.peers, conv(A).status], [true, 0, 'connecting']);
+    assert.equal(recOf(A).p.aloneTimer, null, 'a pair that was seen is not waited on');
+    w.advance(2 * HINT);
+    await settle(10);
+    assert.equal(hintOf(A), null);
+    assert.equal(told(A, 'alone'), 0);
+  });
+
+  test('the other person leaves a pair that was connected: the conversation is left, not connecting, and has no hint and no timer', async () => {
+    const w = makeWorld();
+    const { A, B, b } = await pairUp(w, RELAY);
+    assert.deepEqual(await B.apps.leave(b), { ok: true });
+    await until(() => conv(A).status === 'left', 'A heard the goodbye');
+    w.advance(2 * HINT);
+    await settle(10);
+    assert.deepEqual([conv(A).status, hintOf(A), told(A, 'alone'), recOf(A).p.aloneTimer], ['left', null, 0, null]);
+  });
+
+  test('the relay off at the rendezvous: the conversation says no-path and has no hint, no timer and no alone report', async () => {
+    const w = makeWorld({ relayLane: false });
+    const A = await mk(w, 'Alice', RELAY);
+    const B = await mk(w, 'Bob', RELAY);
+    const { code } = await A.apps.openCode();
+    await B.apps.knock(code);
+    await until(() => st(A).requests.length === 1, 'the request');
+    await A.apps.accept(st(A).requests[0].knock);
+    await until(() => conv(A).reason === 'no-path' && conv(B).reason === 'no-path', 'both say no-path');
+    w.advance(2 * HINT);
+    await settle(10);
+    assert.deepEqual([hintOf(A), hintOf(B)], [null, null], 'a refused path keeps its own word, and the two are never both told');
+    assert.deepEqual([told(A, 'alone'), told(B, 'alone')], [0, 0]);
+    assert.deepEqual([recOf(A).p.aloneTimer, recOf(B).p.aloneTimer], [null, null]);
+    assert.deepEqual([conv(A).status, conv(A).reason], ['connecting', 'no-path']);
+  });
+
+  // The end of the conversation, the block, the page being closed and the person signing out: the wait ends with them, the hint is gone, and
+  // nothing is told later. Each is tried before the time is up (the timer must be cancelled) and after the hint came (the word must go).
+  for (const how of ['leave', 'block', 'destroy', 'sign out']) {
+    for (const raised of [false, true]) {
+      test(how + ' ' + (raised ? 'after' : 'before') + ' the hint came: no timer of it is left, no hint, and no report later', async () => {
+        const w = makeWorld();
+        const { N, idle } = await stuck(w);
+        const id = conv(N).id;
+        const pub = conv(N).peer.pub;
+        w.advance(raised ? HINT : HINT - 1000);
+        assert.equal(hintOf(N), raised ? 'alone' : null);
+        const timer = recOf(N).p.aloneTimer;
+        assert.equal(timer === null, raised, 'a timer waits exactly while the hint has not come');
+        assert.equal(w.clock.pending(), raised ? idle : idle + 1);
+        if (how === 'leave') assert.deepEqual(await N.apps.leave(id), { ok: true });
+        else if (how === 'block') assert.deepEqual(await N.apps.block(pub), { ok: true });
+        else if (how === 'destroy') N.apps.destroy();
+        else N.identity.signOut();
+        await settle(10);
+        if (timer !== null) assert.equal(N.apps._timers.has(timer), false, 'the timer ended with the conversation');
+        assert.equal(w.clock.pending(), idle, 'the clock holds no timer of the page any more: the count is back to what it was before the pairing');
+        assert.deepEqual(st(N).conversations.filter((c) => c.hint !== null), [], 'no conversation of this page carries the word');
+        if (how === 'block') assert.deepEqual([conv(N).status, conv(N).hint], ['blocked', null]);
+        w.advance(2 * HINT);
+        await settle(5);
+        assert.equal(told(N, 'alone'), raised ? 1 : 0, 'nothing is told after the end');
+        assert.equal(st(N).conversations.filter((c) => c.hint !== null).length, 0);
+        if (how === 'destroy' || how === 'sign out') assert.equal(N.apps._timers.size, 0, 'the page holds no timer at all');
+      });
+    }
+  }
+
+  // Garbage from the rendezvous is not a frame of the other person: three strikes close the relay path of the lane (it is out of use until the
+  // socket opens again, _kill), and a path that is closed is not a path that waits for anyone.
+  for (const raised of [false, true]) {
+    test('garbage pushed at the alone page ' + (raised ? 'after' : 'before') + ' the hint came: three strikes close its relay path, the wait and the word end with it, and the next open of the socket starts the wait again', async () => {
+      const w = makeWorld();
+      const { N } = await stuck(w);
+      w.advance(raised ? HINT : HINT - 1000);
+      assert.equal(hintOf(N), raised ? 'alone' : null);
+      assert.equal(recOf(N).p.aloneTimer === null, raised);
+      const lane = laneOf(N);
+      const conn = N.link._ws.conn;
+      for (let i = 0; i < 3; i++) w.rdv._send(conn, { action: 'pair-relayed', lane, f: b64url.encode(new Uint8Array(40).fill(7)) });
+      await until(() => told(N, 'dead') === 1, 'the third strike closed the relay path');
+      assert.deepEqual([hintOf(N), recOf(N).hint, recOf(N).p.aloneTimer], [null, null, null]);
+      w.advance(2 * HINT);
+      await settle(5);
+      assert.equal(told(N, 'alone'), raised ? 1 : 0, 'a closed path waits for nobody');
+      // the socket is lost and comes back: the lane is joined with a clean path, and alone again, for the time again
+      N.link.drop();
+      await until(() => N.link.state === 'backoff', 'the socket is lost');
+      w.advance(1000);
+      await until(() => told(N, 'joined') === 2, 'the clean start found nobody');
+      await settle(5);
+      assert.equal(hintOf(N), null);
+      w.advance(HINT);
+      assert.equal(hintOf(N), 'alone');
+      assert.equal(told(N, 'alone'), raised ? 2 : 1);
+    });
+  }
+
+  test('the snapshot shows the word only while the conversation is connecting: a stale one on a connected, a blocked or a left conversation is never shown', async () => {
+    const w = makeWorld();
+    const { A } = await pairUp(w, RELAY);
+    recOf(A).hint = 'alone'; // a stale word, as no path of the service leaves one: the guard of the snapshot is what this tries
+    A.apps._touch();
+    assert.deepEqual([conv(A).status, conv(A).hint], ['connected', null]);
+    await A.apps.block(conv(A).peer.pub);
+    recOf(A).hint = 'alone';
+    A.apps._touch();
+    assert.deepEqual([conv(A).status, conv(A).hint], ['blocked', null]);
+    await A.apps.unblock(conv(A).peer.pub);
+    recOf(A).hint = 'alone';
+    A.apps._touch();
+    assert.deepEqual([conv(A).status, conv(A).hint], ['left', null]);
+    // and while connecting it is the word of the record, exactly the word alone or null
+    const { N } = await stuck(makeWorld());
+    assert.equal(N.apps.state().conversations[0].hint, null);
+    recOf(N).hint = 'alone';
+    N.apps._touch();
+    assert.deepEqual([conv(N).status, conv(N).hint], ['connecting', 'alone']);
+  });
+
+  test('limits aloneHintMs is honoured, and the shipped value is 20 seconds, the time of ackTimeoutMs', async () => {
+    assert.equal(LIMITS.aloneHintMs, 20000);
+    const w = makeWorld();
+    const { N } = await stuck(w, { limits: { aloneHintMs: 5000 } });
+    w.advance(4999);
+    assert.equal(hintOf(N), null);
+    w.advance(1);
+    assert.equal(hintOf(N), 'alone');
+    assert.equal(told(N, 'alone'), 1);
+  });
+
+  test('direct on, a network that cannot connect: the pair is alone and the hint comes; the direct link coming up later ends it for good, and its loss does not bring the old word back', async () => {
+    const w = makeWorld();
+    w.net.canConnect = () => false;
+    const { N, O } = await stuck(w, { door: BOTH });
+    w.advance(HINT);
+    assert.deepEqual([conv(N).status, conv(N).via, hintOf(N)], ['connecting', null, 'alone'], 'no direct link and nobody else in the lane');
+    assert.equal(hintOf(O), null);
+    // the network lets them connect after all
+    w.net.canConnect = () => true;
+    w.net.resume();
+    await until(() => isConnected(N) && isConnected(O), 'the direct link came up');
+    assert.equal(conv(N).via, 'direct');
+    assert.equal(hintOf(N), null);
+    assert.equal(recOf(N).hint, null, 'the word is gone from the record of the conversation, not only hidden by its status');
+    assert.equal(recOf(N).p.aloneTimer, null);
+    // the direct link is lost again: this pair has been seen, so it is a pair that was connected, and the word of before does not come back
+    w.net.dropAll();
+    await until(() => conv(N).status === 'connecting', 'the direct link was lost');
+    assert.equal(hintOf(N), null);
+    w.advance(2 * HINT);
+    await settle(5);
+    assert.deepEqual([hintOf(N), told(N, 'alone')], [null, 1]);
+  });
+
+  test('direct on, a network that connects: the pair connects on the direct link, there is never a hint, and the first frame ended the wait', async () => {
+    const w = makeWorld();
+    const { N, O } = await stuck(w, { door: BOTH });
+    await until(() => isConnected(N) && isConnected(O), 'connected on the direct link');
+    assert.equal(conv(N).via, 'direct');
+    assert.equal(recOf(N).p.aloneTimer, null, 'the first frame ended the wait, which would only have found a pair that is not alone');
+    w.advance(2 * HINT);
+    await settle(10);
+    assert.deepEqual([hintOf(N), hintOf(O), told(N, 'alone'), told(O, 'alone')], [null, null, 0, 0]);
+  });
+
+  test('direct on, a direct link that is up but carries no frame: the pair is not alone, so the time comes and nothing is said', async () => {
+    const w = makeWorld();
+    w.net.drops = () => true; // every frame is lost: the wires are ready, nothing is ever heard
+    const { N } = await stuck(w, { door: BOTH });
+    await until(() => Array.from(recOf(N).p.wires).some((x) => x.ready), 'a direct wire is ready');
+    w.advance(HINT);
+    await settle(5);
+    assert.deepEqual([conv(N).status, hintOf(N), told(N, 'alone')], ['connecting', null, 0], 'a ready direct wire is a path: the page is not alone');
+    assert.equal(recOf(N).p.aloneTimer, null);
+  });
+
+  test('a room has no such hint: the field is a conversation\'s, and a room that sits alone in its lane says nothing about it', async () => {
+    const w = makeWorld();
+    const O = await mk(w, 'Olive', RELAY);
+    const M = await mk(w, 'Mia', LEGACY); // a member whose page never joins the relay lane
+    const r = await O.apps.createRoom();
+    await M.apps.joinRoom(r.code);
+    await until(() => st(O).requests.length === 1, 'the join request');
+    await O.apps.acceptMember(st(O).requests[0].knock);
+    await until(() => told(O, 'joined') === 1, 'the owner is in the lane alone');
+    w.advance(3 * HINT);
+    await settle(10);
+    assert.equal(told(O, 'alone') + told(M, 'alone'), 0);
+    assert.equal('hint' in st(O).rooms[0], false, 'a room carries no hint');
+    assert.deepEqual(Object.keys(st(O).rooms[0]).filter((k) => /hint/i.test(k)), []);
+  });
+
+  test('privacy: the reports of a stuck pair hold no lane id, no frame and no text, and the lane events are words of the closed list, alone with a count of 0', async () => {
+    const w = makeWorld();
+    const { N, O } = await stuck(w);
+    await N.apps.send(conv(N).id, 'SECRET-WORDS-written while alone');
+    w.advance(HINT);
+    await settle(10);
+    assert.equal(hintOf(N), 'alone');
+    const keys = [N, O].flatMap((X) => [X.person.keys.pub, X.person.keys.chat.pub, shortIdOf(X.person.keys.pub)]);
+    scan([N, O], forbiddenOf(w, ['SECRET-WORDS', 'Nora', 'Olga'].concat(keys)));
+    const words = new Set(['join', 'joined', 'left', 'full', 'busy', 'off', 'invalid', 'unknown', 'rate', 'dead', 'direct-unavailable', 'alone']);
+    const lanes = N.reports.filter((r) => r.name === 'apps.lane');
+    assert.deepEqual(lanes.map((r) => r.fields.ev), ['join', 'joined', 'alone']);
+    for (const r of lanes) {
+      assert.deepEqual(Object.keys(r.fields).sort(), ['ev', 'peers']);
+      assert.ok(words.has(r.fields.ev), r.fields.ev);
+      assert.ok(Number.isInteger(r.fields.peers) && r.fields.peers === 0, JSON.stringify(r.fields));
+    }
   });
 });
 

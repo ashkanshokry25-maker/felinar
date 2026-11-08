@@ -12,7 +12,9 @@
 //   LADV-4  10,000 relays in a burst: 120 go through, the 121st to the 149th are refused, the socket is closed at its 151st message, and a host that
 //           keeps feeding the core still forwards nothing; the same on a real socket of the Node tracker
 //   LADV-5  a relayed frame for a lane the page never joined is dropped (a frame of another conversation's lane, a frame replayed under another lane)
-//   LADV-6  a joined push with peers 999 is not taken, and a rendezvous that lies about who is in the lane loses and doubles no message
+//   LADV-6  a joined push with peers 999 is not taken, and a rendezvous that lies about who is in the lane loses and doubles no message; and
+//           such a lie can only raise or take back the hint 'alone' of a pair nobody joined (polish batch P2), never move its status,
+//           and the hint itself sends no frame
 //   LADV-7  the rendezvous echoing a frame back to its sender: no message twice, no receipt of ours settled by our own read receipt
 //   LADV-8  a pong with a payload feeds the watchdog and goes nowhere else
 //   LADV-9  a ping flood: the platform answers the exact text without waking the object; the core answers any other ping with the bare pong and
@@ -28,6 +30,7 @@ import { createPairing, MAX_PAIR_BYTES, DEFAULT_CAPS } from '../../deploy/rtc-wo
 import { createRendezvous } from '../../deploy/rtc-worker/rtc.js';
 import { Rendezvous } from '../../deploy/rtc-worker/worker.js';
 import { createAppsUi } from '../../src/loader/apps-ui.js';
+import { LIMITS } from '../../src/loader/apps.js';
 import { FakeDocument } from './dropin-fake-dom.mjs';
 import { FakeLink, makeWorld, until, settle } from './fakes/apps-fakes.mjs';
 import { launchArgs } from '../e2e/lib.mjs';
@@ -641,6 +644,96 @@ describe('LADV-6 pushes about who is in the lane', () => {
     await settle(30);
     assert.equal(conv(B).messages.filter((m) => m.text.endsWith(MARK) && m.text.startsWith('written')).length, 1, 'once');
     await slow(() => conv(A).messages.find((m) => m.id === sent.id).status !== 'sent' && conv(A).messages.find((m) => m.id === sent.id).status !== 'queued', 'delivered at A');
+  });
+
+  // The hint 'alone' (audit 8.2, lane A, F1; polish decisions P2.D1 to D6): a page in the relay lane that the rendezvous counts alone, that never
+  // saw the other person, says so after LIMITS.aloneHintMs. The rendezvous is the only one that tells it who is in the lane, so it can lie: the
+  // most it gets is a hint that comes or goes. It cannot move the status, it cannot make the page send anything for the hint, and a lie about
+  // a count the link cannot take is not heard at all. The old page is a stand-in on the fakes: relay none, direct only, no pair-join.
+  test('LADV-6 the hint of a stuck pair: a rendezvous that lies about who is in the lane can raise it or take it back and nothing more; the status never moves and the hint itself sends no frame', async () => {
+    const w = makeWorld({ core: true });
+    const N = await person(w, 'Nora');
+    const O = await w.make('Olga', { relay: 'none', reports: true });
+    made.push(O);
+    const { code } = await N.apps.openCode();
+    const k = await O.apps.knock(code);
+    assert.ok(k.knock, JSON.stringify(k));
+    await slow(() => st(N).requests.length === 1, 'the request at Nora');
+    assert.ok((await N.apps.accept(st(N).requests[0].knock)).id);
+    await slow(() => N.reports.some((r) => r.name === 'apps.lane' && r.fields.ev === 'joined'), 'Nora is in the lane, alone');
+    await settle(10);
+    const lane = Array.from(w.rdv.lanes.keys())[0];
+    assert.match(lane, /^[0-9a-f]{40}$/);
+    const HINT = LIMITS.aloneHintMs;
+    const told = () => N.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'alone').length;
+    const frames = () => N.link._ws.sent.length;
+    const hint = () => conv(N).hint;
+    const timer = () => Array.from(N.apps.convs.values())[0].p.aloneTimer;
+    // what a lie must never move: the status and everything that tells whether the other person was ever seen. The path (via) follows what the
+    // page is told for as long as it is told so (it reads relay while the lane is believed to be in use), so it is looked at only at rest.
+    const stays = (atRest = true) => {
+      assert.deepEqual([conv(N).status, conv(N).reason, conv(N).lastSeenAt, conv(N).connectedAt, conv(N).pending], ['connecting', null, null, null, 0]);
+      if (atRest) assert.equal(conv(N).via, null);
+    };
+    stays();
+
+    // 1. lies that change nothing, again and again: the wait is not moved by them (it counts from the join, which the truth made), and a count
+    //    the link cannot take never reaches the service
+    const f0 = frames();
+    w.advance(10000);
+    for (const peers of [0, 999, -1, 1.5, '2', null]) push(w, N, { action: 'pair-joined', lane, peers });
+    push(w, N, { action: 'pair-left', lane, peers: 0 });
+    await settle(20);
+    assert.equal(hint(), null);
+    w.advance(HINT - 10001);
+    push(w, N, { action: 'pair-joined', lane, peers: 0 });
+    await settle(20);
+    assert.equal(hint(), null, 'one millisecond short of the time since the join: a repeated lie did not start the wait again');
+    w.advance(1);
+    assert.equal(hint(), 'alone', 'at the time since the join');
+    assert.equal(frames(), f0, 'neither the lies that change nothing nor the hint made the page send a frame');
+    stays();
+    assert.equal(told(), 1);
+    assert.equal(timer(), null);
+    // the hint is up: the same lies again start no second wait and tell nothing more
+    push(w, N, { action: 'pair-joined', lane, peers: 0 });
+    push(w, N, { action: 'pair-left', lane, peers: 0 });
+    await settle(20);
+    assert.equal(timer(), null, 'no second wait');
+    w.advance(2 * HINT);
+    await settle(20);
+    assert.deepEqual([hint(), told(), frames()], ['alone', 1, f0]);
+
+    // 2. a lie that someone joined takes the hint back at once; the page believes it and does what a page does when the lane comes into use (it
+    //    says who it is on the relay: its name and its settings, two sealed frames at most, and the second goes only if the lane is still believed
+    //    to be in use when it is sealed), and the real core answers that nobody is there, which puts the page back where it was, for the whole time
+    const ownFrames = (from) => N.link._ws.sent.slice(from).map((t) => JSON.parse(t));
+    const f1 = frames();
+    push(w, N, { action: 'pair-joined', lane, peers: 1 });
+    await slow(() => hint() === null, 'the hint is taken back at once');
+    stays(false);
+    await slow(() => frames() > f1 && timer() !== null, 'the page said who it is on the relay, and the truth put it back to alone with the whole time to run');
+    await settle(30);
+    assert.ok(ownFrames(f1).length >= 1 && ownFrames(f1).length <= 2 && ownFrames(f1).every((m) => m.action === 'pair-relay'), 'only the page\'s own lane-up frames, nothing for the hint: ' + ownFrames(f1).map((m) => m.action));
+    assert.equal(hint(), null);
+    stays();
+
+    // 3. the same lie when the hint has not come costs no more: the hint takes nothing away and adds nothing
+    const f2 = frames();
+    push(w, N, { action: 'pair-joined', lane, peers: 1 });
+    await slow(() => frames() > f2 && timer() !== null, 'the page said who it is on the relay again, and was put back to alone');
+    await settle(30);
+    assert.ok(ownFrames(f2).length >= 1 && ownFrames(f2).length <= 2 && ownFrames(f2).every((m) => m.action === 'pair-relay'), 'the same, with the hint not up: ' + ownFrames(f2).map((m) => m.action));
+    stays();
+    w.advance(HINT - 1);
+    assert.equal(hint(), null);
+    w.advance(1);
+    assert.equal(hint(), 'alone', 'for the whole time again after the last correction');
+    assert.equal(told(), 2, 'one report each time the hint came up');
+    stays();
+    const reps = N.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'alone').map((r) => r.fields);
+    assert.deepEqual(reps, [{ ev: 'alone', peers: 0 }, { ev: 'alone', peers: 0 }]);
+    assert.equal(JSON.stringify(N.reports).includes(lane), false, 'no report holds the lane');
   });
 });
 

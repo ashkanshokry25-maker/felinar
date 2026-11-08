@@ -35,7 +35,7 @@
 //   code: 'xxxx-xxxx-xxxx' | null, conversations: [conversation], rooms: [room], requests: [request], snippets: [{ id, text }],
 //   blocked: [pub] }
 //   conversation { id, peer: { pub, short, name, nick }, status: 'waiting' | 'connecting' | 'connected' | 'rejected' | 'left' |
-//     'blocked', reason, silent, knock, code, incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived,
+//     'blocked', reason, hint, silent, knock, code, incoming, connectedAt, lastSeenAt, unread, markedUnread, muted, pinned, archived,
 //     favorite, hidden, cfg: { exp, receipts, typing }, peerCfg: { exp, receipts }, compare, compareText, draft, note, typingPeer,
 //     via: 'direct' | 'relay' | null (the path a frame would take now), lastT, pending, messages: [message] }
 //   message { id, t, mine, text, fmt, reply, status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | null, readAt, edits:
@@ -48,6 +48,13 @@
 //   reason, on a conversation or a room, is a word of this file; 'no-path' says the door's rendezvous refused the only path for good (its
 //     relay is off, or it is from before the relay) and no direct link is tried, so nothing would ever connect (DECISIONS DEC-5); it is
 //     cleared when a join works again. A full lane is not a reason: its join is asked again (DEC-1).
+//   hint, on a conversation, is 'alone' or null, a word apart from status and reason so that no state other code reads changes. 'alone' says
+//     that this page is in the relay lane of a pair that has never connected, that nobody else has been in that lane for limits.aloneHintMs
+//     (20 seconds) and that no direct wire is up. The other person's page may be closed, asleep, slow, or an older build of the door page,
+//     which never joins the relay lane (audit 8.2, lane A, F1); from here these cannot be told apart, so the hint names none of them. It is
+//     advisory: nothing is sent for it and no other state changes. It is told in one usage report (apps.lane, ev alone) each time it comes
+//     up, and taken back at once when the lane gets another member, the lane or the socket is lost, or the pair connects or ends. A pair
+//     only: a room never has one (polish decision P2.D4).
 // Calls return Promises that resolve to a result or { error: <one of ERRORS> } and never reject (the names in docs/INTERFACES.md
 // are kept; a few are added). The synchronous ones are marked (sync).
 //   code      openCode() -> { code }   newCode() -> { code }   closeCode() -> { ok }
@@ -106,6 +113,7 @@ export const LIMITS = Object.freeze({
   sendPerMin: 60, // frames a lane may send a minute (acks and typing marks are exempt)
   acceptPerMin: 120, // frames a lane accepts a minute
   ackTimeoutMs: 20000, // a message without an ack after this long is 'failed' (and retried on the next wire)
+  aloneHintMs: 20000, // a pair alone in its relay lane that has never connected is hinted 'alone' after this long (P2.D1: the time of ackTimeoutMs)
   typingSendMs: 3000, // at most one typing mark every 3 seconds
   typingShowMs: 6000, // a typing mark lasts this long
   knockPerMin: 10,
@@ -591,6 +599,8 @@ export class Apps {
       id: c.id,
       peer: { pub: c.peer.pub, short: c.peer.pub ? shortIdOf(c.peer.pub) : null, name: c.peer.name || null, nick: c.peer.nick || null },
       status: c.status, reason: c.reason || null, silent: !!c.silent, knock: c.knock || null, code: c.codeText || null,
+      // the hint 'alone' (P2.D5): a field of its own, shown only while the conversation is connecting, so that a connected one never carries a stale word
+      hint: c.status === 'connecting' ? (c.hint || null) : null,
       via: this._viaOf(c), incoming: !!c.incoming, connectedAt: c.connectedAt, lastSeenAt: c.lastSeenAt, unread: c.unread,
       markedUnread: !!c.markedUnread, muted: c.muted, pinned: c.pinned, archived: c.archived, favorite: c.favorite, hidden: c.hidden,
       cfg: { exp: c.cfg.exp, receipts: c.cfg.receipts, typing: c.cfg.typing },
@@ -1210,6 +1220,7 @@ export class Apps {
       r.joined = false
       r.peers = 0
       if (this.lanes.get(r.lane) === rec) this.lanes.delete(r.lane)
+      this._aloneWatch(rec) // the lane is left: no timer of the hint 'alone' outlives it
       if (this.link) {
         // the lane's frames that wait for the socket's minute never go and stop keeping the other lanes waiting (finding A-6 of verify round 1):
         // leave() drops them, and a lane the socket is not in just now (the relay was refused) has them dropped without a leave to send
@@ -1314,6 +1325,8 @@ export class Apps {
     if (joined !== undefined) st.joined = joined
     if (peers !== undefined) st.peers = peers
     st.ready = st.joined && st.peers > 0 && !st.dead
+    // before the early return below: a join answered with peers 0 changes nothing about usability, and it is exactly what the hint 'alone' waits on
+    this._aloneWatch(st.rec)
     const now = this._relayUsable(st)
     if (now === was) {
       if (peers !== undefined) this._touch() // a room shows how many are in the lane
@@ -1501,6 +1514,52 @@ export class Apps {
   }
 
   /**
+   * The silent stuck state (audit 8.2, lane A, F1; polish decisions P2.D1 to D6). A page of the old build never joins the relay lane (it has no
+   * join request at all), so a new page that meets one is told peers 0 at its join and nothing after, for ever: the conversation reads
+   * "Connecting..." exactly as one whose peer is only slow. What this page does know is this, and _isAlone is that fact: a pair (never a room:
+   * the owner of a room is alone in its lane until someone joins, P2.D4) that is still connecting, that never saw a frame from the other
+   * person, that has joined the relay lane, where the rendezvous counts nobody else, and that has no direct wire up. A page that is closed,
+   * asleep, offline or an older build all read the same here, so the hint names none of them.
+   */
+  _isAlone (rec) {
+    if (rec.isRoom || rec.gone || rec.status !== 'connecting' || rec.lastSeenAt || rec.connectedAt) return false
+    const r = rec.p.rst
+    if (!r || !r.joined || r.peers !== 0 || r.dead || r.left) return false
+    return !this._readyDirect(rec)
+  }
+
+  /**
+   * Called wherever that fact can change (_relayState, _leaveLane, _kill, _abandonRelay, and the first frame in _handleDm): arms the timer when
+   * the pair becomes alone and takes the hint back at once when it stops being so (P2.D5: the field hint, apart from status and reason).
+   * The timer is armed once and not again while the pair stays alone, so a push that repeats peers 0 does not move the time; a break and a
+   * return start it from zero. It is looked at again when it fires: a direct wire that came up, or a conversation that ended, may have
+   * ended the fact with no call here. The hint sends nothing, asks nothing again and changes no state but rec.hint (P2 4.8). One report, a
+   * word and a count of 0, each time it comes up (P2.D6).
+   */
+  _aloneWatch (rec) {
+    if (rec.isRoom) return
+    const p = rec.p
+    if (this._isAlone(rec)) {
+      if (p.aloneTimer === null && rec.hint === null) {
+        p.aloneTimer = this._later(this.limits.aloneHintMs, () => {
+          p.aloneTimer = null
+          if (!this._isAlone(rec)) return
+          rec.hint = 'alone'
+          this._repLane('alone', 0)
+          this._touch()
+        })
+      }
+      return
+    }
+    this._cancel(p.aloneTimer)
+    p.aloneTimer = null
+    if (rec.hint !== null) {
+      rec.hint = null
+      this._touch()
+    }
+  }
+
+  /**
    * The socket came back (plan 3.6): the lanes of the live conversations and rooms are joined again, newest first and at most 8 (the socket's
    * own cap; the rest join when one of the 8 ends). A lane that strikes had closed starts clean. A lane the cap leaves out is marked pending,
    * as one refused with 'too many lanes' is, so that _fillLanes joins it when a place comes free; without the mark a lane that had been joined
@@ -1553,6 +1612,7 @@ export class Apps {
     r.dead = true
     r.ready = false
     if (this.lanes.get(r.lane) === rec) this.lanes.delete(r.lane)
+    this._aloneWatch(rec)
   }
 
   /** The direct join of a lane: null when the door has no direct link, else whether the manager took the lane. */
@@ -1710,6 +1770,7 @@ export class Apps {
       st.ready = false
       this._repLane('dead', st.peers)
       if (wasUsable) this._relayDown(st, 'dead')
+      this._aloneWatch(st.rec)
       return
     }
     st.rec.p.wires.delete(st) // the place is free at once, whether or not the manager closes the wire
@@ -1803,6 +1864,7 @@ export class Apps {
     if (!this._fresh(conv.p.seen, r.id, r.t)) return
     const t = this.now()
     conv.lastSeenAt = t
+    this._aloneWatch(conv) // a pair that has seen the other person is not alone: the hint and its timer end here, on whatever path the frame came
     // a frame that was still being opened when its wire closed does not make the person look connected
     if (conv.status === 'connecting' && !st.dead && this._readyWire(conv)) {
       conv.status = 'connected'
@@ -2051,7 +2113,7 @@ export class Apps {
       id: 'c' + this._newId(), isRoom: false, gone: false,
       get via () { return svc._viaOf(this) }, // 'direct' | 'relay' | null: what _readyWire would give now (plan 3.6)
       peer: Object.assign({ pub: null, ek: null, name: null, nick: null }, o.peer || {}),
-      status: o.status, reason: null, silent: false, knock: o.knock || null, channel: o.channel || null, lostKnock: null,
+      status: o.status, reason: null, hint: null, silent: false, knock: o.knock || null, channel: o.channel || null, lostKnock: null,
       codeText: o.codeText || null, incoming: !!o.incoming, createdAt: this.now(), connectedAt: null, lastSeenAt: null,
       unread: 0, markedUnread: false, muted: false, pinned: false, archived: false, favorite: false, hidden: false,
       cfg: { exp: null, receipts: true, typing: true }, peerCfg: { exp: null, receipts: true }, peerCfgT: 0,
@@ -2059,7 +2121,8 @@ export class Apps {
       p: {
         lanes: new Map(), wires: new Set(), rst: null, wireEpoch: 0, kPair: null, sendN: 0, sentIv: new Set(), outbox: [], flushP: null, flushing: false, flushAgain: false,
         flushTimer: null, removed: new Set(), seen: new Map(), rx: this._bucket(lim.acceptPerMin, lim.acceptPerMin), tx: this._bucket(lim.sendPerMin, lim.sendPerMin),
-        typingSentAt: 0, typingSentOn: false, typingClear: null, lastReadSent: 0, keyCode: o.keyCode || null, reknocks: 0, skewLogged: false
+        typingSentAt: 0, typingSentOn: false, typingClear: null, lastReadSent: 0, keyCode: o.keyCode || null, reknocks: 0, skewLogged: false,
+        aloneTimer: null // the timer of the hint 'alone' (_aloneWatch): at most one, ended with the lane
       }
     }
     this.convs.set(conv.id, conv)
