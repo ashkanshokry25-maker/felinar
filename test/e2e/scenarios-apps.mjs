@@ -469,7 +469,9 @@ export function appsScenarios({ run, assert, headed = false }) {
    * The price is the one of the door the party opened (plan 3.8, DECISIONS DEC-3 and DEC-8): on the shipped default the relay text and then,
    * as its own paragraph, the sentence that the other person (the members) do not see your address (apps.price.hidden, apps.price.hiddenRoom;
    * every door here keeps direct links off); on a door with relay none the direct-only text of before the relay and no such paragraph. Never
-   * the other door's text, and never the "also tries a direct link" line (no door here asks for it).
+   * the other door's text, and never the "also tries a direct link" line (no door here asks for it). On a door with the relay the paragraph after the
+   * denial, on its own, is the sentence that the host of a rendezvous can be ordered to record addresses (apps.price.hostOrder, CH-1 of the polish batch);
+   * the relay none card has none (OD-5 A).
    */
   async function continueCard(P, kind, { check = false, whileShown = null } = {}) {
     await waitApps(P, (a) => a.card === kind, 'the ' + kind + ' card', 10000);
@@ -482,6 +484,7 @@ export function appsScenarios({ run, assert, headed = false }) {
     const hidden = room ? 'apps.price.hiddenRoom' : 'apps.price.hidden';
     // a key the table does not have gives '', which every indexOf finds: so the sentence must exist before it is looked for
     assert(TX(hidden).length > 0, 'src/loader/strings.js has no English text for ' + hidden);
+    assert(TX('apps.price.hostOrder').length > 0, 'src/loader/strings.js has no English text for apps.price.hostOrder');
     assert(text.indexOf(TX(accept ? (room ? 'apps.accept.titleRoom' : 'apps.accept.title') : 'apps.price.title')) >= 0, P.name + ': the title of the ' + kind + ' card: ' + text);
     assert(text.indexOf(TX(price)) >= 0, P.name + ': the price (' + price + ') is not on the ' + kind + ' card: ' + text);
     assert(text.indexOf(TX(other)) < 0 && text.indexOf(TX('apps.price.direct')) < 0, P.name + ': the ' + kind + ' card carries ' + other + ' or apps.price.direct, which this door does not ask for: ' + text);
@@ -489,6 +492,9 @@ export function appsScenarios({ run, assert, headed = false }) {
     const paras = await P.page.evaluate(() => Array.from(document.querySelectorAll('[data-role="card"] p')).map((n) => n.innerText.replace(/\s+/g, ' ').trim()));
     assert(paras.includes(TX(hidden)) === !legacy, P.name + ': the paragraph "' + TX(hidden) + '" ' + (legacy ? 'is on' : 'is missing from') + ' the ' + kind + ' card, or is not a paragraph of its own: ' + JSON.stringify(paras));
     if (!legacy) assert(paras.indexOf(TX(hidden)) === paras.indexOf(TX(price)) + 1, P.name + ': the denial does not follow the price on the ' + kind + ' card: ' + JSON.stringify(paras));
+    // CH-1: with the relay, the sentence that the host can be ordered to record addresses is a paragraph of its own right after the denial; the relay none card (OD-5 A) has none
+    assert(paras.includes(TX('apps.price.hostOrder')) === !legacy, P.name + ': the paragraph "' + TX('apps.price.hostOrder') + '" ' + (legacy ? 'is on' : 'is missing from') + ' the ' + kind + ' card, or is not a paragraph of its own: ' + JSON.stringify(paras));
+    if (!legacy) assert(paras.indexOf(TX('apps.price.hostOrder')) === paras.indexOf(TX(hidden)) + 1, P.name + ': the paragraph "' + TX('apps.price.hostOrder') + '" does not follow the denial on the ' + kind + ' card: ' + JSON.stringify(paras));
     assert((text.indexOf(TX('apps.price.check')) >= 0) === check, P.name + ': the "' + TX('apps.price.check') + '" line ' + (check ? 'is missing from' : 'is on') + ' the ' + kind + ' card: ' + text);
     if (whileShown) await whileShown();
     await P.press('[data-role="card-continue"]');

@@ -556,10 +556,15 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
     // paragraph of its own, that the other person (the members) do not see the address. A door that turns direct links on shows the line
     // that says a direct link shows both addresses IN PLACE of that paragraph, so the card never states the denial and then takes it back.
     // A door with relay "none" (direct only) shows the texts of today, which already say that. The card follows the state at the moment it is drawn.
+    // Then, as a paragraph of its own on every card of a door with the relay, that the host of a rendezvous can be ordered to record the addresses
+    // that connect to it and barred from saying so (apps.price.hostOrder, in the words of docs/PRIVACY.md; CH-1 of the polish recon P1). It comes
+    // after the denial or the direct line, so the denial stays the paragraph right after the price (the end to end helpers check that), and before
+    // the line that names the host of the reports. The relay "none" cards keep the texts of today without it (polish DECISIONS P1.D5).
     const cfg = snapshot().cfg
     const today = cfg.relay === 'none'
     const paras = [{ text: T(today ? (room ? 'apps.price.roomDirect' : 'apps.price.textDirect') : (room ? 'apps.price.room' : 'apps.price.text')) }]
     if (!today) paras.push({ text: T(cfg.direct === 'on' ? 'apps.price.direct' : (room ? 'apps.price.hiddenRoom' : 'apps.price.hidden')) })
+    if (!today) paras.push({ text: T('apps.price.hostOrder') })
     // A card that can be the first yes names the host of the usage reports. A card that accepts a request only follows one that did
     // (a request needs a code, and a code needs a price card first), so it carries no such line and is no first yes.
     const host = accept ? '' : reportsHostNow()
@@ -912,6 +917,11 @@ export function createAppsUi ({ root, ui = null, service, lang = 'en', appsText 
   const noPath = (rec, statuses) => rec.reason === 'no-path' && statuses.indexOf(rec.status) >= 0
   function statusLine (c) {
     if (noPath(c, ['connecting', 'rejected'])) return T('apps.status.noPath')
+    // The service's advice that a conversation which never connected is joined to the rendezvous and is still alone there after a delay (polish
+    // DECISIONS P2.D2 and P2.D5: the snapshot field hint, the exact word alone): the other page has not joined, because it is closed, asleep or an
+    // older build that never joins the lane. The line says only what the page knows. As in DEC-5 the exact word counts, and only while the status
+    // is connecting; no-path above keeps precedence. The view only reads it: nothing is sent and no state changes.
+    if (c.status === 'connecting' && c.hint === 'alone') return T('apps.status.alone')
     switch (c.status) {
       case 'connected': return T(viaOf(c) === 'relay' ? 'apps.status.relayed' : 'apps.status.connected')
       case 'waiting': return T('apps.status.waiting')
