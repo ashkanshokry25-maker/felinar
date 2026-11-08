@@ -85,6 +85,7 @@ export function hex2bin(hex) {
 }
 
 const HEX40_RE = /^[0-9a-f]{40}$/;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * parseAllow(text) -> { set: Set<40-hex>, uploads: boolean }. The text holds infohashes separated by spaces, commas or lines:
@@ -144,6 +145,7 @@ export function createRendezvous({
   // hex -> { listed, lane, peers: Map<hex, { conn, complete }> }; a lane swarm is listed while its lane is allowed and goes when empty
   const swarms = new Map();
   const lanes = new Map(); // hex -> expiry ms: the private lanes pairs and rooms minted, allowed like listed infohashes until then
+  const builtAt = now(); // when this core was built: where the relay counts began with pairing off (with pairing on, pair.js keeps its own moment; finding A F3 of the 8.2 audit, decision P3.D1)
   let unlisted = 0;
 
   const listed = (hex) => allow.has(hex) || lanes.has(hex);
@@ -456,15 +458,24 @@ export function createRendezvous({
     flush(Array.from(chans, ([key]) => ['delete', typeof key === 'string' && key.startsWith(CHAN_KEY) ? key : CHAN_KEY + key]));
   }
 
+  /** The pairing's stats when pairing is off: every count 0, for the UTC day of the reading, which began at 00:00 UTC or at the build, whichever is later (finding A F3 of the 8.2 audit, decision P3.D1; pair.js says the same of its own counts). */
+  function pairingOffStats() {
+    const t = now();
+    return {
+      codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(t), relaySince: Math.max(builtAt, Math.floor(t / DAY_MS) * DAY_MS),
+      relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0,
+    };
+  }
+
   function stats() {
     let peers = 0;
     for (const s of swarms.values()) peers += s.peers.size;
-    // the relay's counts are the pairing's (pair.js stats): counts and a UTC day, never a lane or a frame; with pairing off they are 0
-    const p = pairs ? pairs.stats() : { codes: 0, knocks: 0, relays: 0, relayed: 0, relayBytes: 0, relayDay: utcDay(now()), relayBusy: 0, relayRate: 0, joinsRefused: 0, evicted: 0 };
+    // the relay's counts are the pairing's (pair.js stats): counts, a UTC day and the moment the counts began (relaySince, finding A F3 of the 8.2 audit, decision P3.D1), never a lane or a frame; with pairing off they are 0
+    const p = pairs ? pairs.stats() : pairingOffStats();
     return {
       open, uploads, allowed: allow.size, swarms: swarms.size, unlisted, peers, sockets: conns.size, interval: intervalS, codes: p.codes, knocks: p.knocks, lanes: lanes.size,
-      relays: p.relays, relayed: p.relayed, relayBytes: p.relayBytes, relayDay: p.relayDay, relayBusy: p.relayBusy, relayRate: p.relayRate, joinsRefused: p.joinsRefused,
-      evicted: p.evicted,
+      relays: p.relays, relayed: p.relayed, relayBytes: p.relayBytes, relayDay: p.relayDay, relaySince: p.relaySince, relayBusy: p.relayBusy, relayRate: p.relayRate,
+      joinsRefused: p.joinsRefused, evicted: p.evicted,
     };
   }
 

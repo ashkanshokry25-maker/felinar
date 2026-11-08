@@ -121,7 +121,7 @@ export const DEFAULT_CAPS = Object.freeze({
   maxRooms: 4, // rooms one socket may own
   relayPerMin: 120, // relayed frames one socket may send in a minute; more get 'too many relays'
   messagesPerMin: 150, // messages of any kind one socket may send in a minute, a ping that reaches this module included (DEC-2); the next one closes the socket (1008)
-  relayDayMax: 20000, // relayed frames per object per UTC day; then 'relay is busy' (the Free plan counts 100,000 requests a day: README, "Relay")
+  relayDayMax: 20000, // relayed frames per object per UTC day, for each run of the object; then 'relay is busy' (the Free plan counts 100,000 requests a day: README, "Relay")
   lanesPerSocket: 8, // relay lanes one socket may join (the list rides in its attachment, which stays under 2 KB)
   pairLaneMembers: 2, // sockets in a pair lane
   roomLaneMembers: 16, // sockets in a room lane
@@ -145,6 +145,7 @@ const DASH_CHARS = [0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212].map(
 const DASHES = new RegExp('[\\s\\-' + DASH_CHARS + ']+', 'g');
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const MINUTE_MS = 60000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const KINDS = new Set(['pair', 'room']);
 
 /**
@@ -168,6 +169,11 @@ export function isRelayAction(action) {
 export function utcDay(ms) {
   const d = new Date(ms);
   return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+}
+
+/** dayStartMs(ms) -> 00:00 UTC of the UTC day that ms falls in, in ms since 1970 (a UTC day is 86,400,000 ms in the time JavaScript counts): where the relay's counts of a day begin. */
+function dayStartMs(ms) {
+  return Math.floor(ms / DAY_MS) * DAY_MS;
 }
 
 /** normalizeCode(text) -> the 12-character code of what a person typed (lowercase, hyphens, dashes and spaces removed), or null for anything of another length. */
@@ -288,9 +294,15 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
   const minted = new Map(); // lane -> exp ms: the lanes this core allowed, kept only when the host gives no laneExpiry
   const lastMsg = new Map(); // conn -> ms of its last message here, a ping included: half of a member's liveness (DEC-1); the host's liveness(conn) is the other half
   const touched = new Set(); // conns whose attachment-relevant state moved since takeTouched()
-  // The relay's counters belong to one UTC day (relayDay) and start again when it changes. They are in memory: a new deployment
-  // starts them at 0 as well (README, "Relay"). They hold counts and characters only, never a frame or a lane.
-  let relayDay = utcDay(now());
+  // The relay's counters belong to one UTC day (relayDay) and start again when it changes. They are in memory: a core that is built
+  // again (a new deployment, or the Worker's object waking from hibernation) starts them at 0 as well, so they count from the moment
+  // this core was built, within relayDay (README, "Relay"). relaySince is where they began, in ms since 1970 UTC: the later of 00:00 UTC
+  // of relayDay and the build (finding A F3 of the 8.2 audit, decision P3.D1). It is read from the clock, never stored, and a difference
+  // of two reads counts every frame between them only if relaySince is equal in both. Each "today" below means since relaySince. They
+  // hold counts and characters only, never a frame or a lane.
+  const builtAt = now();
+  let relayDay = utcDay(builtAt);
+  let relaySince = builtAt;
   let relayed = 0; // frames accepted for forwarding today (one sent while the other side was away counts: it cost a request)
   let relayBytes = 0; // characters of f in those frames
   let relayBusy = 0; // frames refused by the day cap today
@@ -362,11 +374,12 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
     return set;
   }
 
-  /** rollDay(t): the relay's counters belong to one UTC day; when the day changes they start again at 0. */
+  /** rollDay(t): the relay's counters belong to one UTC day; when the day changes they start again at 0, from 00:00 UTC of the new day (a clock set back never puts relaySince before the build). */
   function rollDay(t) {
     const day = utcDay(t);
     if (day === relayDay) return;
     relayDay = day;
+    relaySince = Math.max(builtAt, dayStartMs(t));
     relayed = relayBytes = relayBusy = relayRate = joinsRefused = evicted = 0;
   }
 
@@ -903,10 +916,14 @@ export function createPairing({ random = defaultRandom, now = () => Date.now(), 
     return Boolean(set && set.size);
   }
 
-  /** stats() -> counts only (plan 3.2, DEC-1): codes and knocks held now, relay lanes with a member, and today's relay counters (evicted among them) with the UTC day they belong to. */
+  /**
+   * stats() -> counts only (plan 3.2, DEC-1): codes and knocks held now, relay lanes with a member (read back from the sockets after a wake, so
+   * a gauge and not a counter), and the relay counters (evicted among them) with the UTC day they belong to (relayDay) and the moment they
+   * began (relaySince): a core that was built again after a wake counts from the build, not from 00:00 UTC (finding A F3).
+   */
   function stats() {
     rollDay(now());
-    return { codes: channels.size, knocks: knocks.size, relays: relays.size, relayed, relayBytes, relayDay, relayBusy, relayRate, joinsRefused, evicted };
+    return { codes: channels.size, knocks: knocks.size, relays: relays.size, relayed, relayBytes, relayDay, relaySince, relayBusy, relayRate, joinsRefused, evicted };
   }
 
   return { message, close, sweep, attach, attachmentOf, load, takeTouched, nextExpiry, ownsLive, stats };

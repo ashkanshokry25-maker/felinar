@@ -1,7 +1,9 @@
 // The documents of the relay-first change (docs/APPS.md "Messages through the rendezvous", INTERFACES.md "The relay lane", ARCHITECTURE.md 15.21,
 // DEPLOY.md "Apps at a door", PRIVACY.md "Apps on the door page", OBSERVABILITY.md and CHANGELOG.md) say things the code makes true or false: the
 // names of the actions and pushes, the failure texts, the caps, the counters, the two door.json keys and their reasons, the flags of the tools, the
-// sentences of the price card and the status line. Each test reads a document and the code it describes, so that the claim and the code cannot drift
+// sentences of the price card and the status line, and (the polish batch after the audit of the lab door, 2026-11-08) the order of the card's paragraphs,
+// the tile, the hint of a pair that never connected, where the counters start, what ran on a real host and the signature of the door kit.
+// Each test reads a document and the code it describes, so that the claim and the code cannot drift
 // apart (the same idea as docs-observability.test.mjs, which holds the event tables to the calls). The last tests scan the passages written for this
 // change for the words and dashes the wording rules forbid (CONTRIBUTING.md; the claims table of the research synthesis).
 import { test } from 'node:test';
@@ -161,9 +163,10 @@ test('what a page does with the frames that wait: APPS and CHANGELOG say what th
 test('every counter pair.js reports for the relay is named in INTERFACES, counts only', () => {
   const stats = PAIR.createPairing({ random: (len) => new Uint8Array(len), now: () => Date.UTC(2026, 10, 7, 12, 0, 0) }).stats();
   const relayFields = Object.keys(stats).filter((k) => !['codes', 'knocks'].includes(k));
-  // the seven fields of plan 3.2 and `evicted` (members evicted from a full lane today, DECISIONS DEC-1), exactly (finding B-2 of verify round 0:
-  // DEC-1 has landed, so a stats() that lost the field must fail here)
-  const expected = ['evicted', 'joinsRefused', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relayed', 'relays'];
+  // the seven fields of plan 3.2, `evicted` (members evicted from a full lane today, DECISIONS DEC-1) and `relaySince` (the moment the counts began:
+  // finding A F3 of the 8.2 audit, polish decision P3.D1), exactly (finding B-2 of verify round 0: DEC-1 has landed, so a stats() that lost the
+  // field must fail here)
+  const expected = ['evicted', 'joinsRefused', 'relayBusy', 'relayBytes', 'relayDay', 'relayRate', 'relaySince', 'relayed', 'relays'];
   assert.deepEqual(relayFields.sort(), expected);
   const line = RELAY_LANE.slice(RELAY_LANE.indexOf('Stats '), RELAY_LANE.indexOf('Hibernation'));
   for (const k of relayFields) assert.ok(line.includes(k), 'INTERFACES does not name the counter ' + k);
@@ -261,6 +264,11 @@ test('APPS.md quotes the relay-first price card, its extra line and the status l
   assert.ok(apps.includes('"' + APPS_TEXT.en['apps.status.connected'] + '"'), 'APPS.md still quotes apps.status.connected');
   // the sentence of before is gone from the page that describes what the card says (it stays in the strings for relay "none")
   assert.ok(!apps.includes(flat(APPS_TEXT.en['apps.price.textDirect'])), 'APPS.md still quotes the card of before as the card');
+  // polish P1 (CH-1, OD-3) and P2: the host's order is a paragraph of its own, the tile has no word that is also the name of a door.json key, and the stuck
+  // state has a line. The order of the paragraphs and the tile are held to the code below and in the next test.
+  assert.ok(apps.includes('"' + APPS_TEXT.en['apps.price.hostOrder'] + '"'), 'APPS.md does not quote apps.price.hostOrder');
+  assert.ok(apps.includes('"' + APPS_TEXT.en['apps.tile.messages.text'] + '"'), 'APPS.md does not quote the tile text of Messages');
+  assert.ok(apps.includes('"' + APPS_TEXT.en['apps.status.alone'] + '"'), 'APPS.md does not quote apps.status.alone');
   // the tools line, as the view draws it
   assert.ok(apps.includes('Connection: through the rendezvous. This door: relay: rendezvous, direct: off.'));
   assert.equal(APPS_TEXT.en['apps.tool.transport'].replace('{via}', APPS_TEXT.en['apps.via.relay']).replace('{relay}', 'rendezvous').replace('{direct}', 'off'),
@@ -281,6 +289,119 @@ test('the documents no longer say what the relay made false', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The polish batch after the audit of the lab door (2026-11-08): the card and the tile, the stuck state, the counters, what ran on a real host, the kit signature
+
+// The order of the paragraphs of the price card (CH-1 of the polish recon P1): the text, the denial or the direct line, the host's order, the reports line, the check
+// line. The host's order is shown only when the relay is on, so the card of a door with relay "none" is the card of before.
+test('the paragraphs of the price card come in the order priceSpec builds them, and APPS and INTERFACES give that order', () => {
+  const code = between(read('src/loader/apps-ui.js'), 'function priceSpec', 'const confirmSpec').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  const keys = ['apps.price.text', 'apps.price.hidden', 'apps.price.hostOrder', 'apps.price.reports', 'apps.price.check'];
+  const increasing = (xs) => xs.every((x, i) => x >= 0 && (i === 0 || x > xs[i - 1]));
+  assert.ok(increasing(keys.map((k) => code.indexOf(k))), 'priceSpec builds the paragraphs in another order');
+  assert.match(code, /if \(!today\) paras\.push\(\{ text: T\('apps\.price\.hostOrder'\) \}\)/, 'the host\'s order is left out when the relay is none');
+  const view = between(INTERFACES, '### The view and the hooks in the loader', 'src/loader/ui.js');
+  assert.ok(increasing(keys.map((k) => view.indexOf(k))), 'INTERFACES "The view" gives the paragraphs in another order');
+  assert.match(flat(view), /relay 'none' shows apps\.price\.textDirect or apps\.price\.roomDirect, the texts of before, and no denial and no apps\.price\.hostOrder/);
+  const step = flat(between(APPS, '1. **Show your code.**', '2. **Or knock.**'));
+  const quoted = [APPS_TEXT.en['apps.price.text'], APPS_TEXT.en['apps.price.hidden'], APPS_TEXT.en['apps.price.hostOrder']].map((t) => step.indexOf('"' + t + '"'));
+  assert.ok(increasing(quoted), 'APPS "Messages", step 1, gives the paragraphs of the card in another order');
+  assert.match(step, /A door that sets `relay` to `none` shows the card as it was before messages passed through the rendezvous, without that paragraph/);
+  assert.ok(!APPS_TEXT.en['apps.price.textDirect'].includes('ordered to record') && !APPS_TEXT.en['apps.price.roomDirect'].includes('ordered to record'), 'the texts of before stay as they were');
+  // the card names both addresses and the id of the conversation (OD-1 B); APPS "Who sees what" says it with the words of PRIVACY.md
+  assert.match(APPS_TEXT.en['apps.price.text'], /see your network address and the other person's, the id of your conversation, when you send/);
+  assert.match(flat(APPS_RELAY_SECTION), /\| The rendezvous and whoever hosts it \| the network address of each socket, the id of the lane, when each message is sent/);
+});
+
+// The stuck state (finding A F1 of the 8.2 audit, polish decisions P2.D1 to D6): a pair that never connected and is alone in its lane after aloneHintMs.
+test('the hint of a pair that is alone in its lane: APPS, INTERFACES and OBSERVABILITY give the wait, the line and the report word as the code holds them', () => {
+  const secs = LIMITS.aloneHintMs / 1000;
+  const line = '"' + APPS_TEXT.en['apps.status.alone'] + '"';
+  const apps = flat(APPS);
+  const row = apps.slice(apps.indexOf('| "Connecting..." for a long time after an accept'), apps.indexOf('| "This door\'s rendezvous does not carry messages'));
+  assert.ok(row.length > 100 && row.includes(line) && row.includes('after ' + secs + ' seconds with nobody else in the lane'), 'APPS "When something does not work": the line after the wait');
+  assert.ok(row.includes('an older version of the door page, which never joins the lane'), 'APPS "When something does not work": the older version is a cause');
+  const known = flat(APPS_KNOWN);
+  assert.ok(known.includes(line) && known.includes('for ' + secs + ' seconds and then ' + line), 'APPS "Known limits": a page from before the relay and a page with it');
+  assert.ok(known.includes('is never a member of the conversation\'s relay lane at the rendezvous (it sends no `pair-join`;'), 'APPS "Known limits": why');
+  const service = flat(between(INTERFACES, 'apps.state() ->', 'Calls       every call'));
+  assert.ok(service.includes('hint (\'alone\' or null') && service.includes('for ' + secs + ' seconds (limits.aloneHintMs)'), 'INTERFACES apps.state(): the conversation has a hint');
+  // the hint sends no frame, but it is told in one usage report (OBSERVABILITY), so "nothing is sent" is said of the other person and the rendezvous only
+  // (finding W6 of the wording verify, round 1); the code comment of the service says the same
+  const NOTHING = 'nothing is sent to the other person or to the rendezvous for it';
+  assert.ok(row.includes(NOTHING), 'APPS "When something does not work": what the line sends');
+  assert.ok(known.includes('Nothing is sent to the other person or to the rendezvous for the line'), 'APPS "Known limits": what the line sends');
+  assert.ok(service.includes(NOTHING), 'INTERFACES apps.state(): what the hint sends');
+  assert.ok(flat(read('src/loader/apps.js').replace(/\n\s*\/\/ ?/g, ' ')).includes(NOTHING), 'the header of the service');
+  const view = between(INTERFACES, '### The view and the hooks in the loader', 'src/loader/ui.js');
+  assert.match(flat(view), /whose hint is 'alone' reads apps\.status\.alone/, 'INTERFACES "The view": the line of the hint');
+  for (const k of ['apps.price.hostOrder', 'apps.status.alone']) {
+    assert.ok(view.includes(k), 'INTERFACES "The view" does not name ' + k);
+    assert.ok(typeof APPS_TEXT.en[k] === 'string' && typeof APPS_TEXT.fr[k] === 'string', k + ' exists in both languages');
+  }
+  // the code: the word and the count of the report, and the snapshot field that carries the hint only while the conversation is connecting
+  const serviceJs = read('src/loader/apps.js');
+  assert.match(serviceJs, /_repLane\('alone', 0\)/);
+  assert.match(serviceJs, /hint: c\.status === 'connecting' \? \(c\.hint \|\| null\) : null/);
+  assert.equal(secs, 20, 'the documents say 20 seconds');
+});
+
+// The counters (finding A F3, polish decision P3.D1): a core that is built again starts them at 0, so "today's" counts and a day cap that is a UTC day cap are not
+// what the code does; relaySince says where the counts began. A reader who compares two reads needs the rule that goes with it.
+test('the counters: APPS, INTERFACES and ARCHITECTURE say that the counts and the day cap start again when the object is built again, and name relaySince', () => {
+  const build = (ms) => PAIR.createPairing({ random: (len) => new Uint8Array(len), now: () => ms }).stats();
+  const before = build(Date.UTC(2026, 10, 8, 10, 0, 0));
+  const after = build(Date.UTC(2026, 10, 8, 20, 0, 0));
+  assert.equal(before.relayDay, after.relayDay, 'the same UTC day');
+  assert.ok(after.relaySince > before.relaySince && after.relayed === 0, 'a core built again counts from its own build');
+  const caps = flat(RELAY_LANE.slice(RELAY_LANE.indexOf('Caps  '), RELAY_LANE.indexOf('Stats ')));
+  const stats = flat(RELAY_LANE.slice(RELAY_LANE.indexOf('Stats '), RELAY_LANE.indexOf('Hibernation')));
+  assert.ok(caps.includes('counted in memory (a redeploy, or a wake of the object after it slept, starts the count again)'), 'INTERFACES Caps');
+  assert.ok(stats.includes('relaySince (a number: the moment the counts began') && stats.includes('a wake of the object start them at 0') && stats.includes('only if relaySince is equal in both'), 'INTERFACES Stats');
+  const apps = flat(APPS_RELAY_SECTION);
+  assert.ok(apps.includes('20,000 a UTC day for each run of the object, counted in memory (a redeploy, or a wake of the object after it slept, starts the count again)'), 'APPS "The caps"');
+  assert.ok(apps.includes('`relaySince` there says when they started') && apps.includes('the cap bounds one run of the object and not the whole day'), 'APPS "Who sees what" and the Free plan paragraph');
+  assert.ok(flat(APPS).includes('20,000 a UTC day for each run of one object'), 'APPS "Limits"');
+  const arch = flat(ARCH_RELAY);
+  assert.ok(arch.includes('so a deployment or a wake of the object starts the count again') && arch.includes('`relaySince`'), 'ARCHITECTURE 15.21');
+  for (const [name, text] of [['APPS', flat(APPS)], ['INTERFACES', flat(INTERFACES)], ['ARCHITECTURE', flat(ARCH)]]) {
+    assert.doesNotMatch(text, /frames forwarded today|characters forwarded today|\(a redeploy resets it\)/, name + ' still calls the counts "today\'s" or says only a redeploy resets them');
+  }
+});
+
+// What ran on a real host (the lab, 2026-11-08): a script of two sockets against the lab rendezvous. No conversation between two browsers has gone through it. When the
+// probe of step 8.3 has put one through, these three notes, the sentence of APPS "Not yet run" (pinned above) and CHANGELOG [Unreleased] (pinned below) are false:
+// change the texts and these tests together.
+test('the notes of status of APPS, INTERFACES and ARCHITECTURE say that a script of two sockets ran the lane on the lab rendezvous and that no conversation between two browsers has gone through it', () => {
+  // each note of status is a block quote (a line of one starts with "> ") that ends at the next blank line
+  const note = (doc, marker) => {
+    const a = doc.indexOf(marker);
+    assert.ok(a >= 0, 'no note of status that starts with ' + marker);
+    return flat(doc.slice(a, doc.indexOf('\n\n', a)).replace(/^> ?/gm, ''));
+  };
+  const notes = [['APPS', note(APPS, '> **Messages now pass through the rendezvous (relay-first, unreleased).**')],
+    ['INTERFACES', note(INTERFACES, '> **Relay-first (unreleased).**')], ['ARCHITECTURE', note(ARCH, '> **Relay-first (unreleased).**')]];
+  for (const [name, text] of notes) {
+    assert.ok(/a script of two sockets (?:ran the relay lane )?against the lab rendezvous on Cloudflare/.test(text), name + ' does not say what ran on the lab rendezvous');
+    assert.ok(/no conversation between two browsers has gone through (?:the rendezvous|it) on a real network/.test(text), name + ' does not say that no conversation has gone through it');
+    assert.doesNotMatch(text, /not run on a real network/, name + ' still says that nothing ran on a real network');
+  }
+  assert.doesNotMatch(flat(APPS), /The path is tested on loopback only/);
+  assert.ok(flat(APPS).includes('no browser took part'), 'APPS "Not yet run" says the script was no browser');
+  assert.ok(flat(ARCH).includes('hibernation, the keepalive and idle pair sockets on the real platform, and how the Free plan counts WebSocket messages, are still untested'), 'ARCHITECTURE 15.21 keeps what is still untested');
+});
+
+// The door kit: the signature of doorKitFiles is { version, release, buildId, commit } (polish P4, tools/door-kit-files.mjs); a signed release's kit is { version } alone.
+test('INTERFACES and ARCHITECTURE give the signature of doorKitFiles as tools/door-kit-files.mjs holds it', () => {
+  const params = /export function doorKitFiles\(\{([^}]*)\}/.exec(read('tools/door-kit-files.mjs'));
+  assert.ok(params, 'tools/door-kit-files.mjs exports doorKitFiles with an options object');
+  const names = params[1].split(',').map((p) => p.trim().split(/\s*=/)[0]).filter(Boolean);
+  assert.deepEqual(names, ['version', 'release', 'buildId', 'commit']);
+  assert.ok(INTERFACES.includes('doorKitFiles({ ' + names.join(', ') + ' })'), 'INTERFACES does not give the signature of doorKitFiles');
+  assert.ok(flat(INTERFACES).includes('release: false'), 'INTERFACES does not say what release: false makes');
+  assert.ok(flat(ARCH).includes('must equal `doorKitFiles({ version })`'), 'ARCHITECTURE does not give the signature a signed kit is held to');
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // OBSERVABILITY.md: the rows the relay adds (the full table is held to the calls by docs-observability.test.mjs)
 
 test('OBSERVABILITY.md has the rows of plan 3.6: apps.lane, and via on apps.conv and apps.wire; no lane id in any field', () => {
@@ -293,7 +414,8 @@ test('OBSERVABILITY.md has the rows of plan 3.6: apps.lane, and via on apps.conv
   assert.deepEqual(row('apps.lane').fields, ['ev', 'peers']);
   assert.deepEqual(row('apps.wire').fields, ['conv', 'ev', 'kind', 'via', 'reason']);
   assert.deepEqual(row('apps.conv').fields, ['id', 'status', 'reason', 'incoming', 'via']);
-  for (const ev of ['join', 'joined', 'left', 'full', 'busy', 'off', 'invalid', 'unknown', 'rate', 'dead', 'direct-unavailable']) assert.ok(row('apps.lane').text.includes('`' + ev + '`'), 'apps.lane names ' + ev);
+  // 'alone' is the word of the hint of a pair that never connected (polish decision P2.D6): told once each time the hint comes up, with a count of 0
+  for (const ev of ['join', 'joined', 'left', 'alone', 'full', 'busy', 'off', 'invalid', 'unknown', 'rate', 'dead', 'direct-unavailable']) assert.ok(row('apps.lane').text.includes('`' + ev + '`'), 'apps.lane names ' + ev);
   assert.match(row('apps.lane').text, /The lane's id is never in it/);
   for (const name of ['apps.lane', 'apps.wire', 'apps.conv']) for (const field of row(name).fields) assert.ok(!/^(lane|f|frame|text|box|knock)$/.test(field), name + ' has a field named ' + field);
   assert.match(doc, /pair-relayed.*\(one for each frame that arrives, with no content\)/);

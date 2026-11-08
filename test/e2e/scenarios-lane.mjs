@@ -505,8 +505,10 @@ export function laneScenarios({ run, assert, headed = false }) {
    * after checking its words against the door's tokens (expect; apps-ui.js priceSpec): with relay rendezvous the card has the relay sentence, never the
    * direct-only text of before the relay, and then, as its own paragraph, either the sentence that the other person (the members) do not see your address
    * (direct off; apps.price.hidden, apps.price.hiddenRoom) or the direct line (direct on), never both (DECISIONS DEC-3 and DEC-8); with relay none the
-   * direct-only text alone. A card that can be a first yes names the report host; the accept cards carry the check line instead. whileShown() runs while
-   * the card is on screen (nothing has left the page yet); mark: { at } gets the time of the click on Continue. Returns the card text.
+   * direct-only text alone. On a door with the relay the next paragraph, on its own, is the sentence that the host of a rendezvous can be ordered to
+   * record addresses (apps.price.hostOrder, CH-1 of the polish batch); the relay none card has no such paragraph (OD-5 A). A card that can be a first yes
+   * names the report host; the accept cards carry the check line instead. whileShown() runs while the card is on screen (nothing has left the page yet);
+   * mark: { at } gets the time of the click on Continue. Returns the card text.
    * One helper for the pair and the room cards (D-integrate folded LANE-7's room helper in here, so the rooms of LANE-7 are held to DEC-3 as well).
    */
   async function continueCard(P, kind, { collector, expect, mark = null, whileShown = null }) {
@@ -520,10 +522,13 @@ export function laneScenarios({ run, assert, headed = false }) {
     const relaySentence = must(relayKey);
     const directOnly = must(directOnlyKey);
     const hidden = must(room ? 'apps.price.hiddenRoom' : 'apps.price.hidden');
+    const hostOrder = must('apps.price.hostOrder');
     const paras = await P.page.evaluate(() => Array.from(document.querySelectorAll('[data-role="card"] p')).map((n) => n.innerText.replace(/\s+/g, ' ').trim()));
     if (expect.relay === 'none') {
       assert(text.indexOf(directOnly) >= 0 && text.indexOf(relaySentence) < 0, P.name + ': the ' + kind + ' card of a door with relay none does not show the direct-only text (' + directOnlyKey + ') alone: ' + text);
       assert(text.indexOf(hidden) < 0, P.name + ': the ' + kind + ' card of a door with relay none carries the relay card\'s sentence that the other side does not see the address: ' + text);
+      // OD-5 A: relay none restores today's card, which has no sentence about the host being ordered to record addresses
+      assert(text.indexOf(hostOrder) < 0, P.name + ': the ' + kind + ' card of a door with relay none carries the sentence that the host can be ordered to record addresses (apps.price.hostOrder): ' + text);
     } else {
       assert(text.indexOf(relaySentence) >= 0, P.name + ': the relay sentence (' + relayKey + ') is not on the ' + kind + ' card: ' + text);
       assert(text.indexOf(directOnly) < 0, P.name + ': the ' + kind + ' card carries the direct-only text (' + directOnlyKey + ') on a door with the relay: ' + text);
@@ -532,6 +537,9 @@ export function laneScenarios({ run, assert, headed = false }) {
       // DEC-3: the denial is a paragraph of its own right after the relay sentence when direct is off, and absent when direct is on
       assert(paras.includes(hidden) === !direct, P.name + ': the paragraph "' + hidden + '" ' + (direct ? 'is on' : 'is missing from') + ' the ' + kind + ' card, or is not a paragraph of its own: ' + JSON.stringify(paras));
       if (!direct) assert(paras.indexOf(hidden) === paras.indexOf(relaySentence) + 1, P.name + ': the denial does not follow the relay sentence on the ' + kind + ' card: ' + JSON.stringify(paras));
+      // CH-1: that the host can be ordered to record addresses is a paragraph of its own, right after the denial (direct off) or the direct line (direct on)
+      const beforeOrder = direct ? must('apps.price.direct') : hidden;
+      assert(paras.indexOf(beforeOrder) >= 0 && paras.indexOf(hostOrder) === paras.indexOf(beforeOrder) + 1, P.name + ': the paragraph "' + hostOrder + '" does not follow "' + beforeOrder + '" on the ' + kind + ' card, or is not a paragraph of its own: ' + JSON.stringify(paras));
     }
     if (!accept) assert(text.indexOf(must('apps.price.reports', { host: collector.host })) >= 0, P.name + ': the ' + kind + ' card does not say where the usage reports go (' + collector.host + '): ' + text);
     assert((text.indexOf(must('apps.price.check')) >= 0) === accept, P.name + ': the check line (apps.price.check) ' + (accept ? 'is missing from' : 'is on') + ' the ' + kind + ' card: ' + text);

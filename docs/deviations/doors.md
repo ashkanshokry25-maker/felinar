@@ -18,7 +18,7 @@ the incident note at the end was added at 19:35 ET (the tree was damaged at 19:2
 | `src/sw/core.js` | `DOOR_PAGE_PATH`, `DOOR_JSON_PATH`; a navigation to `/_mw/open.html` is answered from the precache with the shell's framing headers (`serveDoorPage`); `/_mw/door.json` is never owned (always the network); `mw-set-current` from the door page is refused (`door-page`) |
 | `build.mjs` | `_mw/open.html` (the shell with the door manifest link), `_mw/door.webmanifest` (`doorManifestJson`), `_mw/door-frame.js` (an entry from `stdin`: `frameMain(self)`), `_mw/door.json` (`doorJson`, written last, not precached); `precacheList` skips door.json; `doorPageHtml`; constants `DOOR_PAGE`, `DOOR_MANIFEST`, `DOOR_JSON`; the site manifest is unchanged |
 | `tools/publish.mjs` | link mode `--door <host>...` (link.txt, link-card.txt, link-qr.svg, doors.json; `summary.link`; `result.link`); `--door-kit <dir>` with `--release-list`, `--release-sig`, `--release-key`, `--door-site`; exports `doorList`, `qrText`, `qrSvg`, `linkCardText`, `doorKitFiles`, `doorKit` |
-| `tools/check-site.mjs` | `--door` and `--allow-no-cors` (`checkDoor`, `DOOR_CHECK_ORIGIN`) |
+| `tools/check-site.mjs` | `--door` and `--allow-no-cors` (`checkDoor`, `DOOR_CHECK_ORIGIN`, `DOOR_CHECK_MISSING_PATH`, `withoutPointerStamp`) |
 | `test/unit/common-pointer.test.mjs` | 12 tests appended (dr=, hosts, parseDoors, fragments, light links, the vectors, the size) |
 | `test/unit/loader-doors.test.mjs` (new) | 29 tests (one runs only with `MW_BROWSER=1`: the door view in Chromium and WebKit) |
 | `test/unit/tools-publish-doors.test.mjs` (new) | 10 tests |

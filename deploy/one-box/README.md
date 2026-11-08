@@ -153,6 +153,16 @@ by `ship` does not delete it. Set `PIN_MONTH_CAP` (bytes, or `500GiB`: what the 
 has decided SZ-6, `PIN_AUTO_ACCEPT=owner` in `.env`; both are explained in [../pin/README.md](../pin/README.md). Whether the pin
 container can open the box's own public name from inside the machine is not tested (S2 Q10).
 
+## Pairing and the relay of the apps
+
+The tracker of this box is `tools/tracker.mjs`, which also speaks the pairing protocol of the apps on a door page: a visitor opens a
+short code, another knocks with it, and when the first accepts, the tracker allows a private lane for 24 hours. By default it then
+also forwards the sealed messages of the two people between them, under caps, so a door whose apps block names this tracker as its
+rendezvous sends its visitors' messages through this box, unless the block says `"relay": "none"`. Both are on: the image copies `deploy/rtc-worker/pair.js`, and
+`docker-compose.yml` starts the tracker without `--no-pairing` and without `--no-relay-lane`. `--no-relay-lane` keeps the pairing and
+turns the relay off, and `--no-pairing` turns both off; add either to the `command:` list of the `tracker` service. What each of them
+does, the caps and what the rendezvous sees are in [deploy/rtc-worker/README.md](../rtc-worker/README.md) ("Pairing" and "Relay").
+
 ## Limits, in plain words
 
 - The name is the server's IP address. If the server gets another address, the name changes, and visitors start again with empty saved

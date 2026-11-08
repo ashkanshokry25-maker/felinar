@@ -1166,20 +1166,21 @@ describe('the view and the service together, as app.js wires them', () => {
 describe('the line that names the host of the reports', () => {
   const HOST = 'reports.example.test';
   const LINE = (host, lang = 'en') => appsText('apps.price.reports', lang, { host });
-  // DECISIONS DEC-3: on the door these views show (the shipped default, relay through the rendezvous and direct off) the price is two
-  // paragraphs, the text and then, as a paragraph of its own, that the other person (the members) do not see the address; the line that
-  // names the host comes after both. Before DEC-3 the denial was the last sentence of the text, and the counts here were one less.
-  const PRICE = (lang = 'en') => [appsText('apps.price.text', lang), appsText('apps.price.hidden', lang)];
-  const PRICE_ROOM = (lang = 'en') => [appsText('apps.price.room', lang), appsText('apps.price.hiddenRoom', lang)];
+  // DECISIONS DEC-3: on the door these views show (the shipped default, relay through the rendezvous and direct off) the price is three
+  // paragraphs, the text, then, as a paragraph of its own, that the other person (the members) do not see the address, then, as one more
+  // (CH-1 of the polish recon P1), that the host of the rendezvous can be ordered to record addresses; the line that names the host of the
+  // reports comes after all of them. Before DEC-3 the denial was the last sentence of the text, and before CH-1 the counts here were one less.
+  const PRICE = (lang = 'en') => [appsText('apps.price.text', lang), appsText('apps.price.hidden', lang), appsText('apps.price.hostOrder', lang)];
+  const PRICE_ROOM = (lang = 'en') => [appsText('apps.price.room', lang), appsText('apps.price.hiddenRoom', lang), appsText('apps.price.hostOrder', lang)];
 
   test('the start card shows it, once, after the price and before the buttons, when there is a host', async () => {
     const v = view({}, { reportsHost: HOST });
     click(tile(v, 'messages'));
     const paras = cardParas(v);
-    assert.equal(paras.length, 3);
-    assert.deepEqual(paras.slice(0, 2), PRICE());
-    assert.equal(paras[2], LINE(HOST));
-    assert.ok(paras[2].includes(HOST));
+    assert.equal(paras.length, 4);
+    assert.deepEqual(paras.slice(0, 3), PRICE());
+    assert.equal(paras[3], LINE(HOST));
+    assert.ok(paras[3].includes(HOST));
     assert.deepEqual(v.only('card'), [{ kind: 'start', ev: 'show' }]);
   });
 
@@ -1199,7 +1200,7 @@ describe('the line that names the host of the reports', () => {
     let host = HOST;
     const v = view({}, { reportsHost: () => host });
     click(tile(v, 'messages'));
-    assert.equal(cardParas(v).length, 3);
+    assert.equal(cardParas(v).length, 4);
     click(one(v, 'card-cancel'));
     host = '';
     click(one(v, 'code-show'));
@@ -1217,7 +1218,7 @@ describe('the line that names the host of the reports', () => {
     v.app.node.findAll((n) => attr(n, 'data-role') === 'accept' && shown(n)).forEach((b) => click(b));
     const paras = cardParas(v);
     assert.ok(!paras.includes(LINE(HOST)), 'the accept card');
-    assert.equal(paras.length, 3, 'the price, who does not see the address (DEC-3), and the check');
+    assert.equal(paras.length, 4, 'the price, who does not see the address (DEC-3), that the host can be ordered to record addresses (CH-1), and the check');
     const k = view({}, { reportsHost: HOST });
     k.app.show('messages');
     click(one(k, 'card-cancel'));
@@ -1230,21 +1231,40 @@ describe('the line that names the host of the reports', () => {
     const v = view({}, { reportsHost: HOST, lang: 'fr' });
     click(tile(v, 'messages'));
     const paras = cardParas(v);
-    assert.deepEqual(paras.slice(0, 2), PRICE('fr'));
-    assert.equal(paras[2], LINE(HOST, 'fr'));
-    assert.ok(paras[2].includes(HOST));
+    assert.equal(paras.length, 4);
+    assert.deepEqual(paras.slice(0, 3), PRICE('fr'));
+    assert.equal(paras[3], LINE(HOST, 'fr'));
+    assert.ok(paras[3].includes(HOST));
     assert.notEqual(LINE(HOST, 'fr'), LINE(HOST, 'en'));
+  });
+
+  // OD-4 A of the polish batch (P1 G7): the line names the host twice, once as the receiver of the reports and once to say that it sees the
+  // visitor's address, as three sibling disclosures already do (STRINGS.consentReports and gateReports, UI_TEXT.settingsReportsNote). Both
+  // placeholders are filled by fmt(), which replaces every occurrence.
+  test('the host is named twice on the line, both filled, and the line says that the host sees the visitor\'s network address; both languages', async () => {
+    for (const lang of ['en', 'fr']) {
+      const line = LINE(HOST, lang);
+      assert.equal(line.split(HOST).length - 1, 2, lang + ': the host appears twice');
+      assert.ok(!/[{}]/.test(line), lang + ': no placeholder is left unfilled: ' + line);
+    }
+    assert.match(LINE(HOST), /never network addresses, names or messages\. reports\.example\.test can see your network address, as any server you connect to can\. Settings turns them off\.$/);
+    assert.match(LINE(HOST, 'fr'), /jamais d'adresses r\u00e9seau, de noms ni de messages\. reports\.example\.test peut voir votre adresse r\u00e9seau, comme tout serveur auquel vous vous connectez\. Les R\u00e9glages permettent de les arr\u00eater\.$/);
+    const v = view({}, { reportsHost: HOST });
+    click(tile(v, 'messages'));
+    assert.equal(cardParas(v)[3], LINE(HOST), 'the card shows the filled line');
   });
 
   test('the text: usage reports, the host, what is sent and what never is, and that Settings turns it off; both languages, the same placeholder', () => {
     const en = APPS_TEXT.en['apps.price.reports'];
     const fr = APPS_TEXT.fr['apps.price.reports'];
     assert.ok(en && fr);
-    assert.deepEqual(en.match(/\{[A-Za-z]+\}/g), ['{host}']);
-    assert.deepEqual(fr.match(/\{[A-Za-z]+\}/g), ['{host}']);
+    assert.deepEqual(en.match(/\{[A-Za-z]+\}/g), ['{host}', '{host}'], 'the host receives the reports and sees the address: two mentions (OD-4 A)');
+    assert.deepEqual(fr.match(/\{[A-Za-z]+\}/g), ['{host}', '{host}']);
     assert.match(en, /usage reports/);
     assert.match(en, /steps, taps and errors/);
     assert.match(en, /never network addresses, names or messages/);
+    assert.match(en, /\{host\} can see your network address, as any server you connect to can\./);
+    assert.match(fr, /\{host\} peut voir votre adresse r\u00e9seau, comme tout serveur auquel vous vous connectez\./);
     assert.match(en, /Settings turns them off/);
     assert.match(fr, /rapports d'utilisation/);
     assert.match(fr, /R\u00e9glages/);

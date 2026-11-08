@@ -253,9 +253,9 @@ test('README.md states the numbers the code enforces and the names it answers wi
   for (const action of ['pair-join', 'pair-relay', 'pair-leave', 'pair-ping', 'room-join', 'room-relay', 'room-leave', 'pair-joined', 'pair-relayed', 'pair-left', 'pair-pong', 'room-joined', 'room-relayed', 'room-left']) {
     assert.ok(md.includes(action), 'the action ' + action);
   }
-  // every field /stats.json answers is in the README
+  // every field /stats.json answers is in the README (20 since relaySince, the moment the relay's counts began: finding A F3 of the 8.2 audit, polish decision P3.D1)
   const fields = Object.keys(createRendezvous({ allow: new Set(['a'.repeat(40)]) }).stats());
-  assert.equal(fields.length, 19);
+  assert.equal(fields.length, 20);
   for (const field of fields) assert.ok(md.includes(field), 'the stats field ' + field);
   // and the files of the front are named
   for (const name of ['front.js', 'pages/public/_worker.js', 'pages/wrangler.toml']) assert.ok(md.includes(name), name);

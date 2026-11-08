@@ -2144,7 +2144,7 @@ folded in here until the code does it; R 5.4.7 lists those.
   ledger and its chat lane, and with files or media turns on uploads mode (unlisted swarms under caps); an unlisted swarm count is capped
   at 256 per connection, a socket uses at most 4 peer ids per swarm, and closing it stops every peer id it announced.
   `verify-release.mjs verify` needs `--expect-version`, `--min-version` or `--any-version`, and `sign` needs `--rebuilt`; a door kit's
-  host settings must equal `doorKitFiles(version)`. A withdrawal keeps the previous record's `nx=`. `publish`, `ship` and the CI template
+  host settings must equal `doorKitFiles({ version })`. A withdrawal keeps the previous record's `nx=`. `publish`, `ship` and the CI template
   check the loader against the signed release list before the key is used. `build.mjs --update-lock` refuses a new release of a
   provenance package without an attestation unless `--accept-no-provenance` (review-round-tools.md:29 to :41).
 
@@ -2161,8 +2161,9 @@ folded in here until the code does it; R 5.4.7 lists those.
 > 15.19 and 15.20 are taken.
 >
 > **Relay-first (unreleased).** After the accept, the sealed messages of a conversation or a room pass through the rendezvous, on the pair socket the page already holds, by default; a direct link
-> is a door-level opt-in. Built and tested on loopback with fakes, the real pairing core and the Node tracker; not run on a real network (an office Wi-Fi, mobile data,
-> Tor Browser, a VPN). The bullets below carry it: Design (the two keys), What a door page mounts, The rendezvous protocol, Before and after approval, Who learns what, What is stored
+> is a door-level opt-in. Built and tested on loopback with fakes, the real pairing core and the Node tracker; run by a script of two sockets against the lab rendezvous on Cloudflare
+> (2026-11-08), and the lab door was deployed with the relay-first build the same day; no conversation between two browsers has gone through the rendezvous on a real network (an office
+> Wi-Fi, mobile data, Tor Browser, a VPN). The bullets below carry it: Design (the two keys), What a door page mounts, The rendezvous protocol, Before and after approval, Who learns what, What is stored
 > where, Tools, Built as and Not built. The earlier "always relay through a TURN server" idea is not what was built.
 
 - **Design.** A door names its apps in an optional block of its own `/_mw/door.json`: `apps: { rendezvous: [wss: URL, ...], stun: [stun: URL,
@@ -2233,7 +2234,8 @@ folded in here until the code does it; R 5.4.7 lists those.
   page keeps itself under both by its own count, 100 relayed frames and 120 messages in 65 seconds, holding a frame back until there is room and
   refusing at once a frame that would wait behind 8 of its lane, which holds while the network's delay stays even or shrinks by up to 5 seconds:
   the rendezvous counts the frames as they arrive) and 20,000 relayed frames a UTC day for the
-  object (`relay is busy` after, counted in memory); the counts are in `/stats.json`. `RELAY_LANE` `"0"` (the Worker) or `--no-relay-lane` (the Node tracker) makes every join, relay and leave answer
+  object (`relay is busy` after; counted in memory, so a deployment or a wake of the object starts the count again, and the cap holds for one run of the object); the counts, and `relaySince`, the
+  moment they began, are in `/stats.json`. `RELAY_LANE` `"0"` (the Worker) or `--no-relay-lane` (the Node tracker) makes every join, relay and leave answer
   `relay is off on this rendezvous`. A page pings with the exact text `{"v":1,"action":"pair-ping"}` every 50 seconds and the Worker answers without waking its object. The contract is
   INTERFACES "The relay lane".
 - **Before and after approval.** Until the owner accepts, only pair frames move: the tracker has no swarm for the lane, no page holds an
@@ -2301,7 +2303,7 @@ folded in here until the code does it; R 5.4.7 lists those.
   | The Worker's Durable Object storage | `chan:<channel>` = `{ kind, box, lane, exp }` (the owner's sealed box) and `lane:<hex>` = expiry | the code or lane runs out (24 hours at the most) or the owner closes the code |
   | A socket's attachment at the Worker | the codes it owns and, for a requester, its pending requests (id, channel, time, kind): a few hundred bytes of the 2,048 allowed | the socket closes or the request ends |
   | The Node tracker | the same, in memory | the process ends |
-  | The rendezvous's memory, for the relay | the members of each lane (a map of lane to sockets) and the day's counters; never a frame, and nothing is written to storage for the relay | the lane runs out or empties; the counters at 00:00 UTC or a redeploy |
+  | The rendezvous's memory, for the relay | the members of each lane (a map of lane to sockets) and the day's counters; never a frame, and nothing is written to storage for the relay | the lane runs out or empties; the counters at 00:00 UTC, at a redeploy or at a wake of the object |
   | A pair socket's attachment at the Worker | gains `l`: at most 8 pairs of lane (40 hex) and kind, so that the lanes survive the object's sleep | the socket closes |
   | The site ledger; a log of messages | nothing | not applicable |
 
@@ -2323,7 +2325,7 @@ folded in here until the code does it; R 5.4.7 lists those.
   to fail (the direct links measured so far, APPS.md "What was tested", connected on one computer or one network, and a direct link shows each side the other's address); a direct link is the door's opt-in; rooms use the relay too, with up to 16
   members on the lane; no new cryptography (the frames are the sealed frames of `apps-crypto.js`, base64url on the wire); the keepalive is a fixed text the platform answers without waking the object;
   the Worker and its Pages front read no client address header and `request.cf`, and the Worker's logs are off in `wrangler.jsonc`. The apps are inside `_mw/loader.js` (about 184 KB, 53 KB gzipped, 13.7 percent, more on every page, as
-  measured on 2026-11-02, see APPS.md, "What it costs"), not a file of their own. The Node tracker loads `pair.js` from `deploy/`, which the npm package does not carry, so `felinar tracker` from the package
+  measured on 2026-11-02, and about 18.6 KB more, 5.4 KB gzipped, with the relay-first build, as measured on 2026-11-08, see APPS.md, "What it costs"), not a file of their own. The Node tracker loads `pair.js` from `deploy/`, which the npm package does not carry, so `felinar tracker` from the package
   serves no pairing and says so; the two Docker images copy the file.
 - **Not built.** **(proposed)** A password-authenticated key exchange for the code (CPace on P-256 would need hash-to-curve from a small
   library, a dependency decision), which would remove the offline test of secrets against a recorded box. **(proposed)** A hash-committed
@@ -2338,7 +2340,7 @@ folded in here until the code does it; R 5.4.7 lists those.
   request differently from a closed one, so the 1,048,576 channels can be listed (at the cap of 10 requests a minute a socket, 1,000
   sockets need about 105 minutes: arithmetic, not a run). Block is by the other person's key for this visit, so a reload bypasses it. **(proposed)** A separate
   `_mw/apps.js` entry loaded only by doors with apps. **(proposed)** `verify-release.mjs verify --door-kit` accepting a door kit whose
-  `door.json` carries the block (it names that file today, because the signed list names `door.json` without it). On 2026-11-02 the demo's rendezvous ran on Cloudflare (a Pages front over a Worker with a Durable Object): pairing worked at the demo door, and a phone on mobile data (5G) did not connect directly, which is the case the relay through the rendezvous is built for; it has not run on mobile data, an office Wi-Fi, Tor Browser or a VPN, and hibernation, the keepalive and idle pair sockets on the real platform, and how the Free plan counts WebSocket messages, are still untested.
+  `door.json` carries the block (it names that file today, because the signed list names `door.json` without it). On 2026-11-02 the demo's rendezvous ran on Cloudflare (a Pages front over a Worker with a Durable Object): pairing worked at the demo door, and a phone on mobile data (5G) did not connect directly, which is the case the relay through the rendezvous is built for. On 2026-11-08 a script of two sockets ran the relay lane against the lab rendezvous on Cloudflare (join, relay, refusals, ping, leave). The relay has not run on mobile data, an office Wi-Fi, Tor Browser or a VPN, and hibernation, the keepalive and idle pair sockets on the real platform, and how the Free plan counts WebSocket messages, are still untested.
 
 ### 15.22 Usage reports (unreleased)
 

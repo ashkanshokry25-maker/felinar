@@ -1,6 +1,7 @@
 // Unit tests for rooms in src/loader/apps.js (ARCHITECTURE 15.21): the owner's code and lane, the knock and the approval,
 // the roster sealed under the room secret by the owner, the room secret sealed per member, group messages and how they reach everyone (also through members
-// when the owner has no wire to someone), and what a rejected or outside person never gets. Real WebCrypto, a fake rendezvous and
+// when the owner has no wire to someone), and what a rejected or outside person never gets; and that a room never carries the hint 'alone' of a
+// conversation. Real WebCrypto, a fake rendezvous and
 // a fake torrent manager (test/unit/fakes/apps-fakes.mjs). Run: node tools/run-unit.mjs test/unit/loader-apps-rooms.test.mjs
 import { test, describe, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
@@ -8,6 +9,7 @@ import assert from 'node:assert/strict'
 import {
   encodeFrame, decodeFrame, sealRoster, sealGroupBody, sealRoomKey, sealHello, codeKey, splitCode, generateCode, signAccept, T, EXT_NAME, randomBytes
 } from '../../src/loader/apps-crypto.js'
+import { LIMITS } from '../../src/loader/apps.js'
 import { makeWorld, makePerson, CoreRendezvous, FakeLink, until, settle } from './fakes/apps-fakes.mjs'
 
 const created = []
@@ -782,6 +784,60 @@ describe('after the adversary review (ADV-n): rooms', () => {
     assert.ok(j.knock, 'an honest joiner still gets in line: ' + JSON.stringify(j))
     await until(() => O.apps.state().requests.length === 1, 'and the owner sees it')
     for (const l of links) l.close()
+  })
+})
+
+// The hint 'alone' (audit 8.2, lane A, F1; polish decision P2.D4) is for pair conversations: the finding names the pair. The owner of a room is
+// alone in its lane until someone joins, which is no stuck state, and a member whose owner is a page of the old build (no join request at all)
+// is the same silence as a pair's, but it has its own cases and would need its own tests, so a room carries no hint and tells no alone report.
+describe('a room has no hint alone (polish decision P2.D4)', () => {
+  const alone = (P) => P.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'alone').length
+  const joinedTold = (P) => P.reports.filter((r) => r.name === 'apps.lane' && r.fields.ev === 'joined').length
+
+  test('a member whose owner never joins the relay lane stays connecting and says nothing: no hint field on the room, no alone report on either side, whatever the time, also after its socket was lost and came back', async () => {
+    const w = makeWorld()
+    const O = await make(w, 'Owner', { reports: true }) // the older door: direct only, no join request
+    const M = await make(w, 'Mia', { relay: 'rendezvous', direct: 'off', reports: true })
+    const r = await O.apps.createRoom()
+    const j = await M.apps.joinRoom(r.code)
+    await until(() => O.apps.state().requests.length === 1, 'the join request')
+    await O.apps.acceptMember(O.apps.state().requests[0].knock)
+    await until(() => joinedTold(M) === 1, 'the member is in the lane, alone')
+    await settle(10)
+    // The loss and return of the member's socket (finding F1 of the polish verify, round 1). _newConv starts the hint's timer slot of a pair at
+    // null and _newRoom leaves it unset, so a room meets the arming test of _aloneWatch (slot === null) only after some earlier call has set the
+    // slot to null, and the loss of the socket is such a call. The join that follows is told "nobody else" again: with the two room guards of the
+    // hint (_isAlone and _aloneWatch in apps.js) taken out, the member would report alone below.
+    M.link.drop()
+    await until(() => M.link.state === 'backoff', 'the member lost its socket')
+    w.advance(1000)
+    await until(() => joinedTold(M) === 2, 'the member joined the lane again, alone')
+    await settle(10)
+    w.advance(3 * LIMITS.aloneHintMs)
+    await settle(10)
+    assert.equal(roomOf(M, j.id).status, 'connecting', 'it just does not connect, as before')
+    assert.equal(Object.prototype.hasOwnProperty.call(roomOf(M, j.id), 'hint'), false)
+    assert.equal(Object.prototype.hasOwnProperty.call(roomOf(O, r.id), 'hint'), false)
+    assert.deepEqual([alone(O), alone(M)], [0, 0])
+    assert.equal(M.apps.state().conversations.length, 0)
+  })
+
+  // (the owner alone in its lane, with a member that never joins it, is the test "a room has no such hint" in loader-apps-lane.test.mjs: finding F3 of the suites verify, round 1)
+  test('a room that has members connects as it did and carries no hint, on the owner\'s side and the member\'s, whatever the time', async () => {
+    const w = makeWorld()
+    const O = await make(w, 'Owner', { relay: 'rendezvous', direct: 'off', reports: true })
+    const M = await make(w, 'Mia', { relay: 'rendezvous', direct: 'off', reports: true })
+    const r = await O.apps.createRoom()
+    const j = await M.apps.joinRoom(r.code)
+    await until(() => O.apps.state().requests.length === 1, 'the join request')
+    await O.apps.acceptMember(O.apps.state().requests[0].knock)
+    await until(() => roomOf(M, j.id).status === 'connected', 'the member holds the key')
+    w.advance(3 * LIMITS.aloneHintMs)
+    await settle(10)
+    assert.deepEqual([alone(O), alone(M)], [0, 0])
+    assert.equal(roomOf(O, r.id).hint, undefined)
+    assert.equal(Object.prototype.hasOwnProperty.call(roomOf(M, j.id), 'hint'), false)
+    assert.deepEqual(roomOf(M, j.id).status, 'connected')
   })
 })
 

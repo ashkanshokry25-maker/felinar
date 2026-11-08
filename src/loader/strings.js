@@ -1174,12 +1174,18 @@ function lookupC2 (table, key, lang, params) {
 // conversations, a conversation) and Rooms. English and French have the same keys and the same placeholders (test/unit/loader-apps-ui.test.mjs).
 // English is ASCII. Presence reads "Connected to you now" for a direct link and "Connected through the rendezvous" for the relay; no text calls
 // anyone online, and none promises more than the page does. The price sentence (relay-first build, plan 3.8) says what the rendezvous and
-// whoever hosts it see (the network address, when a message is sent and roughly how much, never what); that the other person (the members) do
-// not see the address is a sentence of its own, apps.price.hidden and apps.price.hiddenRoom, shown as its own paragraph only when the door keeps
-// direct links off (DECISIONS DEC-3: a card may not state the denial and then take it back); a door that turns direct links on shows
-// apps.price.direct in its place, which says that a direct link shows each side the other's address, and a door with relay "none" shows today's
-// sentences (apps.price.textDirect and roomDirect). apps.status.noPath is the line of a conversation or room whose only path the rendezvous
-// refused (DEC-5). None of the texts holds the digit 8 (the code is twelve characters), a dash, or a claim the CONTRIBUTING wording rules forbid.
+// whoever hosts it see: the network address of each side, the id of the conversation (of the room), when a message is sent and roughly how much,
+// never what (polish DECISIONS P1.D1, which follows docs/PRIVACY.md). Its lead-in does not say who accepts, because the same card is shown to the
+// person who accepts (P1.D2). That the host of a rendezvous can be ordered to record the addresses that connect to it, and barred from saying so,
+// is apps.price.hostOrder, in the words of docs/PRIVACY.md: a paragraph of its own on every card of a door with the relay, after the denial or the
+// direct line and before the line that names the host of the reports (CH-1 of the polish recon P1); a door with relay "none" shows today's
+// sentences without it (P1.D5). That the other person (the members) do not see the address is a sentence of its own, apps.price.hidden and
+// apps.price.hiddenRoom, shown as its own paragraph only when the door keeps direct links off (DECISIONS DEC-3: a card may not state the denial
+// and then take it back); a door that turns direct links on shows apps.price.direct in its place, which says that a direct link shows each side
+// the other's address, and a door with relay "none" shows today's sentences (apps.price.textDirect and roomDirect). apps.status.noPath is the
+// line of a conversation or room whose only path the rendezvous refused (DEC-5); apps.status.alone is the line of a conversation that never
+// connected, is joined to the rendezvous and is still alone there after a delay (the service's hint, P2.D2). None of the texts holds the digit 8
+// (the code is twelve characters), a dash, or a claim the CONTRIBUTING wording rules forbid.
 export const APPS_TEXT = Object.freeze({
   en: Object.freeze({
     'apps.docTitle': 'Apps',
@@ -1199,7 +1205,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.link.connecting': 'Connecting to this door...',
     'apps.link.closed': 'The connection to this door was lost. This page keeps trying.',
     'apps.tile.messages': 'Messages',
-    'apps.tile.messages.text': 'Direct messages with one person, by code',
+    'apps.tile.messages.text': 'One-to-one messages, by code',
     'apps.tile.rooms': 'Rooms',
     'apps.tile.rooms.text': 'A room for a few people, by code',
     'apps.tile.calls': 'Calls',
@@ -1234,17 +1240,18 @@ export const APPS_TEXT = Object.freeze({
     'apps.err.send': 'The message was not sent. Try again.',
     'apps.err.generic': 'That did not work. Try again.',
     'apps.price.title': 'What this costs your privacy',
-    'apps.price.text': 'Codes and requests pass through this door\'s rendezvous. After the other person accepts, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what.',
-    'apps.price.room': 'Codes and requests pass through this door\'s rendezvous. After a member is accepted, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address, when you send and roughly how much, never what.',
+    'apps.price.text': 'Codes and requests pass through this door\'s rendezvous. After a request is accepted, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address and the other person\'s, the id of your conversation, when you send and roughly how much, never what.',
+    'apps.price.room': 'Codes and requests pass through this door\'s rendezvous. After a member is accepted, your messages pass through it too, sealed: the rendezvous and whoever hosts it see your network address and the other members\', the id of your room, when you send and roughly how much, never what.',
     'apps.price.hidden': 'The other person does not see your address.',
     'apps.price.hiddenRoom': 'The members do not see your address.',
+    'apps.price.hostOrder': 'The host of a rendezvous can be ordered to record the addresses that connect to it and can be barred from saying so.',
     'apps.price.direct': 'This door also tries a direct link between you, which shows each side the other\'s network address.',
     'apps.price.textDirect': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until the other person accepts; then you connect directly and each side learns the other\'s network address.',
     'apps.price.roomDirect': 'Codes and requests pass through this door\'s rendezvous. Nothing else leaves this device until a member is accepted; then you connect directly and each side learns the other\'s network address.',
     'apps.price.check': 'Check: read your codes to each other.',
     'apps.price.continue': 'Continue',
     'apps.price.notNow': 'Not now',
-    'apps.price.reports': 'Besides that, this door sends usage reports to its operator at {host}: what the apps do here (steps, taps and errors), never network addresses, names or messages. Settings turns them off.',
+    'apps.price.reports': 'Besides that, this door sends usage reports to its operator at {host}: what the apps do here (steps, taps and errors), never network addresses, names or messages. {host} can see your network address, as any server you connect to can. Settings turns them off.',
     'apps.accept.title': 'Accept this request?',
     'apps.accept.titleRoom': 'Let this person into your room?',
     'apps.requests.title': 'Requests',
@@ -1274,6 +1281,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.status.notConnectedYet': 'Not connected',
     'apps.status.connecting': 'Connecting...',
     'apps.status.noPath': 'This door\'s rendezvous does not carry messages; ask the door\'s owner to update it',
+    'apps.status.alone': 'The other person\'s page has not joined yet. It may be closed, asleep or an older version of this page.',
     'apps.status.waiting': 'Waiting for approval',
     'apps.status.rejected': 'Rejected',
     'apps.status.left': 'Left',
@@ -1494,7 +1502,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.link.connecting': 'Connexion à cette porte...',
     'apps.link.closed': 'La connexion à cette porte a été perdue. Cette page continue d\'essayer.',
     'apps.tile.messages': 'Messages',
-    'apps.tile.messages.text': 'Messages directs avec une personne, par code',
+    'apps.tile.messages.text': 'Messages individuels, par code',
     'apps.tile.rooms': 'Salons',
     'apps.tile.rooms.text': 'Un salon pour quelques personnes, par code',
     'apps.tile.calls': 'Appels',
@@ -1529,17 +1537,18 @@ export const APPS_TEXT = Object.freeze({
     'apps.err.send': 'Le message n\'a pas été envoyé. Réessayez.',
     'apps.err.generic': 'Cela n\'a pas fonctionné. Réessayez.',
     'apps.price.title': 'Ce que cela coûte à votre vie privée',
-    'apps.price.text': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois que l\'autre personne a accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu.',
-    'apps.price.room': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois qu\'un membre est accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau, le moment où vous écrivez et à peu près la quantité, jamais le contenu.',
+    'apps.price.text': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois qu\'une demande est acceptée, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau et celle de l\'autre personne, l\'identifiant de votre conversation, le moment où vous écrivez et à peu près la quantité, jamais le contenu.',
+    'apps.price.room': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Une fois qu\'un membre est accepté, vos messages y passent aussi, scellés : le point de rendez-vous et son hébergeur voient votre adresse réseau et celles des autres membres, l\'identifiant de votre salon, le moment où vous écrivez et à peu près la quantité, jamais le contenu.',
     'apps.price.hidden': 'L\'autre personne ne voit pas votre adresse.',
     'apps.price.hiddenRoom': 'Les membres ne voient pas votre adresse.',
+    'apps.price.hostOrder': 'L\'hébergeur d\'un point de rendez-vous peut recevoir l\'ordre d\'enregistrer les adresses qui s\'y connectent, et peut se voir interdire de le dire.',
     'apps.price.direct': 'Cette porte essaie aussi un lien direct entre vous, qui montre à chacun l\'adresse réseau de l\'autre.',
     'apps.price.textDirect': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant que l\'autre personne n\'a pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
     'apps.price.roomDirect': 'Les codes et les demandes passent par le point de rendez-vous de cette porte. Rien d\'autre ne quitte cet appareil tant qu\'un membre n\'est pas accepté; ensuite, vous vous connectez directement et chacun apprend l\'adresse réseau de l\'autre.',
     'apps.price.check': 'Vérifiez : lisez-vous vos codes l\'un à l\'autre.',
     'apps.price.continue': 'Continuer',
     'apps.price.notNow': 'Pas maintenant',
-    'apps.price.reports': 'En plus, cette porte envoie des rapports d\'utilisation à son exploitant, à {host} : ce que font les applications ici (étapes, touches et erreurs), jamais d\'adresses réseau, de noms ni de messages. Les Réglages permettent de les arrêter.',
+    'apps.price.reports': 'En plus, cette porte envoie des rapports d\'utilisation à son exploitant, à {host} : ce que font les applications ici (étapes, touches et erreurs), jamais d\'adresses réseau, de noms ni de messages. {host} peut voir votre adresse réseau, comme tout serveur auquel vous vous connectez. Les Réglages permettent de les arrêter.',
     'apps.accept.title': 'Accepter cette demande?',
     'apps.accept.titleRoom': 'Laisser entrer cette personne dans votre salon?',
     'apps.requests.title': 'Demandes',
@@ -1569,6 +1578,7 @@ export const APPS_TEXT = Object.freeze({
     'apps.status.notConnectedYet': 'Pas connecté',
     'apps.status.connecting': 'Connexion...',
     'apps.status.noPath': 'Le point de rendez-vous de cette porte ne transporte pas les messages; demandez au propriétaire de la porte de le mettre à jour',
+    'apps.status.alone': 'La page de l\'autre personne n\'a pas encore rejoint la conversation. Elle est peut-être fermée, en veille ou dans une version plus ancienne de cette page.',
     'apps.status.waiting': 'En attente d\'approbation',
     'apps.status.rejected': 'Refusée',
     'apps.status.left': 'Parti',
